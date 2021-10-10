@@ -1,0 +1,36 @@
+[package]
+name = "make"
+version = "0.1.0"
+authors = ["Ivan Schuetz <ivanschuetz@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# algonaut = { path = "/Users/ischuetz/dev/github/algonaut" }
+# algonaut = { git = "https://github.com/manuelmauro/algonaut", branch = "main" }
+algonaut = { git = "https://github.com/ivanschuetz/algonaut", branch = "main" }
+anyhow = "1.0"
+rmp-serde = "0.15.4"
+# serde_json = "1.0.40"
+serde = {version = "1.0", features = ["derive"]}
+data-encoding = "2.3.1"
+tinytemplate = "1.2.1"
+# tealdbg = { path = "/Users/ischuetz/dev/algorand/tealdbg_launcher" }
+
+log = "0.4"
+# std::Instant::now() panics on WASM https://github.com/sebcrozet/instant
+# working config from here (first 2 posts): https://github.com/sebcrozet/instant/issues/1
+instant = { version = "0.1", features = [ "now", "wasm-bindgen" ] }
+chrono = { version = "0.4.19", features = ["serde"] }
+
+futures-timer = "3.0.2"
+gloo-timers = { version = "0.2.1", features = ["futures"] }
+
+[features]
+stdweb = [ "instant/stdweb" ]
+wasm-bindgen = [ "instant/wasm-bindgen" ]
+
+[dev-dependencies]
+serial_test = "0.5.1"
+tokio = { version = "1.6.0", features = ["rt-multi-thread", "macros"] }

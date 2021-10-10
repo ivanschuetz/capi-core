@@ -1,0 +1,205 @@
+use algonaut::{
+    algod::v2::Algod,
+    core::{Address, MicroAlgos},
+    transaction::{account::ContractAccount, AcceptAsset, Pay, TransferAsset, TxnBuilder},
+};
+use anyhow::Result;
+use serde::Serialize;
+
+use crate::{
+    flows::create_project::model::{
+        SetupInvestEscrowSigned, SetupInvestingEscrowToSign, SubmitSetupEscrowRes,
+    },
+    teal::{render_template, TealSource, TealSourceTemplate},
+};
+
+/// The investing escrow holds the created project's assets (shares and votes) to be bought by investors
+
+pub async fn create_investing_escrow(
+    algod: &Algod,
+    shares_asset_id: u64,
+    votes_asset_id: u64,
+    asset_price: MicroAlgos,
+    staking_escrow_address: Address,
+    source: TealSourceTemplate,
+) -> Result<ContractAccount> {
+    let source = render_investing_escrow(
+        source,
+        shares_asset_id,
+        votes_asset_id,
+        asset_price,
+        staking_escrow_address,
+    )?;
+    let program = algod.compile_teal(&source.0).await?;
+    Ok(ContractAccount::new(program))
+}
+
+fn render_investing_escrow(
+    source: TealSourceTemplate,
+    shares_asset_id: u64,
+    votes_asset_id: u64,
+    asset_price: MicroAlgos, // affects the shares (and indirectly votes, it's 1:1)
+    staking_escrow_address: Address,
+) -> Result<TealSource> {
+    let escrow_source = render_template(
+        source,
+        EditTemplateContext {
+            shares_asset_id: shares_asset_id.to_string(),
+            votes_asset_id: votes_asset_id.to_string(),
+            asset_price: asset_price.to_string(),
+            staking_escrow_address: staking_escrow_address.to_string(),
+        },
+    )?;
+    // save_rendered_teal(file_name, escrow_source.clone())?; // debugging
+    Ok(escrow_source)
+}
+
+pub async fn setup_investing_escrow_txs(
+    algod: &Algod,
+    source: TealSourceTemplate,
+    shares_asset_id: u64,
+    votes_asset_id: u64,
+    asset_amount: u64,
+    asset_price: MicroAlgos,
+    creator: &Address,
+    staking_escrow_address: Address,
+) -> Result<SetupInvestingEscrowToSign> {
+    println!(
+        "Setting up escrow with asset id: {}, amount: {}, creator: {:?}",
+        shares_asset_id, asset_amount, creator
+    );
+
+    let escrow = create_investing_escrow(
+        algod,
+        shares_asset_id,
+        votes_asset_id,
+        asset_price,
+        staking_escrow_address,
+        source,
+    )
+    .await?;
+    println!("Generated investing escrow address: {:?}", escrow.address);
+
+    let params = algod.suggested_transaction_params().await?;
+
+    // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
+    let fund_algos_tx = &mut TxnBuilder::with(
+        params.clone(),
+        Pay::new(*creator, escrow.address, MicroAlgos(1_000_000)).build(),
+    )
+    .build();
+
+    let shares_optin_tx = &mut TxnBuilder::with(
+        params.clone(),
+        AcceptAsset::new(escrow.address, shares_asset_id).build(),
+    )
+    .build();
+
+    let votes_optin_tx = &mut TxnBuilder::with(
+        params.clone(),
+        AcceptAsset::new(escrow.address, votes_asset_id).build(),
+    )
+    .build();
+
+    let fund_shares_asset_tx = &mut TxnBuilder::with(
+        params.clone(),
+        TransferAsset::new(*creator, shares_asset_id, asset_amount, escrow.address).build(),
+    )
+    .build();
+
+    let fund_votes_asset_tx = &mut TxnBuilder::with(
+        params,
+        TransferAsset::new(*creator, votes_asset_id, asset_amount, escrow.address).build(),
+    )
+    .build();
+
+    // TODO is it possible and does it make sense to execute these atomically?,
+    // "sc opts in to asset and I send funds to sc"
+    // TxGroup::assign_group_id(vec![optin_tx, fund_tx])?;
+
+    Ok(SetupInvestingEscrowToSign {
+        escrow,
+        escrow_shares_optin_tx: shares_optin_tx.clone(),
+        escrow_votes_optin_tx: votes_optin_tx.clone(),
+        escrow_funding_algos_tx: fund_algos_tx.clone(),
+        escrow_funding_shares_asset_tx: fund_shares_asset_tx.clone(),
+        escrow_funding_votes_asset_tx: fund_votes_asset_tx.clone(),
+    })
+}
+
+// TODO submit these directly on create project submit?
+pub async fn submit_investing_setup_escrow(
+    algod: &Algod,
+    signed: SetupInvestEscrowSigned,
+) -> Result<SubmitSetupEscrowRes> {
+    let shares_optin_escrow_res = algod
+        .broadcast_signed_transaction(&signed.shares_optin_tx)
+        .await?;
+    println!("shares_optin_escrow_res: {:?}", shares_optin_escrow_res);
+
+    let votes_optin_escrow_res = algod
+        .broadcast_signed_transaction(&signed.votes_optin_tx)
+        .await?;
+    println!("votes_optin_escrow_res: {:?}", votes_optin_escrow_res);
+
+    Ok(SubmitSetupEscrowRes {
+        shares_optin_escrow_algos_tx_id: shares_optin_escrow_res.tx_id,
+        votes_optin_escrow_algos_tx_id: votes_optin_escrow_res.tx_id,
+    })
+}
+
+#[derive(Serialize)]
+struct EditTemplateContext {
+    shares_asset_id: String,
+    votes_asset_id: String,
+    asset_price: String,
+    staking_escrow_address: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        dependencies, flows::create_project::setup::investing_escrow::render_investing_escrow,
+        teal::load_teal_template,
+    };
+    use algonaut::core::{Address, MicroAlgos};
+    use anyhow::Result;
+    use tokio::test;
+
+    // Prints the rendered TEAL
+    #[test]
+    #[ignore]
+    async fn test_render_escrow() -> Result<()> {
+        let template = load_teal_template("investing_escrow")?;
+        let source = render_investing_escrow(
+            template,
+            123,
+            124,
+            MicroAlgos(1_000_000),
+            Address::new([0; 32]),
+        )?;
+        let source_str = String::from_utf8(source.0)?;
+        println!("source: {}", source_str);
+        Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    async fn test_render_escrow_and_compile() -> Result<()> {
+        let template = load_teal_template("investing_escrow")?;
+        let source = render_investing_escrow(
+            template,
+            123,
+            124,
+            MicroAlgos(1_000_000),
+            Address::new([0; 32]),
+        )?;
+
+        // deps
+        let algod = dependencies::algod();
+
+        let _ = algod.compile_teal(&source.0).await?;
+
+        Ok(())
+    }
+}
