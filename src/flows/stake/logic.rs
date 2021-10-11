@@ -40,7 +40,7 @@ pub async fn stake(
     let shares_xfer_tx = &mut TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params.clone()
+            ..params
         },
         TransferAsset::new(
             investor,
@@ -70,7 +70,7 @@ pub async fn central_opt_in(
     let tx = &mut TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params.clone()
+            ..params
         },
         OptInApplication::new(address, central_app_id).build(),
     )

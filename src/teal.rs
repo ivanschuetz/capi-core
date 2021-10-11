@@ -28,12 +28,12 @@ pub fn save_rendered_teal(file_name: &str, teal: TealSource) -> Result<()> {
 
 // file_name without .teal
 pub fn load_teal_template(file_name: &str) -> Result<TealSourceTemplate> {
-    load_file_bytes("teal_template", file_name).map(|bytes| TealSourceTemplate(bytes))
+    load_file_bytes("teal_template", file_name).map(TealSourceTemplate)
 }
 
 // file_name without .teal
 pub fn load_teal(file_name: &str) -> Result<TealSource> {
-    load_file_bytes("teal", file_name).map(|bytes| TealSource(bytes))
+    load_file_bytes("teal", file_name).map(TealSource)
 }
 
 fn load_file_bytes(folder: &str, file_name: &str) -> Result<Vec<u8>> {

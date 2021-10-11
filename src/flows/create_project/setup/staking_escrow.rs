@@ -69,7 +69,7 @@ pub async fn setup_staking_escrow_txs(
     .build();
 
     let votes_optin_tx = &mut TxnBuilder::with(
-        params.clone(),
+        params,
         AcceptAsset::new(escrow.address, votes_asset_id).build(),
     )
     .build();

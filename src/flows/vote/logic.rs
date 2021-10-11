@@ -42,7 +42,7 @@ pub async fn vote(
     let votes_xfer_tx = &mut TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params.clone()
+            ..params
         },
         TransferAsset::new(
             staking_escrow.address,

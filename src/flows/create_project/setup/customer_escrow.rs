@@ -67,8 +67,7 @@ async fn create_payment_tx(
     amount: MicroAlgos,
 ) -> Result<Transaction> {
     let params = algod.suggested_transaction_params().await?;
-    let tx =
-        &mut TxnBuilder::with(params.clone(), Pay::new(*sender, *receiver, amount).build()).build();
+    let tx = &mut TxnBuilder::with(params, Pay::new(*sender, *receiver, amount).build()).build();
     Ok(tx.clone())
 }
 

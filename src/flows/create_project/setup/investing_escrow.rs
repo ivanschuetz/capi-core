@@ -54,6 +54,7 @@ fn render_investing_escrow(
     Ok(escrow_source)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn setup_investing_escrow_txs(
     algod: &Algod,
     source: TealSourceTemplate,

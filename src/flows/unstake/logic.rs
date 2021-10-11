@@ -55,7 +55,7 @@ pub async fn unstake(
     let pay_shares_xfer_fee_tx = &mut TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params.clone()
+            ..params
         },
         Pay::new(investor, staking_escrow.address, FIXED_FEE).build(),
     )
@@ -63,11 +63,11 @@ pub async fn unstake(
 
     TxGroup::assign_group_id(vec![app_call_tx, shares_xfer_tx, pay_shares_xfer_fee_tx])?;
 
-    let signed_shares_xfer_tx = staking_escrow.sign(&shares_xfer_tx, vec![])?;
+    let signed_shares_xfer_tx = staking_escrow.sign(shares_xfer_tx, vec![])?;
 
     Ok(UnstakeToSign {
         app_call_tx: app_call_tx.clone(),
-        shares_xfer_tx: signed_shares_xfer_tx.clone(),
+        shares_xfer_tx: signed_shares_xfer_tx,
         pay_shares_xfer_fee_tx: pay_shares_xfer_fee_tx.clone(),
     })
 }

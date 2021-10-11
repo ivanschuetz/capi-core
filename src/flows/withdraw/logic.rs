@@ -48,7 +48,7 @@ pub async fn withdraw(
 
     // Consume votes (transfer vote_in to vote_out)
     let consume_votes_tx = &mut consume_votes_tx(
-        &algod,
+        algod,
         params.clone(),
         votes_in_escrow.address,
         votes_asset_id,
@@ -101,7 +101,7 @@ async fn consume_votes_tx(
         .iter()
         .find(|a| a.asset_id == votes_asset_id)
         // TODO confirm that this means not opted in,
-        .ok_or(anyhow!("Votes_in doesn't have vote asset"))?;
+        .ok_or_else(|| anyhow!("Votes_in doesn't have vote asset"))?;
     let votes_count = investor_votes.amount;
 
     let tx = TxnBuilder::with(

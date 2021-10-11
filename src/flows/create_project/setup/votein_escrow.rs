@@ -101,7 +101,7 @@ pub async fn setup_votein_escrow_txs(
 
     // Escrow opts in to the vote asset
     let votes_optin_tx = TxnBuilder::with(
-        params.clone(),
+        params,
         AcceptAsset::new(escrow.address, votes_asset_id).build(),
     )
     .build();

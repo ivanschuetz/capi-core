@@ -31,7 +31,7 @@ pub async fn reclaim_votes(
         .iter()
         .find(|a| a.asset_id == votes_asset_id)
         // TODO confirm that this means not opted in,
-        .ok_or(anyhow!(
+        .ok_or_else(|| anyhow!(
             "vote_out doesn't have votes (TODO confirm that this means not opted in, not 0, edit msg)"
         ))?
         .amount;
@@ -75,7 +75,7 @@ pub async fn reclaim_votes(
 
     TxGroup::assign_group_id(vec![votes_xfer_tx, pay_votex_xfer_fee_tx])?;
 
-    let signed_votes_xfer_tx = vote_out_escrow.sign(&votes_xfer_tx, vec![])?;
+    let signed_votes_xfer_tx = vote_out_escrow.sign(votes_xfer_tx, vec![])?;
 
     Ok(ReclaimVotesToSign {
         votes_xfer_tx: signed_votes_xfer_tx,

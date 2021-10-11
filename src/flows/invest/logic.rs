@@ -17,6 +17,7 @@ pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 /// Requires investor to opt in to the app first,
 /// we can't do it here: setting local state errors if during opt-in
+#[allow(clippy::too_many_arguments)]
 pub async fn invest_txs(
     algod: &Algod,
     project: &Project,
@@ -79,7 +80,7 @@ pub async fn invest_txs(
     let receive_voting_asset_tx = &mut TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params.clone()
+            ..params
         },
         TransferAsset::new(
             project.invest_escrow.address,

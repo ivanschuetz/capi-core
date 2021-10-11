@@ -36,7 +36,7 @@ pub async fn create_project_txs(
     // TODO reuse transaction params for all these txs, also in other places
 
     let mut drain_to_sign = setup_drain(
-        &algod,
+        algod,
         programs.central_escrow,
         programs.customer_escrow,
         &creator,
@@ -85,7 +85,7 @@ pub async fn create_project_txs(
     )
     .await?;
     let mut vote_in_to_sign = setup_votein_escrow_txs(
-        &algod,
+        algod,
         programs.vote_in_escrow,
         creator,
         votes_asset_id,
@@ -124,12 +124,12 @@ pub async fn create_project_txs(
         .sign(&vote_in_to_sign.escrow_votes_optin_tx, vec![])?;
 
     let optin_txs = vec![
-        staking_escrow_shares_optin_tx_signed.clone(),
-        staking_escrow_votes_optin_tx_signed.clone(),
-        invest_escrow_shares_optin_tx_signed.clone(),
-        invest_escrow_votes_optin_tx_signed.clone(),
-        votes_out_escrow_votes_optin_tx_signed.clone(),
-        votes_in_escrow_votes_optin_tx_signed.clone(),
+        staking_escrow_shares_optin_tx_signed,
+        staking_escrow_votes_optin_tx_signed,
+        invest_escrow_shares_optin_tx_signed,
+        invest_escrow_votes_optin_tx_signed,
+        votes_out_escrow_votes_optin_tx_signed,
+        votes_in_escrow_votes_optin_tx_signed,
     ];
 
     //////////////////////////////
@@ -205,10 +205,10 @@ pub async fn submit_create_project(
         .await?;
     let p_tx = wait_for_pending_transaction(algod, &create_app_res.tx_id)
         .await?
-        .ok_or(anyhow!("Couldn't get pending tx"))?;
+        .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
     let central_app_id = p_tx
         .application_index
-        .ok_or(anyhow!("Pending tx didn't have app id"))?;
+        .ok_or_else(|| anyhow!("Pending tx didn't have app id"))?;
     log::debug!("?? (see todo) central_app_id: {:?}", central_app_id);
 
     ///////////////////////////////////////////////////////////¯
@@ -224,7 +224,7 @@ pub async fn submit_create_project(
         .await?;
     let _ = wait_for_pending_transaction(algod, &submit_grouped_optin_txs_res.tx_id)
         .await?
-        .ok_or(anyhow!("Couldn't get pending tx"))?;
+        .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
     log::debug!("Executed optin txs");
 
     // now that the escrows are opted in, send them assets
@@ -236,10 +236,10 @@ pub async fn submit_create_project(
         .await?;
     let _ = wait_for_pending_transaction(algod, &submit_shares_xfer_tx_res.tx_id)
         .await?
-        .ok_or(anyhow!("Couldn't get pending tx"))?;
+        .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
     let _ = wait_for_pending_transaction(algod, &submit_votes_xfer_tx_res.tx_id)
         .await?
-        .ok_or(anyhow!("Couldn't get pending tx"))?;
+        .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
     log::debug!("Executed escrow xfer txs");
 
     ///////////
