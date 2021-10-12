@@ -33,6 +33,22 @@ bnz branch_vote
 after_args_access:
 
 global GroupSize
+int 3 // TODO placeholder with slots count + ~2 (central app call tx, asset xfer to investor, maybe also pay fees) 
+==
+bz after_tx_group_access
+gtxn 0 TypeEnum // unstake shares
+int axfer
+==
+&&
+int CloseOut 
+gtxn 1 OnCompletion // central opt out (TODO app ids?)
+==
+&&
+bnz branch_opt_out
+
+after_tx_group_access:
+
+global GroupSize
 int 1
 ==
 bnz branch_opt_in
@@ -118,7 +134,6 @@ int 0
 app_global_put
 &&
 
-int 1
 return
 
 branch_vote:
@@ -181,12 +196,40 @@ byte "LVotes"
 gtxn 0 ApplicationArgs 1 // vote count
 app_local_put
 
+// TODO review (also in other places) whether this int 1 after setting state is needed - probably shouldn't be here)
+int 1
+return
+
+branch_opt_out:
+
+// opting out from this slot (central checks for the other slots)
+int CloseOut 
+gtxn 2 OnCompletion
+==
+&&
+
+// remove possible votes
+
+byte "Votes"
+
+int 0
+byte "LVotes"
+app_local_get
+
+byte "Votes"
+app_global_get
+-
+
+app_global_put
+
 int 1
 return
 
 branch_opt_in:
 int 1 // TODO remove
 return
+
+// The local state will be cleared automatically (CloseOut)
 
 
 // state:
