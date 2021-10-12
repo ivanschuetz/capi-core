@@ -6,15 +6,16 @@ use algonaut::{
 use anyhow::Result;
 use serde::Serialize;
 
-use crate::teal::{render_template, TealSource, TealSourceTemplate};
+use crate::teal::{render_template, save_rendered_teal, TealSource, TealSourceTemplate};
 
 pub async fn create_withdrawal_slot_tx(
     algod: &Algod,
     approval_source: TealSourceTemplate,
     clear_source: TealSource,
     creator: &Address,
+    vote_threshold: u64,
 ) -> Result<Transaction> {
-    let approval_source = render_app(approval_source, creator)?;
+    let approval_source = render_app(approval_source, creator, vote_threshold)?;
 
     let compiled_approval_program = algod.compile_teal(&approval_source.0).await?;
     let compiled_clear_program = algod.compile_teal(&clear_source.0).await?;
@@ -42,20 +43,26 @@ pub async fn create_withdrawal_slot_tx(
     Ok(tx)
 }
 
-fn render_app(source: TealSourceTemplate, creator: &Address) -> Result<TealSource> {
+fn render_app(
+    source: TealSourceTemplate,
+    creator: &Address,
+    vote_threshold: u64,
+) -> Result<TealSource> {
     let source = render_template(
         source,
         RenderWithdrawalSlotAppContext {
             project_creator_address: creator.to_string(),
+            vote_threshold: vote_threshold.to_string(),
         },
     )?;
-    // save_rendered_teal(file_name, source.clone())?; // debugging
+    save_rendered_teal("withdrawal_slot_approval", source.clone())?; // debugging
     Ok(source)
 }
 
 #[derive(Serialize)]
 struct RenderWithdrawalSlotAppContext {
     project_creator_address: String,
+    vote_threshold: String,
 }
 
 #[cfg(test)]
@@ -88,9 +95,14 @@ mod tests {
         let approval_template = load_teal_template("withdrawal_slot_approval")?;
         let clear_source = load_teal("withdrawal_slot_clear")?;
 
-        let tx =
-            create_withdrawal_slot_tx(&algod, approval_template, clear_source, &creator.address())
-                .await?;
+        let tx = create_withdrawal_slot_tx(
+            &algod,
+            approval_template,
+            clear_source,
+            &creator.address(),
+            70, // arbitrary: we're just testing that we can create the app
+        )
+        .await?;
 
         let signed_tx = creator.sign_transaction(&tx)?;
         let res = algod.broadcast_signed_transaction(&signed_tx).await?;

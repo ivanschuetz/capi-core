@@ -10,6 +10,16 @@ byte b64 YnJhbmNoX2luaXRfcmVxdWVzdA== // branch_init_request
 &&
 bnz branch_init_request
 
+gtxn 0 NumAppArgs
+int 2
+==
+bz after_args_access
+gtxn 0 ApplicationArgs 0 // action
+byte b64 YnJhbmNoX3dpdGhkcmF3 // branch_withdraw
+==
+&&
+bnz branch_withdraw
+
 after_args_access:
 
 global GroupSize
@@ -48,6 +58,58 @@ app_global_put
 int 1
 return
 
+branch_withdraw:
+
+// there's an active request (amount > 0)
+byte "Amount"
+app_global_get
+int 0
+>
+
+gtxn 0 TypeEnum // app call
+int appl
+==
+&&
+
+gtxn 1 TypeEnum // payment
+int pay
+==
+&&
+
+// payment amount == requested amount
+gtxn 1 Amount
+byte "Amount"
+app_global_get
+==
+&&
+
+// payment receiver is project creator
+gtxn 1 Receiver
+addr {project_creator_address}
+==
+&&
+
+// enough votes
+byte "Votes"
+app_global_get
+int {vote_threshold}
+>=
+&&
+
+// reset amount
+byte "Amount"
+int 0
+app_global_put
+&&
+
+// reset votes
+byte "Votes"
+int 0
+app_global_put
+&&
+
+int 1
+return
 
 branch_opt_in:
 int 1 // TODO remove
