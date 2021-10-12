@@ -20,6 +20,16 @@ byte b64 YnJhbmNoX3dpdGhkcmF3 // branch_withdraw
 &&
 bnz branch_withdraw
 
+gtxn 0 NumAppArgs
+int 2
+==
+bz after_args_access
+gtxn 0 ApplicationArgs 0 // action
+byte b64 YnJhbmNoX3ZvdGU= // branch_vote
+==
+&&
+bnz branch_vote
+
 after_args_access:
 
 global GroupSize
@@ -107,6 +117,69 @@ byte "Votes"
 int 0
 app_global_put
 &&
+
+int 1
+return
+
+branch_vote:
+
+gtxn 0 TypeEnum // app call (this app)
+int appl
+==
+&&
+
+//////////////////////////
+// central app validation
+// checks that vote count == owned shares count
+// owned shares count is tracked in central app (otherwise would have to be stored redundantly in each voting slot), so validation there
+//////////////////////////
+
+gtxn 1 TypeEnum // app call (central)
+int appl
+==
+&&
+
+// check that the vote count sent to the central validation app call == vote count being submitted here
+gtxn 0 ApplicationArgs 1
+gtxn 1 ApplicationArgs 1
+==
+&&
+
+// check that the central app call has label expected there
+gtxn 0 ApplicationArgs 0 // action
+byte b64 dmFsaWRhdGVfdm90ZQ== // validate_vote
+==
+&&
+
+//////////////////////////
+//////////////////////////
+
+// votes > 0
+gtxn 0 ApplicationArgs 1 // vote count
+int 0
+>
+&&
+
+// there's an active request (amount > 0)
+byte "Amount"
+app_global_get
+int 0
+>
+&&
+
+// increment votes
+byte "Votes"
+byte "Votes"
+app_global_get
+gtxn 0 ApplicationArgs 1 // vote count
++
+app_global_put
+
+// set local votes
+// gtxn 0 Sender // sender of app call (investor) -- not sure needed
+byte "LVotes"
+gtxn 0 ApplicationArgs 1 // vote count
+app_local_put
 
 int 1
 return

@@ -1,5 +1,9 @@
 #pragma version 4
 
+/////////////////
+// TODO remove this: old voting functionality
+// remove vote assets too
+/////////////////
 txn NumAppArgs
 int 1
 ==
@@ -11,6 +15,8 @@ byte b64 dmFsaWRhdGVfaW52ZXN0b3Jfdm90ZXM= // validate_investor_votes
 bnz branch_validate_investor_votes
 
 after_args_access:
+/////////////////
+/////////////////
 
 txn ApplicationID
 int 0
@@ -28,6 +34,27 @@ global GroupSize
 int 1
 ==
 bnz branch_opt_in
+
+// vote validation
+global GroupSize
+int 2
+==
+gtxn 0 NumAppArgs
+int 2
+==
+&&
+bz after_args_access2
+gtxn 0 ApplicationArgs 0 // action
+byte b64 YnJhbmNoX3ZvdGU= // branch_vote
+==
+&&
+gtxn 1 ApplicationArgs 0 // action
+byte b64 dmFsaWRhdGVfdm90ZQ== // validate_vote
+==
+&&
+bnz branch_validate_votes
+
+after_args_access2:
 
 global GroupSize
 int 2
@@ -292,6 +319,10 @@ app_local_put
 int 1
 return
 
+/////////////////
+// TODO remove this: old voting functionality
+// remove vote assets too
+/////////////////
 branch_validate_investor_votes:
 
 // Check that votes being transferred == owned shares
@@ -301,6 +332,26 @@ int 0
 byte "Shares"
 app_local_get // if local state doesn't exist yet, this puts a 0 on the stack
 ==
+
+return
+/////////////////
+/////////////////
+
+branch_validate_votes:
+
+// check that both app calls have same count (also checked in the voting slot apps)
+gtxn 0 ApplicationArgs 1
+gtxn 1 ApplicationArgs 1
+==
+&&
+
+// check that owned shares count == votes count (from any of the app calls - we checked they're equal above)
+int 0
+byte "Shares"
+app_local_get // if local state doesn't exist yet, this puts a 0 on the stack
+gtxn 0 ApplicationArgs 1
+==
+&&
 
 return
 
