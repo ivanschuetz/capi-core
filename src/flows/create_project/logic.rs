@@ -5,9 +5,10 @@ use crate::{
     flows::create_project::{
         model::Project,
         setup::{
-            create_app::create_app_tx, drain::setup_drain,
-            investing_escrow::setup_investing_escrow_txs, staking_escrow::setup_staking_escrow_txs,
-            votein_escrow::setup_votein_escrow_txs, votes_out_escrow::create_votes_out_escrow_tx,
+            create_app::create_app_tx, create_withdrawal_slots::create_withdrawal_slots_txs,
+            drain::setup_drain, investing_escrow::setup_investing_escrow_txs,
+            staking_escrow::setup_staking_escrow_txs, votein_escrow::setup_votein_escrow_txs,
+            votes_out_escrow::create_votes_out_escrow_tx,
         },
     },
     network_util::wait_for_pending_transaction,
@@ -95,6 +96,20 @@ pub async fn create_project_txs(
     .await?;
 
     //////////////////////////////
+    // withdrawal slots
+    // TODO clarify whether we need asset id here, otherwise move signing to first group with asset creation.
+    // we need the slot app ids in the central app (this validation is not implemented yet), so doing it here is temporary.
+    let create_withdrawal_slots_txs = create_withdrawal_slots_txs(
+        algod,
+        3,
+        programs.withdrawal_slot_approval,
+        programs.withdrawal_slot_clear,
+        &creator,
+        specs.vote_threshold,
+    )
+    .await?;
+
+    //////////////////////////////
     // asset opt-ins (have to be before the other transactions)
     TxGroup::assign_group_id(vec![
         &mut setup_staking_escrow_to_sign.escrow_shares_optin_tx,
@@ -165,6 +180,7 @@ pub async fn create_project_txs(
         ],
         optin_txs,
         create_app_tx,
+        create_withdrawal_slots_txs,
 
         // xfers to escrows: have to be executed after escrows are opted in
         xfer_shares_to_invest_escrow: setup_invest_escrow_to_sign.escrow_funding_shares_asset_tx,
@@ -194,9 +210,33 @@ pub async fn submit_create_project(
         .await?;
 
     ///////////////////////////////////////////////////////////¯
+    ///////////////////////////////////////////////////////////¯
+    // Create withdrawal slot apps
+    log::debug!("Creating withdrawal slot apps..");
+    let mut withdrawal_slot_app_ids = vec![];
+    for withdrawal_slot_app in &signed.create_withdrawal_slots_txs {
+        let create_app_res = algod
+            .broadcast_signed_transaction(&withdrawal_slot_app)
+            .await?;
+        let p_tx = wait_for_pending_transaction(algod, &create_app_res.tx_id)
+            .await?
+            .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
+        let app_id = p_tx
+            .application_index
+            .ok_or_else(|| anyhow!("Pending tx didn't have app id"))?;
+        log::debug!("Created withdrawal slot app id: {}", app_id);
+        withdrawal_slot_app_ids.push(app_id);
+    }
+    // Not really necessary (we exit if any of the requests creating the slot apps fails), just triple-check
+    if withdrawal_slot_app_ids.len() != signed.create_withdrawal_slots_txs.len() {
+        return Err(anyhow!("Couldn't create apps for all withdrawal slots"));
+    }
+
+    ///////////////////////////////////////////////////////////¯
     // TODO investigate: application_index is None in p_tx when executing the app create tx together with the other txs
     // see more notes in old repo
     ///////////////////////////////////////////////////////////¯
+    log::debug!("Creating central app..");
     // let central_app_id = p_tx
     //     .application_index
     //     .ok_or(anyhow!("Pending tx didn't have app id"))?;
@@ -264,6 +304,8 @@ pub async fn submit_create_project(
 pub struct Programs {
     pub central_app_approval: TealSourceTemplate,
     pub central_app_clear: TealSource,
+    pub withdrawal_slot_approval: TealSourceTemplate,
+    pub withdrawal_slot_clear: TealSource,
     pub central_escrow: TealSourceTemplate,
     pub customer_escrow: TealSourceTemplate,
     pub invest_escrow: TealSourceTemplate,

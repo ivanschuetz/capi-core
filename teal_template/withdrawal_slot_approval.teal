@@ -1,5 +1,9 @@
 #pragma version 4
 
+// no-op TODO review
+int {id}
+pop
+
 gtxn 0 NumAppArgs
 int 2
 ==
@@ -32,8 +36,11 @@ bnz branch_vote
 
 after_args_access:
 
+// opt out tx group must call all the slots (to clear local state) + unstaking txs
 global GroupSize
-int 3 // TODO placeholder with slots count + ~2 (central app call tx, asset xfer to investor, maybe also pay fees) 
+int 3 // slots
+int 2 // central app call, asset xfer to investor, maybe also pay fees
++
 ==
 bz after_tx_group_access
 gtxn 0 TypeEnum // unstake shares

@@ -47,6 +47,7 @@ pub struct CreateProjectToSign {
     // to be signed by creator
     pub escrow_funding_txs: Vec<Transaction>,
     pub create_app_tx: Transaction,
+    pub create_withdrawal_slots_txs: Vec<Transaction>,
     pub xfer_shares_to_invest_escrow: Transaction,
     pub xfer_votes_to_invest_escrow: Transaction,
 
@@ -79,6 +80,8 @@ pub struct CreateProjectSigned {
     // create the central app: dedicated field to get the app id (when in a group, the pending tx doesn't deliver it - TODO confirm)
     // see more notes in old repo
     pub create_app_tx: SignedTransaction,
+
+    pub create_withdrawal_slots_txs: Vec<SignedTransaction>,
 
     // escrow lsig opt-ins (signed when created)
     // to be submitted before possible asset transfers

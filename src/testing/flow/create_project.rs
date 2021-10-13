@@ -41,6 +41,8 @@ pub async fn create_project_flow(
         staking_escrow: load_teal_template("staking_escrow")?,
         vote_in_escrow: load_teal_template("voting_in_escrow")?,
         vote_out_escrow: load_teal_template("voting_out_escrow")?,
+        withdrawal_slot_approval: load_teal_template("withdrawal_slot_approval")?,
+        withdrawal_slot_clear: load_teal("withdrawal_slot_clear")?,
     };
 
     // Rest of create project txs
@@ -59,8 +61,11 @@ pub async fn create_project_flow(
     for tx in to_sign.escrow_funding_txs {
         signed_funding_txs.push(creator.sign_transaction(&tx)?);
     }
-
     let signed_create_app_tx = creator.sign_transaction(&to_sign.create_app_tx)?;
+    let mut signed_withdrawal_slot_txs = vec![];
+    for tx in to_sign.create_withdrawal_slots_txs {
+        signed_withdrawal_slot_txs.push(creator.sign_transaction(&tx)?);
+    }
 
     let signed_xfer_shares_to_invest_escrow =
         creator.sign_transaction(&to_sign.xfer_shares_to_invest_escrow)?;
@@ -79,6 +84,7 @@ pub async fn create_project_flow(
             escrow_funding_txs: signed_funding_txs,
             optin_txs: to_sign.optin_txs,
             create_app_tx: signed_create_app_tx,
+            create_withdrawal_slots_txs: signed_withdrawal_slot_txs,
             xfer_shares_to_invest_escrow: signed_xfer_shares_to_invest_escrow,
             xfer_votes_to_invest_escrow: signed_xfer_votes_to_invest_escrow,
             invest_escrow: to_sign.invest_escrow,

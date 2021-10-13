@@ -14,8 +14,9 @@ pub async fn create_withdrawal_slot_tx(
     clear_source: TealSource,
     creator: &Address,
     vote_threshold: u64,
+    id: u64,
 ) -> Result<Transaction> {
-    let approval_source = render_app(approval_source, creator, vote_threshold)?;
+    let approval_source = render_app(approval_source, creator, vote_threshold, id)?;
 
     let compiled_approval_program = algod.compile_teal(&approval_source.0).await?;
     let compiled_clear_program = algod.compile_teal(&clear_source.0).await?;
@@ -47,12 +48,14 @@ fn render_app(
     source: TealSourceTemplate,
     creator: &Address,
     vote_threshold: u64,
+    id: u64,
 ) -> Result<TealSource> {
     let source = render_template(
         source,
         RenderWithdrawalSlotAppContext {
             project_creator_address: creator.to_string(),
             vote_threshold: vote_threshold.to_string(),
+            id: id.to_string(),
         },
     )?;
     save_rendered_teal("withdrawal_slot_approval", source.clone())?; // debugging
@@ -63,6 +66,7 @@ fn render_app(
 struct RenderWithdrawalSlotAppContext {
     project_creator_address: String,
     vote_threshold: String,
+    id: String,
 }
 
 #[cfg(test)]
@@ -101,6 +105,7 @@ mod tests {
             clear_source,
             &creator.address(),
             70, // arbitrary: we're just testing that we can create the app
+            0,  // arbitrary (only one slot here)
         )
         .await?;
 
