@@ -219,7 +219,7 @@ mod tests {
         let buy_asset_amount = 10;
         let specs = project_specs();
 
-        let project = create_project_flow(&algod, &creator, &specs).await?;
+        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
 
         // flow
 

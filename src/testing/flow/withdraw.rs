@@ -32,7 +32,7 @@ pub async fn withdraw_precs(
     voter: &Account,
     pay_and_drain_amount: MicroAlgos,
 ) -> Result<WithdrawTestPrecsRes> {
-    let project = create_project_flow(&algod, &creator, &specs).await?;
+    let project = create_project_flow(&algod, &creator, &specs, 3).await?;
     // meet the voting threshold so the withdrawal is approved
     let _ = vote_flow(
         algod,

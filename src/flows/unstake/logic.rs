@@ -154,7 +154,7 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs()).await?;
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
 
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
         // TODO double check tests for state (at least important) tested (e.g. investor has shares, staking doesn't etc.)
@@ -265,7 +265,7 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs()).await?;
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
 
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
 

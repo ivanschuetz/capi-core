@@ -26,6 +26,7 @@ pub async fn create_project_txs(
     shares_asset_id: u64,
     votes_asset_id: u64,
     programs: Programs,
+    withdrawal_slots: u64,
 ) -> Result<CreateProjectToSign> {
     log::debug!(
         "Creating project: {:?}, shares_asset_id: {}, votes_asset_id: {}",
@@ -101,7 +102,7 @@ pub async fn create_project_txs(
     // we need the slot app ids in the central app (this validation is not implemented yet), so doing it here is temporary.
     let create_withdrawal_slots_txs = create_withdrawal_slots_txs(
         algod,
-        3,
+        withdrawal_slots,
         programs.withdrawal_slot_approval,
         programs.withdrawal_slot_clear,
         &creator,
@@ -290,6 +291,7 @@ pub async fn submit_create_project(
             shares_asset_id: signed.shares_asset_id,
             votes_asset_id: signed.votes_asset_id,
             central_app_id,
+            withdrawal_slot_ids: withdrawal_slot_app_ids,
             invest_escrow: signed.invest_escrow,
             staking_escrow: signed.staking_escrow,
             customer_escrow: signed.customer_escrow,
@@ -337,7 +339,8 @@ mod tests {
         // UI
         let specs = project_specs();
 
-        let project = create_project_flow(&algod, &creator, &specs).await?;
+        let withdrawal_slots = 3;
+        let project = create_project_flow(&algod, &creator, &specs, withdrawal_slots).await?;
 
         // UI
         println!("Submitted create project txs, project: {:?}", project);
@@ -405,6 +408,9 @@ mod tests {
             project.votes_asset_id
         );
         assert_eq!(staking_escrow_held_assets[1].amount, 0); // nothing staked yet
+
+        // voting slots checks
+        assert_eq!(withdrawal_slots, project.withdrawal_slot_ids.len() as u64);
 
         Ok(())
     }

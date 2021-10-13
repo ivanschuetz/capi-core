@@ -15,6 +15,7 @@ pub async fn create_project_flow(
     algod: &Algod,
     creator: &Account,
     specs: &CreateProjectSpecs,
+    withdrawal_slots: u64,
 ) -> Result<Project> {
     use crate::{
         flows::create_project::logic::Programs,
@@ -53,6 +54,7 @@ pub async fn create_project_flow(
         create_assets_res.shares_id,
         create_assets_res.votes_id,
         programs,
+        withdrawal_slots,
     )
     .await?;
 

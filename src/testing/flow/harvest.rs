@@ -27,7 +27,7 @@ pub async fn harvest_precs(
     customer: &Account,
     buy_asset_amount: u64, // UI
 ) -> Result<HarvestTestPrecsRes> {
-    let project = create_project_flow(&algod, &creator, &specs).await?;
+    let project = create_project_flow(&algod, &creator, &specs, 3).await?;
 
     // investor buys shares: this can be called after draining as well (without affecting test results)
     // the only order required for this is draining->harvesting, obviously harvesting has to be executed after draining (if it's to harvest the drained funds)

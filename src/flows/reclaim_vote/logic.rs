@@ -159,7 +159,7 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs()).await?;
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
         // enough units for vote to pass
         let buy_asset_amount = project.specs.vote_threshold_units();
         let _ = vote_flow(&algod, &investor, &project, buy_asset_amount).await?;

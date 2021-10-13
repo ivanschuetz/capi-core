@@ -162,7 +162,7 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs()).await?;
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
 
         let _ = invests_flow(&algod, &investor1, buy_asset_amount, &project).await?;
 

@@ -171,7 +171,7 @@ mod tests {
         // UI
         let specs = project_specs();
 
-        let project = create_project_flow(&algod, &creator, &specs).await?;
+        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
 
         let customer_payment_amount = MicroAlgos(10 * 1_000_000);
 

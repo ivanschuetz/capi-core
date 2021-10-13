@@ -111,6 +111,7 @@ pub struct Project {
     pub shares_asset_id: u64,
     pub votes_asset_id: u64,
     pub central_app_id: u64,
+    pub withdrawal_slot_ids: Vec<u64>,
     pub invest_escrow: ContractAccount,
     pub staking_escrow: ContractAccount,
     pub central_escrow: ContractAccount,
