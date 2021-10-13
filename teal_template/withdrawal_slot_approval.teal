@@ -239,7 +239,7 @@ gtxn 2 OnCompletion
 // -> shares can be only be bought from the investing_escrow ("initial offering") or in secondary markets (after unstaking)
 // here the shares are in the staking escrow, and by clearing the owner's local state, can't be unstaked anymore.
 int 0
-byte "OptedIn"
+byte "Valid"
 app_local_get
 int 1
 ==
@@ -284,11 +284,10 @@ branch_setup:
 // review also that we don't run into size limits in the central when > x slots.
 // setting/buying the shares is the "effective" opt-in: we "enter" the system, with our shares 
 // (which also means that we can't run this arbitrarily - only once, as after it we don't have shares)
-// so setting the "OptedIn" flag there seems correct --> TODO review, e.g. what happens when buying _more_ shares
-// TODO rename this flag: "Valid" or similar, it's not stricly the opt in anymore.
+// so setting the "Valid" flag there seems correct --> TODO review, e.g. what happens when buying _more_ shares
 
 int 0
-byte "OptedIn"
+byte "Valid"
 int 1
 app_local_put
 
