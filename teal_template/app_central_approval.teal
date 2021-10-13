@@ -58,12 +58,16 @@ after_args_access2:
 
 global GroupSize
 int 2
+// TODO slot opt-in
+// int 5 // 2 + 3 slot setup
 ==
 // basically also an investor setup, but when asset was acquired externally (instead of buying in the "ico")
 bnz branch_staking_setup
 
 global GroupSize
 int 6
+// TODO slot opt-in
+// int 9 // 6 + 3 slot setup
 ==
 bnz branch_investor_setup
 
@@ -137,6 +141,27 @@ int axfer
 ==
 &&
 
+// TODO slot opt-in
+// /////////////////////////////////////
+// // verify that the slots are being initialized (valid state)
+// // note that on investing / staking this isn't as critical
+// // if a malicious sender intentionally bypasses sending these transactions, they'll not be able to retrieve their shares
+// // but we could of course have bugs, that omits these transactions, so for overall consistency
+// /////////////////////////////////////
+// gtxn 2 TypeEnum
+// int appl
+// ==
+// &&
+// gtxn 3 TypeEnum
+// int appl
+// ==
+// &&
+// gtxn 4 TypeEnum
+// int appl
+// ==
+// &&
+// /////////////////////////////////////
+
 // don't allow staking 0 assets 
 // no particular reason, just doesn't make sense
 gtxn 1 AssetAmount
@@ -186,6 +211,26 @@ return
 
 branch_investor_setup:
 // initialize investor's local state
+
+// TODO slot opt-in
+// /////////////////////////////////////
+// // verify that the slots are being initialized (valid state)
+// // note that on investing / staking this isn't as critical
+// // if a malicious sender intentionally bypasses sending these transactions, they'll not be able to retrieve their shares
+// // but we could of course have bugs, that omits these transactions, so for overall consistency
+// /////////////////////////////////////
+// gtxn 5 TypeEnum
+// int appl
+// ==
+// gtxn 6 TypeEnum
+// int appl
+// ==
+// &&
+// gtxn 7 TypeEnum
+// int appl
+// ==
+// &&
+// /////////////////////////////////////
 
 // initialize asset holding
 gtxn 0 Sender // sender of app call (investor)
