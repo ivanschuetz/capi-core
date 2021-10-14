@@ -10,7 +10,7 @@ use crate::{
     flows::create_project::model::{
         SetupInvestEscrowSigned, SetupInvestingEscrowToSign, SubmitSetupEscrowRes,
     },
-    teal::{render_template, TealSource, TealSourceTemplate},
+    teal::{render_template, save_rendered_teal, TealSource, TealSourceTemplate},
 };
 
 /// The investing escrow holds the created project's assets (shares and votes) to be bought by investors
@@ -50,7 +50,7 @@ fn render_investing_escrow(
             staking_escrow_address: staking_escrow_address.to_string(),
         },
     )?;
-    // save_rendered_teal(file_name, escrow_source.clone())?; // debugging
+    save_rendered_teal("investing_escrow", escrow_source.clone())?; // debugging
     Ok(escrow_source)
 }
 

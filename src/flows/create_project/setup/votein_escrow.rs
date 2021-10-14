@@ -1,4 +1,4 @@
-use crate::teal::{render_template, TealSource, TealSourceTemplate};
+use crate::teal::{render_template, save_rendered_teal, TealSource, TealSourceTemplate};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
@@ -61,7 +61,7 @@ fn render_votes_in_escrow(
             votes_out_address: votes_out_address.to_string(),
         },
     )?;
-    // save_rendered_teal(file_name, escrow_source.clone())?; // debugging
+    save_rendered_teal("voting_in_escrow", escrow_source.clone())?; // debugging
     Ok(escrow_source)
 }
 

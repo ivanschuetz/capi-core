@@ -8,7 +8,7 @@ use algonaut::{
 use anyhow::Result;
 use serde::Serialize;
 
-use crate::teal::{render_template, TealSource, TealSourceTemplate};
+use crate::teal::{render_template, save_rendered_teal, TealSource, TealSourceTemplate};
 
 async fn create_staking_escrow(
     algod: &Algod,
@@ -33,7 +33,7 @@ fn render_staking_escrow(
             votes_asset_id: votes_asset_id.to_string(),
         },
     )?;
-    // save_rendered_teal(file_name, escrow_source.clone())?; // debugging
+    save_rendered_teal("staking_escrow", escrow_source.clone())?; // debugging
     Ok(escrow_source)
 }
 
