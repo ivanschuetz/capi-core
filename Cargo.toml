@@ -16,7 +16,7 @@ rmp-serde = "0.15.4"
 serde = {version = "1.0", features = ["derive"]}
 data-encoding = "2.3.1"
 tinytemplate = "1.2.1"
-# tealdbg = { path = "/Users/ischuetz/dev/algorand/tealdbg_launcher" }
+tealdbg = { path = "/Users/ischuetz/dev/algorand/tealdbg_launcher" }
 
 log = "0.4"
 # std::Instant::now() panics on WASM https://github.com/sebcrozet/instant

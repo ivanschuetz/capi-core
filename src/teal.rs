@@ -1,7 +1,9 @@
 use std::fs;
 
-use anyhow::Result;
+use algonaut::transaction::SignedTransaction;
+use anyhow::{anyhow, Result};
 use serde::Serialize;
+use tealdbg::Config;
 // use tealdbg::Config;
 use tinytemplate::TinyTemplate;
 
@@ -53,29 +55,29 @@ where
     Ok(TealSource(rendered.as_bytes().to_vec()))
 }
 
-// /// file_name without .teal
-// #[allow(dead_code)]
-// pub fn debug_teal(txs: &[SignedTransaction], file_name: &str) -> Result<()> {
-//     debug_teal_internal(txs, "teal", file_name)
-// }
+/// file_name without .teal
+#[allow(dead_code)]
+pub fn debug_teal(txs: &[SignedTransaction], file_name: &str) -> Result<()> {
+    debug_teal_internal(txs, "teal", file_name)
+}
 
-// /// file_name without .teal
-// /// separate folder for rendered templates to easily add to .gitignore
-// #[allow(dead_code)]
-// pub fn debug_teal_rendered(txs: &[SignedTransaction], file_name: &str) -> Result<()> {
-//     debug_teal_internal(txs, "teal_rendered", file_name)
-// }
+/// file_name without .teal
+/// separate folder for rendered templates to easily add to .gitignore
+#[allow(dead_code)]
+pub fn debug_teal_rendered(txs: &[SignedTransaction], file_name: &str) -> Result<()> {
+    debug_teal_internal(txs, "teal_rendered", file_name)
+}
 
-// /// file_name without .teal
-// #[allow(dead_code)]
-// fn debug_teal_internal(txs: &[SignedTransaction], folder: &str, file_name: &str) -> Result<()> {
-//     tealdbg::launch(
-//         Config {
-//             node_dir: Some("/Users/ischuetz/algo_nets/net1/Node"),
-//             ..Config::default()
-//         },
-//         txs,
-//         format!("{}/{}.teal", folder, file_name),
-//     )
-//     .map_err(|e| anyhow!(e))
-// }
+/// file_name without .teal
+#[allow(dead_code)]
+fn debug_teal_internal(txs: &[SignedTransaction], folder: &str, file_name: &str) -> Result<()> {
+    tealdbg::launch(
+        Config {
+            node_dir: Some("/Users/ischuetz/algo_nets/net1/Node"),
+            ..Config::default()
+        },
+        txs,
+        format!("{}/{}.teal", folder, file_name),
+    )
+    .map_err(|e| anyhow!(e))
+}
