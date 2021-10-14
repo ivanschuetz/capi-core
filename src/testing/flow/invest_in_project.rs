@@ -6,7 +6,6 @@ use crate::flows::{
         logic::{invest_txs, submit_invest},
         model::InvestSigned,
     },
-    shared::app::optin_to_app,
 };
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
@@ -26,6 +25,8 @@ pub async fn invests_flow(
     buy_asset_amount: u64,
     project: &Project,
 ) -> Result<InvestInProjectTestFlowRes> {
+    use crate::flows::invest::app_optins::{invest_app_optins_txs, submit_invest_app_optins};
+
     // remember initial investor's funds
     let investor_infos = algod.account_information(&investor.address()).await?;
     let investor_initial_amount = investor_infos.amount;
@@ -36,16 +37,17 @@ pub async fn invests_flow(
         .await?;
     let escrow_initial_amount = escrow_infos.amount;
 
-    // app optin (has to happen before invest_txs are submitted, which initializes the investor's local state)
-    // note that this doesn't mean that it has to be executed before invest_txs, just before these txs are submitted
-    let params = algod.suggested_transaction_params().await?;
-    let app_optin_tx = optin_to_app(&params, project.central_app_id, investor.address()).await?;
+    // app optins (have to happen before invest_txs, which initializes investor's local state)
+    let app_optins_txs = invest_app_optins_txs(algod, project, &investor.address()).await?;
+
     // UI
-    let signed_app_optin_tx = investor.sign_transaction(&app_optin_tx)?;
-    let res = algod
-        .broadcast_signed_transaction(&signed_app_optin_tx)
-        .await?;
-    let _ = wait_for_pending_transaction(&algod, &res.tx_id).await?;
+    let mut app_optins_signed_txs = vec![];
+    for optin_tx in app_optins_txs {
+        app_optins_signed_txs.push(investor.sign_transaction(&optin_tx)?);
+    }
+
+    let app_optins_tx_id = submit_invest_app_optins(algod, app_optins_signed_txs.clone()).await?;
+    let _ = wait_for_pending_transaction(&algod, &app_optins_tx_id).await?;
 
     let to_sign = invest_txs(
         &algod,
@@ -60,7 +62,11 @@ pub async fn invests_flow(
     .await?;
 
     // UI
-    let signed_central_app_opt_in_tx = investor.sign_transaction(&to_sign.central_app_opt_in_tx)?;
+    let signed_central_app_setup_tx = investor.sign_transaction(&to_sign.central_app_setup_tx)?;
+    let mut signed_slots_setup_txs = vec![];
+    for slot_setup_tx in to_sign.slots_setup_txs {
+        signed_slots_setup_txs.push(investor.sign_transaction(&slot_setup_tx)?);
+    }
     let signed_shares_optin_tx = investor.sign_transaction(&to_sign.shares_asset_optin_tx)?;
     let signed_payment_tx = investor.sign_transaction(&to_sign.payment_tx)?;
     let signed_pay_escrow_fee_tx = investor.sign_transaction(&to_sign.pay_escrow_fee_tx)?;
@@ -69,7 +75,8 @@ pub async fn invests_flow(
         &algod,
         &InvestSigned {
             project: to_sign.project,
-            central_app_opt_in_tx: signed_central_app_opt_in_tx,
+            central_app_setup_tx: signed_central_app_setup_tx,
+            slots_setup_txs: signed_slots_setup_txs,
             shares_asset_optin_tx: signed_shares_optin_tx,
             payment_tx: signed_payment_tx,
             pay_escrow_fee_tx: signed_pay_escrow_fee_tx,
@@ -90,7 +97,7 @@ pub async fn invests_flow(
         escrow_initial_amount,
         invest_res,
         project: project.to_owned(),
-        central_app_optin_tx: signed_app_optin_tx,
+        app_optin_txs: app_optins_signed_txs,
     })
 }
 
@@ -102,5 +109,5 @@ pub struct InvestInProjectTestFlowRes {
     pub escrow_initial_amount: MicroAlgos,
     pub invest_res: InvestResult,
     pub project: Project,
-    pub central_app_optin_tx: SignedTransaction,
+    pub app_optin_txs: Vec<SignedTransaction>,
 }

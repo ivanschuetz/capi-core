@@ -33,7 +33,7 @@ pub async fn create_withdrawal_slot_tx(
                 number_byteslices: 0,
             },
             StateSchema {
-                number_ints: 1, // votes (mine)
+                number_ints: 2, // votes (mine), valid state
                 number_byteslices: 0,
             },
         )

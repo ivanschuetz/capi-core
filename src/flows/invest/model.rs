@@ -4,7 +4,8 @@ use algonaut::transaction::{SignedTransaction, Transaction};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InvestToSign {
     pub project: Project,
-    pub central_app_opt_in_tx: Transaction,
+    pub central_app_setup_tx: Transaction,
+    pub slots_setup_txs: Vec<Transaction>,
     pub payment_tx: Transaction,
     pub shares_asset_optin_tx: Transaction,
     pub pay_escrow_fee_tx: Transaction,
@@ -15,7 +16,8 @@ pub struct InvestToSign {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InvestSigned {
     pub project: Project,
-    pub central_app_opt_in_tx: SignedTransaction,
+    pub central_app_setup_tx: SignedTransaction,
+    pub slots_setup_txs: Vec<SignedTransaction>,
     pub shares_asset_optin_tx: SignedTransaction,
     pub payment_tx: SignedTransaction,
     pub pay_escrow_fee_tx: SignedTransaction,
@@ -30,6 +32,7 @@ pub struct InvestResult {
     pub tx_id: String,
     pub project: Project,
     pub central_app_investor_setup_tx: SignedTransaction,
+    pub slots_setup_txs: Vec<SignedTransaction>,
     pub payment_tx: SignedTransaction,
     pub shares_asset_optin_tx: SignedTransaction,
     pub pay_escrow_fee_tx: SignedTransaction,

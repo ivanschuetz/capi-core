@@ -3,7 +3,6 @@
 // no-op TODO review
 int {id}
 pop
-
 gtxn 0 NumAppArgs
 int 2
 ==
@@ -56,7 +55,9 @@ bnz branch_opt_out
 after_tx_group_access:
 
 global GroupSize
-int 1
+int 1 // central opt in
+int 3 // slots
++
 ==
 txn TypeEnum
 int appl
@@ -78,9 +79,11 @@ gtxn 0 OnCompletion
 bnz branch_create
 
 global GroupSize
-int 1
+int 6
+int 3 // slots: initializes investor's local state
++
 ==
-bnz branch_setup
+bnz branch_invest
 
 branch_init_request:
 
@@ -278,7 +281,14 @@ branch_opt_in:
 int 1
 return
 
-branch_setup:
+branch_invest:
+
+// set LVotes to 0, just to increment easily later
+int 0
+byte "LVotes"
+int 0
+app_local_put
+
 
 // set a "valid state" flag - this helps to prevent issues like double voting if the user maliciously (or somehow accidentally) clears their local state (ClearState)
 // local state can only be cleared totally, so this flag will be removed too, making the state invalid.
@@ -297,6 +307,9 @@ int 0
 byte "Valid"
 int 1
 app_local_put
+
+int 1
+return
 
 branch_exit_false:
 int 0

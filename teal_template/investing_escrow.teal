@@ -1,4 +1,6 @@
 #pragma version 4
+
+// escrow setup on project creation
 global GroupSize
 int 6
 ==
@@ -10,12 +12,15 @@ gtxn 3 XferAsset
 int {votes_asset_id}
 ==
 &&
-bnz branch_shares_and_votes_opt_in
+// the escrow is opting in
+bnz branch_shares_and_votes_opt_in 
 
 global GroupSize
 int 6
+int 3 // slots: when swapping (i.e. buying shares) the investor inits local state in the withdrawal request slots 
++
 ==
-bnz branch_swap
+bnz branch_invest
 
 // otherwise exit
 int 0
@@ -87,7 +92,7 @@ global ZeroAddress
 
 b end_contract
 
-branch_swap:
+branch_invest:
 gtxn 0 TypeEnum
 int appl
 ==

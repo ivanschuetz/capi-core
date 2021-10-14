@@ -31,7 +31,9 @@ int 1
 bnz branch_create
 
 global GroupSize
-int 1
+int 1 // central opt in
+int 3 // slots
++
 ==
 bnz branch_opt_in
 
@@ -58,16 +60,16 @@ after_args_access2:
 
 global GroupSize
 int 2
-// TODO slot opt-in
-// int 5 // 2 + 3 slot setup
+int 3 // slots
++
 ==
 // basically also an investor setup, but when asset was acquired externally (instead of buying in the "ico")
 bnz branch_staking_setup
 
 global GroupSize
 int 6
-// TODO slot opt-in
-// int 9 // 6 + 3 slot setup
+int 3 // slots
++
 ==
 bnz branch_investor_setup
 
