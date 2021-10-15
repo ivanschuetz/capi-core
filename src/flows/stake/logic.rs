@@ -2,13 +2,13 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        account::ContractAccount,
-        builder::{CallApplication, OptInApplication},
-        tx_group::TxGroup,
-        SignedTransaction, Transaction, TransferAsset, TxnBuilder,
+        account::ContractAccount, builder::CallApplication, tx_group::TxGroup, SignedTransaction,
+        Transaction, TransferAsset, TxnBuilder,
     },
 };
 use anyhow::Result;
+
+use crate::flows::invest::logic::withdrawal_slot_investor_setup_tx;
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -22,12 +22,13 @@ pub async fn stake(
     share_count: u64,
     shares_asset_id: u64,
     central_app_id: u64,
+    withdrawal_slot_ids: &[u64],
     staking_escrow: &ContractAccount,
 ) -> Result<StakeToSign> {
     let params = algod.suggested_transaction_params().await?;
 
-    // Opt in app call (init investor's local state)
-    let app_call_tx = &mut TxnBuilder::with(
+    // Central app setup app call (init investor's local state)
+    let mut app_call_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
             ..params.clone()
@@ -36,8 +37,16 @@ pub async fn stake(
     )
     .build();
 
+    // Withdrawal apps setup txs
+    let mut slot_setup_txs = vec![];
+    for slot_id in withdrawal_slot_ids {
+        slot_setup_txs.push(withdrawal_slot_investor_setup_tx(
+            &params, *slot_id, investor,
+        )?);
+    }
+
     // Send investor's assets to staking escrow
-    let shares_xfer_tx = &mut TxnBuilder::with(
+    let mut shares_xfer_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
             ..params
@@ -52,65 +61,41 @@ pub async fn stake(
     )
     .build();
 
-    TxGroup::assign_group_id(vec![app_call_tx, shares_xfer_tx])?;
+    let mut txs_for_group = vec![&mut app_call_tx, &mut shares_xfer_tx];
+    txs_for_group.extend(slot_setup_txs.iter_mut().collect::<Vec<_>>());
+    TxGroup::assign_group_id(txs_for_group)?;
 
     Ok(StakeToSign {
-        app_call_tx: app_call_tx.clone(),
+        central_app_call_setup_tx: app_call_tx.clone(),
+        slot_setup_app_calls_txs: slot_setup_txs.clone(),
         shares_xfer_tx: shares_xfer_tx.clone(),
     })
 }
 
-// TODO refactor, used in other place(s)
-pub async fn central_opt_in(
-    algod: &Algod,
-    address: Address,
-    central_app_id: u64,
-) -> Result<Transaction> {
-    let params = algod.suggested_transaction_params().await?;
-    let tx = &mut TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params
-        },
-        OptInApplication::new(address, central_app_id).build(),
-    )
-    .build();
-    Ok(tx.clone())
-}
-
 pub async fn submit_stake(algod: &Algod, signed: StakeSigned) -> Result<String> {
-    // crate::teal::debug_teal_rendered(
-    //     &[
-    //         signed.app_call_tx.clone(),
-    //         signed.shares_xfer_tx_signed.clone(),
-    //     ],
-    //     "staking_escrow",
-    // )
-    // .unwrap();
-    // crate::teal::debug_teal_rendered(
-    //     &[
-    //         signed.app_call_tx.clone(),
-    //         signed.shares_xfer_tx_signed.clone(),
-    //     ],
-    //     "app_central_approval",
-    // )
-    // .unwrap();
-    let res = algod
-        .broadcast_signed_transactions(&[signed.app_call_tx, signed.shares_xfer_tx_signed])
-        .await?;
-    println!("Unstake tx id: {:?}", res.tx_id);
+    let mut txs = vec![
+        signed.central_app_call_setup_tx.clone(),
+        signed.shares_xfer_tx_signed.clone(),
+    ];
+    txs.extend(signed.slot_setup_app_calls_txs);
+    // crate::teal::debug_teal_rendered(&txs, "withdrawal_slot_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
+    let res = algod.broadcast_signed_transactions(&txs).await?;
+    log::debug!("Stake tx id: {:?}", res.tx_id);
     Ok(res.tx_id)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StakeToSign {
-    pub app_call_tx: Transaction,
+    pub central_app_call_setup_tx: Transaction,
+    pub slot_setup_app_calls_txs: Vec<Transaction>,
     pub shares_xfer_tx: Transaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StakeSigned {
-    pub app_call_tx: SignedTransaction,
+    pub central_app_call_setup_tx: SignedTransaction,
+    pub slot_setup_app_calls_txs: Vec<SignedTransaction>,
     pub shares_xfer_tx_signed: SignedTransaction,
 }
 
@@ -125,8 +110,14 @@ mod tests {
     use tokio::test;
 
     use crate::{
+        app_state_util::app_local_state_or_err,
         dependencies,
-        flows::stake::logic::{central_opt_in, FIXED_FEE},
+        flows::{
+            invest::app_optins::{
+                invest_or_staking_app_optins_txs, submit_invest_or_staking_app_optins,
+            },
+            stake::logic::FIXED_FEE,
+        },
         network_util::wait_for_pending_transaction,
         testing::{
             flow::{
@@ -136,7 +127,10 @@ mod tests {
                 unstake::unstake_flow,
             },
             network_test_util::reset_network,
-            project_general::check_investor_local_state,
+            project_general::{
+                check_investor_central_app_local_state,
+                test_withdrawal_slot_local_state_initialized_correctly,
+            },
             test_data::{self, creator, customer, investor1, investor2, project_specs},
         },
     };
@@ -217,13 +211,17 @@ mod tests {
         // investor2 opts in to our app. this will be on our website.
         // TODO confirm: can't we opt in in the same group (accessing local state during opt in fails)?,
         // is there a way to avoid the investor confirming txs 2 times here?
-        let app_opt_in_tx =
-            central_opt_in(&algod, investor2.address(), project.central_app_id).await?;
-        let signed_opt_in_tx = investor2.sign_transaction(&app_opt_in_tx)?;
-        let res = algod
-            .broadcast_signed_transaction(&signed_opt_in_tx)
-            .await?;
-        let _ = wait_for_pending_transaction(&algod, &res.tx_id);
+
+        let app_optins_txs =
+            invest_or_staking_app_optins_txs(&algod, &project, &investor2.address()).await?;
+        // UI
+        let mut app_optins_signed_txs = vec![];
+        for optin_tx in app_optins_txs {
+            app_optins_signed_txs.push(investor2.sign_transaction(&optin_tx)?);
+        }
+        let app_optins_tx_id =
+            submit_invest_or_staking_app_optins(&algod, app_optins_signed_txs).await?;
+        let _ = wait_for_pending_transaction(&algod, &app_optins_tx_id);
 
         // flow
 
@@ -254,8 +252,12 @@ mod tests {
             "Investor 2 entitled dividend %: {}, microalgos: {}",
             investor2_entitled_dividends, investor2_entitled_amount
         );
-        check_investor_local_state(
-            investor2_infos.apps_local_state,
+
+        let central_app_local_state =
+            app_local_state_or_err(&investor2_infos.apps_local_state, project.central_app_id)?;
+
+        check_investor_central_app_local_state(
+            central_app_local_state,
             project.central_app_id,
             // shares local state initialized to shares
             traded_shares,
@@ -320,9 +322,13 @@ mod tests {
             investor2_amount_before_harvest + expected_harvested_amount - FIXED_FEE * 3,
             investor2_infos.amount
         );
+
+        let central_app_local_state =
+            app_local_state_or_err(&investor2_infos.apps_local_state, project.central_app_id)?;
+
         // investor's harvested local state was updated:
-        check_investor_local_state(
-            investor2_infos.apps_local_state,
+        check_investor_central_app_local_state(
+            central_app_local_state,
             project.central_app_id,
             // the shares haven't changed
             traded_shares,
@@ -330,6 +336,15 @@ mod tests {
             // initial (total_withdrawn_after_staking_setup_call: entitled amount when staking the shares) + just harvested
             total_withdrawn_after_staking_setup_call + expected_harvested_amount,
         );
+
+        for slot_id in project.withdrawal_slot_ids {
+            test_withdrawal_slot_local_state_initialized_correctly(
+                &algod,
+                &investor2.address(),
+                slot_id,
+            )
+            .await?;
+        }
 
         Ok(())
     }

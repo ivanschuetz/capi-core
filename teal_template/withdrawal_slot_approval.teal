@@ -45,7 +45,6 @@ bz after_tx_group_access
 gtxn 0 TypeEnum // unstake shares
 int axfer
 ==
-&&
 int CloseOut 
 gtxn 1 OnCompletion // central opt out (TODO app ids?)
 ==
@@ -78,12 +77,30 @@ gtxn 0 OnCompletion
 &&
 bnz branch_create
 
+// stake
+global GroupSize
+int 2 // central opt in, xfer
+int 3 // slots
++
+==
+gtxn 0 TypeEnum
+int appl
+==
+&&
+gtxn 1 TypeEnum
+int axfer
+==
+&&
+// TODO check slots
+bnz branch_invest_or_stake
+
+// invest
 global GroupSize
 int 6
 int 3 // slots: initializes investor's local state
 +
 ==
-bnz branch_invest
+bnz branch_invest_or_stake
 
 branch_init_request:
 
@@ -281,7 +298,7 @@ branch_opt_in:
 int 1
 return
 
-branch_invest:
+branch_invest_or_stake:
 
 // set LVotes to 0, just to increment easily later
 int 0

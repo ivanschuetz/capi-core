@@ -122,6 +122,7 @@ mod tests {
     use tokio::test;
 
     use crate::{
+        app_state_util::app_local_state_or_err,
         dependencies,
         flows::harvest::logic::FIXED_FEE,
         testing::{
@@ -152,6 +153,7 @@ mod tests {
         // in the real application, harvest amount is provided by indexer (maybe can be customized by user),
         // it reads app state to calculate max harvest
         let harvest_amount = MicroAlgos(1_000_000);
+        let withdrawal_slots = 3;
 
         let precs = harvest_precs(
             &algod,
@@ -161,6 +163,7 @@ mod tests {
             &drainer,
             &customer,
             buy_asset_amount,
+            withdrawal_slots,
         )
         .await?;
         let res = harvest_flow(&algod, &precs.project, &harvester, harvest_amount).await?;
@@ -181,6 +184,7 @@ mod tests {
             buy_asset_amount,
             // only one harvest: local state is the harvested amount
             res.harvest.0,
+            withdrawal_slots,
         )
         .await?;
 
@@ -205,6 +209,8 @@ mod tests {
 
         let buy_asset_amount = 20;
         let harvest_amount = MicroAlgos(1_000_000); // UI
+        let withdrawal_slots = 3;
+
         let precs = harvest_precs(
             &algod,
             &creator,
@@ -216,6 +222,7 @@ mod tests {
             // so 20% of 10 algos (TODO pass draining amount to harvest_precs), which is 2 Algos
             // we harvest 1 Algo 2x -> success
             buy_asset_amount,
+            withdrawal_slots,
         )
         .await?;
         let res1 = harvest_flow(&algod, &precs.project, &harvester, harvest_amount).await?;
@@ -242,6 +249,7 @@ mod tests {
             buy_asset_amount,
             // 2 harvests: local state is the total harvested amount
             total_expected_harvested_amount,
+            withdrawal_slots,
         )
         .await?;
 
@@ -266,6 +274,7 @@ mod tests {
         expected_central_balance: MicroAlgos,
         expected_shares: u64,
         expected_harvested_total: u64,
+        withdrawal_slots: u64,
     ) -> Result<()> {
         let harvester_account = algod.account_information(&harvester.address()).await?;
         let central_escrow_balance = algod
@@ -291,10 +300,13 @@ mod tests {
         assert_eq!(2, global_key_value.value.value_type);
 
         // harvester local state: test that it was incremented by amount harvested
-        // Only one local variable used
-        assert_eq!(1, harvester_account.apps_local_state.len());
-        let local_state = &harvester_account.apps_local_state[0];
-        assert_eq!(central_app_id, local_state.id);
+        // Only one local variable used + withdrawal slots local state
+        assert_eq!(
+            1 + withdrawal_slots as usize,
+            harvester_account.apps_local_state.len()
+        );
+        let local_state =
+            app_local_state_or_err(&harvester_account.apps_local_state, central_app_id)?;
 
         let schema = &local_state.schema;
         assert_eq!(2, schema.num_uint);

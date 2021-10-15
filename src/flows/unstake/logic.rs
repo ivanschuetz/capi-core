@@ -124,13 +124,14 @@ mod tests {
     use tokio::test;
 
     use crate::{
+        app_state_util::app_local_state_or_err,
         dependencies,
         flows::reclaim_vote::logic::FIXED_FEE,
         network_util::wait_for_pending_transaction,
         testing::{
             flow::{create_project::create_project_flow, invest_in_project::invests_flow},
             network_test_util::reset_network,
-            project_general::check_investor_local_state,
+            project_general::check_investor_central_app_local_state,
             test_data::{creator, investor1, project_specs},
         },
     };
@@ -165,9 +166,12 @@ mod tests {
         assert_eq!(1, investor_assets.len()); // opted in to shares
         assert_eq!(0, investor_assets[0].amount); // doesn't have shares (they're sent directly to staking escrow)
 
+        let central_app_local_state =
+            app_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+
         // double check investor's local state
-        check_investor_local_state(
-            investor_infos.apps_local_state,
+        check_investor_central_app_local_state(
+            central_app_local_state,
             project.central_app_id,
             // shares set to bought asset amount
             buy_asset_amount,
@@ -275,9 +279,12 @@ mod tests {
         assert_eq!(1, investor_assets.len()); // opted in to shares
         assert_eq!(0, investor_assets[0].amount); // doesn't have shares (they're sent directly to staking escrow)
 
+        let central_app_local_state =
+            app_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+
         // double check investor's local state
-        check_investor_local_state(
-            investor_infos.apps_local_state,
+        check_investor_central_app_local_state(
+            central_app_local_state,
             project.central_app_id,
             // shares set to bought asset amount
             buy_asset_amount,
@@ -342,9 +349,12 @@ mod tests {
         assert_eq!(1, investor_assets.len());
         assert_eq!(0, investor_assets[0].amount); // no shares
 
+        let central_app_local_state =
+            app_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+
         // investor local state not changed
-        check_investor_local_state(
-            investor_infos.apps_local_state,
+        check_investor_central_app_local_state(
+            central_app_local_state,
             project.central_app_id,
             // shares set to bought asset amount
             buy_asset_amount,

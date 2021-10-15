@@ -25,7 +25,9 @@ pub async fn invests_flow(
     buy_asset_amount: u64,
     project: &Project,
 ) -> Result<InvestInProjectTestFlowRes> {
-    use crate::flows::invest::app_optins::{invest_app_optins_txs, submit_invest_app_optins};
+    use crate::flows::invest::app_optins::{
+        invest_or_staking_app_optins_txs, submit_invest_or_staking_app_optins,
+    };
 
     // remember initial investor's funds
     let investor_infos = algod.account_information(&investor.address()).await?;
@@ -38,7 +40,8 @@ pub async fn invests_flow(
     let escrow_initial_amount = escrow_infos.amount;
 
     // app optins (have to happen before invest_txs, which initializes investor's local state)
-    let app_optins_txs = invest_app_optins_txs(algod, project, &investor.address()).await?;
+    let app_optins_txs =
+        invest_or_staking_app_optins_txs(algod, project, &investor.address()).await?;
 
     // UI
     let mut app_optins_signed_txs = vec![];
@@ -46,7 +49,8 @@ pub async fn invests_flow(
         app_optins_signed_txs.push(investor.sign_transaction(&optin_tx)?);
     }
 
-    let app_optins_tx_id = submit_invest_app_optins(algod, app_optins_signed_txs.clone()).await?;
+    let app_optins_tx_id =
+        submit_invest_or_staking_app_optins(algod, app_optins_signed_txs.clone()).await?;
     let _ = wait_for_pending_transaction(&algod, &app_optins_tx_id).await?;
 
     let to_sign = invest_txs(

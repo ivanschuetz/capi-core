@@ -5,9 +5,14 @@ use crate::{
     flows::create_project::{
         model::Project,
         setup::{
-            create_app::create_app_tx, create_withdrawal_slots::create_withdrawal_slots_txs,
-            drain::setup_drain, investing_escrow::setup_investing_escrow_txs,
-            staking_escrow::setup_staking_escrow_txs, votein_escrow::setup_votein_escrow_txs,
+            create_app::create_app_tx,
+            create_withdrawal_slots::{
+                create_withdrawal_slots_txs, submit_create_withdrawal_slots_txs,
+            },
+            drain::setup_drain,
+            investing_escrow::setup_investing_escrow_txs,
+            staking_escrow::setup_staking_escrow_txs,
+            votein_escrow::setup_votein_escrow_txs,
             votes_out_escrow::create_votes_out_escrow_tx,
         },
     },
@@ -194,44 +199,25 @@ pub async fn submit_create_project(
     signed: CreateProjectSigned,
 ) -> Result<SubmitCreateProjectResult> {
     log::debug!(
-        "Submitting created project specs: {:?}, creator: {:?}",
+        "Submitting, created project specs: {:?}, creator: {:?}",
         signed.specs,
         signed.creator
     );
 
     log::debug!(
-        "broadcasting project creation transactions({:?})",
+        "broadcasting escrow funding transactions({:?})",
         signed.escrow_funding_txs.len()
     );
 
     // crate::teal::debug_teal_rendered(&signed.optin_txs, "investing_escrow").unwrap();
+    // crate::teal::debug_teal_rendered(&signed.optin_txs, "staking_escrow").unwrap();
 
     let _ = algod
         .broadcast_signed_transactions(&signed.escrow_funding_txs)
         .await?;
 
-    ///////////////////////////////////////////////////////////¯
-    ///////////////////////////////////////////////////////////¯
-    // Create withdrawal slot apps
-    log::debug!("Creating withdrawal slot apps..");
-    let mut withdrawal_slot_app_ids = vec![];
-    for withdrawal_slot_app in &signed.create_withdrawal_slots_txs {
-        let create_app_res = algod
-            .broadcast_signed_transaction(&withdrawal_slot_app)
-            .await?;
-        let p_tx = wait_for_pending_transaction(algod, &create_app_res.tx_id)
-            .await?
-            .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
-        let app_id = p_tx
-            .application_index
-            .ok_or_else(|| anyhow!("Pending tx didn't have app id"))?;
-        log::debug!("Created withdrawal slot app id: {}", app_id);
-        withdrawal_slot_app_ids.push(app_id);
-    }
-    // Not really necessary (we exit if any of the requests creating the slot apps fails), just triple-check
-    if withdrawal_slot_app_ids.len() != signed.create_withdrawal_slots_txs.len() {
-        return Err(anyhow!("Couldn't create apps for all withdrawal slots"));
-    }
+    let withdrawal_slots_app_ids =
+        submit_create_withdrawal_slots_txs(&algod, signed.create_withdrawal_slots_txs).await?;
 
     ///////////////////////////////////////////////////////////¯
     // TODO investigate: application_index is None in p_tx when executing the app create tx together with the other txs
@@ -291,7 +277,7 @@ pub async fn submit_create_project(
             shares_asset_id: signed.shares_asset_id,
             votes_asset_id: signed.votes_asset_id,
             central_app_id,
-            withdrawal_slot_ids: withdrawal_slot_app_ids,
+            withdrawal_slot_ids: withdrawal_slots_app_ids,
             invest_escrow: signed.invest_escrow,
             staking_escrow: signed.staking_escrow,
             customer_escrow: signed.customer_escrow,

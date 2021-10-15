@@ -22,16 +22,23 @@ pub async fn stake_flow(
         shares_to_stake,
         project.shares_asset_id,
         project.central_app_id,
+        &project.withdrawal_slot_ids,
         &project.staking_escrow,
     )
     .await?;
 
-    let signed_app_call_tx = investor.sign_transaction(&stake_to_sign.app_call_tx)?;
+    let signed_app_call_tx = investor.sign_transaction(&stake_to_sign.central_app_call_setup_tx)?;
+    let mut signed_slots_setup_txs = vec![];
+    for slot_setup_tx in stake_to_sign.slot_setup_app_calls_txs {
+        signed_slots_setup_txs.push(investor.sign_transaction(&slot_setup_tx)?);
+    }
+
     let signed_shares_xfer_tx = investor.sign_transaction(&stake_to_sign.shares_xfer_tx)?;
     let tx_id = submit_stake(
         algod,
         StakeSigned {
-            app_call_tx: signed_app_call_tx,
+            central_app_call_setup_tx: signed_app_call_tx,
+            slot_setup_app_calls_txs: signed_slots_setup_txs,
             shares_xfer_tx_signed: signed_shares_xfer_tx,
         },
     )

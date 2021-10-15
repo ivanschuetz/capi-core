@@ -30,14 +30,12 @@ pub fn check_schema(app: &Application) {
 }
 
 #[cfg(test)]
-pub fn check_investor_local_state(
-    local_state: Vec<ApplicationLocalState>,
+pub fn check_investor_central_app_local_state(
+    local_state: &ApplicationLocalState,
     central_app_id: u64,
     expected_shares: u64,
     expected_harvested_total: MicroAlgos,
 ) {
-    assert_eq!(1, local_state.len());
-    let local_state = &local_state[0];
     assert_eq!(central_app_id, local_state.id);
     let local_key_values = &local_state.key_value;
     assert_eq!(2, local_key_values.len());

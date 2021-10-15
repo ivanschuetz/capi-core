@@ -1,16 +1,19 @@
 #pragma version 4
+// asset opt-ins on project creation
 global GroupSize
 int 6
 ==
+bz branch_after_group_access
 gtxn 0 XferAsset
 int {shares_asset_id}
 ==
-&&
 gtxn 1 XferAsset
 int {votes_asset_id}
 ==
 &&
 bnz branch_shares_and_votes_opt_in
+
+branch_after_group_access:
 
 global GroupSize
 int 2

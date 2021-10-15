@@ -6,7 +6,7 @@ use algonaut::{
 };
 use anyhow::Result;
 
-pub async fn invest_app_optins_txs(
+pub async fn invest_or_staking_app_optins_txs(
     algod: &Algod,
     project: &Project,
     investor: &Address,
@@ -24,7 +24,7 @@ pub async fn invest_app_optins_txs(
     Ok(txs.iter().clone().map(|t| t.to_owned()).collect())
 }
 
-pub async fn submit_invest_app_optins(
+pub async fn submit_invest_or_staking_app_optins(
     algod: &Algod,
     signed: Vec<SignedTransaction>,
 ) -> Result<String> {
