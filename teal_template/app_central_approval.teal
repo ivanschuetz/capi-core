@@ -105,18 +105,24 @@ bnz branch_unstake
 /////////////////
 ////////////////
 
+// opt out tx group must call all the slots (to clear local state) + unstaking txs
 global GroupSize
-int 3 // TODO placeholder with slots count + ~2 (central app call tx, asset xfer to investor, maybe also pay fees) 
+int 3 // central optout + unstake shares  + pay fee for unstake shares
+int 3 // slots
++
 ==
 bz after_tx_group_access
 gtxn 0 TypeEnum // unstake shares
+int appl
+==
+int CloseOut 
+gtxn 0 OnCompletion // central opt out (TODO app ids?)
+==
+&&
+bz after_tx_group_access
+gtxn 1 TypeEnum // unstake shares
 int axfer
 ==
-&&
-int CloseOut 
-gtxn 1 OnCompletion // central opt out (TODO app ids?)
-==
-&&
 bnz branch_opt_out
 
 after_tx_group_access:
@@ -456,20 +462,20 @@ return
 branch_opt_out:
 
 // check there's shares xfer
-gtxn 0 TypeEnum // unstake
+gtxn 1 TypeEnum // unstake
 int axfer
 ==
-&&
 
 // check shares xfer goes to the investor (app call tx sender) - review whether this check is really needed
 // we can also check e.g. that all the app calls have the same sender
-gtxn 0 AssetReceiver
-gtxn 1 Sender
+gtxn 1 AssetReceiver
+gtxn 0 Sender
 ==
 &&
 
 // check shares xfer == owned shares count
-gtxn 0 AssetAmount
+gtxn 1 AssetAmount
+int 0
 byte "Shares"
 app_local_get
 ==
@@ -477,7 +483,7 @@ app_local_get
 
 // check that all slots are being opted out (votes removed)
 int CloseOut
-gtxn 1 OnCompletion
+gtxn 3 OnCompletion
 ==
 &&
 // (TODO other slots)

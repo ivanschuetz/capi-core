@@ -21,12 +21,13 @@ pub async fn unstake(
     share_count: u64,
     shares_asset_id: u64,
     central_app_id: u64,
+    wthdrawal_slot_ids: &Vec<u64>,
     staking_escrow: &ContractAccount,
 ) -> Result<UnstakeToSign> {
     let params = algod.suggested_transaction_params().await?;
 
     // App call to validate the retrieved shares count and clear local state
-    let app_call_tx = &mut TxnBuilder::with(
+    let mut central_app_optout_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
             ..params.clone()
@@ -36,7 +37,7 @@ pub async fn unstake(
     .build();
 
     // Retrieve investor's assets from staking escrow
-    let shares_xfer_tx = &mut TxnBuilder::with(
+    let mut shares_xfer_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
             ..params.clone()
@@ -52,91 +53,115 @@ pub async fn unstake(
     .build();
 
     // Pay for the vote tokens transfer tx
-    let pay_shares_xfer_fee_tx = &mut TxnBuilder::with(
+    let mut pay_shares_xfer_fee_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params
+            ..params.clone()
         },
         Pay::new(investor, staking_escrow.address, FIXED_FEE).build(),
     )
     .build();
 
-    TxGroup::assign_group_id(vec![app_call_tx, shares_xfer_tx, pay_shares_xfer_fee_tx])?;
+    // Clear withdrawal slots local state, removing also possible votes from global state
+    let mut slot_optout_txs = vec![];
+    for slot_id in wthdrawal_slot_ids {
+        slot_optout_txs.push(withdrawal_slot_optout_tx(&params, &investor, *slot_id));
+    }
 
-    let signed_shares_xfer_tx = staking_escrow.sign(shares_xfer_tx, vec![])?;
+    let mut txs_for_group = vec![
+        &mut central_app_optout_tx,
+        &mut shares_xfer_tx,
+        &mut pay_shares_xfer_fee_tx,
+    ];
+    txs_for_group.extend(slot_optout_txs.iter_mut().collect::<Vec<_>>());
+    TxGroup::assign_group_id(txs_for_group)?;
+
+    let signed_shares_xfer_tx = staking_escrow.sign(&shares_xfer_tx, vec![])?;
 
     Ok(UnstakeToSign {
-        app_call_tx: app_call_tx.clone(),
+        central_app_optout_tx,
+        slot_optout_txs,
         shares_xfer_tx: signed_shares_xfer_tx,
-        pay_shares_xfer_fee_tx: pay_shares_xfer_fee_tx.clone(),
+        pay_shares_xfer_fee_tx,
     })
 }
 
+fn withdrawal_slot_optout_tx(
+    params: &SuggestedTransactionParams,
+    investor: &Address,
+    slot_id: u64,
+) -> Transaction {
+    TxnBuilder::with(
+        SuggestedTransactionParams {
+            fee: FIXED_FEE,
+            ..params.clone()
+        },
+        CloseApplication::new(*investor, slot_id).build(),
+    )
+    .build()
+}
+
 pub async fn submit_unstake(algod: &Algod, signed: UnstakeSigned) -> Result<String> {
-    // crate::teal::debug_teal_rendered(
-    //     &[
-    //         signed.app_call_tx.clone(),
-    //         signed.shares_xfer_tx_signed.clone(),
-    //         signed.pay_shares_xfer_fee_tx.clone(),
-    //     ],
-    //     "staking_escrow",
-    // )
-    // .unwrap();
-    // crate::teal::debug_teal_rendered(
-    //     &[
-    //         signed.app_call_tx.clone(),
-    //         signed.shares_xfer_tx_signed.clone(),
-    //         signed.pay_shares_xfer_fee_tx.clone(),
-    //     ],
-    //     "app_central_approval",
-    // )
-    // .unwrap();
-    let res = algod
-        .broadcast_signed_transactions(&[
-            signed.app_call_tx,
-            signed.shares_xfer_tx_signed,
-            signed.pay_shares_xfer_fee_tx,
-        ])
-        .await?;
+    let mut txs = vec![
+        signed.central_app_optout_tx,
+        signed.shares_xfer_tx_signed,
+        signed.pay_shares_xfer_fee_tx,
+    ];
+    txs.extend(signed.slot_optout_txs.clone());
+
+    // crate::teal::debug_teal_rendered(&txs, "staking_escrow").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "withdrawal_slot_approval").unwrap();
+
+    let res = algod.broadcast_signed_transactions(&txs).await?;
     println!("Unstake tx id: {:?}", res.tx_id);
     Ok(res.tx_id)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnstakeToSign {
-    pub app_call_tx: Transaction,
+    pub central_app_optout_tx: Transaction,
+    pub slot_optout_txs: Vec<Transaction>,
     pub shares_xfer_tx: SignedTransaction,
     pub pay_shares_xfer_fee_tx: Transaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnstakeSigned {
-    pub app_call_tx: SignedTransaction,
+    pub central_app_optout_tx: SignedTransaction,
+    pub slot_optout_txs: Vec<SignedTransaction>,
     pub shares_xfer_tx_signed: SignedTransaction,
     pub pay_shares_xfer_fee_tx: SignedTransaction,
 }
 
 #[cfg(test)]
 mod tests {
-    use algonaut::core::MicroAlgos;
+    use algonaut::{
+        algod::v2::Algod,
+        core::{Address, MicroAlgos},
+    };
     use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
 
     use crate::{
-        app_state_util::app_local_state_or_err,
+        app_state_util::{app_local_state, app_local_state_or_err},
         dependencies,
         flows::reclaim_vote::logic::FIXED_FEE,
         network_util::wait_for_pending_transaction,
         testing::{
-            flow::{create_project::create_project_flow, invest_in_project::invests_flow},
+            flow::{
+                create_project::create_project_flow, invest_in_project::invests_flow,
+                unstake::unstake_flow,
+            },
             network_test_util::reset_network,
-            project_general::check_investor_central_app_local_state,
+            project_general::{
+                check_investor_central_app_local_state,
+                test_withdrawal_slot_local_state_initialized_correctly,
+            },
             test_data::{creator, investor1, project_specs},
         },
     };
-
-    use super::{submit_unstake, unstake, UnstakeSigned};
 
     #[test]
     #[serial]
@@ -196,31 +221,9 @@ mod tests {
         // in the real application, unstake_share_amount is retrieved from indexer
         let unstake_share_amount = buy_asset_amount;
 
-        let unstake_to_sign = unstake(
-            &algod,
-            investor.address(),
-            unstake_share_amount,
-            project.shares_asset_id,
-            project.central_app_id,
-            &project.staking_escrow,
-        )
-        .await?;
-
-        let signed_app_call_tx = investor.sign_transaction(&unstake_to_sign.app_call_tx)?;
-        let signed_pay_shares_xfer_fee_tx =
-            investor.sign_transaction(&unstake_to_sign.pay_shares_xfer_fee_tx)?;
-
-        let tx_id = submit_unstake(
-            &algod,
-            UnstakeSigned {
-                app_call_tx: signed_app_call_tx,
-                shares_xfer_tx_signed: unstake_to_sign.shares_xfer_tx,
-                pay_shares_xfer_fee_tx: signed_pay_shares_xfer_fee_tx,
-            },
-        )
-        .await?;
-
-        let _ = wait_for_pending_transaction(&algod, &tx_id).await?;
+        let unstake_tx_id = unstake_flow(&algod, &project, &investor, unstake_share_amount).await?;
+        println!("?? unstake tx id: {:?}", unstake_tx_id);
+        let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
 
         // shares not anymore in staking escrow
         let staking_escrow_infos = algod
@@ -240,9 +243,17 @@ mod tests {
         // investor local state cleared (opted out)
         assert_eq!(0, investor_infos.apps_local_state.len());
 
-        // investor paid the fees (app call + xfer + xfer fee)
+        // withdrawal slots local state cleared (opted out)
+        for slot_id in &project.withdrawal_slot_ids {
+            test_withdrawal_slot_local_state_cleared(&algod, &investor.address(), *slot_id).await?;
+        }
+        // TODO test that possible votes are removed from withdrawal slots global state
+
+        // investor paid the fees (app call + xfer + xfer fee + n slots)
         assert_eq!(
-            investor_balance_before_unstaking - FIXED_FEE * 3,
+            investor_balance_before_unstaking
+                - FIXED_FEE * 3
+                - FIXED_FEE * project.withdrawal_slot_ids.len() as u64,
             investor_infos.amount
         );
 
@@ -308,31 +319,9 @@ mod tests {
 
         let unstake_share_amount = partial_amount;
 
-        let unstake_to_sign = unstake(
-            &algod,
-            investor.address(),
-            unstake_share_amount,
-            project.shares_asset_id,
-            project.central_app_id,
-            &project.staking_escrow,
-        )
-        .await?;
+        let unstake_result = unstake_flow(&algod, &project, &investor, unstake_share_amount).await;
 
-        let signed_app_call_tx = investor.sign_transaction(&unstake_to_sign.app_call_tx)?;
-        let signed_pay_shares_xfer_fee_tx =
-            investor.sign_transaction(&unstake_to_sign.pay_shares_xfer_fee_tx)?;
-
-        let tx_id_res = submit_unstake(
-            &algod,
-            UnstakeSigned {
-                app_call_tx: signed_app_call_tx,
-                shares_xfer_tx_signed: unstake_to_sign.shares_xfer_tx,
-                pay_shares_xfer_fee_tx: signed_pay_shares_xfer_fee_tx,
-            },
-        )
-        .await;
-
-        assert!(tx_id_res.is_err());
+        assert!(unstake_result.is_err());
 
         // shares still in staking escrow
         let staking_escrow_infos = algod
@@ -362,9 +351,35 @@ mod tests {
             MicroAlgos(0),
         );
 
+        // local state in withdrawal slots not changed
+        for slot_id in project.withdrawal_slot_ids {
+            // we repurpose the initial state test, as before opting out we don't do anything with the withdrawal slots here,
+            // so unchanged == initialized state
+            test_withdrawal_slot_local_state_initialized_correctly(
+                &algod,
+                &investor.address(),
+                slot_id,
+            )
+            .await?;
+        }
+
         // investor didn't pay fees (unstake txs failed)
         assert_eq!(investor_balance_before_unstaking, investor_infos.amount);
 
+        Ok(())
+    }
+
+    async fn test_withdrawal_slot_local_state_cleared(
+        algod: &Algod,
+        investor_address: &Address,
+        slot_app_id: u64,
+    ) -> Result<()> {
+        let account = algod.account_information(investor_address).await?;
+        let local_state = account.apps_local_state;
+        let app_local_state = app_local_state(&local_state, slot_app_id);
+        // println!("LVotes base64: {:?}", BASE64.encode(b"LVotes"));
+        // println!("Valid base64: {:?}", BASE64.encode(b"Valid"));
+        assert!(app_local_state.is_none());
         Ok(())
     }
 }

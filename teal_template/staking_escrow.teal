@@ -22,6 +22,8 @@ bnz branch_vote
 
 global GroupSize
 int 3
+int 3 // slots
++
 ==
 bnz branch_unstake
 
@@ -116,3 +118,4 @@ gtxn 2 TypeEnum
 int pay
 ==
 &&
+// TODO check slots

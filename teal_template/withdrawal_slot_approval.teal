@@ -37,18 +37,22 @@ after_args_access:
 
 // opt out tx group must call all the slots (to clear local state) + unstaking txs
 global GroupSize
+int 3 // central optout + unstake shares  + pay fee for unstake shares
 int 3 // slots
-int 2 // central app call, asset xfer to investor, maybe also pay fees
 +
 ==
 bz after_tx_group_access
 gtxn 0 TypeEnum // unstake shares
-int axfer
+int appl
 ==
 int CloseOut 
-gtxn 1 OnCompletion // central opt out (TODO app ids?)
+gtxn 0 OnCompletion // central opt out (TODO app ids?)
 ==
 &&
+bz after_tx_group_access
+gtxn 1 TypeEnum // unstake shares
+int axfer
+==
 bnz branch_opt_out
 
 after_tx_group_access:
@@ -252,10 +256,10 @@ return
 branch_opt_out:
 
 // opting out from this slot (central checks for the other slots)
+// TODO either insert transaction index corresponding to this slot or just check all the slots
 int CloseOut 
-gtxn 2 OnCompletion
+gtxn 3 OnCompletion
 ==
-&&
 
 // if the user cleared local state, disapprove
 // NOTE that this doesn't prevent the opt-out (the local state is cleared independently of the approval program's returned status)

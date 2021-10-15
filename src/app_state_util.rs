@@ -3,14 +3,18 @@ use algonaut::model::algod::v2::{ApplicationLocalState, TealValue};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 
+pub fn app_local_state(
+    apps_state: &Vec<ApplicationLocalState>,
+    app_id: u64,
+) -> Option<&ApplicationLocalState> {
+    apps_state.iter().find(|s| s.id == app_id)
+}
+
 pub fn app_local_state_or_err(
     apps_state: &Vec<ApplicationLocalState>,
     app_id: u64,
 ) -> Result<&ApplicationLocalState> {
-    apps_state
-        .iter()
-        .find(|s| s.id == app_id)
-        .ok_or(anyhow!("No local state for app id: {}", app_id))
+    app_local_state(apps_state, app_id).ok_or(anyhow!("No local state for app id: {}", app_id))
 }
 
 pub fn app_local_var(app_state: &ApplicationLocalState, var: &str) -> Option<TealValue> {

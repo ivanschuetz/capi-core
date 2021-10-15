@@ -174,7 +174,8 @@ mod tests {
 
         // investor1 unstakes
         let traded_shares = buy_asset_amount;
-        let _ = unstake_flow(&algod, &project, &investor1, traded_shares).await?;
+        let unstake_tx_id = unstake_flow(&algod, &project, &investor1, traded_shares).await?;
+        let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
 
         // investor2 gets shares from investor1 externally
         // normally this will be a swap in a dex. could also be a gift or some other service
