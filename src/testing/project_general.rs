@@ -1,9 +1,19 @@
 #[cfg(test)]
+use crate::app_state_util::app_local_state_or_err;
+#[cfg(test)]
+use crate::app_state_util::app_local_var_or_err;
+#[cfg(test)]
+use algonaut::algod::v2::Algod;
+#[cfg(test)]
+use algonaut::core::Address;
+#[cfg(test)]
 use algonaut::core::MicroAlgos;
 #[cfg(test)]
 use algonaut::model::algod::v2::Application;
 #[cfg(test)]
 use algonaut::model::algod::v2::ApplicationLocalState;
+#[cfg(test)]
+use anyhow::Result;
 #[cfg(test)]
 use data_encoding::BASE64;
 
@@ -53,4 +63,28 @@ pub fn check_investor_local_state(
         expected_harvested_total.0,
         harvested_total_local_key_value.value.uint
     );
+}
+
+#[cfg(test)]
+pub async fn test_withdrawal_slot_local_state_initialized_correctly(
+    algod: &Algod,
+    investor_address: &Address,
+    app_id: u64,
+) -> Result<()> {
+    let account = algod.account_information(investor_address).await?;
+    let local_state = account.apps_local_state;
+
+    let app_local_state = app_local_state_or_err(&local_state, app_id)?;
+
+    // initialized with 0 votes (to be easy to increment when voting)
+    let lvotes = app_local_var_or_err(&app_local_state, "LVotes")?;
+    assert!(lvotes.bytes.is_empty());
+    assert_eq!(0, lvotes.uint);
+
+    // when investing, valid is set to true (1)
+    let valid = app_local_var_or_err(&app_local_state, "Valid")?;
+    assert!(valid.bytes.is_empty());
+    assert_eq!(1, valid.uint);
+
+    Ok(())
 }

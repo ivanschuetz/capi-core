@@ -195,17 +195,15 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
 
 #[cfg(test)]
 mod tests {
-    use crate::app_state_util::{app_local_state_or_err, app_local_var_or_err};
     use crate::testing::flow::create_project::create_project_flow;
     use crate::testing::flow::invest_in_project::invests_flow;
     use crate::testing::network_test_util::reset_network;
+    use crate::testing::project_general::test_withdrawal_slot_local_state_initialized_correctly;
     use crate::{
         dependencies,
         testing::test_data::creator,
         testing::test_data::{investor1, project_specs},
     };
-    use algonaut::algod::v2::Algod;
-    use algonaut::core::Address;
     use algonaut::{
         core::MicroAlgos,
         transaction::{Transaction, TransactionType},
@@ -327,29 +325,6 @@ mod tests {
         }
 
         // TODO test the voting asset transfer
-
-        Ok(())
-    }
-
-    async fn test_withdrawal_slot_local_state_initialized_correctly(
-        algod: &Algod,
-        investor_address: &Address,
-        app_id: u64,
-    ) -> Result<()> {
-        let account = algod.account_information(investor_address).await?;
-        let local_state = account.apps_local_state;
-
-        let app_local_state = app_local_state_or_err(&local_state, app_id)?;
-
-        // initialized with 0 votes (to be easy to increment when voting)
-        let lvotes = app_local_var_or_err(&app_local_state, "LVotes")?;
-        assert!(lvotes.bytes.is_empty());
-        assert_eq!(0, lvotes.uint);
-
-        // when investing, valid is set to true (1)
-        let valid = app_local_var_or_err(&app_local_state, "Valid")?;
-        assert!(valid.bytes.is_empty());
-        assert_eq!(1, valid.uint);
 
         Ok(())
     }
