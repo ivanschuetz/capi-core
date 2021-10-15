@@ -1,4 +1,8 @@
 #[cfg(test)]
+use crate::flows::invest::app_optins::{
+    invest_or_staking_app_optins_txs, submit_invest_or_staking_app_optins,
+};
+#[cfg(test)]
 use crate::flows::{
     create_project::model::Project,
     invest::model::InvestResult,
@@ -25,10 +29,6 @@ pub async fn invests_flow(
     buy_asset_amount: u64,
     project: &Project,
 ) -> Result<InvestInProjectTestFlowRes> {
-    use crate::flows::invest::app_optins::{
-        invest_or_staking_app_optins_txs, submit_invest_or_staking_app_optins,
-    };
-
     // remember initial investor's funds
     let investor_infos = algod.account_information(&investor.address()).await?;
     let investor_initial_amount = investor_infos.amount;

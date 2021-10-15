@@ -10,7 +10,6 @@ bz after_args_access
 gtxn 0 ApplicationArgs 0 // action
 byte b64 YnJhbmNoX2luaXRfcmVxdWVzdA== // branch_init_request
 ==
-&&
 bnz branch_init_request
 
 gtxn 0 NumAppArgs
@@ -20,7 +19,6 @@ bz after_args_access
 gtxn 0 ApplicationArgs 0 // action
 byte b64 YnJhbmNoX3dpdGhkcmF3 // branch_withdraw
 ==
-&&
 bnz branch_withdraw
 
 gtxn 0 NumAppArgs
@@ -30,7 +28,6 @@ bz after_args_access
 gtxn 0 ApplicationArgs 0 // action
 byte b64 YnJhbmNoX3ZvdGU= // branch_vote
 ==
-&&
 bnz branch_vote
 
 after_args_access:
@@ -117,11 +114,14 @@ int 0
 gtxn 0 TypeEnum // app call
 int appl
 ==
+&&
 
 // amount >= 0 (setting 0 amount means clearing the request)
 gtxn 0 ApplicationArgs 1 // withdrawal amount
+btoi
 int 0
 >=
+&&
 
 // sender is project creator
 gtxn 0 Sender
@@ -132,9 +132,9 @@ addr {project_creator_address}
 // save request amount
 byte "Amount"
 gtxn 0 ApplicationArgs 1 // withdrawal amount
+btoi
 app_global_put
 
-int 1
 return
 
 branch_withdraw:
