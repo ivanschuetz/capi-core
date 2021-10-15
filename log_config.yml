@@ -1,0 +1,35 @@
+appenders:
+  console:
+    kind: console
+    encoder:
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} {M} {f}:{L} {l} - {m}\n"
+    filters:
+      - kind: threshold
+        level: trace
+  # file:
+  #   kind: file
+  #   path: log/output.log
+  #   encoder:
+  #     # no date: not needed during development
+  #     pattern: "{d(%H:%M:%S)} {f}:{L} {l} - {m}\n"
+  #     # pattern: "{d(%Y-%m-%d %H:%M:%S)} {f}:{L} {l} - {m}\n"
+
+  #   append: false
+  #   filters:
+  #     - kind: threshold
+  #       level: trace
+
+# TODO why uncommenting this causes duplicate logs for level < error?
+# root:
+#   level: error
+#   appenders:
+#     - console
+#     - file
+
+# for now hardcoding the dependent projects here, see https://github.com/estk/log4rs/issues/211
+loggers:
+  make:
+    level: trace
+    appenders:
+      - console
+      # - file

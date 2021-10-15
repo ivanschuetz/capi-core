@@ -19,6 +19,8 @@ tinytemplate = "1.2.1"
 tealdbg = { path = "/Users/ischuetz/dev/algorand/tealdbg_launcher" }
 
 log = "0.4"
+logger = { path = "../logger" }
+
 # std::Instant::now() panics on WASM https://github.com/sebcrozet/instant
 # working config from here (first 2 posts): https://github.com/sebcrozet/instant/issues/1
 instant = { version = "0.1", features = [ "now", "wasm-bindgen" ] }
