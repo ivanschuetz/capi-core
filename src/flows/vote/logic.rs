@@ -224,4 +224,89 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    #[serial]
+    async fn test_vote_fails_if_votes_not_equals_shares() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+
+        // precs
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let buy_asset_amount = 10;
+        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // init a withdrawal request
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, MicroAlgos(123), slot_id).await?;
+        let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        // double check that votes is default value / there are no votes
+        let slot_app = algod.application_information(slot_id).await?;
+        let initial_vote_count = votes_global_state(&slot_app);
+        assert!(initial_vote_count.is_none());
+
+        // flow + test
+
+        // votes with count != shares count
+        let res = vote_flow(&algod, &investor, &project, slot_id, buy_asset_amount + 1).await;
+        assert!(res.is_err());
+
+        // votes with count != shares count
+        let res = vote_flow(&algod, &investor, &project, slot_id, buy_asset_amount - 1).await;
+        assert!(res.is_err());
+
+        // sanity check: votes with count == shares: succeeds
+        let res = vote_flow(&algod, &investor, &project, slot_id, buy_asset_amount).await;
+        assert!(res.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_vote_fails_if_0_votes() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+
+        // precs
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let buy_asset_amount = 10;
+        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // init a withdrawal request
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, MicroAlgos(123), slot_id).await?;
+        let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        // double check that votes is default value / there are no votes
+        let slot_app = algod.application_information(slot_id).await?;
+        let initial_vote_count = votes_global_state(&slot_app);
+        assert!(initial_vote_count.is_none());
+
+        // flow + test
+
+        let res = vote_flow(&algod, &investor, &project, slot_id, 0).await;
+        assert!(res.is_err());
+
+        Ok(())
+    }
 }

@@ -3,6 +3,7 @@ use algonaut::model::algod::v2::{ApplicationLocalState, TealValue};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 
+// TODO pass account instead of apps_state?
 pub fn app_local_state(
     apps_state: &Vec<ApplicationLocalState>,
     app_id: u64,
