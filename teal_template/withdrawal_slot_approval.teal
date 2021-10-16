@@ -194,7 +194,6 @@ branch_vote:
 gtxn 0 TypeEnum // app call (this app)
 int appl
 ==
-&&
 
 //////////////////////////
 // central app validation
@@ -207,14 +206,8 @@ int appl
 ==
 &&
 
-// check that the vote count sent to the central validation app call == vote count being submitted here
-gtxn 0 ApplicationArgs 1
-gtxn 1 ApplicationArgs 1
-==
-&&
-
 // check that the central app call has label expected there
-gtxn 0 ApplicationArgs 0 // action
+gtxn 1 ApplicationArgs 0 // action
 byte b64 dmFsaWRhdGVfdm90ZQ== // validate_vote
 ==
 &&
@@ -224,6 +217,7 @@ byte b64 dmFsaWRhdGVfdm90ZQ== // validate_vote
 
 // votes > 0
 gtxn 0 ApplicationArgs 1 // vote count
+btoi
 int 0
 >
 &&
@@ -240,13 +234,15 @@ byte "Votes"
 byte "Votes"
 app_global_get
 gtxn 0 ApplicationArgs 1 // vote count
+btoi
 +
 app_global_put
 
 // set local votes
-// gtxn 0 Sender // sender of app call (investor) -- not sure needed
+gtxn 0 Sender
 byte "LVotes"
 gtxn 0 ApplicationArgs 1 // vote count
+btoi
 app_local_put
 
 // TODO review (also in other places) whether this int 1 after setting state is needed - probably shouldn't be here)

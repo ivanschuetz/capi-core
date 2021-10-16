@@ -1,10 +1,10 @@
 #[cfg(test)]
-use super::vote::vote_flow;
-#[cfg(test)]
 use crate::flows::{
     create_project::model::{CreateProjectSpecs, Project},
     withdraw::logic::{submit_withdraw, withdraw, WithdrawSigned},
 };
+#[cfg(test)]
+use crate::testing::flow::vote::invest_and_vote_to_meet_withdrawal_threshold_flow;
 #[cfg(test)]
 use crate::{
     flows::shared::app::optin_to_app,
@@ -33,14 +33,19 @@ pub async fn withdraw_precs(
     pay_and_drain_amount: MicroAlgos,
 ) -> Result<WithdrawTestPrecsRes> {
     let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+
     // meet the voting threshold so the withdrawal is approved
-    let _ = vote_flow(
+    assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+    let slot_id = project.withdrawal_slot_ids[0];
+    let vote_tx_id = invest_and_vote_to_meet_withdrawal_threshold_flow(
         algod,
         voter,
         &project,
+        slot_id,
         project.specs.vote_threshold_units(), // enough units for vote to pass
     )
     .await?;
+    wait_for_pending_transaction(&algod, &vote_tx_id).await?;
 
     // payment and draining
     let drain_res = customer_payment_and_drain_flow(

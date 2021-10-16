@@ -139,7 +139,10 @@ mod tests {
         },
         network_util::wait_for_pending_transaction,
         testing::{
-            flow::{create_project::create_project_flow, vote::vote_flow, withdraw::withdraw_flow},
+            flow::{
+                create_project::create_project_flow,
+                vote::invest_and_vote_to_meet_withdrawal_threshold_flow, withdraw::withdraw_flow,
+            },
             network_test_util::reset_network,
             test_data::{creator, investor1, project_specs},
         },
@@ -160,9 +163,20 @@ mod tests {
         // precs
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+
         // enough units for vote to pass
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
         let buy_asset_amount = project.specs.vote_threshold_units();
-        let _ = vote_flow(&algod, &investor, &project, buy_asset_amount).await?;
+        let vote_tx_id = invest_and_vote_to_meet_withdrawal_threshold_flow(
+            &algod,
+            &investor,
+            &project,
+            slot_id,
+            buy_asset_amount,
+        )
+        .await?;
+        wait_for_pending_transaction(&algod, &vote_tx_id).await?;
 
         let vote_in_after_voting = algod
             .account_information(&project.votein_escrow.address)

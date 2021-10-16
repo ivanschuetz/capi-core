@@ -6,8 +6,6 @@ use crate::flows::{
     vote::logic::{submit_vote, vote, VoteSigned},
 };
 #[cfg(test)]
-use crate::network_util::wait_for_pending_transaction;
-#[cfg(test)]
 use algonaut::{algod::v2::Algod, transaction::account::Account};
 #[cfg(test)]
 use anyhow::Result;
@@ -17,42 +15,43 @@ pub async fn vote_flow(
     algod: &Algod,
     voter: &Account,
     project: &Project,
+    slot_id: u64,
     buy_asset_amount: u64,
-) -> Result<VoteTestFlowRes> {
-    // Investor buys shares with count == vote threshold count
-    let _ = invests_flow(algod, voter, buy_asset_amount, &project).await?;
-    // Sends (all) the votes to make the vote successful
+) -> Result<String> {
     let vote_to_sign = vote(
-        algod,
+        &algod,
         voter.address(),
-        project.votes_asset_id,
         project.central_app_id,
-        &project.staking_escrow,
+        slot_id,
         buy_asset_amount,
-        project.votein_escrow.address,
     )
     .await?;
 
-    // UI
-
-    let signed_validate_investor_vote_count_tx =
-        voter.sign_transaction(&vote_to_sign.validate_investor_vote_count_tx)?;
-
-    let vote_tx_id = submit_vote(
+    let signed_vote_tx = voter.sign_transaction(&vote_to_sign.vote_tx)?;
+    let signed_validate_vote_count_tx =
+        voter.sign_transaction(&vote_to_sign.validate_vote_count_tx)?;
+    let tx_id = submit_vote(
         &algod,
         &VoteSigned {
-            validate_investor_vote_count_tx: signed_validate_investor_vote_count_tx,
-            xfer_tx: vote_to_sign.xfer_tx,
+            vote_tx: signed_vote_tx,
+            validate_vote_count_tx: signed_validate_vote_count_tx,
         },
     )
     .await?;
 
-    wait_for_pending_transaction(&algod, &vote_tx_id).await?;
-
-    Ok(VoteTestFlowRes {})
+    Ok(tx_id)
 }
 
 #[cfg(test)]
-// Any data we want to return from the flow to the tests
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VoteTestFlowRes {}
+pub async fn invest_and_vote_to_meet_withdrawal_threshold_flow(
+    algod: &Algod,
+    voter: &Account,
+    project: &Project,
+    slot_id: u64,
+    buy_asset_amount: u64,
+) -> Result<String> {
+    // Investor buys shares with count == vote threshold count
+    let _ = invests_flow(algod, voter, buy_asset_amount, &project).await?;
+
+    vote_flow(algod, voter, project, slot_id, buy_asset_amount).await
+}

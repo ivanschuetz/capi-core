@@ -49,7 +49,6 @@ bz after_args_access2
 gtxn 0 ApplicationArgs 0 // action
 byte b64 YnJhbmNoX3ZvdGU= // branch_vote
 ==
-&&
 gtxn 1 ApplicationArgs 0 // action
 byte b64 dmFsaWRhdGVfdm90ZQ== // validate_vote
 ==
@@ -413,19 +412,13 @@ return
 
 branch_validate_votes:
 
-// check that both app calls have same count (also checked in the voting slot apps)
-gtxn 0 ApplicationArgs 1
-gtxn 1 ApplicationArgs 1
-==
-&&
-
 // check that owned shares count == votes count (from any of the app calls - we checked they're equal above)
 int 0
 byte "Shares"
 app_local_get // if local state doesn't exist yet, this puts a 0 on the stack
 gtxn 0 ApplicationArgs 1
+btoi
 ==
-&&
 
 return
 
