@@ -115,7 +115,9 @@ mod tests {
             network_test_util::reset_network,
             test_data::{creator, investor1, project_specs},
         },
-        withdrawal_app_state::{votes_global_state, votes_global_state_or_err},
+        withdrawal_app_state::{
+            votes_global_state, votes_global_state_or_err, votes_local_state_or_err,
+        },
     };
 
     #[test]
@@ -159,6 +161,66 @@ mod tests {
         let slot_app = algod.application_information(slot_id).await?;
         let vote_amount = votes_global_state_or_err(&slot_app)?;
         assert_eq!(buy_asset_amount, vote_amount);
+
+        // check that votes local state was set to voted (owned shares) amount
+        let account = algod.account_information(&investor.address()).await?;
+        let local_vote_amount = votes_local_state_or_err(&account.apps_local_state, slot_id)?;
+        assert_eq!(buy_asset_amount, local_vote_amount);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_vote_fails_if_already_voted() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+
+        // precs
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let buy_asset_amount = 10;
+        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // init a withdrawal request
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, MicroAlgos(123), slot_id).await?;
+        let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        // double check that votes is default value / there are no votes
+        let slot_app = algod.application_information(slot_id).await?;
+        let initial_vote_count = votes_global_state(&slot_app);
+        assert!(initial_vote_count.is_none());
+
+        // flow
+
+        // vote 1st time: success
+        let tx_id = vote_flow(&algod, &investor, &project, slot_id, buy_asset_amount).await?;
+        wait_for_pending_transaction(&algod, &tx_id).await?;
+
+        // vote 2nd time: fails
+        let res = vote_flow(&algod, &investor, &project, slot_id, buy_asset_amount).await;
+        assert!(res.is_err());
+
+        // test
+
+        // check that votes global state is as expected after 1st vote
+        let slot_app = algod.application_information(slot_id).await?;
+        let vote_amount = votes_global_state_or_err(&slot_app)?;
+        assert_eq!(buy_asset_amount, vote_amount);
+
+        // check that votes local state is as expected after 1st vote
+        let account = algod.account_information(&investor.address()).await?;
+        let local_vote_amount = votes_local_state_or_err(&account.apps_local_state, slot_id)?;
+        assert_eq!(buy_asset_amount, local_vote_amount);
 
         Ok(())
     }

@@ -229,6 +229,14 @@ int 0
 >
 &&
 
+gtxn 0 Sender
+byte "LVotes"
+app_local_get
+int 0
+==
+&&
+bz branch_exit_false
+
 // increment votes
 byte "Votes"
 byte "Votes"
