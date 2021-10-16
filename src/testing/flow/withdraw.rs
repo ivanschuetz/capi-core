@@ -8,6 +8,11 @@ use crate::flows::{
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
 #[cfg(test)]
+use crate::testing::flow::{
+    customer_payment_and_drain_flow::customer_payment_and_drain_flow,
+    init_withdrawal::init_withdrawal_flow, invest_in_project::invests_flow, vote::vote_flow,
+};
+#[cfg(test)]
 use algonaut::{algod::v2::Algod, core::MicroAlgos, transaction::account::Account};
 #[cfg(test)]
 use anyhow::Result;
@@ -26,18 +31,8 @@ pub async fn withdraw_precs(
     project: &Project,
     pay_and_drain_amount: MicroAlgos,
     amount_to_withdraw: MicroAlgos,
+    slot_id: u64,
 ) -> Result<WithdrawTestPrecsRes> {
-    use crate::testing::flow::{
-        customer_payment_and_drain_flow::customer_payment_and_drain_flow,
-        init_withdrawal::init_withdrawal_flow, invest_in_project::invests_flow, vote::vote_flow,
-    };
-
-    // meet the voting threshold so the withdrawal is approved
-
-    assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
-
-    let slot_id = project.withdrawal_slot_ids[0];
-
     // customer payment and draining, to have some funds to withdraw
     let drain_res = customer_payment_and_drain_flow(
         &algod,
@@ -56,14 +51,14 @@ pub async fn withdraw_precs(
     let investor_shares_count = project.specs.vote_threshold_units();
     invests_flow(algod, voter, investor_shares_count, &project).await?;
 
+    // Init a request
     let init_withdrawal_tx_id =
         init_withdrawal_flow(&algod, &creator, amount_to_withdraw, slot_id).await?;
     wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
 
+    // Vote with enough shares so withdrawal will pass
     let vote_tx_id = vote_flow(algod, voter, project, slot_id, investor_shares_count).await?;
     wait_for_pending_transaction(&algod, &vote_tx_id).await?;
-
-    // end precs
 
     Ok(WithdrawTestPrecsRes {
         central_escrow_balance_after_drain,

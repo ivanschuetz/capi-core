@@ -145,6 +145,10 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
         let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
+        // select arbitrary slot
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
         withdraw_precs(
             &algod,
             &creator,
@@ -154,6 +158,7 @@ mod tests {
             &project,
             pay_and_drain_amount,
             withdraw_amount,
+            slot_id,
         )
         .await?;
 
@@ -167,8 +172,6 @@ mod tests {
 
         // flow
 
-        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
-        let slot_id = project.withdrawal_slot_ids[0];
         let _res = withdraw_flow(&algod, &project, &creator, withdraw_amount, slot_id).await?;
 
         // test
