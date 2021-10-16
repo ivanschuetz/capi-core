@@ -1,7 +1,6 @@
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
-    model::algod::v2::{Account, AssetHolding},
     transaction::{
         account::ContractAccount, builder::CallApplication, tx_group::TxGroup, Pay,
         SignedTransaction, Transaction, TxnBuilder,
@@ -107,17 +106,25 @@ pub struct WithdrawSigned {
 
 #[cfg(test)]
 mod tests {
-    use algonaut::core::MicroAlgos;
+    use algonaut::{
+        algod::v2::Algod,
+        core::{Address, MicroAlgos},
+    };
     use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
 
     use crate::{
         dependencies,
-        flows::withdraw::logic::FIXED_FEE,
+        flows::withdraw::logic::{submit_withdraw, withdraw, WithdrawSigned, FIXED_FEE},
+        network_util::wait_for_pending_transaction,
         testing::{
             flow::{
                 create_project::create_project_flow,
+                customer_payment_and_drain_flow::customer_payment_and_drain_flow,
+                init_withdrawal::init_withdrawal_flow,
+                invest_in_project::invests_flow,
+                vote::vote_flow,
                 withdraw::{withdraw_flow, withdraw_precs},
             },
             network_test_util::reset_network,
@@ -172,52 +179,455 @@ mod tests {
 
         // flow
 
-        let _res = withdraw_flow(&algod, &project, &creator, withdraw_amount, slot_id).await?;
+        withdraw_flow(&algod, &project, &creator, withdraw_amount, slot_id).await?;
 
         // test
 
-        // creator got the amount and lost the fees for the withdraw txs (app call, pay escrow fee and fee of that tx)
-        let withdrawer_account = algod.account_information(&creator.address()).await?;
-        assert_eq!(
+        after_withdrawal_success_or_failure_tests(
+            &algod,
+            &creator.address(),
+            &project.central_escrow.address,
+            slot_id,
+            // creator got the amount and lost the fees for the withdraw txs (app call, pay escrow fee and fee of that tx)
             creator_balance_bafore_withdrawing + withdraw_amount - FIXED_FEE * 3,
-            withdrawer_account.amount
-        );
+            // central lost the withdrawn amount
+            central_balance_before_withdrawing - withdraw_amount,
+            // amount reset to 0
+            Some(0),
+            // votes reset to 0
+            Some(0),
+        )
+        .await
+    }
 
-        // central lost the withdrawn amount
-        let central_escrow_balance = algod
+    #[test]
+    #[serial]
+    async fn test_withdraw_without_active_request_fails() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let drainer = investor1();
+        let voter = investor2();
+        let customer = customer();
+
+        // precs
+
+        let withdraw_amount = MicroAlgos(1_000_000); // UI
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
+        // select arbitrary slot
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // customer payment and draining, to have some funds to withdraw
+        customer_payment_and_drain_flow(
+            &algod,
+            &drainer,
+            &customer,
+            pay_and_drain_amount,
+            &project,
+        )
+        .await?;
+
+        // Investor buys shares with count == vote threshold count
+        let investor_shares_count = project.specs.vote_threshold_units();
+        invests_flow(&algod, &voter, investor_shares_count, &project).await?;
+
+        // remeber state
+        let central_balance_before_withdrawing = algod
             .account_information(&project.central_escrow.address)
             .await?
             .amount;
-        assert_eq!(
-            central_balance_before_withdrawing - withdraw_amount,
-            central_escrow_balance
-        );
+        let creator_balance_bafore_withdrawing =
+            algod.account_information(&creator.address()).await?.amount;
 
-        // slot app reset amount to 0
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_withdrawal_amount = withdrawal_amount_global_state(&slot_app);
-        assert_eq!(Some(0), initial_withdrawal_amount);
+        // flow
 
-        // slot app reset votes to 0
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_vote_count = votes_global_state(&slot_app);
-        assert_eq!(Some(0), initial_vote_count);
+        let to_sign = withdraw(
+            &algod,
+            creator.address(),
+            withdraw_amount,
+            &project.central_escrow,
+            slot_id,
+        )
+        .await?;
 
-        Ok(())
+        // UI
+        let pay_withdraw_fee_tx_signed = creator.sign_transaction(&to_sign.pay_withdraw_fee_tx)?;
+        let check_enough_votes_tx_signed =
+            creator.sign_transaction(&to_sign.check_enough_votes_tx)?;
+
+        let withdraw_res = submit_withdraw(
+            &algod,
+            &WithdrawSigned {
+                withdraw_tx: to_sign.withdraw_tx,
+                pay_withdraw_fee_tx: pay_withdraw_fee_tx_signed,
+                check_enough_votes_tx: check_enough_votes_tx_signed,
+            },
+        )
+        .await;
+
+        // test
+
+        assert!(withdraw_res.is_err());
+
+        test_withdrawal_did_not_succeed(
+            &algod,
+            &creator.address(),
+            &project.central_escrow.address,
+            slot_id,
+            creator_balance_bafore_withdrawing,
+            central_balance_before_withdrawing,
+            None,
+            None,
+        )
+        .await
     }
 
-    // TODO test for failing case (not enough votes)
-}
+    #[test]
+    #[serial]
+    async fn test_withdraw_without_enough_votes_fails() -> Result<()> {
+        reset_network()?;
 
-trait AssetHolder {
-    fn get_holdings(&self, asset_id: u64) -> Option<AssetHolding>;
-}
+        // deps
 
-impl AssetHolder for Account {
-    fn get_holdings(&self, asset_id: u64) -> Option<AssetHolding> {
-        self.assets
-            .clone()
-            .into_iter()
-            .find(|a| a.asset_id == asset_id)
+        let algod = dependencies::algod();
+        let creator = creator();
+        let drainer = investor1();
+        let voter = investor2();
+        let customer = customer();
+
+        // precs
+
+        let withdraw_amount = MicroAlgos(1_000_000); // UI
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
+        // select arbitrary slot
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // customer payment and draining, to have some funds to withdraw
+        customer_payment_and_drain_flow(
+            &algod,
+            &drainer,
+            &customer,
+            pay_and_drain_amount,
+            &project,
+        )
+        .await?;
+
+        // Investor buys shares with count < vote threshold count
+        assert!(project.specs.vote_threshold_units() > 2); // sanity check (2 specifically because 1-1=0 which could trigger different conditions)
+        let investor_shares_count = project.specs.vote_threshold_units() - 1;
+        invests_flow(&algod, &voter, investor_shares_count, &project).await?;
+
+        // Init a request
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, withdraw_amount, slot_id).await?;
+        wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        // Vote
+        let vote_tx_id =
+            vote_flow(&algod, &voter, &project, slot_id, investor_shares_count).await?;
+        wait_for_pending_transaction(&algod, &vote_tx_id).await?;
+
+        // remeber state
+        let central_balance_before_withdrawing = algod
+            .account_information(&project.central_escrow.address)
+            .await?
+            .amount;
+        let creator_balance_bafore_withdrawing =
+            algod.account_information(&creator.address()).await?.amount;
+
+        // flow
+
+        let to_sign = withdraw(
+            &algod,
+            creator.address(),
+            withdraw_amount,
+            &project.central_escrow,
+            slot_id,
+        )
+        .await?;
+
+        // UI
+        let pay_withdraw_fee_tx_signed = creator.sign_transaction(&to_sign.pay_withdraw_fee_tx)?;
+        let check_enough_votes_tx_signed =
+            creator.sign_transaction(&to_sign.check_enough_votes_tx)?;
+
+        let withdraw_res = submit_withdraw(
+            &algod,
+            &WithdrawSigned {
+                withdraw_tx: to_sign.withdraw_tx,
+                pay_withdraw_fee_tx: pay_withdraw_fee_tx_signed,
+                check_enough_votes_tx: check_enough_votes_tx_signed,
+            },
+        )
+        .await;
+
+        // test
+
+        assert!(withdraw_res.is_err());
+
+        test_withdrawal_did_not_succeed(
+            &algod,
+            &creator.address(),
+            &project.central_escrow.address,
+            slot_id,
+            creator_balance_bafore_withdrawing,
+            central_balance_before_withdrawing,
+            Some(withdraw_amount.0),
+            Some(investor_shares_count),
+        )
+        .await
+    }
+
+    #[test]
+    #[serial]
+    async fn test_withdraw_without_enough_funds_fails() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let voter = investor2();
+
+        // precs
+
+        let withdraw_amount = MicroAlgos(1_000_000); // UI
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        // select arbitrary slot
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // Investor buys shares with count == vote threshold count
+        let investor_shares_count = project.specs.vote_threshold_units();
+        invests_flow(&algod, &voter, investor_shares_count, &project).await?;
+
+        // Init a request
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, withdraw_amount, slot_id).await?;
+        wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        // Vote
+        let vote_tx_id =
+            vote_flow(&algod, &voter, &project, slot_id, investor_shares_count).await?;
+        wait_for_pending_transaction(&algod, &vote_tx_id).await?;
+
+        // remeber state
+        let central_balance_before_withdrawing = algod
+            .account_information(&project.central_escrow.address)
+            .await?
+            .amount;
+        let creator_balance_bafore_withdrawing =
+            algod.account_information(&creator.address()).await?.amount;
+
+        // flow
+
+        let to_sign = withdraw(
+            &algod,
+            creator.address(),
+            withdraw_amount,
+            &project.central_escrow,
+            slot_id,
+        )
+        .await?;
+
+        // UI
+        let pay_withdraw_fee_tx_signed = creator.sign_transaction(&to_sign.pay_withdraw_fee_tx)?;
+        let check_enough_votes_tx_signed =
+            creator.sign_transaction(&to_sign.check_enough_votes_tx)?;
+
+        let withdraw_res = submit_withdraw(
+            &algod,
+            &WithdrawSigned {
+                withdraw_tx: to_sign.withdraw_tx,
+                pay_withdraw_fee_tx: pay_withdraw_fee_tx_signed,
+                check_enough_votes_tx: check_enough_votes_tx_signed,
+            },
+        )
+        .await;
+
+        // test
+
+        assert!(withdraw_res.is_err());
+
+        test_withdrawal_did_not_succeed(
+            &algod,
+            &creator.address(),
+            &project.central_escrow.address,
+            slot_id,
+            creator_balance_bafore_withdrawing,
+            central_balance_before_withdrawing,
+            Some(withdraw_amount.0),
+            Some(investor_shares_count),
+        )
+        .await
+    }
+
+    #[test]
+    #[serial]
+    async fn test_withdraw_by_not_creator_fails() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let drainer = investor1();
+        let voter = investor2();
+        let customer = customer();
+        let not_creator = investor2();
+
+        // precs
+
+        let withdraw_amount = MicroAlgos(1_000_000); // UI
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
+        // select arbitrary slot
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // customer payment and draining, to have some funds to withdraw
+        customer_payment_and_drain_flow(
+            &algod,
+            &drainer,
+            &customer,
+            pay_and_drain_amount,
+            &project,
+        )
+        .await?;
+
+        // Investor buys shares with count < vote threshold count
+        let investor_shares_count = project.specs.vote_threshold_units();
+        invests_flow(&algod, &voter, investor_shares_count, &project).await?;
+
+        // Init a request
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, withdraw_amount, slot_id).await?;
+        wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        // Vote
+        let vote_tx_id =
+            vote_flow(&algod, &voter, &project, slot_id, investor_shares_count).await?;
+        wait_for_pending_transaction(&algod, &vote_tx_id).await?;
+
+        // remeber state
+        let central_balance_before_withdrawing = algod
+            .account_information(&project.central_escrow.address)
+            .await?
+            .amount;
+        let creator_balance_bafore_withdrawing =
+            algod.account_information(&creator.address()).await?.amount;
+
+        // flow
+
+        let to_sign = withdraw(
+            &algod,
+            not_creator.address(),
+            withdraw_amount,
+            &project.central_escrow,
+            slot_id,
+        )
+        .await?;
+
+        // UI
+        let pay_withdraw_fee_tx_signed =
+            not_creator.sign_transaction(&to_sign.pay_withdraw_fee_tx)?;
+        let check_enough_votes_tx_signed =
+            not_creator.sign_transaction(&to_sign.check_enough_votes_tx)?;
+
+        let withdraw_res = submit_withdraw(
+            &algod,
+            &WithdrawSigned {
+                withdraw_tx: to_sign.withdraw_tx,
+                pay_withdraw_fee_tx: pay_withdraw_fee_tx_signed,
+                check_enough_votes_tx: check_enough_votes_tx_signed,
+            },
+        )
+        .await;
+
+        // test
+
+        assert!(withdraw_res.is_err());
+
+        test_withdrawal_did_not_succeed(
+            &algod,
+            &creator.address(),
+            &project.central_escrow.address,
+            slot_id,
+            creator_balance_bafore_withdrawing,
+            central_balance_before_withdrawing,
+            Some(withdraw_amount.0),
+            Some(investor_shares_count),
+        )
+        .await
+    }
+
+    async fn test_withdrawal_did_not_succeed(
+        algod: &Algod,
+        creator_address: &Address,
+        central_escrow_address: &Address,
+        slot_id: u64,
+        creator_balance_before_withdrawing: MicroAlgos,
+        central_balance_before_withdrawing: MicroAlgos,
+        withdraw_amount_global_state_before_withdrawing: Option<u64>,
+        votes_global_state_before_withdrawing: Option<u64>,
+    ) -> Result<()> {
+        after_withdrawal_success_or_failure_tests(
+            algod,
+            creator_address,
+            central_escrow_address,
+            slot_id,
+            creator_balance_before_withdrawing,
+            central_balance_before_withdrawing,
+            withdraw_amount_global_state_before_withdrawing,
+            votes_global_state_before_withdrawing,
+        )
+        .await
+    }
+
+    async fn after_withdrawal_success_or_failure_tests(
+        algod: &Algod,
+        creator_address: &Address,
+        central_escrow_address: &Address,
+        slot_id: u64,
+        expected_withdrawer_balance: MicroAlgos,
+        expected_central_balance: MicroAlgos,
+        // TODO option (at the beginning) vs 0 (default value we set when a withdrawal succeeds)
+        // can we use only 1 (probably 0, i.e. we've to init to 0 on setup) -- also for votes and other global state
+        expected_withdraw_amount_global_state: Option<u64>,
+        expected_votes_global_state: Option<u64>,
+    ) -> Result<()> {
+        // check creator's balance
+        let withdrawer_account = algod.account_information(&creator_address).await?;
+        assert_eq!(expected_withdrawer_balance, withdrawer_account.amount);
+
+        // check central's balance
+        let central_escrow_balance = algod
+            .account_information(central_escrow_address)
+            .await?
+            .amount;
+        assert_eq!(expected_central_balance, central_escrow_balance);
+
+        // check slot app withdrawal amount
+        let slot_app = algod.application_information(slot_id).await?;
+        let withdrawal_amount = withdrawal_amount_global_state(&slot_app);
+        assert_eq!(expected_withdraw_amount_global_state, withdrawal_amount);
+
+        // check slot app votes count
+        let slot_app = algod.application_information(slot_id).await?;
+        let vote_count = votes_global_state(&slot_app);
+        assert_eq!(expected_votes_global_state, vote_count);
+
+        Ok(())
     }
 }
