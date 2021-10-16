@@ -74,17 +74,14 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::withdraw::init_withdrawal::{init_withdrawal, submit_init_withdrawal},
         network_util::wait_for_pending_transaction,
         testing::{
-            flow::create_project::create_project_flow,
+            flow::{create_project::create_project_flow, init_withdrawal::init_withdrawal_flow},
             network_test_util::reset_network,
             test_data::{creator, project_specs},
         },
         withdrawal_app_state::{votes_global_state, withdrawal_amount_global_state},
     };
-
-    use super::InitWithdrawalSigned;
 
     #[test]
     #[serial]
@@ -122,16 +119,7 @@ mod tests {
         // assert!(initial_votes.is_some());
         // assert_eq!(0, initial_votes.unwrap());
 
-        let to_sign =
-            init_withdrawal(&algod, &creator.address(), amount_to_withdraw, slot_id).await?;
-
-        // UI
-        let signed = InitWithdrawalSigned {
-            init_withdrawal_slot_app_call_tx: creator
-                .sign_transaction(&to_sign.init_withdrawal_slot_app_call_tx)?,
-        };
-
-        let tx_id = submit_init_withdrawal(&algod, &signed).await?;
+        let tx_id = init_withdrawal_flow(&algod, &creator, amount_to_withdraw, slot_id).await?;
         let _ = wait_for_pending_transaction(&algod, &tx_id).await?;
 
         // test
@@ -151,6 +139,62 @@ mod tests {
         assert!(votes.is_none());
         // assert!(votes.is_some());
         // assert_eq!(0, votes.unwrap());
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_cannot_init_withdraw_if_already_active() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+
+        // UI
+        let specs = project_specs();
+        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+
+        let amount_to_withdraw = MicroAlgos(123456789);
+
+        // flow
+
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // double check that initial amount is None (we're initializing a withdrawal in a slot without active requests)
+        // TODO review this: None vs. default value (0): should None be the default value, can we set state to None? or should be set 0 on init?
+        let slot_app = algod.application_information(slot_id).await?;
+        let initial_withdrawal_amount = withdrawal_amount_global_state(&slot_app);
+        assert!(initial_withdrawal_amount.is_none());
+        // assert!(initial_withdrawal_amount.is_some());
+        // assert_eq!(0, initial_withdrawal_amount.unwrap());
+
+        // double check votes initial value
+        let slot_app = algod.application_information(slot_id).await?;
+        let initial_votes = votes_global_state(&slot_app);
+        assert!(initial_votes.is_none());
+        // assert!(initial_votes.is_some());
+        // assert_eq!(0, initial_votes.unwrap());
+
+        let tx_id = init_withdrawal_flow(&algod, &creator, amount_to_withdraw, slot_id).await?;
+        let _ = wait_for_pending_transaction(&algod, &tx_id).await?;
+
+        // flow + test
+
+        // submitting a new request fails
+        let new_init_withdrawal_res =
+            init_withdrawal_flow(&algod, &creator, MicroAlgos(123), slot_id).await;
+        println!("Expected error: {:?}", new_init_withdrawal_res);
+        assert!(new_init_withdrawal_res.is_err());
+
+        // submitting a new request fails - testing with 0, just in case, as 0 _can_ have a different meaning (e.g. default/inactive value)
+        let new_init_withdrawal_res =
+            init_withdrawal_flow(&algod, &creator, MicroAlgos(0), slot_id).await;
+        println!("Expected error: {:?}", new_init_withdrawal_res);
+        assert!(new_init_withdrawal_res.is_err());
 
         Ok(())
     }
