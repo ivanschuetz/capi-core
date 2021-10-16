@@ -1,53 +1,44 @@
 #[cfg(test)]
+use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
+#[cfg(test)]
 use crate::flows::{
-    create_project::model::{CreateProjectSpecs, Project},
+    create_project::model::Project,
     withdraw::logic::{submit_withdraw, withdraw, WithdrawSigned},
 };
 #[cfg(test)]
-use crate::testing::flow::vote::invest_and_vote_to_meet_withdrawal_threshold_flow;
-#[cfg(test)]
-use crate::{
-    flows::shared::app::optin_to_app,
-    network_util::wait_for_pending_transaction,
-    testing::flow::{
-        create_project::create_project_flow,
-        customer_payment_and_drain_flow::{
-            customer_payment_and_drain_flow, CustomerPaymentAndDrainFlowRes,
-        },
-    },
-};
+use crate::network_util::wait_for_pending_transaction;
 #[cfg(test)]
 use algonaut::{algod::v2::Algod, core::MicroAlgos, transaction::account::Account};
 #[cfg(test)]
 use anyhow::Result;
 
-/// Creates project, votes to meet threshold, drains an amount
+/// project creation,
+/// customer payment + draining to central, to have something to withdraw.
+/// withdrawal request initialization
+/// voting to meet request threshold
 #[cfg(test)]
 pub async fn withdraw_precs(
     algod: &Algod,
     creator: &Account,
-    specs: &CreateProjectSpecs,
     drainer: &Account,
     customer: &Account,
     voter: &Account,
+    project: &Project,
     pay_and_drain_amount: MicroAlgos,
+    amount_to_withdraw: MicroAlgos,
 ) -> Result<WithdrawTestPrecsRes> {
-    let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+    use crate::testing::flow::{
+        customer_payment_and_drain_flow::customer_payment_and_drain_flow,
+        init_withdrawal::init_withdrawal_flow, invest_in_project::invests_flow, vote::vote_flow,
+    };
 
     // meet the voting threshold so the withdrawal is approved
-    assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
-    let slot_id = project.withdrawal_slot_ids[0];
-    let vote_tx_id = invest_and_vote_to_meet_withdrawal_threshold_flow(
-        algod,
-        voter,
-        &project,
-        slot_id,
-        project.specs.vote_threshold_units(), // enough units for vote to pass
-    )
-    .await?;
-    wait_for_pending_transaction(&algod, &vote_tx_id).await?;
 
-    // payment and draining
+    assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+
+    let slot_id = project.withdrawal_slot_ids[0];
+
+    // customer payment and draining, to have some funds to withdraw
     let drain_res = customer_payment_and_drain_flow(
         &algod,
         &drainer,
@@ -61,20 +52,20 @@ pub async fn withdraw_precs(
         .await?
         .amount;
 
-    // app optin
-    let params = algod.suggested_transaction_params().await?;
-    let app_optin_tx = optin_to_app(&params, project.central_app_id, creator.address()).await?;
-    // UI
-    let signed_app_optin_tx = creator.sign_transaction(&app_optin_tx)?;
-    let res = algod
-        .broadcast_signed_transaction(&signed_app_optin_tx)
-        .await?;
-    let _ = wait_for_pending_transaction(&algod, &res.tx_id).await?;
+    // Investor buys shares with count == vote threshold count
+    let investor_shares_count = project.specs.vote_threshold_units();
+    invests_flow(algod, voter, investor_shares_count, &project).await?;
+
+    let init_withdrawal_tx_id =
+        init_withdrawal_flow(&algod, &creator, amount_to_withdraw, slot_id).await?;
+    wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+    let vote_tx_id = vote_flow(algod, voter, project, slot_id, investor_shares_count).await?;
+    wait_for_pending_transaction(&algod, &vote_tx_id).await?;
 
     // end precs
 
     Ok(WithdrawTestPrecsRes {
-        project,
         central_escrow_balance_after_drain,
         drain_res,
     })
@@ -86,6 +77,7 @@ pub async fn withdraw_flow(
     project: &Project,
     creator: &Account,
     amount: MicroAlgos,
+    slot_id: u64,
 ) -> Result<WithdrawTestFlowRes> {
     // remember state
     let withdrawer_balance_before_withdrawing =
@@ -95,29 +87,24 @@ pub async fn withdraw_flow(
         &algod,
         creator.address(),
         amount,
-        project.votes_asset_id,
         &project.central_escrow,
-        &project.votein_escrow,
-        &project.vote_out_escrow,
+        slot_id,
     )
     .await?;
 
     // UI
-
     let pay_withdraw_fee_tx_signed = creator.sign_transaction(&to_sign.pay_withdraw_fee_tx)?;
-    let pay_vote_fee_tx_signed = creator.sign_transaction(&to_sign.pay_vote_fee_tx)?;
+    let check_enough_votes_tx_signed = creator.sign_transaction(&to_sign.check_enough_votes_tx)?;
 
     let withdraw_tx_id = submit_withdraw(
         &algod,
         &WithdrawSigned {
             withdraw_tx: to_sign.withdraw_tx,
             pay_withdraw_fee_tx: pay_withdraw_fee_tx_signed,
-            consume_votes_tx: to_sign.consume_votes_tx,
-            pay_vote_fee_tx: pay_vote_fee_tx_signed,
+            check_enough_votes_tx: check_enough_votes_tx_signed,
         },
     )
     .await?;
-
     wait_for_pending_transaction(&algod, &withdraw_tx_id).await?;
 
     Ok(WithdrawTestFlowRes {
@@ -140,7 +127,6 @@ pub struct WithdrawTestFlowRes {
 // Any data we want to return from the flow to the tests
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WithdrawTestPrecsRes {
-    pub project: Project,
     pub central_escrow_balance_after_drain: MicroAlgos,
     pub drain_res: CustomerPaymentAndDrainFlowRes,
 }

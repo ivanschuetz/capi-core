@@ -315,8 +315,8 @@ mod tests {
 
         // double check that there's no active withdrawal request
         let slot_app = algod.application_information(slot_id).await?;
-        let initial_vote_count = withdrawal_amount_global_state(&slot_app);
-        assert!(initial_vote_count.is_none());
+        let initial_withdrawal_amount = withdrawal_amount_global_state(&slot_app);
+        assert!(initial_withdrawal_amount.is_none());
 
         // flow + test
 

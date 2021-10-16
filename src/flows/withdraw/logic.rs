@@ -3,11 +3,11 @@ use algonaut::{
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     model::algod::v2::{Account, AssetHolding},
     transaction::{
-        account::ContractAccount, tx_group::TxGroup, Pay, SignedTransaction, Transaction,
-        TransferAsset, TxnBuilder,
+        account::ContractAccount, builder::CallApplication, tx_group::TxGroup, Pay,
+        SignedTransaction, Transaction, TxnBuilder,
     },
 };
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -19,15 +19,27 @@ pub async fn withdraw(
     algod: &Algod,
     creator: Address,
     amount: MicroAlgos,
-    votes_asset_id: u64,
     central_escrow: &ContractAccount,
-    votes_in_escrow: &ContractAccount,
-    votes_out_escrow: &ContractAccount,
+    slot_app_id: u64,
 ) -> Result<WithdrawToSign> {
+    log::debug!("Creating withdrawal txs..");
+
     let params = algod.suggested_transaction_params().await?;
 
-    // Escrow call to withdraw the amount
-    let withdraw_tx = &mut TxnBuilder::with(
+    // Slot app call to validate vote count
+    let mut check_enough_votes_tx = TxnBuilder::with(
+        SuggestedTransactionParams {
+            fee: FIXED_FEE,
+            ..params.clone()
+        },
+        CallApplication::new(creator, slot_app_id)
+            .app_arguments(vec!["branch_withdraw".as_bytes().to_vec()])
+            .build(),
+    )
+    .build();
+
+    // Funds transfer from escrow to creator
+    let mut withdraw_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
             ..params.clone()
@@ -37,7 +49,7 @@ pub async fn withdraw(
     .build();
 
     // The creator pays the fee of the withdraw tx (signed by central escrow)
-    let pay_withdraw_fee_tx = &mut TxnBuilder::with(
+    let mut pay_withdraw_fee_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
             ..params.clone()
@@ -46,99 +58,36 @@ pub async fn withdraw(
     )
     .build();
 
-    // Consume votes (transfer vote_in to vote_out)
-    let consume_votes_tx = &mut consume_votes_tx(
-        algod,
-        params.clone(),
-        votes_in_escrow.address,
-        votes_asset_id,
-        votes_out_escrow.address,
-    )
-    .await?;
-
-    // The creator pays the fee of the votes tx (signed by vote_in)
-    let pay_vote_fee_tx = &mut TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
-        Pay::new(creator, votes_in_escrow.address, FIXED_FEE).build(),
-    )
-    .build();
-
     TxGroup::assign_group_id(vec![
-        withdraw_tx,
-        pay_withdraw_fee_tx,
-        consume_votes_tx,
-        pay_vote_fee_tx,
+        &mut check_enough_votes_tx,
+        &mut withdraw_tx,
+        &mut pay_withdraw_fee_tx,
     ])?;
 
-    let signed_withdraw_tx = central_escrow.sign(withdraw_tx, vec![])?;
-    let signed_consume_votes_tx = votes_in_escrow.sign(consume_votes_tx, vec![])?;
+    let signed_withdraw_tx = central_escrow.sign(&withdraw_tx, vec![])?;
 
     Ok(WithdrawToSign {
+        check_enough_votes_tx,
         withdraw_tx: signed_withdraw_tx,
-        pay_withdraw_fee_tx: pay_withdraw_fee_tx.clone(),
-        consume_votes_tx: signed_consume_votes_tx,
-        pay_vote_fee_tx: pay_vote_fee_tx.clone(),
+        pay_withdraw_fee_tx,
     })
 }
 
-/// Transfers all vote tokens from votes_in to votes_out
-/// The votes_in escrow logic controls whether this transactions passes or not:
-/// The transfer will be approved if tokens count is > threshold (i.e. "enough votes for withdrawal")
-async fn consume_votes_tx(
-    algod: &Algod,
-    params: SuggestedTransactionParams,
-    votes_in_escrow: Address,
-    votes_asset_id: u64,
-    votes_out_escrow: Address,
-) -> Result<Transaction> {
-    // Get the vote tokens count in the votes in escrow (to attempt to transfer everything)
-    let votes_in_account = algod.account_information(&votes_in_escrow).await?;
-    let investor_votes = votes_in_account
-        .assets
-        .iter()
-        .find(|a| a.asset_id == votes_asset_id)
-        // TODO confirm that this means not opted in,
-        .ok_or_else(|| anyhow!("Votes_in doesn't have vote asset"))?;
-    let votes_count = investor_votes.amount;
-
-    let tx = TxnBuilder::with(
-        params,
-        TransferAsset::new(
-            votes_in_escrow,
-            votes_asset_id,
-            votes_count,
-            votes_out_escrow,
-        )
-        .build(),
-    )
-    .build();
-
-    Ok(tx)
-}
-
 pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<String> {
-    // crate::teal::debug_teal_rendered(
-    //     &[
-    //         signed.withdraw_tx.clone(),
-    //         signed.pay_withdraw_fee_tx.clone(),
-    //         signed.consume_votes_tx.clone(),
-    //         signed.pay_vote_fee_tx.clone(),
-    //     ],
-    //     "voting_in_escrow",
-    // )
-    // .unwrap();
+    log::debug!("Submit withdrawal txs..");
 
-    let res = algod
-        .broadcast_signed_transactions(&[
-            signed.withdraw_tx.clone(),
-            signed.pay_withdraw_fee_tx.clone(),
-            signed.consume_votes_tx.clone(),
-            signed.pay_vote_fee_tx.clone(),
-        ])
-        .await?;
+    let txs = vec![
+        signed.check_enough_votes_tx.clone(),
+        signed.withdraw_tx.clone(),
+        signed.pay_withdraw_fee_tx.clone(),
+    ];
+
+    // crate::teal::debug_teal_rendered(&txs, "central_escrow").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "withdrawal_slot_approval").unwrap();
+
+    let res = algod.broadcast_signed_transactions(&txs).await?;
+    log::debug!("Withdrawal txs tx id: {}", res.tx_id);
+
     Ok(res.tx_id)
 }
 
@@ -146,16 +95,14 @@ pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<S
 pub struct WithdrawToSign {
     pub withdraw_tx: SignedTransaction,
     pub pay_withdraw_fee_tx: Transaction,
-    pub consume_votes_tx: SignedTransaction,
-    pub pay_vote_fee_tx: Transaction,
+    pub check_enough_votes_tx: Transaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WithdrawSigned {
     pub withdraw_tx: SignedTransaction,
     pub pay_withdraw_fee_tx: SignedTransaction,
-    pub consume_votes_tx: SignedTransaction,
-    pub pay_vote_fee_tx: SignedTransaction,
+    pub check_enough_votes_tx: SignedTransaction,
 }
 
 #[cfg(test)]
@@ -167,101 +114,91 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::withdraw::logic::{AssetHolder, FIXED_FEE},
+        flows::withdraw::logic::FIXED_FEE,
         testing::{
-            flow::withdraw::{withdraw_flow, withdraw_precs},
+            flow::{
+                create_project::create_project_flow,
+                withdraw::{withdraw_flow, withdraw_precs},
+            },
             network_test_util::reset_network,
             test_data::{creator, customer, investor1, investor2, project_specs},
         },
+        withdrawal_app_state::{votes_global_state, withdrawal_amount_global_state},
     };
 
     #[test]
     #[serial]
-    async fn test_withdraw() -> Result<()> {
+    async fn test_withdraw_success() -> Result<()> {
         reset_network()?;
 
         // deps
 
         let algod = dependencies::algod();
-        // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
         let creator = creator();
         let drainer = investor1();
         let voter = investor2();
         let customer = customer();
 
-        // flow
+        // precs
 
+        let withdraw_amount = MicroAlgos(1_000_000); // UI
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
         let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
-        let precs = withdraw_precs(
+        withdraw_precs(
             &algod,
             &creator,
-            &project_specs(),
             &drainer,
             &customer,
             &voter,
+            &project,
             pay_and_drain_amount,
+            withdraw_amount,
         )
         .await?;
 
         // remeber state
-        let vote_in_after_voting = algod
-            .account_information(&precs.project.votein_escrow.address)
-            .await?;
-        let vote_in_after_voting_holding =
-            vote_in_after_voting.get_holdings(precs.project.votes_asset_id);
-        assert!(vote_in_after_voting_holding.is_some()); // double check
-        let vote_in_after_voting_amount = vote_in_after_voting_holding.unwrap().amount;
-
-        // remeber state
-        let initial_central_balance = algod
-            .account_information(&precs.project.central_escrow.address)
+        let central_balance_before_withdrawing = algod
+            .account_information(&project.central_escrow.address)
             .await?
             .amount;
-
-        // remeber state
         let creator_balance_bafore_withdrawing =
             algod.account_information(&creator.address()).await?.amount;
 
-        let withdraw_amount = MicroAlgos(1_000_000); // UI
-        let _res = withdraw_flow(&algod, &precs.project, &creator, withdraw_amount).await?;
+        // flow
+
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+        let _res = withdraw_flow(&algod, &project, &creator, withdraw_amount, slot_id).await?;
 
         // test
 
-        // creator got the amount and lost the fees for the withdraw tx (central -> creator) and vote tx (vote_in -> vote_out) and the fees for these 2 fees-payment txs
+        // creator got the amount and lost the fees for the withdraw txs (app call, pay escrow fee and fee of that tx)
         let withdrawer_account = algod.account_information(&creator.address()).await?;
         assert_eq!(
-            creator_balance_bafore_withdrawing + withdraw_amount - FIXED_FEE * 4,
+            creator_balance_bafore_withdrawing + withdraw_amount - FIXED_FEE * 3,
             withdrawer_account.amount
         );
 
         // central lost the withdrawn amount
         let central_escrow_balance = algod
-            .account_information(&precs.project.central_escrow.address)
+            .account_information(&project.central_escrow.address)
             .await?
             .amount;
         assert_eq!(
-            initial_central_balance - withdraw_amount,
+            central_balance_before_withdrawing - withdraw_amount,
             central_escrow_balance
         );
 
-        // votes transferred from vote_in to vote_out
-        // vote_in has no votes
-        let vote_in_escrow = algod
-            .account_information(&precs.project.votein_escrow.address)
-            .await?;
-        let vote_in_asset_holding = vote_in_escrow.get_holdings(precs.project.votes_asset_id);
-        assert!(vote_in_asset_holding.is_some());
-        assert_eq!(0, vote_in_asset_holding.unwrap().amount);
-        // vote_out has all the votes
-        let vote_out_escrow = algod
-            .account_information(&precs.project.vote_out_escrow.address)
-            .await?;
-        let vote_out_asset_holding = vote_out_escrow.get_holdings(precs.project.votes_asset_id);
-        assert!(vote_out_asset_holding.is_some());
-        assert_eq!(
-            vote_in_after_voting_amount,
-            vote_out_asset_holding.unwrap().amount
-        );
+        // slot app reset amount to 0
+        let slot_app = algod.application_information(slot_id).await?;
+        let initial_withdrawal_amount = withdrawal_amount_global_state(&slot_app);
+        assert_eq!(Some(0), initial_withdrawal_amount);
+
+        // slot app reset votes to 0
+        let slot_app = algod.application_information(slot_id).await?;
+        let initial_vote_count = votes_global_state(&slot_app);
+        assert_eq!(Some(0), initial_vote_count);
 
         Ok(())
     }

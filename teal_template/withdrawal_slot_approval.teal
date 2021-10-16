@@ -6,20 +6,24 @@ pop
 gtxn 0 NumAppArgs
 int 2
 ==
-bz after_args_access
+bz after_2_args_access
 gtxn 0 ApplicationArgs 0 // action
 byte b64 YnJhbmNoX2luaXRfcmVxdWVzdA== // branch_init_request
 ==
 bnz branch_init_request
 
+after_2_args_access:
+
 gtxn 0 NumAppArgs
-int 2
+int 1
 ==
-bz after_args_access
+bz after_one_arg_access
 gtxn 0 ApplicationArgs 0 // action
 byte b64 YnJhbmNoX3dpdGhkcmF3 // branch_withdraw
 ==
 bnz branch_withdraw
+
+after_one_arg_access:
 
 gtxn 0 NumAppArgs
 int 2
@@ -179,13 +183,11 @@ int {vote_threshold}
 byte "Amount"
 int 0
 app_global_put
-&&
 
 // reset votes
 byte "Votes"
 int 0
 app_global_put
-&&
 
 return
 

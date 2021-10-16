@@ -1,3 +1,4 @@
+use crate::teal::{render_template, save_rendered_teal, TealSource, TealSourceTemplate};
 use algonaut::{
     algod::v2::Algod,
     core::Address,
@@ -5,8 +6,6 @@ use algonaut::{
 };
 use anyhow::Result;
 use serde::Serialize;
-
-use crate::teal::{render_template, save_rendered_teal, TealSource, TealSourceTemplate};
 
 pub async fn create_withdrawal_slot_tx(
     algod: &Algod,

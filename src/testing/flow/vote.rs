@@ -1,6 +1,4 @@
 #[cfg(test)]
-use super::invest_in_project::invests_flow;
-#[cfg(test)]
 use crate::flows::{
     create_project::model::Project,
     vote::logic::{submit_vote, vote, VoteSigned},
@@ -16,14 +14,14 @@ pub async fn vote_flow(
     voter: &Account,
     project: &Project,
     slot_id: u64,
-    buy_asset_amount: u64,
+    vote_count: u64,
 ) -> Result<String> {
     let vote_to_sign = vote(
         &algod,
         voter.address(),
         project.central_app_id,
         slot_id,
-        buy_asset_amount,
+        vote_count,
     )
     .await?;
 
@@ -40,18 +38,4 @@ pub async fn vote_flow(
     .await?;
 
     Ok(tx_id)
-}
-
-#[cfg(test)]
-pub async fn invest_and_vote_to_meet_withdrawal_threshold_flow(
-    algod: &Algod,
-    voter: &Account,
-    project: &Project,
-    slot_id: u64,
-    buy_asset_amount: u64,
-) -> Result<String> {
-    // Investor buys shares with count == vote threshold count
-    let _ = invests_flow(algod, voter, buy_asset_amount, &project).await?;
-
-    vote_flow(algod, voter, project, slot_id, buy_asset_amount).await
 }
