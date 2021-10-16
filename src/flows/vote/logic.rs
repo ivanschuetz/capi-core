@@ -99,13 +99,14 @@ pub struct VoteSigned {
 
 #[cfg(test)]
 mod tests {
-    use algonaut::core::MicroAlgos;
+    use algonaut::{algod::v2::Algod, core::MicroAlgos, transaction::account::Account};
     use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
 
     use crate::{
         dependencies,
+        flows::create_project::model::Project,
         network_util::wait_for_pending_transaction,
         testing::{
             flow::{
@@ -135,20 +136,14 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
         let buy_asset_amount = 10;
-        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
-
-        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
-        let slot_id = project.withdrawal_slot_ids[0];
-
-        // init a withdrawal request
-        let init_withdrawal_tx_id =
-            init_withdrawal_flow(&algod, &creator, MicroAlgos(123), slot_id).await?;
-        let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
-
-        // double check that votes is default value / there are no votes
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_vote_count = votes_global_state(&slot_app);
-        assert!(initial_vote_count.is_none());
+        let slot_id = test_vote_with_active_withdrawal_request_precs(
+            &algod,
+            &creator,
+            &investor,
+            &project,
+            buy_asset_amount,
+        )
+        .await?;
 
         // flow
 
@@ -185,20 +180,14 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
         let buy_asset_amount = 10;
-        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
-
-        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
-        let slot_id = project.withdrawal_slot_ids[0];
-
-        // init a withdrawal request
-        let init_withdrawal_tx_id =
-            init_withdrawal_flow(&algod, &creator, MicroAlgos(123), slot_id).await?;
-        let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
-
-        // double check that votes is default value / there are no votes
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_vote_count = votes_global_state(&slot_app);
-        assert!(initial_vote_count.is_none());
+        let slot_id = test_vote_with_active_withdrawal_request_precs(
+            &algod,
+            &creator,
+            &investor,
+            &project,
+            buy_asset_amount,
+        )
+        .await?;
 
         // flow
 
@@ -240,20 +229,14 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
         let buy_asset_amount = 10;
-        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
-
-        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
-        let slot_id = project.withdrawal_slot_ids[0];
-
-        // init a withdrawal request
-        let init_withdrawal_tx_id =
-            init_withdrawal_flow(&algod, &creator, MicroAlgos(123), slot_id).await?;
-        let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
-
-        // double check that votes is default value / there are no votes
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_vote_count = votes_global_state(&slot_app);
-        assert!(initial_vote_count.is_none());
+        let slot_id = test_vote_with_active_withdrawal_request_precs(
+            &algod,
+            &creator,
+            &investor,
+            &project,
+            buy_asset_amount,
+        )
+        .await?;
 
         // flow + test
 
@@ -287,6 +270,37 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
         let buy_asset_amount = 10;
+        let slot_id = test_vote_with_active_withdrawal_request_precs(
+            &algod,
+            &creator,
+            &investor,
+            &project,
+            buy_asset_amount,
+        )
+        .await?;
+
+        // double check that votes is default value / there are no votes
+        let slot_app = algod.application_information(slot_id).await?;
+        let initial_vote_count = votes_global_state(&slot_app);
+        assert!(initial_vote_count.is_none());
+
+        // flow + test
+
+        let res = vote_flow(&algod, &investor, &project, slot_id, 0).await;
+        assert!(res.is_err());
+
+        Ok(())
+    }
+
+    /// for convenience, we return a slot id.
+    /// This is an arbitrary withdrawal slot we use to perform (one-slot) voting tests.
+    async fn test_vote_with_active_withdrawal_request_precs(
+        algod: &Algod,
+        creator: &Account,
+        investor: &Account,
+        project: &Project,
+        buy_asset_amount: u64,
+    ) -> Result<u64> {
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
 
         assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
@@ -302,11 +316,6 @@ mod tests {
         let initial_vote_count = votes_global_state(&slot_app);
         assert!(initial_vote_count.is_none());
 
-        // flow + test
-
-        let res = vote_flow(&algod, &investor, &project, slot_id, 0).await;
-        assert!(res.is_err());
-
-        Ok(())
+        Ok(slot_id)
     }
 }
