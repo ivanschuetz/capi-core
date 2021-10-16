@@ -118,6 +118,7 @@ mod tests {
         },
         withdrawal_app_state::{
             votes_global_state, votes_global_state_or_err, votes_local_state_or_err,
+            withdrawal_amount_global_state,
         },
     };
 
@@ -288,6 +289,49 @@ mod tests {
 
         let res = vote_flow(&algod, &investor, &project, slot_id, 0).await;
         assert!(res.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_vote_fails_if_no_active_withdrawal_request() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+
+        // precs
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let buy_asset_amount = 10;
+        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // double check that there's no active withdrawal request
+        let slot_app = algod.application_information(slot_id).await?;
+        let initial_vote_count = withdrawal_amount_global_state(&slot_app);
+        assert!(initial_vote_count.is_none());
+
+        // flow + test
+
+        let res = vote_flow(&algod, &investor, &project, slot_id, buy_asset_amount).await;
+        assert!(res.is_err());
+
+        // sanity check: if we submit a withdrawal request, voting succeeds
+
+        // init a withdrawal request
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, MicroAlgos(123), slot_id).await?;
+        let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        let res = vote_flow(&algod, &investor, &project, slot_id, buy_asset_amount).await;
+        assert!(res.is_ok());
 
         Ok(())
     }
