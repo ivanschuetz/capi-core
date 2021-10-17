@@ -287,12 +287,13 @@ bz branch_exit_false
 
 byte "Votes"
 
+byte "Votes"
+app_global_get
+
 int 0
 byte "LVotes"
 app_local_get
 
-byte "Votes"
-app_global_get
 -
 
 app_global_put

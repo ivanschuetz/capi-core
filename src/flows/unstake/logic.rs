@@ -151,16 +151,17 @@ mod tests {
         network_util::wait_for_pending_transaction,
         testing::{
             flow::{
-                create_project::create_project_flow, invest_in_project::invests_flow,
-                unstake::unstake_flow,
+                create_project::create_project_flow, init_withdrawal::init_withdrawal_flow,
+                invest_in_project::invests_flow, unstake::unstake_flow, vote::vote_flow,
             },
             network_test_util::reset_network,
             project_general::{
                 check_investor_central_app_local_state,
                 test_withdrawal_slot_local_state_initialized_correctly,
             },
-            test_data::{creator, investor1, project_specs},
+            test_data::{creator, investor1, investor2, project_specs},
         },
+        withdrawal_app_state::votes_global_state,
     };
 
     #[test]
@@ -247,7 +248,6 @@ mod tests {
         for slot_id in &project.withdrawal_slot_ids {
             test_withdrawal_slot_local_state_cleared(&algod, &investor.address(), *slot_id).await?;
         }
-        // TODO test that possible votes are removed from withdrawal slots global state
 
         // investor paid the fees (app call + xfer + xfer fee + n slots)
         assert_eq!(
@@ -365,6 +365,124 @@ mod tests {
 
         // investor didn't pay fees (unstake txs failed)
         assert_eq!(investor_balance_before_unstaking, investor_infos.amount);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_unstake_removes_possible_withdrawal_request_votes() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+        let additional_voter = investor2();
+
+        // UI
+
+        let buy_asset_amount = 10;
+        let buy_asset_amount_additional_voter = 4;
+
+        // precs
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+
+        // invest: needed to be able to vote
+        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+        let _ = invests_flow(
+            &algod,
+            &additional_voter,
+            buy_asset_amount_additional_voter,
+            &project,
+        )
+        .await?;
+
+        // select 2 arbitrary slots
+        assert!(project.withdrawal_slot_ids.len() > 1); // just a preliminary check for index access
+        let slot_id1 = project.withdrawal_slot_ids[0];
+        let slot_id2 = project.withdrawal_slot_ids[1];
+
+        // init 2 withdrawal requests
+        let init_withdrawal_tx_id1 =
+            init_withdrawal_flow(&algod, &creator, MicroAlgos(123), slot_id1).await?;
+        let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id1).await?;
+        let init_withdrawal_tx_id2 =
+            init_withdrawal_flow(&algod, &creator, MicroAlgos(23456789), slot_id2).await?;
+        let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id2).await?;
+
+        // vote for withdrawal requests
+        let vote_tx_id1 =
+            vote_flow(&algod, &investor, &project, slot_id1, buy_asset_amount).await?;
+        wait_for_pending_transaction(&algod, &vote_tx_id1).await?;
+        let vote_tx_id2 =
+            vote_flow(&algod, &investor, &project, slot_id2, buy_asset_amount).await?;
+        wait_for_pending_transaction(&algod, &vote_tx_id2).await?;
+        // another investor votes: just to check that when unstaking we're actually substracting the votes instead of possibly just resetting to 0
+
+        let vote_tx_id3 = vote_flow(
+            &algod,
+            &additional_voter,
+            &project,
+            slot_id2,
+            buy_asset_amount_additional_voter,
+        )
+        .await?;
+        wait_for_pending_transaction(&algod, &vote_tx_id3).await?;
+
+        // flow
+
+        // investor unstakes shares
+        let unstake_tx_id = unstake_flow(&algod, &project, &investor, buy_asset_amount).await?;
+        let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
+
+        // test
+
+        // check that votes were removed from slot1: only this investor voted, so 0 votes now
+        let slot1 = algod.application_information(slot_id1).await?;
+        let slot1_votes_global_state = votes_global_state(&slot1);
+        assert!(slot1_votes_global_state.is_some());
+        assert_eq!(0, slot1_votes_global_state.unwrap());
+
+        // check that votes were removed from slot2: another investor voted too, so those votes remain
+        let slot2 = algod.application_information(slot_id2).await?;
+        let slot2_votes_global_state = votes_global_state(&slot2);
+        assert!(slot2_votes_global_state.is_some());
+        assert_eq!(
+            buy_asset_amount_additional_voter,
+            slot2_votes_global_state.unwrap()
+        );
+
+        // double check that shares not anymore in staking escrow
+        let staking_escrow_infos = algod
+            .account_information(&project.staking_escrow.address)
+            .await?;
+        let staking_escrow_assets = staking_escrow_infos.assets;
+        assert_eq!(2, staking_escrow_assets.len()); // still opted in to shares and votes
+        assert_eq!(
+            buy_asset_amount_additional_voter,
+            staking_escrow_assets[0].amount
+        ); // lost unstaked shares
+        assert_eq!(
+            buy_asset_amount + buy_asset_amount_additional_voter,
+            staking_escrow_assets[1].amount
+        ); // still has votes TODO remove vote tokens (everywhere)
+
+        // double check that investor got shares
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let investor_assets = investor_infos.assets;
+        assert_eq!(1, investor_assets.len());
+        assert_eq!(buy_asset_amount, investor_assets[0].amount); // got the shares
+
+        // double check that investor local state was cleared (opted out)
+        assert_eq!(0, investor_infos.apps_local_state.len());
+
+        // double check that withdrawal slots local state cleared (opted out)
+        for slot_id in &project.withdrawal_slot_ids {
+            test_withdrawal_slot_local_state_cleared(&algod, &investor.address(), *slot_id).await?;
+        }
 
         Ok(())
     }
