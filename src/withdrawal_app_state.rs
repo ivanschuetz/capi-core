@@ -45,3 +45,18 @@ pub fn votes_local_state_or_err(
 ) -> Result<u64> {
     votes_local_state(apps_state, app_id).ok_or_else(|| anyhow!("Votes local state not set"))
 }
+
+pub fn valid_local_state(apps_state: &Vec<ApplicationLocalState>, app_id: u64) -> Option<u64> {
+    app_local_state(apps_state, app_id)?
+        .key_value
+        .iter()
+        .find(|s| s.key == BASE64.encode(b"Valid"))
+        .map(|s| s.value.uint)
+}
+
+pub fn valid_local_state_or_err(
+    apps_state: &Vec<ApplicationLocalState>,
+    app_id: u64,
+) -> Result<u64> {
+    votes_local_state(apps_state, app_id).ok_or_else(|| anyhow!("Votes local state not set"))
+}
