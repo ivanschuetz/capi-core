@@ -28,10 +28,8 @@ pub async fn create_project_flow(
 
     // UI
     let signed_create_shares_tx = creator.sign_transaction(&create_assets_txs.create_shares_tx)?;
-    let signed_create_votes_tx = creator.sign_transaction(&create_assets_txs.create_votes_tx)?;
 
-    let create_assets_res =
-        submit_create_assets(algod, &signed_create_shares_tx, &signed_create_votes_tx).await?;
+    let create_assets_res = submit_create_assets(algod, &signed_create_shares_tx).await?;
 
     let programs = Programs {
         central_app_approval: load_teal_template("app_central_approval")?,
@@ -40,8 +38,6 @@ pub async fn create_project_flow(
         customer_escrow: load_teal_template("customer_escrow")?,
         invest_escrow: load_teal_template("investing_escrow")?,
         staking_escrow: load_teal_template("staking_escrow")?,
-        vote_in_escrow: load_teal_template("voting_in_escrow")?,
-        vote_out_escrow: load_teal_template("voting_out_escrow")?,
         withdrawal_slot_approval: load_teal_template("withdrawal_slot_approval")?,
         withdrawal_slot_clear: load_teal("withdrawal_slot_clear")?,
     };
@@ -52,7 +48,6 @@ pub async fn create_project_flow(
         specs,
         creator.address(),
         create_assets_res.shares_id,
-        create_assets_res.votes_id,
         programs,
         withdrawal_slots,
     )
@@ -71,8 +66,6 @@ pub async fn create_project_flow(
 
     let signed_xfer_shares_to_invest_escrow =
         creator.sign_transaction(&to_sign.xfer_shares_to_invest_escrow)?;
-    let signed_xfer_votes_to_invest_escrow =
-        creator.sign_transaction(&to_sign.xfer_votes_to_invest_escrow)?;
 
     // Create the asset (submit signed tx) and generate escrow funding tx
     // Note that the escrow is generated after the asset, because it uses the asset id (in teal, inserted with template)
@@ -82,19 +75,15 @@ pub async fn create_project_flow(
             specs: to_sign.specs,
             creator: creator.address(),
             shares_asset_id: create_assets_res.shares_id,
-            votes_asset_id: create_assets_res.votes_id,
             escrow_funding_txs: signed_funding_txs,
             optin_txs: to_sign.optin_txs,
             create_app_tx: signed_create_app_tx,
             create_withdrawal_slots_txs: signed_withdrawal_slot_txs,
             xfer_shares_to_invest_escrow: signed_xfer_shares_to_invest_escrow,
-            xfer_votes_to_invest_escrow: signed_xfer_votes_to_invest_escrow,
             invest_escrow: to_sign.invest_escrow,
             staking_escrow: to_sign.staking_escrow,
             central_escrow: to_sign.central_escrow,
             customer_escrow: to_sign.customer_escrow,
-            votein_escrow: to_sign.votein_escrow,
-            vote_out_escrow: to_sign.vote_out_escrow,
         },
     )
     .await?;

@@ -101,7 +101,7 @@ bnz branch_invest_or_stake
 
 // invest
 global GroupSize
-int 6
+int 5
 int 3 // slots: initializes investor's local state
 +
 ==

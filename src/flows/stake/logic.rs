@@ -273,12 +273,8 @@ mod tests {
             .account_information(&project.staking_escrow.address)
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(2, staking_escrow_assets.len()); // opted in to shares and votes
+        assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
         assert_eq!(traded_shares, staking_escrow_assets[0].amount);
-        // votes are still in the staking escrow (and correspond to the bought and traded shares)
-        // this is not a requirement (votes could be e.g. in vote_in or vote_out), just a double-check specific to the flow in this test.
-        // also note that traded_shares here == buy_asset_amount, just writing buy_asset_amount here to make clearer that it's unrelated to the trade.
-        assert_eq!(buy_asset_amount, staking_escrow_assets[1].amount);
 
         // investor2 harvests: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         // the harvest amount is the smallest number possible, to show that we can't retrieve anything

@@ -85,7 +85,6 @@ pub async fn invests_flow(
             payment_tx: signed_payment_tx,
             pay_escrow_fee_tx: signed_pay_escrow_fee_tx,
             shares_xfer_tx: to_sign.shares_xfer_tx,
-            votes_xfer_tx: to_sign.votes_xfer_tx,
         },
     )
     .await?;

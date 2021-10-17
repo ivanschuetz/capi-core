@@ -1,23 +1,5 @@
 #pragma version 4
 
-/////////////////
-// TODO remove this: old voting functionality
-// remove vote assets too
-/////////////////
-txn NumAppArgs
-int 1
-==
-bz after_args_access // without this accessing args 0 fails for calls that have no args
-
-txna ApplicationArgs 0
-byte b64 dmFsaWRhdGVfaW52ZXN0b3Jfdm90ZXM= // validate_investor_votes
-==
-bnz branch_validate_investor_votes
-
-after_args_access:
-/////////////////
-/////////////////
-
 txn ApplicationID
 int 0
 ==
@@ -66,7 +48,7 @@ int 3 // slots
 bnz branch_staking_setup
 
 global GroupSize
-int 6
+int 5
 int 3 // slots
 +
 ==
@@ -93,16 +75,6 @@ addr P7GEWDXXW5IONRW6XRIRVPJCT2XXEQGOBGG65VJPBUOYZEJCBZWTPHS3VQ
 &&
 
 bnz branch_harvest
-
-/////////////////
-// TODO remove this: old unstake (opt out now)
-/////////////////
-global GroupSize
-int 3 
-==
-bnz branch_unstake
-/////////////////
-////////////////
 
 // opt out tx group must call all the slots (to clear local state) + unstaking txs
 global GroupSize
@@ -392,24 +364,6 @@ app_local_put
 int 1
 return
 
-/////////////////
-// TODO remove this: old voting functionality
-// remove vote assets too
-/////////////////
-branch_validate_investor_votes:
-
-// Check that votes being transferred == owned shares
-// see more notes in old repo
-gtxn 1 AssetAmount // votes amount (xfer tx)
-int 0
-byte "Shares"
-app_local_get // if local state doesn't exist yet, this puts a 0 on the stack
-==
-
-return
-/////////////////
-/////////////////
-
 branch_validate_votes:
 
 // check that owned shares count == votes count (from any of the app calls - we checked they're equal above)
@@ -421,36 +375,6 @@ btoi
 ==
 
 return
-
-/////////////////
-// TODO remove this: old unstake (opt out now)
-/////////////////
-branch_unstake:
-gtxn 0 TypeEnum // app call
-int appl
-==
-
-gtxn 1 TypeEnum // unstake
-int axfer
-==
-&&
-
-gtxn 2 TypeEnum // pay fee
-int pay
-==
-&&
-
-// shares to be unstaked has to match number of held shares
-gtxn 1 AssetAmount
-int 0 // investor account (TODO verify: is this the tx 0 sender?)
-byte "Shares"
-app_local_get
-==
-&&
-
-return
-/////////////////
-/////////////////
 
 branch_opt_out:
 

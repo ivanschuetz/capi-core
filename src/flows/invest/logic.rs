@@ -59,7 +59,7 @@ pub async fn invest_txs(
     // note that a reason to _not_ include it is to show it separately to the user, when signing. It can help with clarity (review).
     let mut pay_escrow_fee_tx = TxnBuilder::with(
         params.clone(),
-        Pay::new(*investor, project.invest_escrow.address, FIXED_FEE * 2).build(), // shares xfer + votes xfer txs
+        Pay::new(*investor, project.invest_escrow.address, FIXED_FEE).build(), // shares xfer
     )
     .build();
 
@@ -84,27 +84,11 @@ pub async fn invest_txs(
     )
     .build();
 
-    let mut receive_voting_asset_tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params
-        },
-        TransferAsset::new(
-            project.invest_escrow.address,
-            project.votes_asset_id,
-            asset_count,
-            staking_escrow.address,
-        )
-        .build(),
-    )
-    .build();
-
     let mut txs_for_group = vec![
         &mut central_app_investor_setup_tx,
         &mut send_algos_tx,
         &mut shares_optin_tx,
         &mut receive_shares_asset_tx,
-        &mut receive_voting_asset_tx,
         &mut pay_escrow_fee_tx,
     ];
     txs_for_group.extend(slot_setup_txs.iter_mut().collect::<Vec<_>>());
@@ -113,9 +97,6 @@ pub async fn invest_txs(
     let receive_shares_asset_signed_tx = project
         .invest_escrow
         .sign(&receive_shares_asset_tx, vec![])?;
-    let receive_votes_asset_signed_tx = project
-        .invest_escrow
-        .sign(&receive_voting_asset_tx, vec![])?;
 
     Ok(InvestToSign {
         project: project.to_owned(),
@@ -125,7 +106,6 @@ pub async fn invest_txs(
         shares_asset_optin_tx: shares_optin_tx,
         pay_escrow_fee_tx: pay_escrow_fee_tx,
         shares_xfer_tx: receive_shares_asset_signed_tx,
-        votes_xfer_tx: receive_votes_asset_signed_tx,
     })
 }
 
@@ -170,7 +150,6 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
         signed.payment_tx.clone(),
         signed.shares_asset_optin_tx.clone(),
         signed.shares_xfer_tx.clone(),
-        signed.votes_xfer_tx.clone(),
         signed.pay_escrow_fee_tx.clone(),
     ];
     txs.extend(signed.slots_setup_txs.clone());
@@ -189,7 +168,6 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
         shares_asset_optin_tx: signed.shares_asset_optin_tx.clone(),
         pay_escrow_fee_tx: signed.pay_escrow_fee_tx.clone(),
         shares_xfer_tx: signed.shares_xfer_tx.clone(),
-        votes_xfer_tx: signed.votes_xfer_tx.clone(),
     })
 }
 
@@ -237,20 +215,18 @@ mod tests {
         let staking_escrow_infos = algod
             .account_information(&project.staking_escrow.address)
             .await?;
-        // staking escrow received the shares and votes
+        // staking escrow received the shares
         let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(2, staking_escrow_assets.len());
+        assert_eq!(1, staking_escrow_assets.len());
         assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
-        // votes count == shares count
-        assert_eq!(buy_asset_amount, staking_escrow_assets[1].amount);
         // staking escrow doesn't send any transactions so not testing balances (we could "double check" though)
 
         // investor tests
 
         let investor_infos = algod.account_information(&investor.address()).await?;
-        // double check: investor didn't receive any shares or votes
+        // double check: investor didn't receive any shares
         let investor_assets = investor_infos.assets;
-        assert_eq!(1, investor_assets.len()); // investor never opts in to votes, so only 1 (shares)
+        assert_eq!(1, investor_assets.len());
         assert_eq!(0, investor_assets[0].amount);
 
         let app_optins_fees: MicroAlgos = MicroAlgos(
@@ -271,10 +247,10 @@ mod tests {
         );
 
         // investor lost algos and fees
-        let payed_amount = specs.asset_price * buy_asset_amount;
+        let paid_amount = specs.asset_price * buy_asset_amount;
         assert_eq!(
             flow_res.investor_initial_amount
-                - payed_amount
+                - paid_amount
                 - app_optins_fees
                 - flow_res.invest_res.central_app_investor_setup_tx.transaction.fee
                 - slots_setup_fees
@@ -290,8 +266,8 @@ mod tests {
         let invest_escrow = flow_res.project.invest_escrow;
         let invest_escrow_infos = algod.account_information(&invest_escrow.address).await?;
         let invest_escrow_held_assets = invest_escrow_infos.assets;
-        // escrow lost the bought assets (shares and votes)
-        assert_eq!(invest_escrow_held_assets.len(), 2);
+        // escrow lost the bought assets
+        assert_eq!(invest_escrow_held_assets.len(), 1);
         assert_eq!(
             invest_escrow_held_assets[0].asset_id,
             flow_res.project.shares_asset_id
@@ -300,18 +276,10 @@ mod tests {
             invest_escrow_held_assets[0].amount,
             flow_res.project.specs.shares.count - buy_asset_amount
         );
-        assert_eq!(
-            invest_escrow_held_assets[1].asset_id,
-            flow_res.project.votes_asset_id
-        );
-        assert_eq!(
-            invest_escrow_held_assets[1].amount,
-            flow_res.project.specs.shares.count - buy_asset_amount
-        );
         // escrow received the payed algos
         // Note that escrow doesn't lose algos: the investor sends a payment to cover the escrow's fees.
         assert_eq!(
-            flow_res.escrow_initial_amount + payed_amount,
+            flow_res.escrow_initial_amount + paid_amount,
             invest_escrow_infos.amount
         );
 

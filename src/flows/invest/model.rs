@@ -10,7 +10,6 @@ pub struct InvestToSign {
     pub shares_asset_optin_tx: Transaction,
     pub pay_escrow_fee_tx: Transaction,
     pub shares_xfer_tx: SignedTransaction, // contract account logic sig
-    pub votes_xfer_tx: SignedTransaction,  // contract account logic sig
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,7 +21,6 @@ pub struct InvestSigned {
     pub payment_tx: SignedTransaction,
     pub pay_escrow_fee_tx: SignedTransaction,
     pub shares_xfer_tx: SignedTransaction, // contract account logic sig
-    pub votes_xfer_tx: SignedTransaction,  // contract account logic sig
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -37,5 +35,4 @@ pub struct InvestResult {
     pub shares_asset_optin_tx: SignedTransaction,
     pub pay_escrow_fee_tx: SignedTransaction,
     pub shares_xfer_tx: SignedTransaction, // contract account logic sig
-    pub votes_xfer_tx: SignedTransaction,  // contract account logic sig
 }

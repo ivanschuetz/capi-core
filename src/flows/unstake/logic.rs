@@ -149,8 +149,7 @@ mod tests {
         app_state_util::{app_local_state, app_local_state_or_err},
         dependencies,
         flows::{
-            reclaim_vote::logic::FIXED_FEE,
-            unstake::logic::{submit_unstake, unstake, UnstakeSigned},
+            unstake::logic::{submit_unstake, unstake, UnstakeSigned, FIXED_FEE},
             vote::logic::{submit_vote, vote, VoteSigned},
         },
         network_util::wait_for_pending_transaction,
@@ -215,9 +214,8 @@ mod tests {
             .account_information(&project.staking_escrow.address)
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(2, staking_escrow_assets.len()); // opted in to shares and votes
+        assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
         assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
-        assert_eq!(buy_asset_amount, staking_escrow_assets[1].amount);
 
         // remember state
         let investor_balance_before_unstaking = investor_infos.amount;
@@ -236,9 +234,8 @@ mod tests {
             .account_information(&project.staking_escrow.address)
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(2, staking_escrow_assets.len()); // still opted in to shares and votes
+        assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
         assert_eq!(0, staking_escrow_assets[0].amount); // lost shares
-        assert_eq!(buy_asset_amount, staking_escrow_assets[1].amount); // still has votes
 
         // investor got shares
         let investor_infos = algod.account_information(&investor.address()).await?;
@@ -313,9 +310,8 @@ mod tests {
             .account_information(&project.staking_escrow.address)
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(2, staking_escrow_assets.len()); // opted in to shares and votes
+        assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
         assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
-        assert_eq!(buy_asset_amount, staking_escrow_assets[1].amount);
 
         // remember state
         let investor_balance_before_unstaking = investor_infos.amount;
@@ -333,9 +329,8 @@ mod tests {
             .account_information(&project.staking_escrow.address)
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(2, staking_escrow_assets.len()); // still opted in to shares and votes
+        assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
         assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount); // lost shares
-        assert_eq!(buy_asset_amount, staking_escrow_assets[1].amount); // still has votes
 
         // investor didn't get anything
         let investor_infos = algod.account_information(&investor.address()).await?;
@@ -465,15 +460,11 @@ mod tests {
             .account_information(&project.staking_escrow.address)
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(2, staking_escrow_assets.len()); // still opted in to shares and votes
+        assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
         assert_eq!(
             buy_asset_amount_additional_voter,
             staking_escrow_assets[0].amount
         ); // lost unstaked shares
-        assert_eq!(
-            buy_asset_amount + buy_asset_amount_additional_voter,
-            staking_escrow_assets[1].amount
-        ); // still has votes TODO remove vote tokens (everywhere)
 
         // double check that investor got shares
         let investor_infos = algod.account_information(&investor.address()).await?;
@@ -575,7 +566,7 @@ mod tests {
             .account_information(&project.staking_escrow.address)
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(2, staking_escrow_assets.len()); // still opted in to shares and votes
+        assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
         assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
 
         Ok(())

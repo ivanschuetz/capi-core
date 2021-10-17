@@ -7,5 +7,3 @@ pub mod customer_escrow;
 pub mod drain;
 pub mod investing_escrow;
 pub mod staking_escrow;
-pub mod votein_escrow;
-pub mod votes_out_escrow;
