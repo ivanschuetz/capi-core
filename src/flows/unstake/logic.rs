@@ -151,6 +151,7 @@ mod tests {
         flows::{
             reclaim_vote::logic::FIXED_FEE,
             unstake::logic::{submit_unstake, unstake, UnstakeSigned},
+            vote::logic::{submit_vote, vote, VoteSigned},
         },
         network_util::wait_for_pending_transaction,
         testing::{
@@ -576,6 +577,85 @@ mod tests {
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(2, staking_escrow_assets.len()); // still opted in to shares and votes
         assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_cant_vote_if_local_state_cleared() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+
+        // UI
+
+        let buy_asset_amount = 10;
+
+        // precs
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+
+        // select a slot
+        assert!(!project.withdrawal_slot_ids.is_empty());
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // init withdrawal request (to have something to vote for)
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, MicroAlgos(123), slot_id).await?;
+        let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        // flow
+
+        // clear local state of a slot (can be any / multiple)
+        // note that this is not done via the app, but sending the tx externally (likely maliciously, e.g. to be able to double-vote)
+        let params = algod.suggested_transaction_params().await?;
+        let clear_state_tx = clear_local_state_tx(&params, &investor.address(), slot_id);
+        let signed_clear_state_tx = investor.sign_transaction(&clear_state_tx)?;
+        let clear_state_tx_id = algod
+            .broadcast_signed_transaction(&signed_clear_state_tx)
+            .await?
+            .tx_id;
+        wait_for_pending_transaction(&algod, &clear_state_tx_id).await?;
+
+        // double check that local state is cleared
+        let account = algod.account_information(&investor.address()).await?;
+        let local_vote_amount = votes_local_state(&account.apps_local_state, slot_id);
+        assert!(local_vote_amount.is_none());
+        let local_valid_flag = valid_local_state(&account.apps_local_state, slot_id);
+        assert!(local_valid_flag.is_none());
+
+        // try to vote
+        let vote_to_sign = vote(
+            &algod,
+            investor.address(),
+            project.central_app_id,
+            slot_id,
+            buy_asset_amount,
+        )
+        .await?;
+
+        let signed_vote_tx = investor.sign_transaction(&vote_to_sign.vote_tx)?;
+        let signed_validate_vote_count_tx =
+            investor.sign_transaction(&vote_to_sign.validate_vote_count_tx)?;
+        let res = submit_vote(
+            &algod,
+            &VoteSigned {
+                vote_tx: signed_vote_tx,
+                validate_vote_count_tx: signed_validate_vote_count_tx,
+            },
+        )
+        .await;
+
+        // test
+
+        // the local state was cleared, with includes the valid flag: the smart contract rejects voting
+        assert!(res.is_err());
 
         Ok(())
     }
