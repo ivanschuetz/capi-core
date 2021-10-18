@@ -111,6 +111,7 @@ mod tests {
 
     use crate::{
         app_state_util::app_local_state_or_err,
+        central_app_logic::calculate_entitled_harvest,
         dependencies,
         flows::{
             invest::app_optins::{
@@ -244,17 +245,10 @@ mod tests {
 
         // the amount drained to the central (all income so far)
         let central_total_received = customer_payment_amount;
-        // the % the investor is entitled to
-        // TODO review these maths (e.g. floor)
-        // also use Decimal lib
-        // test when division result has fractional digits
-        let investor2_entitled_dividends = traded_shares as f64 / project.specs.shares.count as f64;
-        let investor2_entitled_amount = MicroAlgos(
-            (central_total_received.0 as f64 * investor2_entitled_dividends).floor() as u64,
-        );
-        println!(
-            "Investor 2 entitled dividend %: {}, microalgos: {}",
-            investor2_entitled_dividends, investor2_entitled_amount
+        let investor2_entitled_amount = calculate_entitled_harvest(
+            central_total_received,
+            project.specs.shares.count,
+            traded_shares,
         );
 
         let central_app_local_state =
@@ -306,8 +300,10 @@ mod tests {
             .amount;
 
         // we'll harvest the max possible amount
-        let investor2_entitled_amount = MicroAlgos(
-            (customer_payment_amount_2.0 as f64 * investor2_entitled_dividends).floor() as u64,
+        let investor2_entitled_amount = calculate_entitled_harvest(
+            customer_payment_amount_2,
+            project.specs.shares.count,
+            traded_shares,
         );
         println!(
             "Harvesting max possible amount (expected to succeed): {:?}",

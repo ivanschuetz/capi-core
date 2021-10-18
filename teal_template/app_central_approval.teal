@@ -244,10 +244,8 @@ byte "HarvestedTotal"
 /////////////////////////////////////
 // get the asset holdings of caller
 gtxn 0 Sender
-// important: the asset id has to be passed to the tx foreign assets too (otherwise call fails with "logic eval error: invalid Asset reference")
-int {asset_id} 
-asset_holding_get AssetBalance 
-pop
+byte "Shares"
+app_local_get
 
 int 100
 *
@@ -319,10 +317,9 @@ int pay
 // TODO refactor with X (search for this text)
 /////////////////////////////////////
 // get the asset holdings of caller
-
-int 0
+gtxn 0 Sender
 byte "Shares"
-app_local_get // if local state doesn't exist yet, this puts a 0 on the stack
+app_local_get
 
 int 100
 *

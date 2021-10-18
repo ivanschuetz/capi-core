@@ -173,15 +173,21 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
 
 #[cfg(test)]
 mod tests {
-    use crate::central_app_state::shares_local_state_or_err;
+    use crate::central_app_logic::calculate_entitled_harvest;
+    use crate::central_app_state::{
+        already_harvested_local_state_or_err, shares_local_state_or_err,
+        total_received_amount_global_state_or_err,
+    };
     use crate::flows::create_project::model::Project;
     use crate::network_util::wait_for_pending_transaction;
     use crate::testing::flow::create_project::create_project_flow;
+    use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
     use crate::testing::flow::invest_in_project::{invests_flow, invests_optins_flow};
     use crate::testing::flow::stake::stake_flow;
     use crate::testing::flow::unstake::unstake_flow;
     use crate::testing::network_test_util::reset_network;
     use crate::testing::project_general::test_withdrawal_slot_local_state_initialized_correctly;
+    use crate::testing::test_data::{customer, investor2};
     use crate::{
         dependencies,
         testing::test_data::creator,
@@ -505,6 +511,116 @@ mod tests {
         let shares_local_state =
             shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
         assert_eq!(stake_amount1 + stake_amount2, shares_local_state);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_invest_after_drain_inits_already_harvested_correctly() -> Result<()> {
+        reset_network()?;
+
+        // deps
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+        let drainer = investor2();
+        let customer = customer();
+
+        // UI
+        let buy_asset_amount = 10;
+        let specs = project_specs();
+
+        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+
+        // precs
+
+        // add some funds
+        let central_funds = MicroAlgos(10 * 1_000_000);
+        customer_payment_and_drain_flow(&algod, &drainer, &customer, central_funds, &project)
+            .await?;
+
+        invests_optins_flow(&algod, &investor, &project).await?;
+
+        // flow
+        invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+
+        // tests
+
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let already_harvested_local_state = already_harvested_local_state_or_err(
+            &investor_infos.apps_local_state,
+            project.central_app_id,
+        )?;
+        let central_app = algod
+            .application_information(project.central_app_id)
+            .await?;
+        let central_total_received = total_received_amount_global_state_or_err(&central_app)?;
+        let investor_entitled_harvest = calculate_entitled_harvest(
+            central_total_received,
+            project.specs.shares.count,
+            buy_asset_amount,
+        );
+
+        // investing inits the "harvested" amount to entitled amount (to prevent double harvest)
+        assert_eq!(investor_entitled_harvest, already_harvested_local_state);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_stake_after_drain_inits_already_harvested_correctly() -> Result<()> {
+        reset_network()?;
+
+        // deps
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+        let drainer = investor2();
+        let customer = customer();
+
+        // UI
+        let buy_asset_amount = 10;
+        let specs = project_specs();
+
+        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+
+        // precs
+
+        // add some funds
+        let central_funds = MicroAlgos(10 * 1_000_000);
+        customer_payment_and_drain_flow(&algod, &drainer, &customer, central_funds, &project)
+            .await?;
+
+        invests_optins_flow(&algod, &investor, &project).await?;
+
+        // for user to have some free shares (assets) to stake
+        buy_and_unstake_shares(&algod, &investor, &project, buy_asset_amount).await?;
+
+        // flow
+        invests_optins_flow(&algod, &investor, &project).await?; // optin again: unstaking opts user out
+        stake_flow(&algod, &project, &investor, buy_asset_amount).await?;
+
+        // tests
+
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let already_harvested_local_state = already_harvested_local_state_or_err(
+            &investor_infos.apps_local_state,
+            project.central_app_id,
+        )?;
+        let central_app = algod
+            .application_information(project.central_app_id)
+            .await?;
+        let central_total_received = total_received_amount_global_state_or_err(&central_app)?;
+        let investor_entitled_harvest = calculate_entitled_harvest(
+            central_total_received,
+            project.specs.shares.count,
+            buy_asset_amount,
+        );
+
+        // staking inits the "harvested" amount to entitled amount (to prevent double harvest)
+        assert_eq!(investor_entitled_harvest, already_harvested_local_state);
 
         Ok(())
     }
