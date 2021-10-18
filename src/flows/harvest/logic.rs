@@ -74,23 +74,14 @@ pub fn harvest_app_call_tx(
 }
 
 pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<String> {
-    // crate::teal::debug_teal_rendered(
-    //     &[
-    //         signed.app_call_tx_signed.clone(),
-    //         signed.harvest_tx.clone(),
-    //         signed.pay_fee_tx.clone(),
-    //     ],
-    //     "app_central_approval",
-    // )
-    // .unwrap();
+    let txs = vec![
+        signed.app_call_tx_signed.clone(),
+        signed.harvest_tx.clone(),
+        signed.pay_fee_tx.clone(),
+    ];
+    // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
 
-    let res = algod
-        .broadcast_signed_transactions(&[
-            signed.app_call_tx_signed.clone(),
-            signed.harvest_tx.clone(),
-            signed.pay_fee_tx.clone(),
-        ])
-        .await?;
+    let res = algod.broadcast_signed_transactions(&txs).await?;
     println!("Harvest tx id: {:?}", res.tx_id);
     Ok(res.tx_id)
 }
