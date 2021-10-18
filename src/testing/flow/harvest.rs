@@ -27,6 +27,7 @@ pub async fn harvest_precs(
     customer: &Account,
     buy_asset_amount: u64, // UI
     withdrawal_slots: u64,
+    central_funds: MicroAlgos,
 ) -> Result<HarvestTestPrecsRes> {
     use super::invest_in_project::invests_optins_flow;
 
@@ -38,15 +39,9 @@ pub async fn harvest_precs(
     let _ = invests_flow(&algod, &harvester, buy_asset_amount, &project).await?;
 
     // payment and draining
-    let customer_payment_amount = MicroAlgos(10 * 1_000_000);
-    let drain_res = customer_payment_and_drain_flow(
-        &algod,
-        &drainer,
-        &customer,
-        customer_payment_amount,
-        &project,
-    )
-    .await?;
+    let drain_res =
+        customer_payment_and_drain_flow(&algod, &drainer, &customer, central_funds, &project)
+            .await?;
     let central_escrow_balance_after_drain = algod
         .account_information(&drain_res.project.central_escrow.address)
         .await?

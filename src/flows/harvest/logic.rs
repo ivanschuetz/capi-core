@@ -150,6 +150,7 @@ mod tests {
         // flow
 
         let buy_asset_amount = 10;
+        let central_funds = MicroAlgos(10 * 1_000_000);
         // in the real application, harvest amount is provided by indexer (maybe can be customized by user),
         // it reads app state to calculate max harvest
         let harvest_amount = MicroAlgos(1_000_000);
@@ -164,6 +165,7 @@ mod tests {
             &customer,
             buy_asset_amount,
             withdrawal_slots,
+            central_funds,
         )
         .await?;
         let res = harvest_flow(&algod, &precs.project, &harvester, harvest_amount).await?;
@@ -208,6 +210,7 @@ mod tests {
         // flow
 
         let buy_asset_amount = 20;
+        let central_funds = MicroAlgos(10 * 1_000_000);
         let harvest_amount = MicroAlgos(1_000_000); // UI
         let withdrawal_slots = 3;
 
@@ -223,6 +226,7 @@ mod tests {
             // we harvest 1 Algo 2x -> success
             buy_asset_amount,
             withdrawal_slots,
+            central_funds,
         )
         .await?;
         let res1 = harvest_flow(&algod, &precs.project, &harvester, harvest_amount).await?;
