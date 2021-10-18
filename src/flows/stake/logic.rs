@@ -123,7 +123,9 @@ mod tests {
             flow::{
                 create_project::create_project_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
-                harvest::harvest_flow, invest_in_project::invests_flow, stake::stake_flow,
+                harvest::harvest_flow,
+                invest_in_project::{invests_flow, invests_optins_flow},
+                stake::stake_flow,
                 unstake::unstake_flow,
             },
             network_test_util::reset_network,
@@ -158,6 +160,7 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
 
+        invests_optins_flow(&algod, &investor1, &project).await?;
         let _ = invests_flow(&algod, &investor1, buy_asset_amount, &project).await?;
 
         // drain (to generate dividend). note that investor doesn't reclaim it (doesn't seem relevant for this test)

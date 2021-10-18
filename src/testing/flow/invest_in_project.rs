@@ -14,11 +14,32 @@ use crate::flows::{
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
 #[cfg(test)]
-use algonaut::transaction::SignedTransaction;
-#[cfg(test)]
 use algonaut::{algod::v2::Algod, core::MicroAlgos, transaction::account::Account};
 #[cfg(test)]
 use anyhow::{anyhow, Result};
+
+#[cfg(test)]
+pub async fn invests_optins_flow(
+    algod: &Algod,
+    investor: &Account,
+    project: &Project,
+) -> Result<()> {
+    // app optins (have to happen before invest_txs, which initializes investor's local state)
+    let app_optins_txs =
+        invest_or_staking_app_optins_txs(algod, project, &investor.address()).await?;
+
+    // UI
+    let mut app_optins_signed_txs = vec![];
+    for optin_tx in app_optins_txs {
+        app_optins_signed_txs.push(investor.sign_transaction(&optin_tx)?);
+    }
+
+    let app_optins_tx_id =
+        submit_invest_or_staking_app_optins(algod, app_optins_signed_txs.clone()).await?;
+    let _ = wait_for_pending_transaction(&algod, &app_optins_tx_id).await?;
+
+    Ok(())
+}
 
 // A user buys some shares
 // Resets the network
@@ -38,20 +59,6 @@ pub async fn invests_flow(
         .account_information(&project.invest_escrow.address)
         .await?;
     let escrow_initial_amount = escrow_infos.amount;
-
-    // app optins (have to happen before invest_txs, which initializes investor's local state)
-    let app_optins_txs =
-        invest_or_staking_app_optins_txs(algod, project, &investor.address()).await?;
-
-    // UI
-    let mut app_optins_signed_txs = vec![];
-    for optin_tx in app_optins_txs {
-        app_optins_signed_txs.push(investor.sign_transaction(&optin_tx)?);
-    }
-
-    let app_optins_tx_id =
-        submit_invest_or_staking_app_optins(algod, app_optins_signed_txs.clone()).await?;
-    let _ = wait_for_pending_transaction(&algod, &app_optins_tx_id).await?;
 
     let to_sign = invest_txs(
         &algod,
@@ -100,7 +107,6 @@ pub async fn invests_flow(
         escrow_initial_amount,
         invest_res,
         project: project.to_owned(),
-        app_optin_txs: app_optins_signed_txs,
     })
 }
 
@@ -112,5 +118,4 @@ pub struct InvestInProjectTestFlowRes {
     pub escrow_initial_amount: MicroAlgos,
     pub invest_res: InvestResult,
     pub project: Project,
-    pub app_optin_txs: Vec<SignedTransaction>,
 }

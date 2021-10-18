@@ -148,6 +148,19 @@ int 0
 !=
 &&
 
+// initialize / increment shares
+gtxn 0 Sender
+byte "Shares"
+
+gtxn 0 Sender
+byte "Shares"
+app_local_get
+
+gtxn 1 AssetAmount // shares bought
+
++
+app_local_put
+
 // initialize HarvestedTotal local state to what the shares are entitled to
 // see more notes in old repo
 gtxn 0 Sender // sender of app call (investor)
@@ -180,12 +193,6 @@ int 100 // revert * 100
 /////////////////////////////////////
 app_local_put
 
-// initialize asset holding
-gtxn 0 Sender // sender of app call (investor)
-byte "Shares"
-gtxn 1 AssetAmount // shares staked
-app_local_put
-
 return
 
 branch_investor_setup:
@@ -211,10 +218,17 @@ branch_investor_setup:
 // &&
 // /////////////////////////////////////
 
-// initialize asset holding
-gtxn 0 Sender // sender of app call (investor)
+// initialize / increment shares
+gtxn 0 Sender
 byte "Shares"
+
+gtxn 0 Sender
+byte "Shares"
+app_local_get
+
 gtxn 3 AssetAmount // shares bought
+
++
 app_local_put
 
 // initialize already retrieved (ends with app_local_put at the end of /////// block)
@@ -256,9 +270,6 @@ int 100 // revert * 100
 /////////////////////////////////////
 /////////////////////////////////////
 app_local_put
-
-// TODO support same user buying more shares
-// see notes in old repo
 
 int 1
 return

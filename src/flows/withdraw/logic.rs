@@ -123,7 +123,7 @@ mod tests {
                 create_project::create_project_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
                 init_withdrawal::init_withdrawal_flow,
-                invest_in_project::invests_flow,
+                invest_in_project::{invests_flow, invests_optins_flow},
                 vote::vote_flow,
                 withdraw::{withdraw_flow, withdraw_precs},
             },
@@ -235,6 +235,7 @@ mod tests {
 
         // Investor buys shares with count == vote threshold count
         let investor_shares_count = project.specs.vote_threshold_units();
+        invests_optins_flow(&algod, &voter, &project).await?;
         invests_flow(&algod, &voter, investor_shares_count, &project).await?;
 
         // remeber state
@@ -324,6 +325,7 @@ mod tests {
         // Investor buys shares with count < vote threshold count
         assert!(project.specs.vote_threshold_units() > 2); // sanity check (2 specifically because 1-1=0 which could trigger different conditions)
         let investor_shares_count = project.specs.vote_threshold_units() - 1;
+        invests_optins_flow(&algod, &voter, &project).await?;
         invests_flow(&algod, &voter, investor_shares_count, &project).await?;
 
         // Init a request
@@ -409,6 +411,7 @@ mod tests {
 
         // Investor buys shares with count == vote threshold count
         let investor_shares_count = project.specs.vote_threshold_units();
+        invests_optins_flow(&algod, &voter, &project).await?;
         invests_flow(&algod, &voter, investor_shares_count, &project).await?;
 
         // Init a request
@@ -508,6 +511,7 @@ mod tests {
 
         // Investor buys shares with count < vote threshold count
         let investor_shares_count = project.specs.vote_threshold_units();
+        invests_optins_flow(&algod, &voter, &project).await?;
         invests_flow(&algod, &voter, investor_shares_count, &project).await?;
 
         // Init a request

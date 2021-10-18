@@ -155,8 +155,11 @@ mod tests {
         network_util::wait_for_pending_transaction,
         testing::{
             flow::{
-                create_project::create_project_flow, init_withdrawal::init_withdrawal_flow,
-                invest_in_project::invests_flow, unstake::unstake_flow, vote::vote_flow,
+                create_project::create_project_flow,
+                init_withdrawal::init_withdrawal_flow,
+                invest_in_project::{invests_flow, invests_optins_flow},
+                unstake::unstake_flow,
+                vote::vote_flow,
             },
             network_test_util::reset_network,
             project_general::{
@@ -187,6 +190,7 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
 
+        invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
         // TODO double check tests for state (at least important) tested (e.g. investor has shares, staking doesn't etc.)
 
@@ -284,6 +288,7 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
 
+        invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
 
         // double check investor's assets
@@ -391,7 +396,9 @@ mod tests {
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
 
         // invest: needed to be able to vote
+        invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+        invests_optins_flow(&algod, &additional_voter, &project).await?;
         let _ = invests_flow(
             &algod,
             &additional_voter,
@@ -501,6 +508,7 @@ mod tests {
         // precs
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
 
         // select a slot
@@ -590,6 +598,7 @@ mod tests {
         // precs
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
 
         // select a slot

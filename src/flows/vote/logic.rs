@@ -110,8 +110,10 @@ mod tests {
         network_util::wait_for_pending_transaction,
         testing::{
             flow::{
-                create_project::create_project_flow, init_withdrawal::init_withdrawal_flow,
-                invest_in_project::invests_flow, vote::vote_flow,
+                create_project::create_project_flow,
+                init_withdrawal::init_withdrawal_flow,
+                invest_in_project::{invests_flow, invests_optins_flow},
+                vote::vote_flow,
             },
             network_test_util::reset_network,
             test_data::{creator, investor1, project_specs},
@@ -308,6 +310,7 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
         let buy_asset_amount = 10;
+        invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
 
         assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
@@ -345,6 +348,7 @@ mod tests {
         project: &Project,
         buy_asset_amount: u64,
     ) -> Result<u64> {
+        invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
 
         assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test

@@ -1,6 +1,8 @@
 #[cfg(test)]
 use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
 #[cfg(test)]
+use super::invest_in_project::invests_optins_flow;
+#[cfg(test)]
 use crate::flows::{
     create_project::model::Project,
     withdraw::logic::{submit_withdraw, withdraw, WithdrawSigned},
@@ -49,6 +51,7 @@ pub async fn withdraw_precs(
 
     // Investor buys shares with count == vote threshold count
     let investor_shares_count = project.specs.vote_threshold_units();
+    invests_optins_flow(&algod, &voter, &project).await?;
     invests_flow(algod, voter, investor_shares_count, &project).await?;
 
     // Init a request

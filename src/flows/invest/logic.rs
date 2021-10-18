@@ -173,8 +173,13 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
 
 #[cfg(test)]
 mod tests {
+    use crate::central_app_state::shares_local_state_or_err;
+    use crate::flows::create_project::model::Project;
+    use crate::network_util::wait_for_pending_transaction;
     use crate::testing::flow::create_project::create_project_flow;
-    use crate::testing::flow::invest_in_project::invests_flow;
+    use crate::testing::flow::invest_in_project::{invests_flow, invests_optins_flow};
+    use crate::testing::flow::stake::stake_flow;
+    use crate::testing::flow::unstake::unstake_flow;
     use crate::testing::network_test_util::reset_network;
     use crate::testing::project_general::test_withdrawal_slot_local_state_initialized_correctly;
     use crate::{
@@ -182,6 +187,8 @@ mod tests {
         testing::test_data::creator,
         testing::test_data::{investor1, project_specs},
     };
+    use algonaut::algod::v2::Algod;
+    use algonaut::transaction::account::Account;
     use algonaut::{
         core::MicroAlgos,
         transaction::{Transaction, TransactionType},
@@ -206,6 +213,10 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &specs, 3).await?;
 
+        // precs
+
+        invests_optins_flow(&algod, &investor, &project).await?;
+
         // flow
 
         let flow_res = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
@@ -224,18 +235,16 @@ mod tests {
         // investor tests
 
         let investor_infos = algod.account_information(&investor.address()).await?;
+
+        // investor has shares
+        let shares_local_state =
+            shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+        assert_eq!(buy_asset_amount, shares_local_state);
+
         // double check: investor didn't receive any shares
         let investor_assets = investor_infos.assets;
         assert_eq!(1, investor_assets.len());
         assert_eq!(0, investor_assets[0].amount);
-
-        let app_optins_fees: MicroAlgos = MicroAlgos(
-            flow_res
-                .app_optin_txs
-                .iter()
-                .map(|tx| tx.transaction.fee.0)
-                .sum(),
-        );
 
         let slots_setup_fees: MicroAlgos = MicroAlgos(
             flow_res
@@ -251,7 +260,6 @@ mod tests {
         assert_eq!(
             flow_res.investor_initial_amount
                 - paid_amount
-                - app_optins_fees
                 - flow_res.invest_res.central_app_investor_setup_tx.transaction.fee
                 - slots_setup_fees
                 - flow_res.invest_res.shares_asset_optin_tx.transaction.fee
@@ -292,8 +300,224 @@ mod tests {
             .await?;
         }
 
-        // TODO test the voting asset transfer
+        Ok(())
+    }
 
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_increments_shares_when_investing_twice() -> Result<()> {
+        reset_network()?;
+
+        // deps
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+
+        // UI
+        let buy_asset_amount = 10;
+        let buy_asset_amount2 = 20;
+        let specs = project_specs();
+
+        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+
+        // precs
+
+        invests_optins_flow(&algod, &investor, &project).await?;
+
+        // flow
+
+        invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+
+        // double check: investor has shares for first investment
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let shares_local_state =
+            shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+        assert_eq!(buy_asset_amount, shares_local_state);
+
+        invests_flow(&algod, &investor, buy_asset_amount2, &project).await?;
+
+        // tests
+
+        let investor_infos = algod.account_information(&investor.address()).await?;
+
+        // investor has shares for both investments
+        let shares_local_state =
+            shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+        assert_eq!(buy_asset_amount + buy_asset_amount2, shares_local_state);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_increments_shares_when_investing_and_staking() -> Result<()> {
+        reset_network()?;
+
+        // deps
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+
+        // UI
+        let stake_amount = 10;
+        let invest_amount = 20;
+        let specs = project_specs();
+
+        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+
+        // precs
+
+        invests_optins_flow(&algod, &investor, &project).await?;
+
+        // for user to have some free shares (assets) to stake
+        buy_and_unstake_shares(&algod, &investor, &project, stake_amount).await?;
+
+        // flow
+
+        // buy shares: automatically staked
+        invests_optins_flow(&algod, &investor, &project).await?; // optin again: unstaking opts user out
+        invests_flow(&algod, &investor, invest_amount, &project).await?;
+
+        // double check: investor has shares for first investment
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let shares_local_state =
+            shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+        assert_eq!(invest_amount, shares_local_state);
+
+        // stake shares
+        stake_flow(&algod, &project, &investor, stake_amount).await?;
+
+        // tests
+
+        let investor_infos = algod.account_information(&investor.address()).await?;
+
+        // investor has shares for investment + staking
+        let shares_local_state =
+            shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+        assert_eq!(stake_amount + invest_amount, shares_local_state);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_increments_shares_when_staking_and_investing() -> Result<()> {
+        reset_network()?;
+
+        // deps
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+
+        // UI
+        let stake_amount = 10;
+        let invest_amount = 20;
+        let specs = project_specs();
+
+        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+
+        // precs
+
+        invests_optins_flow(&algod, &investor, &project).await?;
+
+        // for user to have some free shares (assets) to stake
+        buy_and_unstake_shares(&algod, &investor, &project, stake_amount).await?;
+
+        // flow
+
+        // stake shares
+        invests_optins_flow(&algod, &investor, &project).await?; // optin again: unstaking opts user out
+        stake_flow(&algod, &project, &investor, stake_amount).await?;
+
+        // double check: investor has staked shares
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let shares_local_state =
+            shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+        assert_eq!(stake_amount, shares_local_state);
+
+        // buy shares: automatically staked
+        invests_flow(&algod, &investor, invest_amount, &project).await?;
+
+        // tests
+
+        let investor_infos = algod.account_information(&investor.address()).await?;
+
+        // investor has shares for investment + staking
+        let shares_local_state =
+            shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+        assert_eq!(stake_amount + invest_amount, shares_local_state);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_increments_shares_when_staking_twice() -> Result<()> {
+        reset_network()?;
+
+        // deps
+        let algod = dependencies::algod();
+        let creator = creator();
+        let investor = investor1();
+
+        // UI
+        let stake_amount1 = 10;
+        let stake_amount2 = 20;
+        // an amount we unstake and will not stake again, to make the test a little more robust
+        let invest_amount_not_stake = 5;
+        let specs = project_specs();
+
+        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+
+        // precs
+
+        invests_optins_flow(&algod, &investor, &project).await?;
+
+        // for user to have free shares (assets) to stake
+        buy_and_unstake_shares(
+            &algod,
+            &investor,
+            &project,
+            stake_amount1 + stake_amount2 + invest_amount_not_stake,
+        )
+        .await?;
+
+        // flow
+
+        // stake shares
+        invests_optins_flow(&algod, &investor, &project).await?; // optin again: unstaking opts user out
+        stake_flow(&algod, &project, &investor, stake_amount1).await?;
+
+        // double check: investor has staked shares
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let shares_local_state =
+            shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+        assert_eq!(stake_amount1, shares_local_state);
+
+        // stake more shares
+        stake_flow(&algod, &project, &investor, stake_amount2).await?;
+
+        // tests
+
+        let investor_infos = algod.account_information(&investor.address()).await?;
+
+        // investor has shares for investment + staking
+        let shares_local_state =
+            shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
+        assert_eq!(stake_amount1 + stake_amount2, shares_local_state);
+
+        Ok(())
+    }
+
+    async fn buy_and_unstake_shares(
+        algod: &Algod,
+        investor: &Account,
+        project: &Project,
+        shares_amount: u64,
+    ) -> Result<()> {
+        invests_flow(&algod, &investor, shares_amount, &project).await?;
+        let unstake_tx_id = unstake_flow(&algod, &project, &investor, shares_amount).await?;
+        wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
         Ok(())
     }
 
