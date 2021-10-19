@@ -14,8 +14,9 @@ pub fn withdrawal_amount_global_state(apps_state: &Application) -> Option<u64> {
 }
 
 pub fn withdrawal_amount_global_state_or_err(apps_state: &Application) -> Result<u64> {
-    withdrawal_amount_global_state(apps_state)
-        .ok_or_else(|| anyhow!("Withdrawal amount global state not set"))
+    Ok(withdrawal_amount_global_state(apps_state)
+        // .ok_or_else(|| anyhow!("Withdrawal amount global state not set"))
+        .unwrap_or_else(|| 0))
 }
 
 pub fn votes_global_state(apps_state: &Application) -> Option<u64> {
@@ -28,7 +29,9 @@ pub fn votes_global_state(apps_state: &Application) -> Option<u64> {
 }
 
 pub fn votes_global_state_or_err(apps_state: &Application) -> Result<u64> {
-    votes_global_state(apps_state).ok_or_else(|| anyhow!("Votes global state not set"))
+    Ok(votes_global_state(apps_state)
+        // .ok_or_else(|| anyhow!("Votes global state not set"))
+        .unwrap_or_else(|| 0))
 }
 
 pub fn votes_local_state(apps_state: &Vec<ApplicationLocalState>, app_id: u64) -> Option<u64> {
