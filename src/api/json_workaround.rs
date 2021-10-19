@@ -1,14 +1,13 @@
 use std::convert::{TryFrom, TryInto};
 
+use super::model::{DefaultError, ProjectForUsers};
+use crate::flows::create_project::model::{CreateProjectSpecs, Project};
 use algonaut::{
     core::{CompiledTealBytes, MicroAlgos},
     transaction::account::ContractAccount,
 };
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
-
-use crate::flows::create_project::model::{CreateProjectSpecs, Project};
-
-use super::model::{DefaultError, ProjectForUsers};
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // workaround for some algonaut types not being serializable with json (only msg pack)
@@ -101,6 +100,7 @@ pub struct ProjectForUsersJson {
     pub vote_threshold: String, // percent
     pub shares_asset_id: String,
     pub central_app_id: String,
+    pub slot_ids: Vec<String>,
     pub invest_escrow_address: String,
     pub staking_escrow_address: String,
     pub central_escrow_address: String,
@@ -120,6 +120,7 @@ impl From<ProjectForUsers> for ProjectForUsersJson {
             vote_threshold: p.vote_threshold.to_string(), // percent
             shares_asset_id: p.shares_asset_id.to_string(),
             central_app_id: p.central_app_id.to_string(),
+            slot_ids: p.slot_ids.into_iter().map(|s| s.to_string()).collect(),
             invest_escrow_address: p.invest_escrow_address.to_string(),
             staking_escrow_address: p.staking_escrow_address.to_string(),
             central_escrow_address: p.central_escrow_address.to_string(),
@@ -143,6 +144,7 @@ impl TryFrom<ProjectForUsersJson> for ProjectForUsers {
             vote_threshold: p.vote_threshold.parse()?, // percent
             shares_asset_id: p.shares_asset_id.parse()?,
             central_app_id: p.central_app_id.parse()?,
+            slot_ids: to_slot_ids(&p.slot_ids)?,
             invest_escrow_address: p.invest_escrow_address.parse()?,
             staking_escrow_address: p.staking_escrow_address.parse()?,
             central_escrow_address: p.central_escrow_address.parse()?,
@@ -153,4 +155,12 @@ impl TryFrom<ProjectForUsersJson> for ProjectForUsers {
             creator: p.creator_address.parse()?,
         })
     }
+}
+
+fn to_slot_ids(slot_ids_strs: &[String]) -> Result<Vec<u64>> {
+    let mut slot_ids: Vec<u64> = vec![];
+    for id_str in slot_ids_strs {
+        slot_ids.push(id_str.parse()?);
+    }
+    Ok(slot_ids)
 }
