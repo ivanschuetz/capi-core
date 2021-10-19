@@ -268,7 +268,6 @@ gtxn 3 OnCompletion
 ==
 
 // if the user cleared local state, disapprove
-// NOTE that this doesn't prevent the opt-out (the local state is cleared independently of the approval program's returned status)
 // !! TODO confirm -- CloseOut behavior unclear: is local state cleared or not when approval program rejects?
 // but it prevents the transactions going through, in this case importantly the shares xfer to the investor
 // so if investor clears their local state (assumed to be normally a malicious action), they lose their shares
@@ -321,15 +320,6 @@ app_local_put
 // set a "valid state" flag - this helps to prevent issues like double voting if the user maliciously (or somehow accidentally) clears their local state (ClearState)
 // local state can only be cleared totally, so this flag will be removed too, making the state invalid.
 // we can control flow based on this state, e.g. preventing the shares xfer when unstaking if it's invalid
-
-// TODO: this doesn't work! the user can call branch_setup any time, reverting the invalidation.
-// we need probably to set it when setting the shares, so 1) when buying and 2) when staking 
-// -> so these have to be be tx groups with all the slot apps. hmm. may be inconvenient/verbose, 
-// but, the escrows don't have to check the slot apps, "just" the central, the escrows would only check that the central is called
-// review also that we don't run into size limits in the central when > x slots.
-// setting/buying the shares is the "effective" opt-in: we "enter" the system, with our shares 
-// (which also means that we can't run this arbitrarily - only once, as after it we don't have shares)
-// so setting the "Valid" flag there seems correct --> TODO review, e.g. what happens when buying _more_ shares
 
 int 0
 byte "Valid"
