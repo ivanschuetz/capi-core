@@ -6,7 +6,9 @@ use algonaut::{
 use anyhow::Result;
 use serde::Serialize;
 
-use crate::teal::{render_template, save_rendered_teal, TealSource, TealSourceTemplate};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::teal::save_rendered_teal;
+use crate::teal::{render_template, TealSource, TealSourceTemplate};
 
 pub async fn create_app_tx(
     algod: &Algod,
@@ -56,6 +58,7 @@ fn render_central_app(
             asset_supply: asset_supply.to_string(),
         },
     )?;
+    #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("app_central_approval", source.clone())?; // debugging
     Ok(source)
 }

@@ -6,7 +6,9 @@ use algonaut::{
 use anyhow::Result;
 use serde::Serialize;
 
-use crate::teal::{render_template, save_rendered_teal, TealSource, TealSourceTemplate};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::teal::save_rendered_teal;
+use crate::teal::{render_template, TealSource, TealSourceTemplate};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -44,6 +46,7 @@ fn render_customer_escrow(
             central_address: central_address.to_string(),
         },
     )?;
+    #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("customer_escrow", escrow_source.clone())?; // debugging
     Ok(escrow_source)
 }

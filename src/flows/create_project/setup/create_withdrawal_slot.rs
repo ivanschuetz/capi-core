@@ -1,4 +1,6 @@
-use crate::teal::{render_template, save_rendered_teal, TealSource, TealSourceTemplate};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::teal::save_rendered_teal;
+use crate::teal::{render_template, TealSource, TealSourceTemplate};
 use algonaut::{
     algod::v2::Algod,
     core::Address,
@@ -57,6 +59,7 @@ fn render_app(
             id: id.to_string(),
         },
     )?;
+    #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("withdrawal_slot_approval", source.clone())?; // debugging
     Ok(source)
 }

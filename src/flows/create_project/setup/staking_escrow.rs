@@ -8,7 +8,9 @@ use algonaut::{
 use anyhow::Result;
 use serde::Serialize;
 
-use crate::teal::{render_template, save_rendered_teal, TealSource, TealSourceTemplate};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::teal::save_rendered_teal;
+use crate::teal::{render_template, TealSource, TealSourceTemplate};
 
 async fn create_staking_escrow(
     algod: &Algod,
@@ -27,6 +29,7 @@ fn render_staking_escrow(shares_asset_id: u64, source: TealSourceTemplate) -> Re
             shares_asset_id: shares_asset_id.to_string(),
         },
     )?;
+    #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("staking_escrow", escrow_source.clone())?; // debugging
     Ok(escrow_source)
 }
