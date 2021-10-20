@@ -19,7 +19,6 @@ tinytemplate = "1.2.1"
 tealdbg = { path = "/Users/ischuetz/dev/algorand/tealdbg_launcher" }
 
 log = "0.4"
-logger = { path = "../logger" }
 
 # std::Instant::now() panics on WASM https://github.com/sebcrozet/instant
 # working config from here (first 2 posts): https://github.com/sebcrozet/instant/issues/1
@@ -28,6 +27,12 @@ chrono = { version = "0.4.19", features = ["serde"] }
 
 futures-timer = "3.0.2"
 gloo-timers = { version = "0.2.1", features = ["futures"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+logger = { git = "https://github.com/ivanschuetz/logger", branch = "main" }
+# logger = { path = "../logger" }
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-logger = "0.2"
 
 [features]
 stdweb = [ "instant/stdweb" ]
