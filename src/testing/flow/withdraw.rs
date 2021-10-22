@@ -66,6 +66,7 @@ pub async fn withdraw_precs(
     Ok(WithdrawTestPrecsRes {
         central_escrow_balance_after_drain,
         drain_res,
+        owned_shares: investor_shares_count,
     })
 }
 
@@ -127,4 +128,6 @@ pub struct WithdrawTestFlowRes {
 pub struct WithdrawTestPrecsRes {
     pub central_escrow_balance_after_drain: MicroAlgos,
     pub drain_res: CustomerPaymentAndDrainFlowRes,
+    // the share count bought to perform the vote (and still owned)
+    pub owned_shares: u64,
 }

@@ -130,8 +130,51 @@ mod tests {
             network_test_util::reset_network,
             test_data::{creator, customer, investor1, investor2, project_specs},
         },
-        withdrawal_app_state::{votes_global_state, withdrawal_amount_global_state},
+        withdrawal_app_state::{
+            votes_global_state, withdrawal_amount_global_state, withdrawal_round_global_state,
+        },
     };
+
+    #[test]
+    #[serial]
+    async fn test_init_withdrawal_app_state_correct() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+
+        // precs
+
+        let withdraw_amount = MicroAlgos(1_000_000); // UI
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        // select arbitrary slot
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // flow
+
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, withdraw_amount, slot_id).await?;
+        wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        // test
+
+        let slot_app = algod.application_information(slot_id).await?;
+
+        let withdrawal_amount = withdrawal_amount_global_state(&slot_app);
+        assert_eq!(Some(withdraw_amount.0), withdrawal_amount);
+
+        let vote_count = votes_global_state(&slot_app);
+        assert_eq!(None, vote_count);
+
+        let withdrawal_round = withdrawal_round_global_state(&slot_app);
+        assert_eq!(Some(1), withdrawal_round);
+
+        Ok(())
+    }
 
     #[test]
     #[serial]
@@ -576,6 +619,70 @@ mod tests {
         .await
     }
 
+    #[test]
+    #[serial]
+    async fn test_increments_withdrawal_round_when_creating_new_request() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let drainer = investor1();
+        let voter = investor2();
+        let customer = customer();
+
+        // precs
+
+        let withdraw_amount = MicroAlgos(1_000_000); // UI
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
+        // select arbitrary slot
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // withdraw
+        let _ = withdraw_precs(
+            &algod,
+            &creator,
+            &drainer,
+            &customer,
+            &voter,
+            &project,
+            pay_and_drain_amount,
+            withdraw_amount,
+            slot_id,
+        )
+        .await?;
+        withdraw_flow(&algod, &project, &creator, withdraw_amount, slot_id).await?;
+
+        // flow
+
+        // init a new withdrawal request
+        let new_withdraw_amount = MicroAlgos(1_123_123); // UI
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, new_withdraw_amount, slot_id).await?;
+        wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        // test
+
+        let slot_app = algod.application_information(slot_id).await?;
+
+        // double check: new request amount
+        let withdrawal_amount = withdrawal_amount_global_state(&slot_app);
+        assert_eq!(Some(new_withdraw_amount.0), withdrawal_amount);
+        // double check: 0 votes (value was reset and no one has voted yet)
+        let vote_count = votes_global_state(&slot_app);
+        assert_eq!(Some(0), vote_count);
+
+        // we initiated a second round, so round global state is now 2
+        let withdrawal_round = withdrawal_round_global_state(&slot_app);
+        assert_eq!(Some(2), withdrawal_round);
+
+        Ok(())
+    }
+
     async fn test_withdrawal_did_not_succeed(
         algod: &Algod,
         creator_address: &Address,
@@ -622,13 +729,13 @@ mod tests {
             .amount;
         assert_eq!(expected_central_balance, central_escrow_balance);
 
-        // check slot app withdrawal amount
         let slot_app = algod.application_information(slot_id).await?;
+
+        // check slot app withdrawal amount
         let withdrawal_amount = withdrawal_amount_global_state(&slot_app);
         assert_eq!(expected_withdraw_amount_global_state, withdrawal_amount);
 
         // check slot app votes count
-        let slot_app = algod.application_information(slot_id).await?;
         let vote_count = votes_global_state(&slot_app);
         assert_eq!(expected_votes_global_state, vote_count);
 

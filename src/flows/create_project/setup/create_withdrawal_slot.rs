@@ -30,11 +30,11 @@ pub async fn create_withdrawal_slot_tx(
             compiled_approval_program.clone().program,
             compiled_clear_program.program,
             StateSchema {
-                number_ints: 2, // amount, votes
+                number_ints: 3, // amount, votes, voting round
                 number_byteslices: 0,
             },
             StateSchema {
-                number_ints: 2, // votes (mine), valid state
+                number_ints: 3, // votes (mine), valid state, (voted) voting round
                 number_byteslices: 0,
             },
         )

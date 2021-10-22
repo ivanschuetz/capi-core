@@ -139,6 +139,14 @@ gtxn 0 ApplicationArgs 1 // withdrawal amount
 btoi
 app_global_put
 
+// increment withdrawal round (first round is 1)
+byte "WRound"
+byte "WRound"
+app_global_get
+int 1
++
+app_global_put
+
 return
 
 branch_withdraw:
@@ -231,13 +239,26 @@ int 0
 >
 &&
 
+///////////////////////////////////////
+// check that the user hasn't voted already for the current round
+///////////////////////////////////////
+// hasn't voted yet
 gtxn 0 Sender
 byte "LVotes"
 app_local_get
 int 0
 ==
+// OR has voted for a past round
+gtxn 0 Sender
+byte "VWRound"
+app_local_get
+byte "WRound"
+app_global_get
+<
+||
 &&
 bz branch_exit_false
+///////////////////////////////////////
 
 // increment votes
 byte "Votes"
@@ -248,11 +269,18 @@ btoi
 +
 app_global_put
 
-// set local votes
+// save voted count to local state
 gtxn 0 Sender
 byte "LVotes"
 gtxn 0 ApplicationArgs 1 // vote count
 btoi
+app_local_put
+
+// save current voting round to local state
+gtxn 0 Sender
+byte "VWRound"
+byte "WRound"
+app_global_get
 app_local_put
 
 // TODO review (also in other places) whether this int 1 after setting state is needed - probably shouldn't be here)

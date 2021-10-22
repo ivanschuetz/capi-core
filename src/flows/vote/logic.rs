@@ -114,9 +114,10 @@ mod tests {
                 init_withdrawal::init_withdrawal_flow,
                 invest_in_project::{invests_flow, invests_optins_flow},
                 vote::vote_flow,
+                withdraw::{withdraw_flow, withdraw_precs},
             },
             network_test_util::reset_network,
-            test_data::{creator, investor1, project_specs},
+            test_data::{creator, customer, investor1, investor2, project_specs},
         },
         withdrawal_app_state::{
             votes_global_state, votes_global_state_or_err, votes_local_state_or_err,
@@ -365,5 +366,71 @@ mod tests {
         assert!(initial_vote_count.is_none());
 
         Ok(slot_id)
+    }
+
+    #[test]
+    #[serial]
+    async fn test_vote_after_new_withdrawal_succeeds() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        let creator = creator();
+        let drainer = investor1();
+        let voter = investor2();
+        let customer = customer();
+
+        // precs
+
+        let withdraw_amount = MicroAlgos(1_000_000); // UI
+
+        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
+        // select arbitrary slot
+        assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test
+        let slot_id = project.withdrawal_slot_ids[0];
+
+        // perform a withdrawal
+        let precs_res = withdraw_precs(
+            &algod,
+            &creator,
+            &drainer,
+            &customer,
+            &voter,
+            &project,
+            pay_and_drain_amount,
+            withdraw_amount,
+            slot_id,
+        )
+        .await?;
+        withdraw_flow(&algod, &project, &creator, withdraw_amount, slot_id).await?;
+
+        // init a new withdrawal request
+        let new_withdraw_amount = MicroAlgos(1_123_123); // UI
+        let init_withdrawal_tx_id =
+            init_withdrawal_flow(&algod, &creator, new_withdraw_amount, slot_id).await?;
+        wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
+
+        // flow
+
+        // vote
+        let tx_id = vote_flow(&algod, &voter, &project, slot_id, precs_res.owned_shares).await?;
+        wait_for_pending_transaction(&algod, &tx_id).await?;
+
+        // test
+
+        // new vote is in votes global state
+        // (note that we vote the same amount / still have the same shares as for the first round)
+        let slot_app = algod.application_information(slot_id).await?;
+        let vote_amount = votes_global_state_or_err(&slot_app)?;
+        assert_eq!(precs_res.owned_shares, vote_amount);
+
+        // local state has the voted count
+        let account = algod.account_information(&voter.address()).await?;
+        let local_vote_amount = votes_local_state_or_err(&account.apps_local_state, slot_id)?;
+        assert_eq!(precs_res.owned_shares, local_vote_amount);
+
+        Ok(())
     }
 }
