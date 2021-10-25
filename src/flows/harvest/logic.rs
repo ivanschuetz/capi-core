@@ -21,6 +21,7 @@ pub async fn harvest(
     amount: MicroAlgos,
     central_escrow: &ContractAccount,
 ) -> Result<HarvestToSign> {
+    log::debug!("Generating harvest txs, harvester: {:?}, central_app_id: {:?}, amount: {:?}, central_escrow: {:?}", harvester, central_app_id, amount, central_escrow);
     let params = algod.suggested_transaction_params().await?;
 
     // Escrow call to harvest the amount
@@ -74,6 +75,8 @@ pub fn harvest_app_call_tx(
 }
 
 pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<String> {
+    log::debug!("Submit harvest..");
+
     let txs = vec![
         signed.app_call_tx_signed.clone(),
         signed.harvest_tx.clone(),
@@ -82,7 +85,7 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<Str
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
-    println!("Harvest tx id: {:?}", res.tx_id);
+    log::debug!("Harvest tx id: {:?}", res.tx_id);
     Ok(res.tx_id)
 }
 
