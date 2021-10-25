@@ -117,8 +117,13 @@ mod tests {
 
     use crate::{
         app_state_util::app_local_state_or_err,
+        central_app_logic::investor_can_harvest_amount_calc,
+        central_app_state::total_received_amount_global_state_or_err,
         dependencies,
-        flows::harvest::logic::FIXED_FEE,
+        flows::{
+            create_project::model::{CreateProjectSpecs, CreateSharesSpecs},
+            harvest::logic::FIXED_FEE,
+        },
         testing::{
             flow::harvest::{harvest_flow, harvest_precs},
             network_test_util::reset_network,
@@ -145,8 +150,6 @@ mod tests {
 
         let buy_asset_amount = 10;
         let central_funds = MicroAlgos(10 * 1_000_000);
-        // in the real application, harvest amount is provided by indexer (maybe can be customized by user),
-        // it reads app state to calculate max harvest
         let harvest_amount = MicroAlgos(1_000_000);
         let withdrawal_slots = 3;
 
@@ -162,6 +165,224 @@ mod tests {
             central_funds,
         )
         .await?;
+        let res = harvest_flow(&algod, &precs.project, &harvester, harvest_amount).await?;
+
+        // test
+
+        test_harvest_result(
+            &algod,
+            &harvester,
+            res.project.central_app_id,
+            res.project.central_escrow.address,
+            precs.drain_res.drained_amount,
+            // harvester got the amount - app call fee - pay for escrow fee - fee to pay for escrow fee
+            res.harvester_balance_before_harvesting + res.harvest - FIXED_FEE * 3,
+            // central lost the amount
+            precs.central_escrow_balance_after_drain - res.harvest,
+            // double check shares local state
+            buy_asset_amount,
+            // only one harvest: local state is the harvested amount
+            res.harvest.0,
+            withdrawal_slots,
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_harvest_max() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
+        let creator = creator();
+        let drainer = investor1();
+        let harvester = investor2();
+        let customer = customer();
+
+        let specs = project_specs();
+
+        // precs
+
+        let buy_asset_amount = 10;
+        let central_funds = MicroAlgos(10 * 1_000_000);
+        let withdrawal_slots = 3;
+
+        let precs = harvest_precs(
+            &algod,
+            &creator,
+            &specs,
+            &harvester,
+            &drainer,
+            &customer,
+            buy_asset_amount,
+            withdrawal_slots,
+            central_funds,
+        )
+        .await?;
+
+        let central_app = algod
+            .application_information(precs.project.central_app_id)
+            .await?;
+        let central_total_received = total_received_amount_global_state_or_err(&central_app)?;
+        let harvest_amount = investor_can_harvest_amount_calc(
+            central_total_received,
+            MicroAlgos(0),
+            buy_asset_amount,
+            specs.shares.count,
+        );
+        log::debug!("Harvest amount: {}", harvest_amount);
+
+        // flow
+
+        let res = harvest_flow(&algod, &precs.project, &harvester, harvest_amount).await?;
+
+        // test
+
+        test_harvest_result(
+            &algod,
+            &harvester,
+            res.project.central_app_id,
+            res.project.central_escrow.address,
+            precs.drain_res.drained_amount,
+            // harvester got the amount - app call fee - pay for escrow fee - fee to pay for escrow fee
+            res.harvester_balance_before_harvesting + res.harvest - FIXED_FEE * 3,
+            // central lost the amount
+            precs.central_escrow_balance_after_drain - res.harvest,
+            // double check shares local state
+            buy_asset_amount,
+            // only one harvest: local state is the harvested amount
+            res.harvest.0,
+            withdrawal_slots,
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_cannot_harvest_more_than_max() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
+        let creator = creator();
+        let drainer = investor1();
+        let harvester = investor2();
+        let customer = customer();
+
+        let specs = project_specs();
+
+        // precs
+
+        let buy_asset_amount = 10;
+        let central_funds = MicroAlgos(10 * 1_000_000);
+        let withdrawal_slots = 3;
+
+        let precs = harvest_precs(
+            &algod,
+            &creator,
+            &specs,
+            &harvester,
+            &drainer,
+            &customer,
+            buy_asset_amount,
+            withdrawal_slots,
+            central_funds,
+        )
+        .await?;
+
+        let central_app = algod
+            .application_information(precs.project.central_app_id)
+            .await?;
+        let central_total_received = total_received_amount_global_state_or_err(&central_app)?;
+        let harvest_amount = investor_can_harvest_amount_calc(
+            central_total_received,
+            MicroAlgos(0),
+            buy_asset_amount,
+            specs.shares.count,
+        );
+        log::debug!("Harvest amount: {}", harvest_amount);
+
+        // flow
+
+        // we harvest 1 microalgo (smallest possible increment) more than max allowed
+        let res = harvest_flow(&algod, &precs.project, &harvester, harvest_amount + 1).await;
+        log::debug!("res: {:?}", res);
+
+        // test
+
+        assert!(res.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_harvest_max_with_repeated_fractional_shares_percentage() -> Result<()> {
+        reset_network()?;
+
+        // deps
+
+        let algod = dependencies::algod();
+        // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
+        let creator = creator();
+        let drainer = investor1();
+        let harvester = investor2();
+        let customer = customer();
+
+        // precs
+
+        let buy_asset_amount = 10;
+        let central_funds = MicroAlgos(10 * 1_000_000);
+        let withdrawal_slots = 3;
+        let specs = CreateProjectSpecs {
+            name: "Pancakes ltd".to_owned(),
+            shares: CreateSharesSpecs {
+                token_name: "PCK".to_owned(),
+                count: 300,
+            },
+            asset_price: MicroAlgos(5_000_000),
+            vote_threshold: 70,
+        };
+        // 10 shares, 300 supply, percentage: 0.0333333333
+
+        let precs = harvest_precs(
+            &algod,
+            &creator,
+            &specs,
+            &harvester,
+            &drainer,
+            &customer,
+            buy_asset_amount,
+            withdrawal_slots,
+            central_funds,
+        )
+        .await?;
+
+        let central_app = algod
+            .application_information(precs.project.central_app_id)
+            .await?;
+        let central_total_received = total_received_amount_global_state_or_err(&central_app)?;
+        log::debug!("central_total_received: {}", central_total_received);
+
+        let harvest_amount = investor_can_harvest_amount_calc(
+            central_total_received,
+            MicroAlgos(0),
+            buy_asset_amount,
+            specs.shares.count,
+        );
+        log::debug!("Harvest amount: {}", harvest_amount);
+
+        // flow
+
         let res = harvest_flow(&algod, &precs.project, &harvester, harvest_amount).await?;
 
         // test
