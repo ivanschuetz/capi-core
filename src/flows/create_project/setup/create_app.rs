@@ -17,13 +17,14 @@ pub async fn create_app_tx(
     creator: &Address,
     asset_id: u64,
     asset_supply: u64,
+    precision: u64,
 ) -> Result<Transaction> {
     log::debug!(
         "Creating central app with asset id: {}, supply: {}",
         asset_id,
         asset_supply
     );
-    let approval_source = render_central_app(approval_source, asset_id, asset_supply)?;
+    let approval_source = render_central_app(approval_source, asset_id, asset_supply, precision)?;
 
     let compiled_approval_program = algod.compile_teal(&approval_source.0).await?;
     let compiled_clear_program = algod.compile_teal(&clear_source.0).await?;
@@ -55,12 +56,14 @@ fn render_central_app(
     source: TealSourceTemplate,
     asset_id: u64,
     asset_supply: u64,
+    precision: u64,
 ) -> Result<TealSource> {
     let source = render_template(
         source,
         RenderCentralAppContext {
             asset_id: asset_id.to_string(),
             asset_supply: asset_supply.to_string(),
+            precision: precision.to_string(),
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -72,6 +75,7 @@ fn render_central_app(
 struct RenderCentralAppContext {
     asset_id: String,
     asset_supply: String,
+    precision: String,
 }
 
 #[cfg(test)]
@@ -80,7 +84,7 @@ mod tests {
         dependencies,
         network_util::wait_for_pending_transaction,
         teal::{load_teal, load_teal_template},
-        testing::{network_test_util::reset_network, test_data::creator},
+        testing::{network_test_util::reset_network, test_data::creator, TESTS_DEFAULT_PRECISION},
     };
     use algonaut::{
         model::algod::v2::TealKeyValue,
@@ -112,6 +116,7 @@ mod tests {
             &creator.address(),
             0,
             0,
+            TESTS_DEFAULT_PRECISION,
         )
         .await?;
 

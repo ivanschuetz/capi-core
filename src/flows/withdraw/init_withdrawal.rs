@@ -79,6 +79,7 @@ mod tests {
             flow::{create_project::create_project_flow, init_withdrawal::init_withdrawal_flow},
             network_test_util::reset_network,
             test_data::{creator, project_specs},
+            TESTS_DEFAULT_PRECISION,
         },
         withdrawal_app_state::{votes_global_state, withdrawal_amount_global_state},
     };
@@ -95,7 +96,8 @@ mod tests {
 
         // UI
         let specs = project_specs();
-        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+        let project =
+            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
 
         let amount_to_withdraw = MicroAlgos(123456789);
 
@@ -155,7 +157,8 @@ mod tests {
 
         // UI
         let specs = project_specs();
-        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+        let project =
+            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
 
         let amount_to_withdraw = MicroAlgos(123456789);
 

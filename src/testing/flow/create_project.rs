@@ -4,7 +4,11 @@ use crate::flows::create_project::{
     model::{CreateProjectSigned, CreateProjectSpecs, Project},
     setup::create_assets::{create_investor_assets_txs, submit_create_assets},
 };
-
+#[cfg(test)]
+use crate::{
+    flows::create_project::logic::Programs,
+    teal::{load_teal, load_teal_template},
+};
 #[cfg(test)]
 use algonaut::{algod::v2::Algod, transaction::account::Account};
 #[cfg(test)]
@@ -16,12 +20,8 @@ pub async fn create_project_flow(
     creator: &Account,
     specs: &CreateProjectSpecs,
     withdrawal_slots: u64,
+    precision: u64,
 ) -> Result<Project> {
-    use crate::{
-        flows::create_project::logic::Programs,
-        teal::{load_teal, load_teal_template},
-    };
-
     // Create asset first: id needed in app template
     let create_assets_txs =
         create_investor_assets_txs(&algod, &creator.address(), &specs.shares).await?;
@@ -50,6 +50,7 @@ pub async fn create_project_flow(
         create_assets_res.shares_id,
         programs,
         withdrawal_slots,
+        precision,
     )
     .await?;
 

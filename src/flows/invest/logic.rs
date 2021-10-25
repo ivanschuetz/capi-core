@@ -188,6 +188,7 @@ mod tests {
     use crate::testing::network_test_util::reset_network;
     use crate::testing::project_general::test_withdrawal_slot_local_state_initialized_correctly;
     use crate::testing::test_data::{customer, investor2};
+    use crate::testing::TESTS_DEFAULT_PRECISION;
     use crate::{
         dependencies,
         testing::test_data::creator,
@@ -217,7 +218,8 @@ mod tests {
         let buy_asset_amount = 10;
         let specs = project_specs();
 
-        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+        let project =
+            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -324,7 +326,8 @@ mod tests {
         let buy_asset_amount2 = 20;
         let specs = project_specs();
 
-        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+        let project =
+            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -369,7 +372,8 @@ mod tests {
         let invest_amount = 20;
         let specs = project_specs();
 
-        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+        let project =
+            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -420,7 +424,8 @@ mod tests {
         let invest_amount = 20;
         let specs = project_specs();
 
-        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+        let project =
+            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -473,7 +478,8 @@ mod tests {
         let invest_amount_not_stake = 5;
         let specs = project_specs();
 
-        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+        let project =
+            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -531,7 +537,8 @@ mod tests {
         let buy_asset_amount = 10;
         let specs = project_specs();
 
-        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+        let project =
+            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -584,7 +591,8 @@ mod tests {
         let buy_asset_amount = 10;
         let specs = project_specs();
 
-        let project = create_project_flow(&algod, &creator, &specs, 3).await?;
+        let project =
+            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 

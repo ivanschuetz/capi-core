@@ -118,6 +118,7 @@ mod tests {
             },
             network_test_util::reset_network,
             test_data::{creator, customer, investor1, investor2, project_specs},
+            TESTS_DEFAULT_PRECISION,
         },
         withdrawal_app_state::{
             votes_global_state, votes_global_state_or_err, votes_local_state_or_err,
@@ -138,7 +139,14 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
         let buy_asset_amount = 10;
         let slot_id = test_vote_with_active_withdrawal_request_precs(
             &algod,
@@ -182,7 +190,14 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
         let buy_asset_amount = 10;
         let slot_id = test_vote_with_active_withdrawal_request_precs(
             &algod,
@@ -231,7 +246,14 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
         let buy_asset_amount = 10;
         let slot_id = test_vote_with_active_withdrawal_request_precs(
             &algod,
@@ -272,7 +294,14 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
         let buy_asset_amount = 10;
         let slot_id = test_vote_with_active_withdrawal_request_precs(
             &algod,
@@ -309,7 +338,14 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
         let buy_asset_amount = 10;
         invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
@@ -385,7 +421,14 @@ mod tests {
 
         let withdraw_amount = MicroAlgos(1_000_000); // UI
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
         let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
         // select arbitrary slot
         assert!(!project.withdrawal_slot_ids.is_empty()); // sanity test

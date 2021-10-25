@@ -21,13 +21,14 @@ pub fn investor_can_harvest_amount_calc(
     harvested_total: MicroAlgos,
     share_count: u64,
     share_supply: u64,
+    precision: u64,
 ) -> MicroAlgos {
     // TODO review possible overflow, type cast
     // for easier understanding we use the same arithmetic as in TEAL
     let entitled_percentage =
-        ((share_count * 10000).as_decimal() / share_supply.as_decimal()).floor();
+        ((share_count * precision).as_decimal() / share_supply.as_decimal()).floor();
     let entitled_total = ((central_received_total.0.as_decimal() * entitled_percentage)
-        / 10000.as_decimal())
+        / precision.as_decimal())
     .floor();
 
     // Note that this assumes that investor can't unstake only a part of their shares

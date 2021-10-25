@@ -167,6 +167,7 @@ mod tests {
                 test_withdrawal_slot_local_state_initialized_correctly,
             },
             test_data::{creator, investor1, investor2, project_specs},
+            TESTS_DEFAULT_PRECISION,
         },
         withdrawal_app_state::{valid_local_state, votes_global_state, votes_local_state},
     };
@@ -188,7 +189,14 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
@@ -286,7 +294,14 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
@@ -393,7 +408,14 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         // invest: needed to be able to vote
         invests_optins_flow(&algod, &investor, &project).await?;
@@ -507,7 +529,14 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
         invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
 
@@ -597,7 +626,14 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(&algod, &creator, &project_specs(), 3).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            3,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
         invests_optins_flow(&algod, &investor, &project).await?;
         let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
 

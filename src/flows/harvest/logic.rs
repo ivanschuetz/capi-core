@@ -129,6 +129,7 @@ mod tests {
             network_test_util::reset_network,
             project_general::check_schema,
             test_data::{creator, customer, investor1, investor2, project_specs},
+            TESTS_DEFAULT_PRECISION,
         },
     };
 
@@ -152,6 +153,7 @@ mod tests {
         let central_funds = MicroAlgos(10 * 1_000_000);
         let harvest_amount = MicroAlgos(1_000_000);
         let withdrawal_slots = 3;
+        let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
             &algod,
@@ -163,6 +165,7 @@ mod tests {
             buy_asset_amount,
             withdrawal_slots,
             central_funds,
+            precision,
         )
         .await?;
         let res = harvest_flow(&algod, &precs.project, &harvester, harvest_amount).await?;
@@ -211,6 +214,7 @@ mod tests {
         let buy_asset_amount = 10;
         let central_funds = MicroAlgos(10 * 1_000_000);
         let withdrawal_slots = 3;
+        let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
             &algod,
@@ -222,6 +226,7 @@ mod tests {
             buy_asset_amount,
             withdrawal_slots,
             central_funds,
+            precision,
         )
         .await?;
 
@@ -234,6 +239,7 @@ mod tests {
             MicroAlgos(0),
             buy_asset_amount,
             specs.shares.count,
+            precision,
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -285,6 +291,7 @@ mod tests {
         let buy_asset_amount = 10;
         let central_funds = MicroAlgos(10 * 1_000_000);
         let withdrawal_slots = 3;
+        let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
             &algod,
@@ -296,6 +303,7 @@ mod tests {
             buy_asset_amount,
             withdrawal_slots,
             central_funds,
+            precision,
         )
         .await?;
 
@@ -308,6 +316,7 @@ mod tests {
             MicroAlgos(0),
             buy_asset_amount,
             specs.shares.count,
+            precision,
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -343,6 +352,7 @@ mod tests {
         let buy_asset_amount = 10;
         let central_funds = MicroAlgos(10 * 1_000_000);
         let withdrawal_slots = 3;
+        let precision = TESTS_DEFAULT_PRECISION;
         let specs = CreateProjectSpecs {
             name: "Pancakes ltd".to_owned(),
             shares: CreateSharesSpecs {
@@ -364,6 +374,7 @@ mod tests {
             buy_asset_amount,
             withdrawal_slots,
             central_funds,
+            precision,
         )
         .await?;
 
@@ -378,6 +389,7 @@ mod tests {
             MicroAlgos(0),
             buy_asset_amount,
             specs.shares.count,
+            precision,
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -428,6 +440,7 @@ mod tests {
         let central_funds = MicroAlgos(10 * 1_000_000);
         let harvest_amount = MicroAlgos(1_000_000); // UI
         let withdrawal_slots = 3;
+        let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
             &algod,
@@ -442,6 +455,7 @@ mod tests {
             buy_asset_amount,
             withdrawal_slots,
             central_funds,
+            precision,
         )
         .await?;
         let res1 = harvest_flow(&algod, &precs.project, &harvester, harvest_amount).await?;

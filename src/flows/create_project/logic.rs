@@ -29,11 +29,14 @@ pub async fn create_project_txs(
     shares_asset_id: u64,
     programs: Programs,
     withdrawal_slots: u64,
+    precision: u64,
 ) -> Result<CreateProjectToSign> {
     log::debug!(
-        "Creating project with specs: {:?}, shares_asset_id: {}",
+        "Creating project with specs: {:?}, shares_asset_id: {}, slots: {}, precision: {}",
         specs,
         shares_asset_id,
+        withdrawal_slots,
+        precision
     );
 
     // TODO reuse transaction params for all these txs, also in other places
@@ -52,6 +55,7 @@ pub async fn create_project_txs(
         &creator,
         shares_asset_id,
         specs.shares.count,
+        precision,
     )
     .await?;
     // let mut create_app_tx = create_app_tx(algod, &creator).await?;
@@ -245,7 +249,10 @@ pub struct Programs {
 mod tests {
     use crate::{
         dependencies,
-        testing::{flow::create_project::create_project_flow, test_data::project_specs},
+        testing::{
+            flow::create_project::create_project_flow, test_data::project_specs,
+            TESTS_DEFAULT_PRECISION,
+        },
         testing::{network_test_util::reset_network, test_data::creator},
     };
     use anyhow::Result;
@@ -265,7 +272,9 @@ mod tests {
         let specs = project_specs();
 
         let withdrawal_slots = 3;
-        let project = create_project_flow(&algod, &creator, &specs, withdrawal_slots).await?;
+        let precision = TESTS_DEFAULT_PRECISION;
+        let project =
+            create_project_flow(&algod, &creator, &specs, withdrawal_slots, precision).await?;
 
         // UI
         println!("Submitted create project txs, project: {:?}", project);
