@@ -31,8 +31,8 @@ pub async fn create_project_txs(
     withdrawal_slots: u64,
 ) -> Result<CreateProjectToSign> {
     log::debug!(
-        "Creating project: {:?}, shares_asset_id: {}",
-        specs.name,
+        "Creating project with specs: {:?}, shares_asset_id: {}",
+        specs,
         shares_asset_id,
     );
 

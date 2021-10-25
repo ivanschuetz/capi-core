@@ -18,6 +18,11 @@ pub async fn create_app_tx(
     asset_id: u64,
     asset_supply: u64,
 ) -> Result<Transaction> {
+    log::debug!(
+        "Creating central app with asset id: {}, supply: {}",
+        asset_id,
+        asset_supply
+    );
     let approval_source = render_central_app(approval_source, asset_id, asset_supply)?;
 
     let compiled_approval_program = algod.compile_teal(&approval_source.0).await?;
