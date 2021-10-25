@@ -5,6 +5,7 @@ pub mod central_app_state;
 mod debug_msg_pack_submit_par;
 pub mod decimal_util;
 mod dependencies;
+pub mod diagnostics;
 pub mod flows;
 pub mod network_util;
 pub mod teal;
