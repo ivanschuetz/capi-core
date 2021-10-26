@@ -7,6 +7,7 @@ use algonaut::{
     },
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -76,6 +77,7 @@ pub fn harvest_app_call_tx(
 
 pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<String> {
     log::debug!("Submit harvest..");
+    // log::warn!("{:?}", rmp_serde::to_vec_named(signed).unwrap());
 
     let txs = vec![
         signed.app_call_tx_signed.clone(),
@@ -96,7 +98,7 @@ pub struct HarvestToSign {
     pub pay_fee_tx: Transaction,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HarvestSigned {
     pub app_call_tx_signed: SignedTransaction,
     pub harvest_tx: SignedTransaction,
