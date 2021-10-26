@@ -8,6 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: prepare algo env
+        run: |
+          chmod +x algo_env/hello_world.sh
+          algo_env/hello_world.sh
+        shell: bash
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
