@@ -1,0 +1,6 @@
+Telemetry configured from '/Users/ischuetz/.algorand/logging.config'
+Logging to:  /Users/ischuetz/algo_nets/net1/Primary/node.log
+Deadlock detection is set to: disabled (Default state is 'disable')
+Initializing the Algorand node... Success!
+Node running and accepting RPC requests over HTTP on port 127.0.0.1:8080. Press Ctrl-C to exit
+⇨ http server started on 127.0.0.1:8080

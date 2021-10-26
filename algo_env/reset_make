@@ -1,0 +1,9 @@
+pg_ctl -D /usr/local/var/postgres start
+
+# drop tables
+psql -d postgres -c '\set AUTOCOMMIT on'
+psql -d postgres -c "drop table if exists withdrawal_request;"
+psql -d postgres -c "drop table if exists project;"
+
+./goal_reset_and_fund
+

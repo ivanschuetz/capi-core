@@ -12,6 +12,8 @@ jobs:
         run: |
           chmod +x algo_env/installation.sh
           algo_env/installation.sh
+          chmod +x algo_env/reset_make
+          algo_env/reset_make
           # chmod +x algo_env/hello_world.sh
           # algo_env/hello_world.sh
         shell: bash

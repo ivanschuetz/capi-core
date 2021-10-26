@@ -1,0 +1,10 @@
+{
+	"Version": 15,
+	"GossipFanout": 1,
+	"IncomingConnectionsLimit": 0,
+	"DNSBootstrapID": "",
+	"EnableProfiler": true,
+	"EnableDeveloperAPI": true,
+	"EndpointAddress": "127.0.0.1:53630"
+}
+
