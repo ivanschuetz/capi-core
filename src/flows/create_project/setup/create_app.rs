@@ -4,7 +4,6 @@ use algonaut::{
     transaction::{transaction::StateSchema, CreateApplication, Transaction, TxnBuilder},
 };
 use anyhow::{anyhow, Result};
-use rust_decimal::Decimal;
 use serde::Serialize;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -22,7 +21,7 @@ pub async fn create_app_tx(
     asset_id: u64,
     asset_supply: u64,
     precision: u64,
-    investors_share: Decimal,
+    investors_share: u64,
 ) -> Result<Transaction> {
     log::debug!(
         "Creating central app with asset id: {}, supply: {}",
@@ -68,12 +67,13 @@ fn render_central_app(
     asset_id: u64,
     asset_supply: u64,
     precision: u64,
-    investors_share: Decimal,
+    investors_share: u64,
 ) -> Result<TealSource> {
     let precision_square = precision
         .checked_pow(2)
         .ok_or(anyhow!("Precision squared overflow: {}", precision))?;
-    let investors_share = (investors_share * precision.as_decimal()).floor();
+    let investors_share =
+        ((investors_share.as_decimal() / 100.as_decimal()) * precision.as_decimal()).floor();
 
     let source = render_template(
         source,
@@ -101,10 +101,7 @@ struct RenderCentralAppContext {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use crate::{
-        decimal_util::AsDecimal,
         dependencies,
         network_util::wait_for_pending_transaction,
         teal::{load_teal, load_teal_template},
@@ -115,7 +112,6 @@ mod tests {
         transaction::{transaction::StateSchema, Transaction, TransactionType},
     };
     use anyhow::{anyhow, Result};
-    use rust_decimal::Decimal;
     use serial_test::serial;
     use tokio::test;
 
@@ -142,7 +138,7 @@ mod tests {
             0,
             0,
             TESTS_DEFAULT_PRECISION,
-            Decimal::from_str("0.4").unwrap() * TESTS_DEFAULT_PRECISION.as_decimal(),
+            40,
         )
         .await?;
 

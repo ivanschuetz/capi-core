@@ -2,7 +2,6 @@ use algonaut::{
     core::{Address, MicroAlgos},
     transaction::{account::ContractAccount, SignedTransaction, Transaction},
 };
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -118,7 +117,7 @@ pub struct SubmitCreateProjectResult {
 pub struct CreateSharesSpecs {
     pub token_name: String,
     pub count: u64,
-    pub investors_share: Decimal,
+    pub investors_share: u64, // percentage as entered by the user, e.g. 30%. No fractionals.
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

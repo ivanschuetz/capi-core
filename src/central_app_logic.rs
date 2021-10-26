@@ -1,5 +1,5 @@
 use algonaut::core::MicroAlgos;
-use rust_decimal::{prelude::ToPrimitive, Decimal};
+use rust_decimal::prelude::ToPrimitive;
 
 use crate::decimal_util::AsDecimal;
 
@@ -8,14 +8,17 @@ pub fn calculate_entitled_harvest(
     share_supply: u64,
     share_count: u64,
     precision: u64,
-    investors_share: Decimal,
+    investors_share: u64,
 ) -> MicroAlgos {
     // TODO review possible overflow, type cast, unwrap
     // for easier understanding we use the same arithmetic as in TEAL
+    let investors_share_fractional_percentage = investors_share.as_decimal() / 100.as_decimal(); // e.g. 10% -> 0.1
+
     let entitled_percentage = ((share_count * precision).as_decimal()
-        * (investors_share * precision.as_decimal())
+        * (investors_share_fractional_percentage * precision.as_decimal())
         / share_supply.as_decimal())
     .floor();
+
     let entitled_total = ((central_received_total.0.as_decimal() * entitled_percentage)
         / (precision.as_decimal() * precision.as_decimal()))
     .floor();
@@ -29,7 +32,7 @@ pub fn investor_can_harvest_amount_calc(
     share_count: u64,
     share_supply: u64,
     precision: u64,
-    investors_share: Decimal,
+    investors_share: u64,
 ) -> MicroAlgos {
     // Note that this assumes that investor can't unstake only a part of their shares
     // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with harvested_total, which remains unchanged.

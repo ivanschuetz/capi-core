@@ -4,10 +4,6 @@ use crate::flows::create_project::model::{CreateProjectSpecs, CreateSharesSpecs}
 use algonaut::core::MicroAlgos;
 #[cfg(test)]
 use algonaut::transaction::account::Account;
-#[cfg(test)]
-use rust_decimal::Decimal;
-#[cfg(test)]
-use std::str::FromStr;
 
 #[cfg(test)]
 pub fn creator() -> Account {
@@ -47,6 +43,6 @@ pub fn shares_specs() -> CreateSharesSpecs {
     CreateSharesSpecs {
         token_name: "PCK".to_owned(),
         count: 100,
-        investors_share: "0.4".parse().unwrap(),
+        investors_share: 40,
     }
 }
