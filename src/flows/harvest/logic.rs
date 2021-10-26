@@ -107,6 +107,8 @@ pub struct HarvestSigned {
 
 #[cfg(test)]
 mod tests {
+    use std::{convert::TryInto, str::FromStr};
+
     use algonaut::{
         algod::v2::Algod,
         core::{Address, MicroAlgos},
@@ -114,6 +116,8 @@ mod tests {
     };
     use anyhow::Result;
     use data_encoding::BASE64;
+    use logger::init_logger;
+    use rust_decimal::Decimal;
     use serial_test::serial;
     use tokio::test;
 
@@ -149,18 +153,20 @@ mod tests {
         let harvester = investor2();
         let customer = customer();
 
+        let specs = project_specs();
+
         // flow
 
         let buy_asset_amount = 10;
         let central_funds = MicroAlgos(10 * 1_000_000);
-        let harvest_amount = MicroAlgos(1_000_000);
+        let harvest_amount = MicroAlgos(400_000); // calculated manually
         let withdrawal_slots = 3;
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
             &algod,
             &creator,
-            &project_specs(),
+            &specs,
             &harvester,
             &drainer,
             &customer,
@@ -242,6 +248,7 @@ mod tests {
             buy_asset_amount,
             specs.shares.count,
             precision,
+            specs.shares.investors_share,
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -319,6 +326,7 @@ mod tests {
             buy_asset_amount,
             specs.shares.count,
             precision,
+            specs.shares.investors_share,
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -360,11 +368,12 @@ mod tests {
             shares: CreateSharesSpecs {
                 token_name: "PCK".to_owned(),
                 count: 300,
+                investors_share: "1".parse().unwrap(),
             },
             asset_price: MicroAlgos(5_000_000),
             vote_threshold: 70,
         };
-        // 10 shares, 300 supply, percentage: 0.0333333333
+        // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
 
         let precs = harvest_precs(
             &algod,
@@ -392,6 +401,7 @@ mod tests {
             buy_asset_amount,
             specs.shares.count,
             precision,
+            specs.shares.investors_share,
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -440,7 +450,7 @@ mod tests {
 
         let buy_asset_amount = 20;
         let central_funds = MicroAlgos(10 * 1_000_000);
-        let harvest_amount = MicroAlgos(1_000_000); // UI
+        let harvest_amount = MicroAlgos(200_000); // just an amount low enough so we can harvest 2x
         let withdrawal_slots = 3;
         let precision = TESTS_DEFAULT_PRECISION;
 

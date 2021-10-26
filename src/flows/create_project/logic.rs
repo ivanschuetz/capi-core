@@ -56,6 +56,7 @@ pub async fn create_project_txs(
         shares_asset_id,
         specs.shares.count,
         precision,
+        specs.shares.investors_share,
     )
     .await?;
     // let mut create_app_tx = create_app_tx(algod, &creator).await?;

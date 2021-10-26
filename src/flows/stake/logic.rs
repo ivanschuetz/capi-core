@@ -109,22 +109,35 @@ mod tests {
     use serial_test::serial;
     use tokio::test;
 
-    use crate::{app_state_util::app_local_state_or_err, central_app_logic::calculate_entitled_harvest, dependencies, flows::{
+    use crate::{
+        app_state_util::app_local_state_or_err,
+        central_app_logic::calculate_entitled_harvest,
+        dependencies,
+        flows::{
             invest::app_optins::{
                 invest_or_staking_app_optins_txs, submit_invest_or_staking_app_optins,
             },
             stake::logic::FIXED_FEE,
-        }, network_util::wait_for_pending_transaction, testing::{TESTS_DEFAULT_PRECISION, flow::{
+        },
+        network_util::wait_for_pending_transaction,
+        testing::{
+            flow::{
                 create_project::create_project_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
                 harvest::harvest_flow,
                 invest_in_project::{invests_flow, invests_optins_flow},
                 stake::stake_flow,
                 unstake::unstake_flow,
-            }, network_test_util::reset_network, project_general::{
+            },
+            network_test_util::reset_network,
+            project_general::{
                 check_investor_central_app_local_state,
                 test_withdrawal_slot_local_state_initialized_correctly,
-            }, test_data::{self, creator, customer, investor1, investor2, project_specs}}};
+            },
+            test_data::{self, creator, customer, investor1, investor2, project_specs},
+            TESTS_DEFAULT_PRECISION,
+        },
+    };
 
     #[test]
     #[serial]
@@ -244,6 +257,8 @@ mod tests {
             central_total_received,
             project.specs.shares.count,
             traded_shares,
+            TESTS_DEFAULT_PRECISION,
+            project.specs.shares.investors_share,
         );
 
         let central_app_local_state =
@@ -299,6 +314,8 @@ mod tests {
             customer_payment_amount_2,
             project.specs.shares.count,
             traded_shares,
+            TESTS_DEFAULT_PRECISION,
+            project.specs.shares.investors_share,
         );
         println!(
             "Harvesting max possible amount (expected to succeed): {:?}",
