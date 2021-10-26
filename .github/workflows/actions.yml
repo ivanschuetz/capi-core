@@ -5,13 +5,16 @@ name: CI
 jobs:
   test:
     name: Tests
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
       - name: prepare algo env
         run: |
-          chmod +x algo_env/installation.sh
-          algo_env/installation.sh
+          # chmod +x algo_env/installation.sh
+          # algo_env/installation.sh
+          chmod +x algo_env/installation_mac.sh
+          algo_env/installation_mac.sh
           chmod +x algo_env/goal_reset_and_fund
           algo_env/goal_reset_and_fund
           # chmod +x algo_env/hello_world.sh
