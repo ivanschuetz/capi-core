@@ -30,8 +30,7 @@ gloo-timers = { version = "0.2.1", features = ["futures"] }
 rust_decimal = "1.15"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-# logger = { git = "https://github.com/ivanschuetz/logger", branch = "main" }
-logger = { path = "../logger" }
+log4rs = "0.12.0"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-logger = "0.2"
 

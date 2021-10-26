@@ -7,6 +7,7 @@ pub mod decimal_util;
 mod dependencies;
 pub mod diagnostics;
 pub mod flows;
+mod logger;
 pub mod network_util;
 pub mod teal;
 mod testing;
