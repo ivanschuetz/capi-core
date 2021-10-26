@@ -114,7 +114,6 @@ mod tests {
     };
     use anyhow::Result;
     use data_encoding::BASE64;
-    use logger::init_logger;
     use serial_test::serial;
     use tokio::test;
 
@@ -245,7 +244,7 @@ mod tests {
             buy_asset_amount,
             specs.shares.count,
             precision,
-            specs.shares.investors_share,
+            specs.investors_share,
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -323,7 +322,7 @@ mod tests {
             buy_asset_amount,
             specs.shares.count,
             precision,
-            specs.shares.investors_share,
+            specs.investors_share,
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -343,7 +342,6 @@ mod tests {
     #[test]
     #[serial]
     async fn test_harvest_max_with_repeated_fractional_shares_percentage() -> Result<()> {
-        init_logger();
         reset_network()?;
 
         // deps
@@ -366,10 +364,10 @@ mod tests {
             shares: CreateSharesSpecs {
                 token_name: "PCK".to_owned(),
                 count: 300,
-                investors_share: 100,
             },
             asset_price: MicroAlgos(5_000_000),
             vote_threshold: 70,
+            investors_share: 100,
         };
         // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
 
@@ -399,7 +397,7 @@ mod tests {
             buy_asset_amount,
             specs.shares.count,
             precision,
-            specs.shares.investors_share,
+            specs.investors_share,
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 

@@ -35,6 +35,7 @@ pub fn project_specs() -> CreateProjectSpecs {
         shares: shares_specs(),
         asset_price: MicroAlgos(5_000_000),
         vote_threshold: 70,
+        investors_share: 40,
     }
 }
 
@@ -43,6 +44,5 @@ pub fn shares_specs() -> CreateSharesSpecs {
     CreateSharesSpecs {
         token_name: "PCK".to_owned(),
         count: 100,
-        investors_share: 40,
     }
 }

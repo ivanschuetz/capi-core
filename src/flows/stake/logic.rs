@@ -258,7 +258,7 @@ mod tests {
             project.specs.shares.count,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
-            project.specs.shares.investors_share,
+            project.specs.investors_share,
         );
 
         let central_app_local_state =
@@ -315,7 +315,7 @@ mod tests {
             project.specs.shares.count,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
-            project.specs.shares.investors_share,
+            project.specs.investors_share,
         );
         println!(
             "Harvesting max possible amount (expected to succeed): {:?}",
