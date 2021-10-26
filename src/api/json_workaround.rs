@@ -97,6 +97,7 @@ pub struct ProjectForUsersJson {
     pub id: String,
     pub name: String,
     pub asset_price: MicroAlgos,
+    pub investors_share: String,
     pub vote_threshold: String, // percent
     pub shares_asset_id: String,
     pub central_app_id: String,
@@ -117,6 +118,7 @@ impl From<ProjectForUsers> for ProjectForUsersJson {
             id: p.id.clone(),
             name: p.name.clone(),
             asset_price: p.asset_price,
+            investors_share: p.investors_share.to_string(),
             vote_threshold: p.vote_threshold.to_string(), // percent
             shares_asset_id: p.shares_asset_id.to_string(),
             central_app_id: p.central_app_id.to_string(),
@@ -141,6 +143,7 @@ impl TryFrom<ProjectForUsersJson> for ProjectForUsers {
             id: p.id.clone(),
             name: p.name.clone(),
             asset_price: p.asset_price,
+            investors_share: p.investors_share.parse()?,
             vote_threshold: p.vote_threshold.parse()?, // percent
             shares_asset_id: p.shares_asset_id.parse()?,
             central_app_id: p.central_app_id.parse()?,

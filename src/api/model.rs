@@ -15,6 +15,7 @@ pub struct ProjectForUsers {
     pub id: String,
     pub name: String,
     pub asset_price: MicroAlgos,
+    pub investors_share: u64,
     pub vote_threshold: u64, // percent
     pub shares_asset_id: u64,
     pub central_app_id: u64,
