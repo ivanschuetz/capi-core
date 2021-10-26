@@ -16,22 +16,20 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: check
-
-            # TODO: setup node, init test accounts etc. on Github
-            #unit:
-            #  name: Tests
-            #  runs-on: ubuntu-latest
-            #  steps:
-            #    - uses: actions/checkout@v2
-            #    - uses: actions-rs/toolchain@v1
-            #      with:
-            #        profile: minimal
-            #        toolchain: stable
-            #        override: true
-            #    - uses: actions-rs/cargo@v1
-            #      with:
-            #        command: test
-            #        args: --workspace
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --workspace
 
   fmt:
     name: Rustfmt
