@@ -63,7 +63,7 @@ pub async fn create_app_tx(
     Ok(tx)
 }
 
-fn render_central_app(
+pub fn render_central_app(
     source: TealSourceTemplate,
     asset_id: u64,
     asset_supply: u64,
