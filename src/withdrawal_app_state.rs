@@ -16,7 +16,7 @@ pub fn withdrawal_amount_global_state(apps_state: &Application) -> Option<u64> {
 pub fn withdrawal_amount_global_state_or_err(apps_state: &Application) -> Result<u64> {
     Ok(withdrawal_amount_global_state(apps_state)
         // .ok_or_else(|| anyhow!("Withdrawal amount global state not set"))
-        .unwrap_or_else(|| 0))
+        .unwrap_or(0))
 }
 
 pub fn votes_global_state(apps_state: &Application) -> Option<u64> {
@@ -31,10 +31,10 @@ pub fn votes_global_state(apps_state: &Application) -> Option<u64> {
 pub fn votes_global_state_or_err(apps_state: &Application) -> Result<u64> {
     Ok(votes_global_state(apps_state)
         // .ok_or_else(|| anyhow!("Votes global state not set"))
-        .unwrap_or_else(|| 0))
+        .unwrap_or(0))
 }
 
-pub fn votes_local_state(apps_state: &Vec<ApplicationLocalState>, app_id: u64) -> Option<u64> {
+pub fn votes_local_state(apps_state: &[ApplicationLocalState], app_id: u64) -> Option<u64> {
     app_local_state(apps_state, app_id)?
         .key_value
         .iter()
@@ -42,14 +42,11 @@ pub fn votes_local_state(apps_state: &Vec<ApplicationLocalState>, app_id: u64) -
         .map(|s| s.value.uint)
 }
 
-pub fn votes_local_state_or_err(
-    apps_state: &Vec<ApplicationLocalState>,
-    app_id: u64,
-) -> Result<u64> {
+pub fn votes_local_state_or_err(apps_state: &[ApplicationLocalState], app_id: u64) -> Result<u64> {
     votes_local_state(apps_state, app_id).ok_or_else(|| anyhow!("Votes local state not set"))
 }
 
-pub fn valid_local_state(apps_state: &Vec<ApplicationLocalState>, app_id: u64) -> Option<u64> {
+pub fn valid_local_state(apps_state: &[ApplicationLocalState], app_id: u64) -> Option<u64> {
     app_local_state(apps_state, app_id)?
         .key_value
         .iter()
@@ -57,10 +54,7 @@ pub fn valid_local_state(apps_state: &Vec<ApplicationLocalState>, app_id: u64) -
         .map(|s| s.value.uint)
 }
 
-pub fn valid_local_state_or_err(
-    apps_state: &Vec<ApplicationLocalState>,
-    app_id: u64,
-) -> Result<u64> {
+pub fn valid_local_state_or_err(apps_state: &[ApplicationLocalState], app_id: u64) -> Result<u64> {
     votes_local_state(apps_state, app_id).ok_or_else(|| anyhow!("Votes local state not set"))
 }
 
@@ -83,7 +77,7 @@ pub fn withdrawal_round_global_state(app_state: &Application) -> Option<u64> {
 /// Error if the app is not found (user is not opted in)
 /// None if local state hasn't been set yet, i.e. user has never voted
 pub fn voted_round_local_state(
-    apps_state: &Vec<ApplicationLocalState>,
+    apps_state: &[ApplicationLocalState],
     app_id: u64,
 ) -> Result<Option<u64>> {
     Ok(app_local_state_or_err(apps_state, app_id)?

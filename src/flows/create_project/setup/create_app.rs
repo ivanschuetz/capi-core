@@ -13,6 +13,7 @@ use crate::{
     teal::{render_template, TealSource, TealSourceTemplate},
 };
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_app_tx(
     algod: &Algod,
     approval_source: TealSourceTemplate,
@@ -71,7 +72,7 @@ fn render_central_app(
 ) -> Result<TealSource> {
     let precision_square = precision
         .checked_pow(2)
-        .ok_or(anyhow!("Precision squared overflow: {}", precision))?;
+        .ok_or_else(|| anyhow!("Precision squared overflow: {}", precision))?;
     let investors_share =
         ((investors_share.as_decimal() / 100.as_decimal()) * precision.as_decimal()).floor();
 

@@ -23,7 +23,7 @@ pub async fn init_withdrawal(
     let init_withdrawal_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params.clone()
+            ..params
         },
         CallApplication::new(*creator, withdrawal_slot)
             .app_arguments(vec![

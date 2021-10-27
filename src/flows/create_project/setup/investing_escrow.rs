@@ -91,7 +91,7 @@ pub async fn setup_investing_escrow_txs(
     .build();
 
     let fund_shares_asset_tx = &mut TxnBuilder::with(
-        params.clone(),
+        params,
         TransferAsset::new(*creator, shares_asset_id, asset_amount, escrow.address).build(),
     )
     .build();

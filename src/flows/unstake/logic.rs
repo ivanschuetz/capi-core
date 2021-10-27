@@ -21,7 +21,7 @@ pub async fn unstake(
     share_count: u64,
     shares_asset_id: u64,
     central_app_id: u64,
-    wthdrawal_slot_ids: &Vec<u64>,
+    wthdrawal_slot_ids: &[u64],
     staking_escrow: &ContractAccount,
 ) -> Result<UnstakeToSign> {
     let params = algod.suggested_transaction_params().await?;

@@ -67,7 +67,7 @@ pub async fn stake(
 
     Ok(StakeToSign {
         central_app_call_setup_tx: app_call_tx.clone(),
-        slot_setup_app_calls_txs: slot_setup_txs.clone(),
+        slot_setup_app_calls_txs: slot_setup_txs,
         shares_xfer_tx: shares_xfer_tx.clone(),
     })
 }

@@ -7,7 +7,7 @@ use data_encoding::BASE64;
 
 use crate::app_state_util::app_local_state;
 
-pub fn shares_local_state(apps_state: &Vec<ApplicationLocalState>, app_id: u64) -> Option<u64> {
+pub fn shares_local_state(apps_state: &[ApplicationLocalState], app_id: u64) -> Option<u64> {
     app_local_state(apps_state, app_id)?
         .key_value
         .iter()
@@ -15,15 +15,12 @@ pub fn shares_local_state(apps_state: &Vec<ApplicationLocalState>, app_id: u64) 
         .map(|s| s.value.uint)
 }
 
-pub fn shares_local_state_or_err(
-    apps_state: &Vec<ApplicationLocalState>,
-    app_id: u64,
-) -> Result<u64> {
+pub fn shares_local_state_or_err(apps_state: &[ApplicationLocalState], app_id: u64) -> Result<u64> {
     shares_local_state(apps_state, app_id).ok_or_else(|| anyhow!("Shares local state not set"))
 }
 
 pub fn already_harvested_local_state(
-    apps_state: &Vec<ApplicationLocalState>,
+    apps_state: &[ApplicationLocalState],
     app_id: u64,
 ) -> Option<MicroAlgos> {
     app_local_state(apps_state, app_id)?
@@ -34,7 +31,7 @@ pub fn already_harvested_local_state(
 }
 
 pub fn already_harvested_local_state_or_err(
-    apps_state: &Vec<ApplicationLocalState>,
+    apps_state: &[ApplicationLocalState],
     app_id: u64,
 ) -> Result<MicroAlgos> {
     already_harvested_local_state(apps_state, app_id)

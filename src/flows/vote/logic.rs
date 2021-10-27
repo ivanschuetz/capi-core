@@ -41,7 +41,7 @@ pub async fn vote(
     let mut validate_vote_count_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params.clone()
+            ..params
         },
         CallApplication::new(voter, central_app_id)
             .app_arguments(vec!["validate_vote".as_bytes().to_vec()])

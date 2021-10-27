@@ -24,7 +24,7 @@ pub async fn create_withdrawal_slots_txs(
             algod,
             approval_source.clone(),
             clear_source.clone(),
-            &creator,
+            creator,
             vote_threshold,
             i,
         )
@@ -42,7 +42,7 @@ pub async fn submit_create_withdrawal_slots_txs(
     let mut app_ids = vec![];
     for withdrawal_slot_app in &signed_txs {
         let create_app_res = algod
-            .broadcast_signed_transaction(&withdrawal_slot_app)
+            .broadcast_signed_transaction(withdrawal_slot_app)
             .await?;
         let p_tx = wait_for_pending_transaction(algod, &create_app_res.tx_id)
             .await?

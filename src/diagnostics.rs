@@ -22,7 +22,7 @@ pub async fn harvest_diagnostics(
         .await?;
     let central_total_received = total_received_amount_global_state_or_err(&central_app)?;
 
-    let investor_infos = algod.account_information(&investor).await?;
+    let investor_infos = algod.account_information(investor).await?;
     let already_harvested = already_harvested_local_state_or_err(
         &investor_infos.apps_local_state,
         project.central_app_id,

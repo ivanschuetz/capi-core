@@ -72,7 +72,7 @@ pub async fn invest_txs(
     let mut receive_shares_asset_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params.clone()
+            ..params
         },
         TransferAsset::new(
             project.invest_escrow.address,
@@ -104,7 +104,7 @@ pub async fn invest_txs(
         slots_setup_txs: slot_setup_txs,
         payment_tx: send_algos_tx,
         shares_asset_optin_tx: shares_optin_tx,
-        pay_escrow_fee_tx: pay_escrow_fee_tx,
+        pay_escrow_fee_tx,
         shares_xfer_tx: receive_shares_asset_signed_tx,
     })
 }

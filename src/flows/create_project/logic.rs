@@ -172,7 +172,7 @@ pub async fn submit_create_project(
         .await?;
 
     let withdrawal_slots_app_ids =
-        submit_create_withdrawal_slots_txs(&algod, signed.create_withdrawal_slots_txs).await?;
+        submit_create_withdrawal_slots_txs(algod, signed.create_withdrawal_slots_txs).await?;
 
     ///////////////////////////////////////////////////////////¯
     // TODO investigate: application_index is None in p_tx when executing the app create tx together with the other txs

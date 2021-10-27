@@ -51,7 +51,7 @@ pub async fn withdraw(
     let mut pay_withdraw_fee_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params.clone()
+            ..params
         },
         Pay::new(creator, central_escrow.address, FIXED_FEE).build(),
     )
