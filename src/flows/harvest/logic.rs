@@ -77,7 +77,7 @@ pub fn harvest_app_call_tx(
 
 pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<String> {
     log::debug!("Submit harvest..");
-    // log::warn!("{:?}", rmp_serde::to_vec_named(signed).unwrap());
+    crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
     let txs = vec![
         signed.app_call_tx_signed.clone(),

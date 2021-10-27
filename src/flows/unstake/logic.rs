@@ -103,6 +103,8 @@ fn withdrawal_slot_optout_tx(
 }
 
 pub async fn submit_unstake(algod: &Algod, signed: UnstakeSigned) -> Result<String> {
+    // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
+
     let mut txs = vec![
         signed.central_app_optout_tx,
         signed.shares_xfer_tx_signed,

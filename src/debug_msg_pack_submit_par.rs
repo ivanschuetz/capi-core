@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
@@ -37,4 +39,14 @@ mod tests {
 
         Ok(())
     }
+}
+
+#[allow(dead_code)]
+pub fn log_to_msg_pack<T>(obj: &T)
+where
+    T: Serialize + ?Sized,
+{
+    log::info!("log_to_msg_pack:");
+    // Unwrap: only for debugging
+    log::info!("{:?}", rmp_serde::to_vec_named(obj).unwrap());
 }
