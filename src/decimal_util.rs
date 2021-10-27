@@ -17,6 +17,6 @@ pub trait DecimalExt {
 
 impl DecimalExt for Decimal {
     fn format_percentage(&self) -> String {
-        format!("{:.2} %", self * Decimal::from(100))
+        format!("{} %", (self * Decimal::from(100)).round_dp(2).normalize())
     }
 }
