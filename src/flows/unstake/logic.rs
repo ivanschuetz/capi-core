@@ -7,6 +7,7 @@ use algonaut::{
     },
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -126,7 +127,7 @@ pub struct UnstakeToSign {
     pub pay_shares_xfer_fee_tx: Transaction,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UnstakeSigned {
     pub central_app_optout_tx: SignedTransaction,
     pub slot_optout_txs: Vec<SignedTransaction>,
