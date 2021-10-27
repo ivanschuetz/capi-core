@@ -1,3 +1,6 @@
+export ALGORAND_DATA="/Users/runner/work/make/make/algo_env/net1/data"
+export PATH="/Users/runner/work/make/make/algo_env/net1:$PATH"
+
 SRC=$1
 echo $SRC
 # 10_000 algos

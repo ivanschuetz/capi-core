@@ -11,7 +11,8 @@ use {
 #[cfg(test)]
 pub fn reset_network() -> Result<()> {
     let reset_res = Command::new("sh")
-        .current_dir("/Users/ischuetz/algo_nets")
+        // .current_dir("/Users/ischuetz/algo_nets")
+        .current_dir("/Users/runner/work/make/make/algo_env")
         .arg("./reset_network.sh")
         .stdout(Stdio::piped())
         .spawn()?
@@ -37,7 +38,8 @@ pub fn reset_network() -> Result<()> {
 #[cfg(test)]
 fn call_fund_all(address: &str) -> Result<()> {
     let res = Command::new("sh")
-        .current_dir("/Users/ischuetz/algo_nets")
+        // .current_dir("/Users/ischuetz/algo_nets")
+        .current_dir("/Users/runner/work/make/make/algo_env")
         .arg("./fund_all.sh")
         .arg(address.to_string())
         .arg("-d")
