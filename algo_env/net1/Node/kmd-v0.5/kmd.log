@@ -1,6 +1,0 @@
-time="2021-10-26T19:00:35.123597 +0200" level=info msg="running macOS -- not calling mlockall" file=mlock_darwin.go function=main.tryMlockall line=24
-time="2021-10-26T19:00:35.131841 +0200" level=info msg="started kmd on sock: 127.0.0.1:57798" file=main.go function=main.runKmd line=118
-time="2021-10-26T19:00:38.455993 +0200" level=info msg="kmd wallet HTTP server stopped with: http: Server closed" file=server.go function="github.com/algorand/go-algorand/daemon/kmd/server.(*WalletServer).start.func2" line=278
-time="2021-10-26T19:00:38.456312 +0200" level=info msg="kmd server died. exiting..." file=main.go function=main.runKmd line=122
-time="2021-10-26T19:00:38.919850 +0200" level=info msg="running macOS -- not calling mlockall" file=mlock_darwin.go function=main.tryMlockall line=24
-time="2021-10-26T19:00:38.927421 +0200" level=info msg="started kmd on sock: 127.0.0.1:7833" file=main.go function=main.runKmd line=118

@@ -1,9 +1,9 @@
-export ALGORAND_DATA="/Users/runner/work/make/make/algo_env/net1/data"
-export PATH="/Users/runner/work/make/make/algo_env/net1:$PATH"
+export ALGORAND_DATA="$HOME/node/data"
+export PATH="$HOME/node:$PATH"
 
 cd /Users/runner/work/make/make/algo_env
 
-echo "///////////"
+echo "/////////// reset_network.sh"
 echo "current dir:"
 pwd
 echo "current dir contents:"
