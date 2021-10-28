@@ -19,6 +19,15 @@ pub fn withdrawal_amount_global_state_or_err(apps_state: &Application) -> Result
         .unwrap_or(0))
 }
 
+pub fn has_active_withdrawal_request_global_state(apps_state: &Application) -> Option<bool> {
+    withdrawal_amount_global_state(apps_state).map(|a| a > 0)
+}
+
+pub fn has_active_withdrawal_request_global_state_or_err(apps_state: &Application) -> Result<bool> {
+    // unwrap_or: None -> amount global state not set yet -> no active withdrawal request -> false
+    Ok(has_active_withdrawal_request_global_state(apps_state).unwrap_or(false))
+}
+
 pub fn votes_global_state(apps_state: &Application) -> Option<u64> {
     apps_state
         .params
@@ -44,6 +53,17 @@ pub fn votes_local_state(apps_state: &[ApplicationLocalState], app_id: u64) -> O
 
 pub fn votes_local_state_or_err(apps_state: &[ApplicationLocalState], app_id: u64) -> Result<u64> {
     votes_local_state(apps_state, app_id).ok_or_else(|| anyhow!("Votes local state not set"))
+}
+
+pub fn did_vote_local_state(apps_state: &[ApplicationLocalState], app_id: u64) -> Option<bool> {
+    votes_local_state(apps_state, app_id).map(|v| v > 0)
+}
+
+pub fn did_vote_local_state_or_err(
+    apps_state: &[ApplicationLocalState],
+    app_id: u64,
+) -> Result<bool> {
+    did_vote_local_state(apps_state, app_id).ok_or_else(|| anyhow!("Votes local state not set"))
 }
 
 pub fn valid_local_state(apps_state: &[ApplicationLocalState], app_id: u64) -> Option<u64> {
