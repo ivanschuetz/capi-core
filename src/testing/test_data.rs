@@ -7,24 +7,28 @@ use algonaut::transaction::account::Account;
 
 #[cfg(test)]
 pub fn creator() -> Account {
-    Account::from_mnemonic("fire enlist diesel stamp nuclear chunk student stumble call snow flock brush example slab guide choice option recall south kangaroo hundred matrix school above zero").unwrap()
+    // sandbox
+    Account::from_mnemonic("town clutch grain accident sheriff wagon meadow shaft saddle door all town supply indicate deliver about arrange hire kit curve destroy gloom attitude absorb excite").unwrap()
 }
 
 #[allow(dead_code)]
 #[cfg(test)]
 pub fn investor1() -> Account {
-    Account::from_mnemonic("since during average anxiety protect cherry club long lawsuit loan expand embark forum theory winter park twenty ball kangaroo cram burst board host ability left").unwrap()
+    // sandbox
+    Account::from_mnemonic("phone similar album unusual notable initial evoke party garlic gain west catch bike enforce layer bring suggest shiver script venue couple tooth special abandon ranch").unwrap()
 }
 
 #[allow(dead_code)]
 #[cfg(test)]
 pub fn investor2() -> Account {
-    Account::from_mnemonic("auction inquiry lava second expand liberty glass involve ginger illness length room item discover ahead table doctor term tackle cement bonus profit right above catch").unwrap()
+    // sandbox
+    Account::from_mnemonic("abandon include valid approve among begin disorder hint option train palace drink enable enter shallow various bid jacket record left derive memory magnet able phrase").unwrap()
 }
 
 #[allow(dead_code)]
 #[cfg(test)]
 pub fn customer() -> Account {
+    // added to sandbox (script)
     Account::from_mnemonic("clog coral speak since defy siege video lamp polar chronic treat smooth puzzle input payment hobby draft habit race birth ridge correct behave able close").unwrap()
 }
 
