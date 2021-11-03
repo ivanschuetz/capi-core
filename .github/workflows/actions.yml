@@ -3,11 +3,21 @@ on: [push, pull_request]
 name: CI
 
 jobs:
-  check:
-    name: Check
+  unit:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: prepare algo env
+        run: |
+          echo ">> pwd:"
+          pwd
+          echo ">> home:"
+          echo $HOME
+          git clone https://github.com/algorand/sandbox.git
+          echo "$HOME/work/nibble-core/nibble-core/sandbox" >> $GITHUB_PATH
+          echo ">> updated path:"
+          echo $GITHUB_PATH
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -15,26 +25,12 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: check
-
-            # TODO: setup node, init test accounts etc. on Github
-            #unit:
-            #  name: Tests
-            #  runs-on: ubuntu-latest
-            #  steps:
-            #    - uses: actions/checkout@v2
-            #    - uses: actions-rs/toolchain@v1
-            #      with:
-            #        profile: minimal
-            #        toolchain: stable
-            #        override: true
-            #    - uses: actions-rs/cargo@v1
-            #      with:
-            #        command: test
-            #        args: --workspace
+          command: test
+          # args: --workspace
+          args: test_create_project_flow
 
   fmt:
-    name: Rustfmt
+    name: Rutfmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
