@@ -108,6 +108,7 @@ mod tests {
         dependencies,
         flows::create_project::model::Project,
         network_util::wait_for_pending_transaction,
+        state::withdrawal_app_state::{withdrawal_slot_global_state, withdrawal_slot_voter_state},
         testing::{
             flow::{
                 create_project::create_project_flow,
@@ -119,10 +120,6 @@ mod tests {
             network_test_util::reset_network,
             test_data::{creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
-        },
-        withdrawal_app_state::{
-            votes_global_state, votes_global_state_or_err, votes_local_state_or_err,
-            withdrawal_amount_global_state,
         },
     };
 
@@ -165,14 +162,14 @@ mod tests {
         // test
 
         // check that votes global state was incremented correctly
-        let slot_app = algod.application_information(slot_id).await?;
-        let vote_amount = votes_global_state_or_err(&slot_app)?;
-        assert_eq!(buy_asset_amount, vote_amount);
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
+
+        // let vote_amount = votes_global_state_or_err(&slot_app)?;
+        assert_eq!(buy_asset_amount, slot_gs.votes);
 
         // check that votes local state was set to voted (owned shares) amount
-        let account = algod.account_information(&investor.address()).await?;
-        let local_vote_amount = votes_local_state_or_err(&account.apps_local_state, slot_id)?;
-        assert_eq!(buy_asset_amount, local_vote_amount);
+        let slot_ls = withdrawal_slot_voter_state(&algod, &investor.address(), slot_id).await?;
+        assert_eq!(buy_asset_amount, slot_ls.votes);
 
         Ok(())
     }
@@ -221,14 +218,12 @@ mod tests {
         // test
 
         // check that votes global state is as expected after 1st vote
-        let slot_app = algod.application_information(slot_id).await?;
-        let vote_amount = votes_global_state_or_err(&slot_app)?;
-        assert_eq!(buy_asset_amount, vote_amount);
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
+        assert_eq!(buy_asset_amount, slot_gs.votes);
 
         // check that votes local state is as expected after 1st vote
-        let account = algod.account_information(&investor.address()).await?;
-        let local_vote_amount = votes_local_state_or_err(&account.apps_local_state, slot_id)?;
-        assert_eq!(buy_asset_amount, local_vote_amount);
+        let slot_ls = withdrawal_slot_voter_state(&algod, &investor.address(), slot_id).await?;
+        assert_eq!(buy_asset_amount, slot_ls.votes);
 
         Ok(())
     }
@@ -313,9 +308,8 @@ mod tests {
         .await?;
 
         // double check that votes is default value / there are no votes
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_vote_count = votes_global_state(&slot_app);
-        assert!(initial_vote_count.is_none());
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
+        assert_eq!(0, slot_gs.votes);
 
         // flow + test
 
@@ -354,9 +348,8 @@ mod tests {
         let slot_id = project.withdrawal_slot_ids[0];
 
         // double check that there's no active withdrawal request
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_withdrawal_amount = withdrawal_amount_global_state(&slot_app);
-        assert!(initial_withdrawal_amount.is_none());
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
+        assert!(!slot_gs.has_active_request());
 
         // flow + test
 
@@ -397,9 +390,8 @@ mod tests {
         let _ = wait_for_pending_transaction(&algod, &init_withdrawal_tx_id).await?;
 
         // double check that votes is default value / there are no votes
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_vote_count = votes_global_state(&slot_app);
-        assert!(initial_vote_count.is_none());
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
+        assert_eq!(0, slot_gs.votes);
 
         Ok(slot_id)
     }
@@ -465,14 +457,12 @@ mod tests {
 
         // new vote is in votes global state
         // (note that we vote the same amount / still have the same shares as for the first round)
-        let slot_app = algod.application_information(slot_id).await?;
-        let vote_amount = votes_global_state_or_err(&slot_app)?;
-        assert_eq!(precs_res.owned_shares, vote_amount);
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
+        assert_eq!(precs_res.owned_shares, slot_gs.votes);
 
         // local state has the voted count
-        let account = algod.account_information(&voter.address()).await?;
-        let local_vote_amount = votes_local_state_or_err(&account.apps_local_state, slot_id)?;
-        assert_eq!(precs_res.owned_shares, local_vote_amount);
+        let slot_ls = withdrawal_slot_voter_state(&algod, &voter.address(), slot_id).await?;
+        assert_eq!(precs_res.owned_shares, slot_ls.votes);
 
         Ok(())
     }

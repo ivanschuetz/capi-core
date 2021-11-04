@@ -1,3 +1,4 @@
+use crate::decimal_util::AsDecimal;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -7,6 +8,7 @@ use algonaut::{
     },
 };
 use anyhow::Result;
+use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
 // TODO no constants
@@ -91,6 +93,52 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<Str
     Ok(res.tx_id)
 }
 
+pub fn calculate_entitled_harvest(
+    central_received_total: MicroAlgos,
+    share_supply: u64,
+    share_count: u64,
+    precision: u64,
+    investors_share: u64,
+) -> MicroAlgos {
+    // TODO review possible overflow, type cast, unwrap
+    // for easier understanding we use the same arithmetic as in TEAL
+    let investors_share_fractional_percentage = investors_share.as_decimal() / 100.as_decimal(); // e.g. 10% -> 0.1
+
+    let entitled_percentage = ((share_count * precision).as_decimal()
+        * (investors_share_fractional_percentage * precision.as_decimal())
+        / share_supply.as_decimal())
+    .floor();
+
+    let entitled_total = ((central_received_total.0.as_decimal() * entitled_percentage)
+        / (precision.as_decimal() * precision.as_decimal()))
+    .floor();
+
+    MicroAlgos(entitled_total.to_u128().unwrap() as u64)
+}
+
+pub fn investor_can_harvest_amount_calc(
+    central_received_total: MicroAlgos,
+    harvested_total: MicroAlgos,
+    share_count: u64,
+    share_supply: u64,
+    precision: u64,
+    investors_share: u64,
+) -> MicroAlgos {
+    // Note that this assumes that investor can't unstake only a part of their shares
+    // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with harvested_total, which remains unchanged.
+    // the easiest solution is to expect the investor to unstake all their shares
+    // if they want to sell only a part, they've to opt-in again with the shares they want to keep.
+
+    let entitled_total = calculate_entitled_harvest(
+        central_received_total,
+        share_supply,
+        share_count,
+        precision,
+        investors_share,
+    );
+    entitled_total - harvested_total
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HarvestToSign {
     pub app_call_tx: Transaction,
@@ -119,13 +167,12 @@ mod tests {
 
     use crate::{
         app_state_util::app_local_state_or_err,
-        central_app_logic::investor_can_harvest_amount_calc,
-        central_app_state::total_received_amount_global_state_or_err,
         dependencies,
         flows::{
             create_project::model::{CreateProjectSpecs, CreateSharesSpecs},
-            harvest::logic::FIXED_FEE,
+            harvest::logic::{investor_can_harvest_amount_calc, FIXED_FEE},
         },
+        state::central_app_state::central_global_state,
         testing::{
             flow::harvest::{harvest_flow, harvest_precs},
             network_test_util::reset_network,
@@ -234,12 +281,10 @@ mod tests {
         )
         .await?;
 
-        let central_app = algod
-            .application_information(precs.project.central_app_id)
-            .await?;
-        let central_total_received = total_received_amount_global_state_or_err(&central_app)?;
+        let central_state = central_global_state(&algod, precs.project.central_app_id).await?;
+
         let harvest_amount = investor_can_harvest_amount_calc(
-            central_total_received,
+            central_state.received,
             MicroAlgos(0),
             buy_asset_amount,
             specs.shares.count,
@@ -312,12 +357,9 @@ mod tests {
         )
         .await?;
 
-        let central_app = algod
-            .application_information(precs.project.central_app_id)
-            .await?;
-        let central_total_received = total_received_amount_global_state_or_err(&central_app)?;
+        let central_state = central_global_state(&algod, precs.project.central_app_id).await?;
         let harvest_amount = investor_can_harvest_amount_calc(
-            central_total_received,
+            central_state.received,
             MicroAlgos(0),
             buy_asset_amount,
             specs.shares.count,
@@ -385,14 +427,11 @@ mod tests {
         )
         .await?;
 
-        let central_app = algod
-            .application_information(precs.project.central_app_id)
-            .await?;
-        let central_total_received = total_received_amount_global_state_or_err(&central_app)?;
-        log::debug!("central_total_received: {}", central_total_received);
+        let central_state = central_global_state(&algod, precs.project.central_app_id).await?;
+        log::debug!("central_total_received: {}", central_state.received);
 
         let harvest_amount = investor_can_harvest_amount_calc(
-            central_total_received,
+            central_state.received,
             MicroAlgos(0),
             buy_asset_amount,
             specs.shares.count,

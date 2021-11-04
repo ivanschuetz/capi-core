@@ -156,6 +156,10 @@ mod tests {
             vote::logic::{submit_vote, vote, VoteSigned},
         },
         network_util::wait_for_pending_transaction,
+        state::{
+            app_state::ApplicationLocalStateError,
+            withdrawal_app_state::{withdrawal_slot_global_state, withdrawal_slot_voter_state},
+        },
         testing::{
             flow::{
                 create_project::create_project_flow,
@@ -172,7 +176,6 @@ mod tests {
             test_data::{creator, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
-        withdrawal_app_state::{valid_local_state, votes_global_state, votes_local_state},
     };
 
     #[test]
@@ -473,19 +476,12 @@ mod tests {
         // test
 
         // check that votes were removed from slot1: only this investor voted, so 0 votes now
-        let slot1 = algod.application_information(slot_id1).await?;
-        let slot1_votes_global_state = votes_global_state(&slot1);
-        assert!(slot1_votes_global_state.is_some());
-        assert_eq!(0, slot1_votes_global_state.unwrap());
+        let slot_gs1 = withdrawal_slot_global_state(&algod, slot_id1).await?;
+        assert_eq!(0, slot_gs1.votes);
 
         // check that votes were removed from slot2: another investor voted too, so those votes remain
-        let slot2 = algod.application_information(slot_id2).await?;
-        let slot2_votes_global_state = votes_global_state(&slot2);
-        assert!(slot2_votes_global_state.is_some());
-        assert_eq!(
-            buy_asset_amount_additional_voter,
-            slot2_votes_global_state.unwrap()
-        );
+        let slot_gs2 = withdrawal_slot_global_state(&algod, slot_id2).await?;
+        assert_eq!(buy_asset_amount_additional_voter, slot_gs2.votes);
 
         // double check that shares not anymore in staking escrow
         let staking_escrow_infos = algod
@@ -561,11 +557,12 @@ mod tests {
         wait_for_pending_transaction(&algod, &clear_state_tx_id).await?;
 
         // double check that local state is cleared
-        let account = algod.account_information(&investor.address()).await?;
-        let local_vote_amount = votes_local_state(&account.apps_local_state, slot_id);
-        assert!(local_vote_amount.is_none());
-        let local_valid_flag = valid_local_state(&account.apps_local_state, slot_id);
-        assert!(local_valid_flag.is_none());
+        let slot_ls = withdrawal_slot_voter_state(&algod, &investor.address(), slot_id).await;
+        assert!(slot_ls.is_err());
+        assert_eq!(
+            ApplicationLocalStateError::NotOptedIn,
+            slot_ls.err().unwrap()
+        );
 
         // try to unstakes shares
         let to_sign = unstake(
@@ -663,11 +660,12 @@ mod tests {
         wait_for_pending_transaction(&algod, &clear_state_tx_id).await?;
 
         // double check that local state is cleared
-        let account = algod.account_information(&investor.address()).await?;
-        let local_vote_amount = votes_local_state(&account.apps_local_state, slot_id);
-        assert!(local_vote_amount.is_none());
-        let local_valid_flag = valid_local_state(&account.apps_local_state, slot_id);
-        assert!(local_valid_flag.is_none());
+        let slot_ls = withdrawal_slot_voter_state(&algod, &investor.address(), slot_id).await;
+        assert!(slot_ls.is_err());
+        assert_eq!(
+            ApplicationLocalStateError::NotOptedIn,
+            slot_ls.err().unwrap()
+        );
 
         // try to vote
         let vote_to_sign = vote(

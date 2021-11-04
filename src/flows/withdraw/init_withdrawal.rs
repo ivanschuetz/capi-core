@@ -75,13 +75,13 @@ mod tests {
     use crate::{
         dependencies,
         network_util::wait_for_pending_transaction,
+        state::withdrawal_app_state::withdrawal_slot_global_state,
         testing::{
             flow::{create_project::create_project_flow, init_withdrawal::init_withdrawal_flow},
             network_test_util::reset_network,
             test_data::{creator, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
-        withdrawal_app_state::{votes_global_state, withdrawal_amount_global_state},
     };
 
     #[test]
@@ -107,19 +107,10 @@ mod tests {
         let slot_id = project.withdrawal_slot_ids[0];
 
         // double check that initial amount is None (we're initializing a withdrawal in a slot without active requests)
-        // TODO review this: None vs. default value (0): should None be the default value, can we set state to None? or should be set 0 on init?
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_withdrawal_amount = withdrawal_amount_global_state(&slot_app);
-        assert!(initial_withdrawal_amount.is_none());
-        // assert!(initial_withdrawal_amount.is_some());
-        // assert_eq!(0, initial_withdrawal_amount.unwrap());
-
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
+        assert_eq!(MicroAlgos(0), slot_gs.amount);
         // double check votes initial value
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_votes = votes_global_state(&slot_app);
-        assert!(initial_votes.is_none());
-        // assert!(initial_votes.is_some());
-        // assert_eq!(0, initial_votes.unwrap());
+        assert_eq!(0, slot_gs.votes);
 
         let tx_id = init_withdrawal_flow(&algod, &creator, amount_to_withdraw, slot_id).await?;
         let _ = wait_for_pending_transaction(&algod, &tx_id).await?;
@@ -127,20 +118,11 @@ mod tests {
         // test
 
         // check that amount is what we set
-        let slot_app = algod.application_information(slot_id).await?;
-        let request_withdrawal_amount = withdrawal_amount_global_state(&slot_app);
-        assert!(request_withdrawal_amount.is_some());
-        assert_eq!(
-            amount_to_withdraw,
-            MicroAlgos(request_withdrawal_amount.unwrap())
-        );
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
+        assert_eq!(amount_to_withdraw, slot_gs.amount);
 
         // check that initializing withdrawal amount doesn't affect votes (and that votes are the initial/default value)
-        let slot_app = algod.application_information(slot_id).await?;
-        let votes = votes_global_state(&slot_app);
-        assert!(votes.is_none());
-        // assert!(votes.is_some());
-        // assert_eq!(0, votes.unwrap());
+        assert_eq!(0, slot_gs.votes);
 
         Ok(())
     }
@@ -169,18 +151,10 @@ mod tests {
 
         // double check that initial amount is None (we're initializing a withdrawal in a slot without active requests)
         // TODO review this: None vs. default value (0): should None be the default value, can we set state to None? or should be set 0 on init?
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_withdrawal_amount = withdrawal_amount_global_state(&slot_app);
-        assert!(initial_withdrawal_amount.is_none());
-        // assert!(initial_withdrawal_amount.is_some());
-        // assert_eq!(0, initial_withdrawal_amount.unwrap());
-
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
+        assert_eq!(MicroAlgos(0), slot_gs.amount);
         // double check votes initial value
-        let slot_app = algod.application_information(slot_id).await?;
-        let initial_votes = votes_global_state(&slot_app);
-        assert!(initial_votes.is_none());
-        // assert!(initial_votes.is_some());
-        // assert_eq!(0, initial_votes.unwrap());
+        assert_eq!(0, slot_gs.votes);
 
         let tx_id = init_withdrawal_flow(&algod, &creator, amount_to_withdraw, slot_id).await?;
         let _ = wait_for_pending_transaction(&algod, &tx_id).await?;

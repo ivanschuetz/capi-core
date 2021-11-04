@@ -118,6 +118,7 @@ mod tests {
         dependencies,
         flows::withdraw::logic::{submit_withdraw, withdraw, WithdrawSigned, FIXED_FEE},
         network_util::wait_for_pending_transaction,
+        state::withdrawal_app_state::withdrawal_slot_global_state,
         testing::{
             flow::{
                 create_project::create_project_flow,
@@ -130,9 +131,6 @@ mod tests {
             network_test_util::reset_network,
             test_data::{creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
-        },
-        withdrawal_app_state::{
-            votes_global_state, withdrawal_amount_global_state, withdrawal_round_global_state,
         },
     };
 
@@ -170,16 +168,10 @@ mod tests {
 
         // test
 
-        let slot_app = algod.application_information(slot_id).await?;
-
-        let withdrawal_amount = withdrawal_amount_global_state(&slot_app);
-        assert_eq!(Some(withdraw_amount.0), withdrawal_amount);
-
-        let vote_count = votes_global_state(&slot_app);
-        assert_eq!(None, vote_count);
-
-        let withdrawal_round = withdrawal_round_global_state(&slot_app);
-        assert_eq!(Some(1), withdrawal_round);
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
+        assert_eq!(withdraw_amount, slot_gs.amount);
+        assert_eq!(0, slot_gs.votes);
+        assert_eq!(1, slot_gs.withdrawal_round);
 
         Ok(())
     }
@@ -251,9 +243,9 @@ mod tests {
             // central lost the withdrawn amount
             central_balance_before_withdrawing - withdraw_amount,
             // amount reset to 0
-            Some(0),
+            MicroAlgos(0),
             // votes reset to 0
-            Some(0),
+            0,
         )
         .await
     }
@@ -348,8 +340,8 @@ mod tests {
             slot_id,
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
-            None,
-            None,
+            MicroAlgos(0),
+            0,
         )
         .await
     }
@@ -455,8 +447,8 @@ mod tests {
             slot_id,
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
-            Some(withdraw_amount.0),
-            Some(investor_shares_count),
+            withdraw_amount,
+            investor_shares_count,
         )
         .await
     }
@@ -548,8 +540,8 @@ mod tests {
             slot_id,
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
-            Some(withdraw_amount.0),
-            Some(investor_shares_count),
+            withdraw_amount,
+            investor_shares_count,
         )
         .await
     }
@@ -656,8 +648,8 @@ mod tests {
             slot_id,
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
-            Some(withdraw_amount.0),
-            Some(investor_shares_count),
+            withdraw_amount,
+            investor_shares_count,
         )
         .await
     }
@@ -717,18 +709,13 @@ mod tests {
 
         // test
 
-        let slot_app = algod.application_information(slot_id).await?;
-
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
         // double check: new request amount
-        let withdrawal_amount = withdrawal_amount_global_state(&slot_app);
-        assert_eq!(Some(new_withdraw_amount.0), withdrawal_amount);
+        assert_eq!(new_withdraw_amount, slot_gs.amount);
         // double check: 0 votes (value was reset and no one has voted yet)
-        let vote_count = votes_global_state(&slot_app);
-        assert_eq!(Some(0), vote_count);
-
+        assert_eq!(0, slot_gs.votes);
         // we initiated a second round, so round global state is now 2
-        let withdrawal_round = withdrawal_round_global_state(&slot_app);
-        assert_eq!(Some(2), withdrawal_round);
+        assert_eq!(2, slot_gs.withdrawal_round);
 
         Ok(())
     }
@@ -740,8 +727,8 @@ mod tests {
         slot_id: u64,
         creator_balance_before_withdrawing: MicroAlgos,
         central_balance_before_withdrawing: MicroAlgos,
-        withdraw_amount_global_state_before_withdrawing: Option<u64>,
-        votes_global_state_before_withdrawing: Option<u64>,
+        withdraw_amount_global_state_before_withdrawing: MicroAlgos,
+        votes_global_state_before_withdrawing: u64,
     ) -> Result<()> {
         after_withdrawal_success_or_failure_tests(
             algod,
@@ -765,8 +752,8 @@ mod tests {
         expected_central_balance: MicroAlgos,
         // TODO option (at the beginning) vs 0 (default value we set when a withdrawal succeeds)
         // can we use only 1 (probably 0, i.e. we've to init to 0 on setup) -- also for votes and other global state
-        expected_withdraw_amount_global_state: Option<u64>,
-        expected_votes_global_state: Option<u64>,
+        expected_withdraw_amount_global_state: MicroAlgos,
+        expected_votes_global_state: u64,
     ) -> Result<()> {
         // check creator's balance
         let withdrawer_account = algod.account_information(&creator_address).await?;
@@ -779,15 +766,11 @@ mod tests {
             .amount;
         assert_eq!(expected_central_balance, central_escrow_balance);
 
-        let slot_app = algod.application_information(slot_id).await?;
-
+        let slot_gs = withdrawal_slot_global_state(&algod, slot_id).await?;
         // check slot app withdrawal amount
-        let withdrawal_amount = withdrawal_amount_global_state(&slot_app);
-        assert_eq!(expected_withdraw_amount_global_state, withdrawal_amount);
-
+        assert_eq!(expected_withdraw_amount_global_state, slot_gs.amount);
         // check slot app votes count
-        let vote_count = votes_global_state(&slot_app);
-        assert_eq!(expected_votes_global_state, vote_count);
+        assert_eq!(expected_votes_global_state, slot_gs.votes);
 
         Ok(())
     }

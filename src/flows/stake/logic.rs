@@ -111,9 +111,9 @@ mod tests {
 
     use crate::{
         app_state_util::app_local_state_or_err,
-        central_app_logic::calculate_entitled_harvest,
         dependencies,
         flows::{
+            harvest::logic::calculate_entitled_harvest,
             invest::app_optins::{
                 invest_or_staking_app_optins_txs, submit_invest_or_staking_app_optins,
             },

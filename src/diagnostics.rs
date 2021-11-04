@@ -2,14 +2,11 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
 };
-use anyhow::Result;
+use anyhow::{Error, Result};
 
 use crate::{
-    central_app_state::{
-        already_harvested_local_state_or_err, shares_local_state_or_err,
-        total_received_amount_global_state_or_err,
-    },
     flows::create_project::model::Project,
+    state::central_app_state::{central_global_state, central_investor_state},
 };
 
 pub async fn harvest_diagnostics(
@@ -17,16 +14,14 @@ pub async fn harvest_diagnostics(
     investor: &Address,
     project: &Project,
 ) -> Result<HarvestDiagnostics> {
-    let central_app = algod
-        .application_information(project.central_app_id)
-        .await?;
-    let central_total_received = total_received_amount_global_state_or_err(&central_app)?;
+    let central_total_received = central_global_state(algod, project.central_app_id)
+        .await?
+        .received;
+    let central_investor_state = central_investor_state(algod, investor, project.central_app_id)
+        .await
+        .map_err(Error::msg)?;
 
     let investor_infos = algod.account_information(investor).await?;
-    let already_harvested = already_harvested_local_state_or_err(
-        &investor_infos.apps_local_state,
-        project.central_app_id,
-    )?;
 
     let central_balance = algod
         .account_information(&project.central_escrow.address)
@@ -38,16 +33,13 @@ pub async fn harvest_diagnostics(
         .await?
         .amount;
 
-    let investor_share_count =
-        shares_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
-
     Ok(HarvestDiagnostics {
         central_total_received,
-        already_harvested,
+        already_harvested: central_investor_state.harvested,
         central_balance,
         customer_escrow_balance,
         investor_balance: investor_infos.amount,
-        investor_share_count,
+        investor_share_count: central_investor_state.shares,
     })
 }
 
