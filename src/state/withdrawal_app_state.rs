@@ -18,6 +18,7 @@ const LOCAL_VOTES: AppStateKey = AppStateKey("LVotes");
 const LOCAL_VALID: AppStateKey = AppStateKey("Valid");
 const LOCAL_VOTED_ROUND: AppStateKey = AppStateKey("VWRound");
 
+#[derive(Debug)]
 pub struct WithdrawalSlotGlobalState {
     pub amount: MicroAlgos,
     pub votes: u64,
@@ -53,6 +54,7 @@ pub async fn withdrawal_slot_global_state(
     })
 }
 
+#[derive(Debug)]
 pub struct WithdrawalSlotVoterState {
     pub votes: u64,
     pub valid: bool,

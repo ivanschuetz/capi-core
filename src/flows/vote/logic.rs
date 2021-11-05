@@ -6,6 +6,7 @@ use algonaut::{
     },
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -58,6 +59,9 @@ pub async fn vote(
 }
 
 pub async fn submit_vote(algod: &Algod, signed: &VoteSigned) -> Result<String> {
+    log::debug!("Submit vote..");
+    // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
+
     // crate::teal::debug_teal_rendered(
     //     &[
     //         signed.vote_tx.clone(),
@@ -81,7 +85,8 @@ pub async fn submit_vote(algod: &Algod, signed: &VoteSigned) -> Result<String> {
             signed.validate_vote_count_tx.clone(),
         ])
         .await?;
-    println!("Vote tx id: {:?}", res.tx_id);
+    log::debug!("Vote tx id: {:?}", res.tx_id);
+
     Ok(res.tx_id)
 }
 
@@ -91,7 +96,7 @@ pub struct VoteToSign {
     pub validate_vote_count_tx: Transaction,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VoteSigned {
     pub vote_tx: SignedTransaction,
     pub validate_vote_count_tx: SignedTransaction,
