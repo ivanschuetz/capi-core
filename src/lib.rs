@@ -1,5 +1,4 @@
 pub mod api;
-pub mod app_state_util;
 mod debug_msg_pack_submit_par;
 pub mod decimal_util;
 mod dependencies;

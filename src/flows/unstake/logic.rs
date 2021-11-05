@@ -140,7 +140,6 @@ pub struct UnstakeSigned {
 #[cfg(test)]
 mod tests {
     use algonaut::{
-        algod::v2::Algod,
         core::{Address, MicroAlgos, SuggestedTransactionParams},
         transaction::{builder::ClearApplication, Transaction, TxnBuilder},
     };
@@ -149,7 +148,6 @@ mod tests {
     use tokio::test;
 
     use crate::{
-        app_state_util::{app_local_state, app_local_state_or_err},
         dependencies,
         flows::{
             unstake::logic::{submit_unstake, unstake, UnstakeSigned, FIXED_FEE},
@@ -158,6 +156,7 @@ mod tests {
         network_util::wait_for_pending_transaction,
         state::{
             app_state::ApplicationLocalStateError,
+            central_app_state::central_investor_state_from_acc,
             withdrawal_app_state::{withdrawal_slot_global_state, withdrawal_slot_voter_state},
         },
         testing::{
@@ -169,10 +168,7 @@ mod tests {
                 vote::vote_flow,
             },
             network_test_util::reset_network,
-            project_general::{
-                check_investor_central_app_local_state,
-                test_withdrawal_slot_local_state_initialized_correctly,
-            },
+            project_general::test_withdrawal_slot_local_state_initialized_correctly,
             test_data::{creator, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -210,22 +206,17 @@ mod tests {
 
         // double check investor's assets
         let investor_infos = algod.account_information(&investor.address()).await?;
-        let investor_assets = investor_infos.assets;
+        let investor_assets = &investor_infos.assets;
         assert_eq!(1, investor_assets.len()); // opted in to shares
         assert_eq!(0, investor_assets[0].amount); // doesn't have shares (they're sent directly to staking escrow)
 
-        let central_app_local_state =
-            app_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
-
+        let investor_state =
+            central_investor_state_from_acc(&investor_infos, project.central_app_id).await?;
         // double check investor's local state
-        check_investor_central_app_local_state(
-            central_app_local_state,
-            project.central_app_id,
-            // shares set to bought asset amount
-            buy_asset_amount,
-            //  harvested total is 0 (hasn't harvested yet)
-            MicroAlgos(0),
-        );
+        // shares set to bought asset amount
+        assert_eq!(buy_asset_amount, investor_state.shares);
+        //  harvested total is 0 (hasn't harvested yet)
+        assert_eq!(MicroAlgos(0), investor_state.harvested);
 
         // double check staking escrow's assets
         let staking_escrow_infos = algod
@@ -266,7 +257,13 @@ mod tests {
 
         // withdrawal slots local state cleared (opted out)
         for slot_id in &project.withdrawal_slot_ids {
-            test_withdrawal_slot_local_state_cleared(&algod, &investor.address(), *slot_id).await?;
+            let investor_state_res =
+                withdrawal_slot_voter_state(&algod, &investor.address(), *slot_id).await;
+            assert!(investor_state_res.is_err());
+            assert_eq!(
+                ApplicationLocalStateError::NotOptedIn,
+                investor_state_res.err().unwrap()
+            );
         }
 
         // investor paid the fees (app call + xfer + xfer fee + n slots)
@@ -314,22 +311,17 @@ mod tests {
 
         // double check investor's assets
         let investor_infos = algod.account_information(&investor.address()).await?;
-        let investor_assets = investor_infos.assets;
+        let investor_assets = &investor_infos.assets;
         assert_eq!(1, investor_assets.len()); // opted in to shares
         assert_eq!(0, investor_assets[0].amount); // doesn't have shares (they're sent directly to staking escrow)
 
-        let central_app_local_state =
-            app_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
-
         // double check investor's local state
-        check_investor_central_app_local_state(
-            central_app_local_state,
-            project.central_app_id,
-            // shares set to bought asset amount
-            buy_asset_amount,
-            // harvested total is 0 (hasn't harvested yet)
-            MicroAlgos(0),
-        );
+        let investor_state =
+            central_investor_state_from_acc(&investor_infos, project.central_app_id).await?;
+        // shares set to bought asset amount
+        assert_eq!(buy_asset_amount, investor_state.shares);
+        // harvested total is 0 (hasn't harvested yet)
+        assert_eq!(MicroAlgos(0), investor_state.harvested);
 
         // double check staking escrow's assets
         let staking_escrow_infos = algod
@@ -360,22 +352,17 @@ mod tests {
 
         // investor didn't get anything
         let investor_infos = algod.account_information(&investor.address()).await?;
-        let investor_assets = investor_infos.assets;
+        let investor_assets = &investor_infos.assets;
         assert_eq!(1, investor_assets.len());
         assert_eq!(0, investor_assets[0].amount); // no shares
 
-        let central_app_local_state =
-            app_local_state_or_err(&investor_infos.apps_local_state, project.central_app_id)?;
-
+        let investor_state =
+            central_investor_state_from_acc(&investor_infos, project.central_app_id).await?;
         // investor local state not changed
-        check_investor_central_app_local_state(
-            central_app_local_state,
-            project.central_app_id,
-            // shares set to bought asset amount
-            buy_asset_amount,
-            // harvested total is 0 (hasn't harvested yet)
-            MicroAlgos(0),
-        );
+        // shares set to bought asset amount
+        assert_eq!(buy_asset_amount, investor_state.shares);
+        // harvested total is 0 (hasn't harvested yet)
+        assert_eq!(MicroAlgos(0), investor_state.harvested);
 
         // local state in withdrawal slots not changed
         for slot_id in project.withdrawal_slot_ids {
@@ -505,7 +492,13 @@ mod tests {
 
         // double check that withdrawal slots local state cleared (opted out)
         for slot_id in &project.withdrawal_slot_ids {
-            test_withdrawal_slot_local_state_cleared(&algod, &investor.address(), *slot_id).await?;
+            let investor_state_res =
+                withdrawal_slot_voter_state(&algod, &investor.address(), *slot_id).await;
+            assert!(investor_state_res.is_err());
+            assert_eq!(
+                ApplicationLocalStateError::NotOptedIn,
+                investor_state_res.err().unwrap()
+            );
         }
 
         Ok(())
@@ -711,19 +704,5 @@ mod tests {
             ClearApplication::new(*sender, app_id).build(),
         )
         .build()
-    }
-
-    async fn test_withdrawal_slot_local_state_cleared(
-        algod: &Algod,
-        investor_address: &Address,
-        slot_app_id: u64,
-    ) -> Result<()> {
-        let account = algod.account_information(investor_address).await?;
-        let local_state = account.apps_local_state;
-        let app_local_state = app_local_state(&local_state, slot_app_id);
-        // println!("LVotes base64: {:?}", BASE64.encode(b"LVotes"));
-        // println!("Valid base64: {:?}", BASE64.encode(b"Valid"));
-        assert!(app_local_state.is_none());
-        Ok(())
     }
 }

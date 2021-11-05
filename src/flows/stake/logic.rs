@@ -110,7 +110,6 @@ mod tests {
     use tokio::test;
 
     use crate::{
-        app_state_util::app_local_state_or_err,
         dependencies,
         flows::{
             harvest::logic::calculate_entitled_harvest,
@@ -120,6 +119,7 @@ mod tests {
             stake::logic::FIXED_FEE,
         },
         network_util::wait_for_pending_transaction,
+        state::central_app_state::central_investor_state_from_acc,
         testing::{
             flow::{
                 create_project::create_project_flow,
@@ -130,10 +130,7 @@ mod tests {
                 unstake::unstake_flow,
             },
             network_test_util::reset_network,
-            project_general::{
-                check_investor_central_app_local_state,
-                test_withdrawal_slot_local_state_initialized_correctly,
-            },
+            project_general::test_withdrawal_slot_local_state_initialized_correctly,
             test_data::{self, creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -245,7 +242,7 @@ mod tests {
 
         // investor2 lost staked assets
         let investor2_infos = algod.account_information(&investor2.address()).await?;
-        let investor2_assets = investor2_infos.assets;
+        let investor2_assets = &investor2_infos.assets;
         assert_eq!(1, investor2_assets.len()); // opted in to shares
         assert_eq!(0, investor2_assets[0].amount);
 
@@ -261,17 +258,13 @@ mod tests {
             project.specs.investors_share,
         );
 
-        let central_app_local_state =
-            app_local_state_or_err(&investor2_infos.apps_local_state, project.central_app_id)?;
+        let investor_state =
+            central_investor_state_from_acc(&investor2_infos, project.central_app_id).await?;
+        // shares local state initialized to shares
+        assert_eq!(traded_shares, investor_state.shares);
+        // harvested total is initialized to entitled amount
+        assert_eq!(investor2_entitled_amount, investor_state.harvested);
 
-        check_investor_central_app_local_state(
-            central_app_local_state,
-            project.central_app_id,
-            // shares local state initialized to shares
-            traded_shares,
-            // harvested total is initialized to entitled amount
-            investor2_entitled_amount,
-        );
         // renaming for clarity
         let total_withdrawn_after_staking_setup_call = investor2_entitled_amount;
 
@@ -331,18 +324,16 @@ mod tests {
             investor2_infos.amount
         );
 
-        let central_app_local_state =
-            app_local_state_or_err(&investor2_infos.apps_local_state, project.central_app_id)?;
-
         // investor's harvested local state was updated:
-        check_investor_central_app_local_state(
-            central_app_local_state,
-            project.central_app_id,
-            // the shares haven't changed
-            traded_shares,
-            // the harvested total was updated:
-            // initial (total_withdrawn_after_staking_setup_call: entitled amount when staking the shares) + just harvested
+        let investor_state =
+            central_investor_state_from_acc(&investor2_infos, project.central_app_id).await?;
+        // the shares haven't changed
+        assert_eq!(traded_shares, investor_state.shares);
+        // the harvested total was updated:
+        // initial (total_withdrawn_after_staking_setup_call: entitled amount when staking the shares) + just harvested
+        assert_eq!(
             total_withdrawn_after_staking_setup_call + expected_harvested_amount,
+            investor_state.harvested
         );
 
         for slot_id in project.withdrawal_slot_ids {

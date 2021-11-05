@@ -166,13 +166,12 @@ mod tests {
     use tokio::test;
 
     use crate::{
-        app_state_util::app_local_state_or_err,
         dependencies,
         flows::{
             create_project::model::{CreateProjectSpecs, CreateSharesSpecs},
             harvest::logic::{investor_can_harvest_amount_calc, FIXED_FEE},
         },
-        state::central_app_state::central_global_state,
+        state::central_app_state::{central_global_state, central_investor_state_from_acc},
         testing::{
             flow::harvest::{harvest_flow, harvest_precs},
             network_test_util::reset_network,
@@ -585,47 +584,18 @@ mod tests {
             1 + withdrawal_slots as usize,
             harvester_account.apps_local_state.len()
         );
-        let local_state =
-            app_local_state_or_err(&harvester_account.apps_local_state, central_app_id)?;
-
-        let schema = &local_state.schema;
-        assert_eq!(2, schema.num_uint);
-        assert_eq!(0, schema.num_byte_slice);
-
         // check local state
 
-        let local_key_values = &local_state.key_value;
-        assert_eq!(2, local_key_values.len());
+        let investor_state =
+            central_investor_state_from_acc(&harvester_account, central_app_id).await?;
 
         // double-check shares count (not directly related to this test)
-        let shares_local_key_value_opt = &local_key_values
-            .iter()
-            .find(|kv| kv.key == BASE64.encode(b"Shares").to_owned());
-        assert!(shares_local_key_value_opt.is_some());
-        let shares_local_key_value = shares_local_key_value_opt.unwrap();
-        assert_eq!(Vec::<u8>::new(), shares_local_key_value.value.bytes);
-        assert_eq!(expected_shares, shares_local_key_value.value.uint);
-        // values not documented: 1 is byte slice and 2 uint
-        // https://forum.algorand.org/t/interpreting-goal-app-read-response/2711
-        assert_eq!(2, shares_local_key_value.value.value_type);
-
+        assert_eq!(expected_shares, investor_state.shares);
         // check harvested total local state
-        let harvested_total_local_key_value_opt = &local_key_values
-            .iter()
-            .find(|kv| kv.key == BASE64.encode(b"HarvestedTotal").to_owned());
-        assert!(harvested_total_local_key_value_opt.is_some());
-        let harvested_total_local_key_value = harvested_total_local_key_value_opt.unwrap();
         assert_eq!(
-            Vec::<u8>::new(),
-            harvested_total_local_key_value.value.bytes
+            MicroAlgos(expected_harvested_total),
+            investor_state.harvested
         );
-        assert_eq!(
-            expected_harvested_total,
-            harvested_total_local_key_value.value.uint
-        );
-        // values not documented: 1 is byte slice and 2 uint
-        // https://forum.algorand.org/t/interpreting-goal-app-read-response/2711
-        assert_eq!(2, harvested_total_local_key_value.value.value_type);
 
         // double check (_very_ unlikely to be needed)
         check_schema(&app);
