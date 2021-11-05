@@ -327,13 +327,6 @@ return
 
 branch_invest_or_stake:
 
-// set LVotes to 0, just to increment easily later
-int 0
-byte "LVotes"
-int 0
-app_local_put
-
-
 // set a "valid state" flag - this helps to prevent issues like double voting if the user maliciously (or somehow accidentally) clears their local state (ClearState)
 // local state can only be cleared totally, so this flag will be removed too, making the state invalid.
 // we can control flow based on this state, e.g. preventing the shares xfer when unstaking if it's invalid
