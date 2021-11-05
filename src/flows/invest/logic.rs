@@ -243,7 +243,7 @@ mod tests {
 
         let investor_infos = algod.account_information(&investor.address()).await?;
         let central_investor_state =
-            central_investor_state_from_acc(&investor_infos, project.central_app_id).await?;
+            central_investor_state_from_acc(&investor_infos, project.central_app_id)?;
 
         // investor has shares
         assert_eq!(buy_asset_amount, central_investor_state.shares);

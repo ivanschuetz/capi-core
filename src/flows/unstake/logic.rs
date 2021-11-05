@@ -211,7 +211,7 @@ mod tests {
         assert_eq!(0, investor_assets[0].amount); // doesn't have shares (they're sent directly to staking escrow)
 
         let investor_state =
-            central_investor_state_from_acc(&investor_infos, project.central_app_id).await?;
+            central_investor_state_from_acc(&investor_infos, project.central_app_id)?;
         // double check investor's local state
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
@@ -317,7 +317,7 @@ mod tests {
 
         // double check investor's local state
         let investor_state =
-            central_investor_state_from_acc(&investor_infos, project.central_app_id).await?;
+            central_investor_state_from_acc(&investor_infos, project.central_app_id)?;
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
         // harvested total is 0 (hasn't harvested yet)
@@ -357,7 +357,7 @@ mod tests {
         assert_eq!(0, investor_assets[0].amount); // no shares
 
         let investor_state =
-            central_investor_state_from_acc(&investor_infos, project.central_app_id).await?;
+            central_investor_state_from_acc(&investor_infos, project.central_app_id)?;
         // investor local state not changed
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);

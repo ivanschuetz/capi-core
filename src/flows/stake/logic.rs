@@ -259,7 +259,7 @@ mod tests {
         );
 
         let investor_state =
-            central_investor_state_from_acc(&investor2_infos, project.central_app_id).await?;
+            central_investor_state_from_acc(&investor2_infos, project.central_app_id)?;
         // shares local state initialized to shares
         assert_eq!(traded_shares, investor_state.shares);
         // harvested total is initialized to entitled amount
@@ -326,7 +326,7 @@ mod tests {
 
         // investor's harvested local state was updated:
         let investor_state =
-            central_investor_state_from_acc(&investor2_infos, project.central_app_id).await?;
+            central_investor_state_from_acc(&investor2_infos, project.central_app_id)?;
         // the shares haven't changed
         assert_eq!(traded_shares, investor_state.shares);
         // the harvested total was updated:

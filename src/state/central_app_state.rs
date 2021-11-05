@@ -40,7 +40,7 @@ pub async fn central_investor_state(
     Ok(central_investor_state_from_local_state(&local_state))
 }
 
-pub async fn central_investor_state_from_acc(
+pub fn central_investor_state_from_acc(
     account: &Account,
     app_id: u64,
 ) -> Result<CentralAppInvestorState, ApplicationLocalStateError> {

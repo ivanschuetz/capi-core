@@ -586,8 +586,7 @@ mod tests {
         );
         // check local state
 
-        let investor_state =
-            central_investor_state_from_acc(&harvester_account, central_app_id).await?;
+        let investor_state = central_investor_state_from_acc(&harvester_account, central_app_id)?;
 
         // double-check shares count (not directly related to this test)
         assert_eq!(expected_shares, investor_state.shares);
