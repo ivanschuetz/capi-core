@@ -3,65 +3,85 @@ on: [push, pull_request]
 name: CI
 
 jobs:
-  check:
-    name: Check
+#   check:
+#     name: Check
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v2
+#       - uses: actions-rs/toolchain@v1
+#         with:
+#           profile: minimal
+#           toolchain: stable
+#           override: true
+#       - uses: actions-rs/cargo@v1
+#         with:
+#           command: check
+
+  # TODO: setup node, init test accounts etc. on Github
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
+      - run: | 
+          sh ./scripts/setup_sandbox.sh 
+          echo ">> pwd:"
+          pwd
+
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
+
+      - run: | 
+          echo ">> pwd (after):"
+          pwd
+
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           override: true
+
+
+      - run: | 
+          echo ">> pwd (again):"
+          pwd
+
       - uses: actions-rs/cargo@v1
         with:
-          command: check
+          command: test
+          # args: --workspace
+          args: flows::harvest::logic::tests::test_harvest -- --exact
 
-            # TODO: setup node, init test accounts etc. on Github
-            #unit:
-            #  name: Tests
-            #  runs-on: ubuntu-latest
-            #  steps:
-            #    - uses: actions/checkout@v2
-            #    - uses: actions-rs/toolchain@v1
-            #      with:
-            #        profile: minimal
-            #        toolchain: stable
-            #        override: true
-            #    - uses: actions-rs/cargo@v1
-            #      with:
-            #        command: test
-            #        args: --workspace
+  # fmt:
+  #   name: Rustfmt
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions-rs/toolchain@v1
+  #       with:
+  #         profile: minimal
+  #         toolchain: stable
+  #         override: true
+  #     - run: rustup component add rustfmt
+  #     - uses: actions-rs/cargo@v1
+  #       with:
+  #         command: fmt
+  #         args: --all -- --check
 
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+  # clippy:
+  #   name: Clippy
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions-rs/toolchain@v1
+  #       with:
+  #         profile: minimal
+  #         toolchain: stable
+  #         override: true
+  #     - run: rustup component add clippy
+  #     - uses: actions-rs/cargo@v1
+  #       with:
+  #         command: clippy
+  #         args: -- -D warnings
 

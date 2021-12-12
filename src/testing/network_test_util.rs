@@ -18,11 +18,11 @@ pub fn reset_network() -> Result<()> {
         .stdout
         .expect("Couldn't reset network");
 
-    for _ in BufReader::new(reset_res)
+    for line in BufReader::new(reset_res)
         .lines()
         .filter_map(|line| line.ok())
     {
-        // println!("{}", line);
+        println!("{}", line);
     }
 
     Ok(())
