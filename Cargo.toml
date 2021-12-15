@@ -38,6 +38,6 @@ wasm-logger = "0.2"
 stdweb = [ "instant/stdweb" ]
 wasm-bindgen = [ "instant/wasm-bindgen" ]
 
-[dev-dependencies]
+[target.'cfg(not(wasm))'.dev-dependencies]
 serial_test = "0.5.1"
 tokio = { version = "1.6.0", features = ["rt-multi-thread", "macros"] }
