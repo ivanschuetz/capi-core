@@ -15,10 +15,6 @@ pub async fn invest_or_staking_app_optins_txs(
 
     let central_optin_tx = optin_to_app(&params, project.central_app_id, *investor).await?;
     let mut txs = vec![central_optin_tx];
-    for slot_id in &project.withdrawal_slot_ids {
-        let tx = optin_to_app(&params, *slot_id, *investor).await?;
-        txs.push(tx);
-    }
     TxGroup::assign_group_id(txs.iter_mut().collect())?;
 
     Ok(txs.iter().clone().map(|t| t.to_owned()).collect())

@@ -9,12 +9,10 @@ int {shares_asset_id}
 ==
 &&
 // the escrow is opting in
-bnz branch_shares_and_votes_opt_in 
+bnz branch_shares_opt_in 
 
 global GroupSize
 int 5
-int 3 // slots: when swapping (i.e. buying shares) the investor inits local state in the withdrawal request slots 
-+
 ==
 bnz branch_invest
 
@@ -24,7 +22,7 @@ return
 
 // verifies that it's an opt-in to your asset + few security checks
 // see more notes in old repo
-branch_shares_and_votes_opt_in:
+branch_shares_opt_in:
 gtxn 1 XferAsset
 int {shares_asset_id}
 ==

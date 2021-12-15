@@ -54,7 +54,7 @@ pub async fn customer_payment_and_drain_flow(
     // // double check that there's nothing on central yet
     // // normally should be part of test but too complicated to split here - it's just a double check anyway
     // // Note + FIXED_FEE, we add FIXED_FEE to min balance when creating project (central_escrow.rs)
-    // // to not fail when withdrawing everything (e.g. test_reclaim_vote())
+    // // to not fail when withdrawing everything
     // // TODO clarify: how are the groups evaluated, better way.
     // assert_eq!(MIN_BALANCE + FIXED_FEE, central_escrow_balance);
 

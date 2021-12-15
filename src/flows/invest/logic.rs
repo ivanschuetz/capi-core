@@ -35,13 +35,6 @@ pub async fn invest_txs(
     let mut central_app_investor_setup_tx =
         central_app_investor_setup_tx(&params, central_app_id, shares_asset_id, *investor)?;
 
-    let mut slot_setup_txs = vec![];
-    for slot_id in &project.withdrawal_slot_ids {
-        slot_setup_txs.push(withdrawal_slot_investor_setup_tx(
-            &params, *slot_id, *investor,
-        )?);
-    }
-
     // TODO why is this sending the algos to the invest escrow instead of to the central? why not caught by tests yet?
     // should be most likely the central as that's where we withdraw funds from
     let mut send_algos_tx = TxnBuilder::with(
@@ -84,14 +77,13 @@ pub async fn invest_txs(
     )
     .build();
 
-    let mut txs_for_group = vec![
+    let txs_for_group = vec![
         &mut central_app_investor_setup_tx,
         &mut send_algos_tx,
         &mut shares_optin_tx,
         &mut receive_shares_asset_tx,
         &mut pay_escrow_fee_tx,
     ];
-    txs_for_group.extend(slot_setup_txs.iter_mut().collect::<Vec<_>>());
     TxGroup::assign_group_id(txs_for_group)?;
 
     let receive_shares_asset_signed_tx = project
@@ -101,7 +93,6 @@ pub async fn invest_txs(
     Ok(InvestToSign {
         project: project.to_owned(),
         central_app_setup_tx: central_app_investor_setup_tx,
-        slots_setup_txs: slot_setup_txs,
         payment_tx: send_algos_tx,
         shares_asset_optin_tx: shares_optin_tx,
         pay_escrow_fee_tx,
@@ -128,42 +119,23 @@ pub fn central_app_investor_setup_tx(
     Ok(tx)
 }
 
-pub fn withdrawal_slot_investor_setup_tx(
-    params: &SuggestedTransactionParams,
-    app_id: u64,
-    investor: Address,
-) -> Result<Transaction> {
-    let tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
-        CallApplication::new(investor, app_id).build(),
-    )
-    .build();
-    Ok(tx)
-}
-
 pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<InvestResult> {
-    let mut txs = vec![
+    let txs = vec![
         signed.central_app_setup_tx.clone(),
         signed.payment_tx.clone(),
         signed.shares_asset_optin_tx.clone(),
         signed.shares_xfer_tx.clone(),
         signed.pay_escrow_fee_tx.clone(),
     ];
-    txs.extend(signed.slots_setup_txs.clone());
 
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "investing_escrow").unwrap();
-    // crate::teal::debug_teal_rendered(&txs, "withdrawal_slot_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     Ok(InvestResult {
         tx_id: res.tx_id,
         project: signed.project.clone(),
         central_app_investor_setup_tx: signed.central_app_setup_tx.clone(),
-        slots_setup_txs: signed.slots_setup_txs.clone(),
         payment_tx: signed.payment_tx.clone(),
         shares_asset_optin_tx: signed.shares_asset_optin_tx.clone(),
         pay_escrow_fee_tx: signed.pay_escrow_fee_tx.clone(),
@@ -185,7 +157,6 @@ mod tests {
     use crate::testing::flow::stake::stake_flow;
     use crate::testing::flow::unstake::unstake_flow;
     use crate::testing::network_test_util::reset_network;
-    use crate::testing::project_general::test_withdrawal_slot_local_state_initialized_correctly;
     use crate::testing::test_data::{customer, investor2};
     use crate::testing::TESTS_DEFAULT_PRECISION;
     use crate::{
@@ -218,7 +189,7 @@ mod tests {
         let specs = project_specs();
 
         let project =
-            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
+            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -253,25 +224,15 @@ mod tests {
         assert_eq!(1, investor_assets.len());
         assert_eq!(0, investor_assets[0].amount);
 
-        let slots_setup_fees: MicroAlgos = MicroAlgos(
-            flow_res
-                .invest_res
-                .slots_setup_txs
-                .iter()
-                .map(|tx| tx.transaction.fee.0)
-                .sum(),
-        );
-
         // investor lost algos and fees
         let paid_amount = specs.asset_price * buy_asset_amount;
         assert_eq!(
             flow_res.investor_initial_amount
                 - paid_amount
                 - flow_res.invest_res.central_app_investor_setup_tx.transaction.fee
-                - slots_setup_fees
                 - flow_res.invest_res.shares_asset_optin_tx.transaction.fee
                 - flow_res.invest_res.payment_tx.transaction.fee
-                - retrieve_payment_amount_from_tx(&flow_res.invest_res.pay_escrow_fee_tx.transaction)? // paid for the escrow's xfers (shares+votes) fees
+                - retrieve_payment_amount_from_tx(&flow_res.invest_res.pay_escrow_fee_tx.transaction)? // paid for the escrow's xfers (shares) fees
                 - flow_res.invest_res.pay_escrow_fee_tx.transaction.fee, // the fee to pay for the escrow's xfer fee
             investor_infos.amount
         );
@@ -298,15 +259,6 @@ mod tests {
             invest_escrow_infos.amount
         );
 
-        for slot_id in project.withdrawal_slot_ids {
-            test_withdrawal_slot_local_state_initialized_correctly(
-                &algod,
-                &investor.address(),
-                slot_id,
-            )
-            .await?;
-        }
-
         Ok(())
     }
 
@@ -326,7 +278,7 @@ mod tests {
         let specs = project_specs();
 
         let project =
-            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
+            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -369,7 +321,7 @@ mod tests {
         let specs = project_specs();
 
         let project =
-            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
+            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -418,7 +370,7 @@ mod tests {
         let specs = project_specs();
 
         let project =
-            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
+            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -469,7 +421,7 @@ mod tests {
         let specs = project_specs();
 
         let project =
-            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
+            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -525,7 +477,7 @@ mod tests {
         let specs = project_specs();
 
         let project =
-            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
+            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 
@@ -576,7 +528,7 @@ mod tests {
         let specs = project_specs();
 
         let project =
-            create_project_flow(&algod, &creator, &specs, 3, TESTS_DEFAULT_PRECISION).await?;
+            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
 
         // precs
 

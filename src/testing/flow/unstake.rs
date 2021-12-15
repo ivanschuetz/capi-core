@@ -22,24 +22,18 @@ pub async fn unstake_flow(
         shares_to_unstake,
         project.shares_asset_id,
         project.central_app_id,
-        &project.withdrawal_slot_ids,
         &project.staking_escrow,
     )
     .await?;
 
     // UI
     let signed_central_app_optout = investor.sign_transaction(&to_sign.central_app_optout_tx)?;
-    let mut signed_slots_setup_txs = vec![];
-    for slot_optout_tx in to_sign.slot_optout_txs {
-        signed_slots_setup_txs.push(investor.sign_transaction(&slot_optout_tx)?);
-    }
     let signed_pay_xfer_fees = investor.sign_transaction(&to_sign.pay_shares_xfer_fee_tx)?;
 
     let tx_id = submit_unstake(
         algod,
         UnstakeSigned {
             central_app_optout_tx: signed_central_app_optout,
-            slot_optout_txs: signed_slots_setup_txs,
             shares_xfer_tx_signed: to_sign.shares_xfer_tx,
             pay_shares_xfer_fee_tx: signed_pay_xfer_fees,
         },

@@ -16,10 +16,8 @@ pub struct ProjectForUsers {
     pub name: String,
     pub asset_price: MicroAlgos,
     pub investors_share: u64,
-    pub vote_threshold: u64, // percent
     pub shares_asset_id: u64,
     pub central_app_id: u64,
-    pub slot_ids: Vec<u64>,
     pub invest_escrow_address: Address,
     pub staking_escrow_address: Address,
     pub central_escrow_address: Address,
@@ -33,7 +31,6 @@ pub struct ProjectForUsers {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct WithdrawalRequestInputs {
     pub project_id: String,
-    pub slot_id: String,
     pub amount: MicroAlgos,
     pub description: String,
 }
@@ -41,7 +38,6 @@ pub struct WithdrawalRequestInputs {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct WithdrawalRequest {
     pub project_id: String,
-    pub slot_id: String,
     pub amount: MicroAlgos,
     pub description: String,
     pub date: DateTime<Utc>,
@@ -55,7 +51,6 @@ pub struct WithdrawalRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SavedWithdrawalRequest {
     pub id: String, // saved: db id
-    pub slot_id: String,
     pub project_id: String,
     pub amount: MicroAlgos,
     pub description: String,

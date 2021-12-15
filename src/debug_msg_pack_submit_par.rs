@@ -5,11 +5,14 @@ mod tests {
     use anyhow::Result;
     use tokio::test;
 
-    use crate::flows::vote::logic::{submit_vote, VoteSigned};
-
     use crate::{
-        dependencies, flows::create_project::setup::create_app::render_central_app,
-        teal::load_teal_template, testing::TESTS_DEFAULT_PRECISION,
+        dependencies,
+        flows::{
+            create_project::setup::create_app::render_central_app,
+            harvest::logic::{submit_harvest, HarvestSigned},
+        },
+        teal::load_teal_template,
+        testing::TESTS_DEFAULT_PRECISION,
     };
 
     // helper for environments that don't allow to open directly the TEAL debugger (e.g. WASM)
@@ -31,8 +34,8 @@ mod tests {
 
         // replace these with correct payload/submit call (if needed)
         // it might be needed to temporarily derive Serialize/Deserialize
-        let signed: VoteSigned = rmp_serde::from_slice(&bytes).unwrap();
-        submit_vote(&algod, &signed).await?;
+        let signed: HarvestSigned = rmp_serde::from_slice(&bytes).unwrap();
+        submit_harvest(&algod, &signed).await?;
 
         Ok(())
     }

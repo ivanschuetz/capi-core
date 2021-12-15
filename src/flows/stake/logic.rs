@@ -8,8 +8,6 @@ use algonaut::{
 };
 use anyhow::Result;
 
-use crate::flows::invest::logic::withdrawal_slot_investor_setup_tx;
-
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
@@ -22,7 +20,6 @@ pub async fn stake(
     share_count: u64,
     shares_asset_id: u64,
     central_app_id: u64,
-    withdrawal_slot_ids: &[u64],
     staking_escrow: &ContractAccount,
 ) -> Result<StakeToSign> {
     let params = algod.suggested_transaction_params().await?;
@@ -36,14 +33,6 @@ pub async fn stake(
         CallApplication::new(investor, central_app_id).build(),
     )
     .build();
-
-    // Withdrawal apps setup txs
-    let mut slot_setup_txs = vec![];
-    for slot_id in withdrawal_slot_ids {
-        slot_setup_txs.push(withdrawal_slot_investor_setup_tx(
-            &params, *slot_id, investor,
-        )?);
-    }
 
     // Send investor's assets to staking escrow
     let mut shares_xfer_tx = TxnBuilder::with(
@@ -61,24 +50,20 @@ pub async fn stake(
     )
     .build();
 
-    let mut txs_for_group = vec![&mut app_call_tx, &mut shares_xfer_tx];
-    txs_for_group.extend(slot_setup_txs.iter_mut().collect::<Vec<_>>());
+    let txs_for_group = vec![&mut app_call_tx, &mut shares_xfer_tx];
     TxGroup::assign_group_id(txs_for_group)?;
 
     Ok(StakeToSign {
         central_app_call_setup_tx: app_call_tx.clone(),
-        slot_setup_app_calls_txs: slot_setup_txs,
         shares_xfer_tx: shares_xfer_tx.clone(),
     })
 }
 
 pub async fn submit_stake(algod: &Algod, signed: StakeSigned) -> Result<String> {
-    let mut txs = vec![
+    let txs = vec![
         signed.central_app_call_setup_tx.clone(),
         signed.shares_xfer_tx_signed.clone(),
     ];
-    txs.extend(signed.slot_setup_app_calls_txs);
-    // crate::teal::debug_teal_rendered(&txs, "withdrawal_slot_approval").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Stake tx id: {:?}", res.tx_id);
@@ -88,14 +73,12 @@ pub async fn submit_stake(algod: &Algod, signed: StakeSigned) -> Result<String> 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StakeToSign {
     pub central_app_call_setup_tx: Transaction,
-    pub slot_setup_app_calls_txs: Vec<Transaction>,
     pub shares_xfer_tx: Transaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StakeSigned {
     pub central_app_call_setup_tx: SignedTransaction,
-    pub slot_setup_app_calls_txs: Vec<SignedTransaction>,
     pub shares_xfer_tx_signed: SignedTransaction,
 }
 
@@ -130,7 +113,6 @@ mod tests {
                 unstake::unstake_flow,
             },
             network_test_util::reset_network,
-            project_general::test_withdrawal_slot_local_state_initialized_correctly,
             test_data::{self, creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -157,14 +139,9 @@ mod tests {
 
         // precs
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &project_specs(),
-            3,
-            TESTS_DEFAULT_PRECISION,
-        )
-        .await?;
+        let project =
+            create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
+                .await?;
 
         invests_optins_flow(&algod, &investor1, &project).await?;
         let _ = invests_flow(&algod, &investor1, buy_asset_amount, &project).await?;
@@ -335,15 +312,6 @@ mod tests {
             total_withdrawn_after_staking_setup_call + expected_harvested_amount,
             investor_state.harvested
         );
-
-        for slot_id in project.withdrawal_slot_ids {
-            test_withdrawal_slot_local_state_initialized_correctly(
-                &algod,
-                &investor2.address(),
-                slot_id,
-            )
-            .await?;
-        }
 
         Ok(())
     }

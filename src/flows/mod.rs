@@ -5,5 +5,4 @@ pub mod invest;
 pub mod shared;
 pub mod stake;
 pub mod unstake;
-pub mod vote;
 pub mod withdraw;

@@ -38,7 +38,6 @@ pub fn project_specs() -> CreateProjectSpecs {
         name: "Pancakes ltd".to_owned(),
         shares: shares_specs(),
         asset_price: MicroAlgos(5_000_000),
-        vote_threshold: 70,
         investors_share: 40,
     }
 }

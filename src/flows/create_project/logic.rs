@@ -5,13 +5,8 @@ use crate::{
     flows::create_project::{
         model::Project,
         setup::{
-            create_app::create_app_tx,
-            create_withdrawal_slots::{
-                create_withdrawal_slots_txs, submit_create_withdrawal_slots_txs,
-            },
-            drain::setup_drain,
-            investing_escrow::setup_investing_escrow_txs,
-            staking_escrow::setup_staking_escrow_txs,
+            create_app::create_app_tx, drain::setup_drain,
+            investing_escrow::setup_investing_escrow_txs, staking_escrow::setup_staking_escrow_txs,
         },
     },
     network_util::wait_for_pending_transaction,
@@ -28,14 +23,12 @@ pub async fn create_project_txs(
     creator: Address,
     shares_asset_id: u64,
     programs: Programs,
-    withdrawal_slots: u64,
     precision: u64,
 ) -> Result<CreateProjectToSign> {
     log::debug!(
-        "Creating project with specs: {:?}, shares_asset_id: {}, slots: {}, precision: {}",
+        "Creating project with specs: {:?}, shares_asset_id: {}, precision: {}",
         specs,
         shares_asset_id,
-        withdrawal_slots,
         precision
     );
 
@@ -78,20 +71,6 @@ pub async fn create_project_txs(
         specs.asset_price,
         &creator,
         setup_staking_escrow_to_sign.escrow.address,
-    )
-    .await?;
-
-    //////////////////////////////
-    // withdrawal slots
-    // TODO clarify whether we need asset id here, otherwise move signing to first group with asset creation.
-    // we need the slot app ids in the central app (this validation is not implemented yet), so doing it here is temporary.
-    let create_withdrawal_slots_txs = create_withdrawal_slots_txs(
-        algod,
-        withdrawal_slots,
-        programs.withdrawal_slot_approval,
-        programs.withdrawal_slot_clear,
-        &creator,
-        specs.vote_threshold,
     )
     .await?;
 
@@ -142,7 +121,6 @@ pub async fn create_project_txs(
         ],
         optin_txs,
         create_app_tx,
-        create_withdrawal_slots_txs,
 
         // xfers to escrows: have to be executed after escrows are opted in
         xfer_shares_to_invest_escrow: setup_invest_escrow_to_sign.escrow_funding_shares_asset_tx,
@@ -170,9 +148,6 @@ pub async fn submit_create_project(
     let _ = algod
         .broadcast_signed_transactions(&signed.escrow_funding_txs)
         .await?;
-
-    let withdrawal_slots_app_ids =
-        submit_create_withdrawal_slots_txs(algod, signed.create_withdrawal_slots_txs).await?;
 
     ///////////////////////////////////////////////////////////¯
     // TODO investigate: application_index is None in p_tx when executing the app create tx together with the other txs
@@ -225,7 +200,6 @@ pub async fn submit_create_project(
             specs: signed.specs,
             shares_asset_id: signed.shares_asset_id,
             central_app_id,
-            withdrawal_slot_ids: withdrawal_slots_app_ids,
             invest_escrow: signed.invest_escrow,
             staking_escrow: signed.staking_escrow,
             customer_escrow: signed.customer_escrow,
@@ -238,8 +212,6 @@ pub async fn submit_create_project(
 pub struct Programs {
     pub central_app_approval: TealSourceTemplate,
     pub central_app_clear: TealSource,
-    pub withdrawal_slot_approval: TealSourceTemplate,
-    pub withdrawal_slot_clear: TealSource,
     pub central_escrow: TealSourceTemplate,
     pub customer_escrow: TealSourceTemplate,
     pub invest_escrow: TealSourceTemplate,
@@ -272,10 +244,8 @@ mod tests {
         // UI
         let specs = project_specs();
 
-        let withdrawal_slots = 3;
         let precision = TESTS_DEFAULT_PRECISION;
-        let project =
-            create_project_flow(&algod, &creator, &specs, withdrawal_slots, precision).await?;
+        let project = create_project_flow(&algod, &creator, &specs, precision).await?;
 
         // UI
         println!("Submitted create project txs, project: {:?}", project);
@@ -325,9 +295,6 @@ mod tests {
             project.shares_asset_id
         );
         assert_eq!(staking_escrow_held_assets[0].amount, 0); // nothing staked yet
-
-        // voting slots checks
-        assert_eq!(withdrawal_slots, project.withdrawal_slot_ids.len() as u64);
 
         Ok(())
     }

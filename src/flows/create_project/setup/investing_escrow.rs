@@ -34,7 +34,7 @@ pub async fn create_investing_escrow(
 fn render_investing_escrow(
     source: TealSourceTemplate,
     shares_asset_id: u64,
-    asset_price: MicroAlgos, // affects the shares (and indirectly votes, it's 1:1)
+    asset_price: MicroAlgos, // affects the shares
     staking_escrow_address: Address,
 ) -> Result<TealSource> {
     let escrow_source = render_template(
@@ -118,14 +118,8 @@ pub async fn submit_investing_setup_escrow(
         .await?;
     println!("shares_optin_escrow_res: {:?}", shares_optin_escrow_res);
 
-    let votes_optin_escrow_res = algod
-        .broadcast_signed_transaction(&signed.votes_optin_tx)
-        .await?;
-    println!("votes_optin_escrow_res: {:?}", votes_optin_escrow_res);
-
     Ok(SubmitSetupEscrowRes {
         shares_optin_escrow_algos_tx_id: shares_optin_escrow_res.tx_id,
-        votes_optin_escrow_algos_tx_id: votes_optin_escrow_res.tx_id,
     })
 }
 

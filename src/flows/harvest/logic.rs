@@ -202,7 +202,6 @@ mod tests {
         let buy_asset_amount = 10;
         let central_funds = MicroAlgos(10 * 1_000_000);
         let harvest_amount = MicroAlgos(400_000); // calculated manually
-        let withdrawal_slots = 3;
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
@@ -213,7 +212,6 @@ mod tests {
             &drainer,
             &customer,
             buy_asset_amount,
-            withdrawal_slots,
             central_funds,
             precision,
         )
@@ -236,7 +234,6 @@ mod tests {
             buy_asset_amount,
             // only one harvest: local state is the harvested amount
             res.harvest.0,
-            withdrawal_slots,
         )
         .await?;
 
@@ -263,7 +260,6 @@ mod tests {
 
         let buy_asset_amount = 10;
         let central_funds = MicroAlgos(10 * 1_000_000);
-        let withdrawal_slots = 3;
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
@@ -274,7 +270,6 @@ mod tests {
             &drainer,
             &customer,
             buy_asset_amount,
-            withdrawal_slots,
             central_funds,
             precision,
         )
@@ -312,7 +307,6 @@ mod tests {
             buy_asset_amount,
             // only one harvest: local state is the harvested amount
             res.harvest.0,
-            withdrawal_slots,
         )
         .await?;
 
@@ -339,7 +333,6 @@ mod tests {
 
         let buy_asset_amount = 10;
         let central_funds = MicroAlgos(10 * 1_000_000);
-        let withdrawal_slots = 3;
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
@@ -350,7 +343,6 @@ mod tests {
             &drainer,
             &customer,
             buy_asset_amount,
-            withdrawal_slots,
             central_funds,
             precision,
         )
@@ -398,7 +390,6 @@ mod tests {
 
         let buy_asset_amount = 10;
         let central_funds = MicroAlgos(10 * 1_000_000);
-        let withdrawal_slots = 3;
         let precision = TESTS_DEFAULT_PRECISION;
         let specs = CreateProjectSpecs {
             name: "Pancakes ltd".to_owned(),
@@ -407,7 +398,6 @@ mod tests {
                 count: 300,
             },
             asset_price: MicroAlgos(5_000_000),
-            vote_threshold: 70,
             investors_share: 100,
         };
         // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
@@ -420,7 +410,6 @@ mod tests {
             &drainer,
             &customer,
             buy_asset_amount,
-            withdrawal_slots,
             central_funds,
             precision,
         )
@@ -459,7 +448,6 @@ mod tests {
             buy_asset_amount,
             // only one harvest: local state is the harvested amount
             res.harvest.0,
-            withdrawal_slots,
         )
         .await?;
 
@@ -485,7 +473,6 @@ mod tests {
         let buy_asset_amount = 20;
         let central_funds = MicroAlgos(10 * 1_000_000);
         let harvest_amount = MicroAlgos(200_000); // just an amount low enough so we can harvest 2x
-        let withdrawal_slots = 3;
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
@@ -499,7 +486,6 @@ mod tests {
             // so 20% of 10 algos (TODO pass draining amount to harvest_precs), which is 2 Algos
             // we harvest 1 Algo 2x -> success
             buy_asset_amount,
-            withdrawal_slots,
             central_funds,
             precision,
         )
@@ -528,7 +514,6 @@ mod tests {
             buy_asset_amount,
             // 2 harvests: local state is the total harvested amount
             total_expected_harvested_amount,
-            withdrawal_slots,
         )
         .await?;
 
@@ -553,7 +538,6 @@ mod tests {
         expected_central_balance: MicroAlgos,
         expected_shares: u64,
         expected_harvested_total: u64,
-        withdrawal_slots: u64,
     ) -> Result<()> {
         let harvester_account = algod.account_information(&harvester.address()).await?;
         let central_escrow_balance = algod
@@ -579,11 +563,8 @@ mod tests {
         assert_eq!(2, global_key_value.value.value_type);
 
         // harvester local state: test that it was incremented by amount harvested
-        // Only one local variable used + withdrawal slots local state
-        assert_eq!(
-            1 + withdrawal_slots as usize,
-            harvester_account.apps_local_state.len()
-        );
+        // Only one local variable used
+        assert_eq!(1, harvester_account.apps_local_state.len());
         // check local state
 
         let investor_state = central_investor_state_from_acc(&harvester_account, central_app_id)?;

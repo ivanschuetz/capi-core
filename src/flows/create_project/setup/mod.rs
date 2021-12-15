@@ -1,8 +1,6 @@
 pub mod central_escrow;
 pub mod create_app;
 pub mod create_assets;
-pub mod create_withdrawal_slot;
-pub mod create_withdrawal_slots;
 pub mod customer_escrow;
 pub mod drain;
 pub mod investing_escrow;

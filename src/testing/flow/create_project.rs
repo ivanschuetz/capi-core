@@ -19,7 +19,6 @@ pub async fn create_project_flow(
     algod: &Algod,
     creator: &Account,
     specs: &CreateProjectSpecs,
-    withdrawal_slots: u64,
     precision: u64,
 ) -> Result<Project> {
     // Create asset first: id needed in app template
@@ -38,8 +37,6 @@ pub async fn create_project_flow(
         customer_escrow: load_teal_template("customer_escrow")?,
         invest_escrow: load_teal_template("investing_escrow")?,
         staking_escrow: load_teal_template("staking_escrow")?,
-        withdrawal_slot_approval: load_teal_template("withdrawal_slot_approval")?,
-        withdrawal_slot_clear: load_teal("withdrawal_slot_clear")?,
     };
 
     // Rest of create project txs
@@ -49,7 +46,6 @@ pub async fn create_project_flow(
         creator.address(),
         create_assets_res.shares_id,
         programs,
-        withdrawal_slots,
         precision,
     )
     .await?;
@@ -60,10 +56,6 @@ pub async fn create_project_flow(
         signed_funding_txs.push(creator.sign_transaction(&tx)?);
     }
     let signed_create_app_tx = creator.sign_transaction(&to_sign.create_app_tx)?;
-    let mut signed_withdrawal_slot_txs = vec![];
-    for tx in to_sign.create_withdrawal_slots_txs {
-        signed_withdrawal_slot_txs.push(creator.sign_transaction(&tx)?);
-    }
 
     let signed_xfer_shares_to_invest_escrow =
         creator.sign_transaction(&to_sign.xfer_shares_to_invest_escrow)?;
@@ -79,7 +71,6 @@ pub async fn create_project_flow(
             escrow_funding_txs: signed_funding_txs,
             optin_txs: to_sign.optin_txs,
             create_app_tx: signed_create_app_tx,
-            create_withdrawal_slots_txs: signed_withdrawal_slot_txs,
             xfer_shares_to_invest_escrow: signed_xfer_shares_to_invest_escrow,
             invest_escrow: to_sign.invest_escrow,
             staking_escrow: to_sign.staking_escrow,
