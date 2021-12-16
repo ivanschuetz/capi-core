@@ -34,8 +34,7 @@ global GroupSize
 int 3
 ==
 gtxn 1 Sender // drain tx
-// escrow address (from where we're draining) TODO template
-addr 3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA
+addr {customer_escrow_address}
 ==
 &&
 
@@ -45,8 +44,7 @@ global GroupSize
 int 3 
 ==
 gtxn 1 Sender // harvest tx
-// central address (from where investors harvest) TODO template
-addr P7GEWDXXW5IONRW6XRIRVPJCT2XXEQGOBGG65VJPBUOYZEJCBZWTPHS3VQ
+addr {central_escrow_address}
 ==
 &&
 

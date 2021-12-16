@@ -50,6 +50,8 @@ pub async fn create_project_txs(
         specs.shares.count,
         precision,
         specs.investors_share,
+        &drain_to_sign.customer.escrow.address,
+        &drain_to_sign.central.escrow.address,
     )
     .await?;
     // let mut create_app_tx = create_app_tx(algod, &creator).await?;

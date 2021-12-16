@@ -2,7 +2,7 @@ use serde::Serialize;
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
+    use anyhow::{Error, Result};
     use tokio::test;
 
     use crate::{
@@ -27,7 +27,19 @@ mod tests {
         // it's possible that the saved teal used here is outdated
         let approval_template = load_teal_template("app_central_approval")?;
         // use parameters corresponding to current environment
-        let _ = render_central_app(approval_template, 2, 100, TESTS_DEFAULT_PRECISION, 40)?;
+        let _ = render_central_app(
+            approval_template,
+            2,
+            100,
+            TESTS_DEFAULT_PRECISION,
+            40,
+            &"3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA"
+                .parse()
+                .map_err(Error::msg)?,
+            &"P7GEWDXXW5IONRW6XRIRVPJCT2XXEQGOBGG65VJPBUOYZEJCBZWTPHS3VQ"
+                .parse()
+                .map_err(Error::msg)?,
+        )?;
 
         // insert msg pack serialized bytes
         let bytes = vec![];

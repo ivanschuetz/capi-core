@@ -23,6 +23,8 @@ pub async fn create_app_tx(
     asset_supply: u64,
     precision: u64,
     investors_share: u64,
+    customer_escrow: &Address,
+    central_escrow: &Address,
 ) -> Result<Transaction> {
     log::debug!(
         "Creating central app with asset id: {}, supply: {}",
@@ -35,6 +37,8 @@ pub async fn create_app_tx(
         asset_supply,
         precision,
         investors_share,
+        customer_escrow,
+        central_escrow,
     )?;
 
     let compiled_approval_program = algod.compile_teal(&approval_source.0).await?;
@@ -69,6 +73,8 @@ pub fn render_central_app(
     asset_supply: u64,
     precision: u64,
     investors_share: u64,
+    customer_escrow: &Address,
+    central_escrow: &Address,
 ) -> Result<TealSource> {
     let precision_square = precision
         .checked_pow(2)
@@ -84,6 +90,8 @@ pub fn render_central_app(
             investors_share: investors_share.to_string(),
             precision: precision.to_string(),
             precision_square: precision_square.to_string(),
+            customer_escrow_address: customer_escrow.to_string(),
+            central_escrow_address: central_escrow.to_string(),
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -98,6 +106,8 @@ struct RenderCentralAppContext {
     investors_share: String,
     precision: String,
     precision_square: String,
+    customer_escrow_address: String,
+    central_escrow_address: String,
 }
 
 #[cfg(test)]
@@ -112,7 +122,7 @@ mod tests {
         model::algod::v2::TealKeyValue,
         transaction::{transaction::StateSchema, Transaction, TransactionType},
     };
-    use anyhow::{anyhow, Result};
+    use anyhow::{anyhow, Error, Result};
     use serial_test::serial;
     use tokio::test;
 
@@ -140,6 +150,14 @@ mod tests {
             0,
             TESTS_DEFAULT_PRECISION,
             40,
+            // random: this address doesn't affect this test
+            &"3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA"
+                .parse()
+                .map_err(Error::msg)?,
+            // random: this address doesn't affect this test
+            &"P7GEWDXXW5IONRW6XRIRVPJCT2XXEQGOBGG65VJPBUOYZEJCBZWTPHS3VQ"
+                .parse()
+                .map_err(Error::msg)?,
         )
         .await?;
 
