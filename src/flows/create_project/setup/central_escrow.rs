@@ -1,3 +1,6 @@
+#[cfg(not(target_arch = "wasm32"))]
+use crate::teal::save_rendered_teal;
+use crate::teal::{render_template, TealSource, TealSourceTemplate};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
@@ -5,8 +8,6 @@ use algonaut::{
 };
 use anyhow::Result;
 use serde::Serialize;
-
-use crate::teal::{render_template, TealSource, TealSourceTemplate};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -19,7 +20,7 @@ pub async fn setup_central_escrow(
     project_creator: &Address,
     source: TealSourceTemplate,
 ) -> Result<SetupCentralEscrowToSign> {
-    let source = render_central_escrow(source)?;
+    let source = render_central_escrow(source, project_creator)?;
     let escrow = ContractAccount::new(algod.compile_teal(&source.0).await?);
     Ok(SetupCentralEscrowToSign {
         fund_min_balance_tx: create_payment_tx(
@@ -33,8 +34,18 @@ pub async fn setup_central_escrow(
     })
 }
 
-fn render_central_escrow(source: TealSourceTemplate) -> Result<TealSource> {
-    let escrow_source = render_template(source, CentralEscrowTemplateContext {})?;
+fn render_central_escrow(
+    source: TealSourceTemplate,
+    project_creator: &Address,
+) -> Result<TealSource> {
+    let escrow_source = render_template(
+        source,
+        CentralEscrowTemplateContext {
+            project_creator_address: project_creator.to_string(),
+        },
+    )?;
+    #[cfg(not(target_arch = "wasm32"))]
+    save_rendered_teal("central_escrow", escrow_source.clone())?; // debugging
     Ok(escrow_source)
 }
 
@@ -73,4 +84,6 @@ pub struct SetupCentralEscrowSigned {
 }
 
 #[derive(Serialize)]
-struct CentralEscrowTemplateContext {}
+struct CentralEscrowTemplateContext {
+    project_creator_address: String,
+}
