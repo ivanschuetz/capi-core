@@ -7,9 +7,11 @@ use tealdbg::Config;
 // use tealdbg::Config;
 use tinytemplate::TinyTemplate;
 
+// not rendered teal template (with placeholders)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TealSourceTemplate(pub Vec<u8>);
 
+// regular teal source (not a template)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TealSource(pub Vec<u8>);
 
@@ -73,7 +75,7 @@ pub fn debug_teal_rendered(txs: &[SignedTransaction], file_name: &str) -> Result
 fn debug_teal_internal(txs: &[SignedTransaction], folder: &str, file_name: &str) -> Result<()> {
     tealdbg::launch(
         Config {
-            node_dir: Some("/Users/ischuetz/algo_nets/net1/Node"),
+            // node_dir: Some("/Users/ischuetz/algo_nets/net1/Node"),
             ..Config::default()
         },
         txs,

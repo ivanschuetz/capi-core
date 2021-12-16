@@ -16,8 +16,8 @@ rmp-serde = "0.15.4"
 serde = {version = "1.0", features = ["derive"]}
 data-encoding = "2.3.1"
 tinytemplate = "1.2.1"
-tealdbg = { git = "https://github.com/ivanschuetz/tealdbg_launcher", features = ["rustls"], default-features = false }
-# tealdbg = { path = "../../../tealdbg_launcher" }
+# tealdbg = { git = "https://github.com/ivanschuetz/tealdbg_launcher", features = ["rustls"], default-features = false }
+tealdbg = { path = "../../../tealdbg_launcher" }
 
 log = "0.4"
 
