@@ -29,31 +29,25 @@ pub struct ProjectForUsers {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct WithdrawalRequestInputs {
+pub struct WithdrawalInputs {
     pub project_id: String,
     pub amount: MicroAlgos,
     pub description: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct WithdrawalRequest {
+pub struct Withdrawal {
     pub project_id: String,
     pub amount: MicroAlgos,
     pub description: String,
     pub date: DateTime<Utc>,
-    // temporary hack - we most likely have to use the indexer to check whether withdrawals are complete
-    // (save tx id when submitting withdrawal, check if there's later withdrawal tx for same app?)
-    // ideally off chain backend doesn't know if it's complete or not, just tx id -> metadata (descr etc.)
-    // TODO consider storing metadata in the tx note field? so we don't need this table at all?
-    pub complete: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct SavedWithdrawalRequest {
+pub struct SavedWithdrawal {
     pub id: String, // saved: db id
     pub project_id: String,
     pub amount: MicroAlgos,
     pub description: String,
     pub date: DateTime<Utc>,
-    pub complete: bool,
 }
