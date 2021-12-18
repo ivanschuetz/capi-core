@@ -21,7 +21,7 @@ goal network start -r net
 
 # EDIT: start kmd - needed in this script to import keys
 # we now also rely on kmd to be started after this script
-goal kmd start -d ./net/Node
+goal kmd start -d net/Node
 
 echo
 echo “### Checking node status”
