@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::flows::create_project::model::Project;
 #[cfg(test)]
-use crate::flows::stake::logic::{stake, submit_stake, StakeSigned};
+use crate::flows::stake::stake::{stake, submit_stake, StakeSigned};
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
 #[cfg(test)]

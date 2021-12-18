@@ -10,13 +10,13 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::withdraw::logic::{submit_withdraw, withdraw, WithdrawSigned, FIXED_FEE},
+        flows::withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, FIXED_FEE},
         testing::{
             flow::{
-                create_project::create_project_flow,
+                create_project_flow::create_project_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
-                invest_in_project::{invests_flow, invests_optins_flow},
-                withdraw::{withdraw_flow, withdraw_precs},
+                invest_in_project_flow::{invests_flow, invests_optins_flow},
+                withdraw_flow::{withdraw_flow, withdraw_precs},
             },
             network_test_util::reset_network,
             test_data::{creator, customer, investor1, investor2, project_specs},

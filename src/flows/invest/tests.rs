@@ -1,16 +1,16 @@
 #[cfg(test)]
 mod tests {
     use crate::flows::create_project::model::Project;
-    use crate::flows::harvest::logic::calculate_entitled_harvest;
+    use crate::flows::harvest::harvest::calculate_entitled_harvest;
     use crate::network_util::wait_for_pending_transaction;
     use crate::state::central_app_state::{
         central_global_state, central_investor_state, central_investor_state_from_acc,
     };
-    use crate::testing::flow::create_project::create_project_flow;
+    use crate::testing::flow::create_project_flow::create_project_flow;
     use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
-    use crate::testing::flow::invest_in_project::{invests_flow, invests_optins_flow};
-    use crate::testing::flow::stake::stake_flow;
-    use crate::testing::flow::unstake::unstake_flow;
+    use crate::testing::flow::invest_in_project_flow::{invests_flow, invests_optins_flow};
+    use crate::testing::flow::stake_flow::stake_flow;
+    use crate::testing::flow::unstake_flow::unstake_flow;
     use crate::testing::network_test_util::reset_network;
     use crate::testing::test_data::{customer, investor2};
     use crate::testing::TESTS_DEFAULT_PRECISION;

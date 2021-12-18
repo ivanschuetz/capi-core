@@ -9,7 +9,7 @@ mod tests {
         dependencies,
         flows::{
             create_project::setup::create_app::render_central_app,
-            harvest::logic::{submit_harvest, HarvestSigned},
+            harvest::harvest::{submit_harvest, HarvestSigned},
         },
         teal::load_teal_template,
         testing::TESTS_DEFAULT_PRECISION,

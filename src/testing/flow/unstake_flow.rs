@@ -1,9 +1,9 @@
 #[cfg(test)]
 use crate::flows::create_project::model::Project;
 #[cfg(test)]
-use crate::flows::unstake::logic::unstake;
+use crate::flows::unstake::unstake::unstake;
 #[cfg(test)]
-use crate::flows::unstake::logic::{submit_unstake, UnstakeSigned};
+use crate::flows::unstake::unstake::{submit_unstake, UnstakeSigned};
 #[cfg(test)]
 use algonaut::{algod::v2::Algod, transaction::account::Account};
 #[cfg(test)]

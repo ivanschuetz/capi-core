@@ -11,22 +11,22 @@ mod tests {
     use crate::{
         dependencies,
         flows::{
-            harvest::logic::calculate_entitled_harvest,
+            harvest::harvest::calculate_entitled_harvest,
             invest::app_optins::{
                 invest_or_staking_app_optins_txs, submit_invest_or_staking_app_optins,
             },
-            stake::logic::FIXED_FEE,
+            stake::stake::FIXED_FEE,
         },
         network_util::wait_for_pending_transaction,
         state::central_app_state::central_investor_state_from_acc,
         testing::{
             flow::{
-                create_project::create_project_flow,
+                create_project_flow::create_project_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
-                harvest::harvest_flow,
-                invest_in_project::{invests_flow, invests_optins_flow},
-                stake::stake_flow,
-                unstake::unstake_flow,
+                harvest_flow::harvest_flow,
+                invest_in_project_flow::{invests_flow, invests_optins_flow},
+                stake_flow::stake_flow,
+                unstake_flow::unstake_flow,
             },
             network_test_util::reset_network,
             test_data::{self, creator, customer, investor1, investor2, project_specs},

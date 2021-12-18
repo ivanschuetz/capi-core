@@ -11,10 +11,10 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::drain::logic::{FIXED_FEE, MIN_BALANCE},
+        flows::drain::drain::{FIXED_FEE, MIN_BALANCE},
         testing::{
             flow::{
-                create_project::create_project_flow,
+                create_project_flow::create_project_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
             },
             network_test_util::reset_network,

@@ -1,12 +1,12 @@
 #[cfg(test)]
 use crate::flows::create_project::{
-    logic::{create_project_txs, submit_create_project},
+    create_project::{create_project_txs, submit_create_project},
     model::{CreateProjectSigned, CreateProjectSpecs, Project},
     setup::create_assets::{create_investor_assets_txs, submit_create_assets},
 };
 #[cfg(test)]
 use crate::{
-    flows::create_project::logic::Programs,
+    flows::create_project::create_project::Programs,
     teal::{load_teal, load_teal_template},
 };
 #[cfg(test)]

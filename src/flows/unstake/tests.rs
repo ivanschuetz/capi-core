@@ -7,14 +7,14 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::unstake::logic::FIXED_FEE,
+        flows::unstake::unstake::FIXED_FEE,
         network_util::wait_for_pending_transaction,
         state::central_app_state::central_investor_state_from_acc,
         testing::{
             flow::{
-                create_project::create_project_flow,
-                invest_in_project::{invests_flow, invests_optins_flow},
-                unstake::unstake_flow,
+                create_project_flow::create_project_flow,
+                invest_in_project_flow::{invests_flow, invests_optins_flow},
+                unstake_flow::unstake_flow,
             },
             network_test_util::reset_network,
             test_data::{creator, investor1, project_specs},

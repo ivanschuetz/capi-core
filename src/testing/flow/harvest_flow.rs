@@ -4,12 +4,12 @@ use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
 use crate::flows::create_project::model::{CreateProjectSpecs, Project};
 #[cfg(test)]
 use crate::{
-    flows::harvest::logic::{harvest, submit_harvest, HarvestSigned},
+    flows::harvest::harvest::{harvest, submit_harvest, HarvestSigned},
     network_util::wait_for_pending_transaction,
     testing::flow::{
-        create_project::create_project_flow,
+        create_project_flow::create_project_flow,
         customer_payment_and_drain_flow::customer_payment_and_drain_flow,
-        invest_in_project::invests_flow,
+        invest_in_project_flow::invests_flow,
     },
 };
 #[cfg(test)]
@@ -29,7 +29,7 @@ pub async fn harvest_precs(
     central_funds: MicroAlgos,
     precision: u64,
 ) -> Result<HarvestTestPrecsRes> {
-    use super::invest_in_project::invests_optins_flow;
+    use super::invest_in_project_flow::invests_optins_flow;
 
     let project = create_project_flow(&algod, &creator, &specs, precision).await?;
 

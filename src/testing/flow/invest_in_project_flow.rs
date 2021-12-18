@@ -7,7 +7,7 @@ use crate::flows::{
     create_project::model::Project,
     invest::model::InvestResult,
     invest::{
-        logic::{invest_txs, submit_invest},
+        invest::{invest_txs, submit_invest},
         model::InvestSigned,
     },
 };

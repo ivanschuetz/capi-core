@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::{
     flows::create_project::model::Project,
-    flows::drain::logic::{
+    flows::drain::drain::{
         drain_customer_escrow, submit_drain_customer_escrow, DrainCustomerEscrowSigned,
     },
     network_util::wait_for_pending_transaction,

@@ -3,7 +3,7 @@ use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
 #[cfg(test)]
 use crate::flows::{
     create_project::model::Project,
-    withdraw::logic::{submit_withdraw, withdraw, WithdrawSigned},
+    withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned},
 };
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;

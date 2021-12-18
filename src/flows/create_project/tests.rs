@@ -3,7 +3,7 @@ mod tests {
     use crate::{
         dependencies,
         testing::{
-            flow::create_project::create_project_flow, test_data::project_specs,
+            flow::create_project_flow::create_project_flow, test_data::project_specs,
             TESTS_DEFAULT_PRECISION,
         },
         testing::{network_test_util::reset_network, test_data::creator},
