@@ -1,4 +1,8 @@
-use algonaut::{algod::v2::Algod, core::Address, transaction::tx_group::TxGroup};
+use algonaut::{
+    algod::v2::Algod,
+    core::Address,
+    transaction::{tx_group::TxGroup, SignedTransaction},
+};
 use anyhow::{anyhow, Result};
 
 use crate::{
@@ -156,27 +160,7 @@ pub async fn submit_create_project(
         .broadcast_signed_transactions(&signed.escrow_funding_txs)
         .await?;
 
-    ///////////////////////////////////////////////////////////¯
-    // TODO investigate: application_index is None in p_tx when executing the app create tx together with the other txs
-    // see more notes in old repo
-    ///////////////////////////////////////////////////////////¯
-    log::debug!("Creating central app..");
-    // let central_app_id = p_tx
-    //     .application_index
-    //     .ok_or(anyhow!("Pending tx didn't have app id"))?;
-    let create_app_res = algod
-        .broadcast_signed_transaction(&signed.create_app_tx)
-        .await?;
-    let p_tx = wait_for_pending_transaction(algod, &create_app_res.tx_id)
-        .await?
-        .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
-    let central_app_id = p_tx
-        .application_index
-        .ok_or_else(|| anyhow!("Pending tx didn't have app id"))?;
-    log::debug!("?? (see todo) central_app_id: {:?}", central_app_id);
-
-    ///////////////////////////////////////////////////////////¯
-    ///////////////////////////////////////////////////////////¯
+    let central_app_id = broadcast_txs_and_retrieve_app_id(algod, &[signed.create_app_tx]).await?;
     // Now that the escrows are funded, opt them in
 
     log::debug!(
@@ -214,6 +198,33 @@ pub async fn submit_create_project(
             creator: signed.creator,
         },
     })
+}
+
+async fn broadcast_txs_and_retrieve_app_id(
+    algod: &Algod,
+    txs: &[SignedTransaction],
+) -> Result<u64> {
+    ///////////////////////////////////////////////////////////¯
+    // TODO investigate: application_index is None in p_tx when executing the app create tx together with the other txs
+    // see more notes in old repo
+    ///////////////////////////////////////////////////////////¯
+    log::debug!("Creating central app..");
+    // let central_app_id = p_tx
+    //     .application_index
+    //     .ok_or(anyhow!("Pending tx didn't have app id"))?;
+    let create_app_res = algod.broadcast_signed_transactions(txs).await?;
+    let p_tx = wait_for_pending_transaction(algod, &create_app_res.tx_id)
+        .await?
+        .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
+    let central_app_id = p_tx
+        .application_index
+        .ok_or_else(|| anyhow!("Pending tx didn't have app id"))?;
+    log::debug!("?? (see todo) central_app_id: {:?}", central_app_id);
+
+    ///////////////////////////////////////////////////////////¯
+    ///////////////////////////////////////////////////////////¯
+
+    Ok(central_app_id)
 }
 
 pub struct Programs {
