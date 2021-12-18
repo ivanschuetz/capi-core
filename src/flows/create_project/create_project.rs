@@ -5,8 +5,9 @@ use crate::{
     flows::create_project::{
         model::Project,
         setup::{
-            create_app::create_app_tx, drain::setup_drain,
-            investing_escrow::setup_investing_escrow_txs, staking_escrow::setup_staking_escrow_txs,
+            central_escrow::setup_central_escrow, create_app::create_app_tx,
+            customer_escrow::setup_customer_escrow, investing_escrow::setup_investing_escrow_txs,
+            staking_escrow::setup_staking_escrow_txs,
         },
     },
     network_util::wait_for_pending_transaction,
@@ -34,13 +35,17 @@ pub async fn create_project_txs(
 
     // TODO reuse transaction params for all these txs, also in other places
 
-    let mut drain_to_sign = setup_drain(
+    let mut central_to_sign =
+        setup_central_escrow(algod, &creator, programs.central_escrow).await?;
+
+    let mut customer_to_sign = setup_customer_escrow(
         algod,
-        programs.central_escrow,
-        programs.customer_escrow,
         &creator,
+        central_to_sign.escrow.address,
+        programs.customer_escrow,
     )
     .await?;
+
     let create_app_tx = create_app_tx(
         algod,
         programs.central_app_approval,
@@ -50,8 +55,8 @@ pub async fn create_project_txs(
         specs.shares.count,
         precision,
         specs.investors_share,
-        &drain_to_sign.customer.escrow.address,
-        &drain_to_sign.central.escrow.address,
+        &customer_to_sign.escrow.address,
+        &central_to_sign.escrow.address,
     )
     .await?;
     // let mut create_app_tx = create_app_tx(algod, &creator).await?;
@@ -99,8 +104,8 @@ pub async fn create_project_txs(
     //////////////////////////////
 
     TxGroup::assign_group_id(vec![
-        &mut drain_to_sign.central.fund_min_balance_tx,
-        &mut drain_to_sign.customer.fund_min_balance_tx,
+        &mut central_to_sign.fund_min_balance_tx,
+        &mut customer_to_sign.fund_min_balance_tx,
         &mut setup_staking_escrow_to_sign.escrow_funding_algos_tx,
         &mut setup_invest_escrow_to_sign.escrow_funding_algos_tx,
     ])?;
@@ -111,13 +116,13 @@ pub async fn create_project_txs(
 
         staking_escrow: setup_staking_escrow_to_sign.escrow,
         invest_escrow: setup_invest_escrow_to_sign.escrow,
-        central_escrow: drain_to_sign.central.escrow,
-        customer_escrow: drain_to_sign.customer.escrow,
+        central_escrow: central_to_sign.escrow,
+        customer_escrow: customer_to_sign.escrow,
 
         // initial funding (algos) round, to be signed by creator
         escrow_funding_txs: vec![
-            drain_to_sign.central.fund_min_balance_tx,
-            drain_to_sign.customer.fund_min_balance_tx,
+            central_to_sign.fund_min_balance_tx,
+            customer_to_sign.fund_min_balance_tx,
             setup_staking_escrow_to_sign.escrow_funding_algos_tx,
             setup_invest_escrow_to_sign.escrow_funding_algos_tx,
         ],
