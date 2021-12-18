@@ -22,6 +22,7 @@ pub struct SubmitSetupEscrowRes {
 pub struct SetupInvestingEscrowToSign {
     pub escrow: ContractAccount,
     pub escrow_shares_optin_tx: Transaction,
+    // min amount to hold asset (shares) + asset optin tx fee
     pub escrow_funding_algos_tx: Transaction,
     pub escrow_funding_shares_asset_tx: Transaction,
 }

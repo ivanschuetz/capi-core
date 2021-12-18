@@ -93,6 +93,7 @@ pub async fn submit_staking_setup_escrow(
 pub struct SetupStakingEscrowToSign {
     pub escrow: ContractAccount,
     pub escrow_shares_optin_tx: Transaction,
+    // min amount to hold asset (shares) + asset optin tx fee
     pub escrow_funding_algos_tx: Transaction,
 }
 
