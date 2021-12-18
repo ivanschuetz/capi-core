@@ -4,31 +4,31 @@
 # for some reason doesn't work with DevMode, so we had to delete it,
 # the problem was that it can't start the network (complains about not finding algod.net, which is created as part of starting),
 # reson unclear, no verbose mode, and no node.log present, as it's created after starting the network apparently,
-# the missing primary relay node is causing this warning during tests: could not make cachedir: mkdir net1/Primary/goal.cache: no such file or directory
+# the missing primary relay node is causing this warning during tests: could not make cachedir: mkdir net/Primary/goal.cache: no such file or directory
 # it seems to be harmless
 
 #!/bin/bash
 set -e
 echo “### Creating private network”
-goal network create -n tn50e -t networktemplate.json -r net1
+goal network create -n tn50e -t networktemplate.json -r net
 
 # EDIT: set some custom settings, before it's started.
 sh ./custom_network_settings.sh
 
 echo
 echo “### Starting private network” 
-goal network start -r net1
+goal network start -r net
 
 # EDIT: start kmd - needed in this script to import keys
 # we now also rely on kmd to be started after this script
-goal kmd start -d ./net1/Node
+goal kmd start -d ./net/Node
 
 echo
 echo “### Checking node status”
-goal network status -r net1
+goal network status -r net
 echo "### Importing root keys"
-NODEKEY=$(goal account list -d net1/Node |  awk '{print $2}')
-PRIMKEY=$(goal account list -d net1/Primary | awk '{print $2}')
+NODEKEY=$(goal account list -d net/Node |  awk '{print $2}')
+PRIMKEY=$(goal account list -d net/Primary | awk '{print $2}')
 
 echo "Imported ${NODEKEY}"
 echo "Imported ${PRIMKEY}"

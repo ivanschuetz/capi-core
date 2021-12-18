@@ -1,5 +1,4 @@
 /target
 Cargo.lock
 /teal_rendered/
-/scripts/net1
-
+/scripts/private_net/net

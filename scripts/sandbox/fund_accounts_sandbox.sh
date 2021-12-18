@@ -22,7 +22,7 @@ sandbox goal clerk send -a 10000000000 -f $FUNDER -t MKRBTLNZRS3UZZDS5OWPLP7YPHU
 # temporary: fund customer payment amount
 # to ease manual testing, to not have to send a customer payment first
 # note: breaks unit tests
-# sandbox goal clerk send -a 10000000000 -f $FUNDER -t 3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA -d net1/Node
+# sandbox goal clerk send -a 10000000000 -f $FUNDER -t 3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA -d net/Node
 
 echo "done!"
 sandbox goal account list
