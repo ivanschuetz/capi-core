@@ -1,0 +1,31 @@
+{
+    "Genesis": {
+        "NetworkName": "",
+        "ConsensusProtocol": "future",
+        "Wallets": [
+            {
+                "Name": "Wallet1",
+                "Stake": 50,
+                "Online": true
+            },
+            {
+                "Name": "Wallet2",
+                "Stake": 50,
+                "Online": true
+            }
+        ]
+        ,
+        "DevMode": true
+    },
+    "Nodes": [
+        {
+            "Name": "Node",
+            "Wallets": [
+                {
+                    "Name": "Wallet2",
+                    "ParticipationOnly": false
+                }
+            ]
+        }
+    ]
+}

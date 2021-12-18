@@ -12,17 +12,18 @@ use {
 pub fn reset_network() -> Result<()> {
     let reset_res = Command::new("sh")
         .current_dir("scripts")
-        .arg("./sandbox_reset_for_tests.sh")
+        // .arg("./sandbox_reset_for_tests.sh")
+        .arg("./private_net_reset_for_tests.sh")
         .stdout(Stdio::piped())
         .spawn()?
         .stdout
         .expect("Couldn't reset network");
 
-    for _ in BufReader::new(reset_res)
+    for _line in BufReader::new(reset_res)
         .lines()
         .filter_map(|line| line.ok())
     {
-        // println!("{}", line);
+        // println!("{}", _line);
     }
 
     Ok(())
