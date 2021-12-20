@@ -12,7 +12,7 @@ use {
 /// Common tests initialization
 #[cfg(test)]
 pub fn test_init() -> Result<()> {
-    init_logger();
+    init_logger()?;
     reset_network()?;
     Ok(())
 }
