@@ -26,9 +26,8 @@ appenders:
 #     - console
 #     - file
 
-# for now hardcoding the dependent projects here, see https://github.com/estk/log4rs/issues/211
 loggers:
-  make:
+  core:
     level: trace
     appenders:
       - console
