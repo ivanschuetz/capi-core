@@ -144,17 +144,18 @@ pub async fn submit_create_project(
     algod: &Algod,
     signed: CreateProjectSigned,
 ) -> Result<SubmitCreateProjectResult> {
+    // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
     log::debug!(
         "Submitting, created project specs: {:?}, creator: {:?}",
         signed.specs,
         signed.creator
     );
-
     log::debug!(
         "broadcasting escrow funding transactions({:?})",
         signed.escrow_funding_txs.len()
     );
 
+    // crate::teal::debug_teal_rendered(&signed.optin_txs, "app_central_approval").unwrap();
     // crate::teal::debug_teal_rendered(&signed.optin_txs, "investing_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&signed.optin_txs, "staking_escrow").unwrap();
 

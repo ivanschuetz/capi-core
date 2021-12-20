@@ -52,7 +52,7 @@ pub struct CreateProjectToSign {
     pub creator: Address,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CreateProjectSigned {
     //////////////////////////////////////////////
     // transactions to be submitted
