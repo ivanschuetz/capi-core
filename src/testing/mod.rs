@@ -1,3 +1,4 @@
+#[cfg(test)]
 pub mod algorand_checks;
 pub mod flow;
 pub mod generate_mnemonic;
