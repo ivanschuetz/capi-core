@@ -11,10 +11,10 @@ use {
 #[cfg(test)]
 pub fn reset_network() -> Result<()> {
     let reset_res = Command::new("sh")
-        // .current_dir("scripts/sandbox")
-        // .arg("./sandbox_reset_for_tests.sh")
-        .current_dir("scripts/private_net")
-        .arg("./private_net_reset_for_tests.sh")
+        .current_dir("scripts/sandbox")
+        .arg("./sandbox_reset_for_tests.sh")
+        // .current_dir("scripts/private_net")
+        // .arg("./private_net_reset_for_tests.sh")
         .stdout(Stdio::piped())
         .spawn()?
         .stdout
