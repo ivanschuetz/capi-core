@@ -1,5 +1,6 @@
 #[cfg(test)]
 use {
+    crate::logger::init_logger,
     anyhow::Result,
     std::process::Command,
     std::{
@@ -8,8 +9,16 @@ use {
     },
 };
 
+/// Common tests initialization
 #[cfg(test)]
-pub fn reset_network() -> Result<()> {
+pub fn test_init() -> Result<()> {
+    init_logger();
+    reset_network()?;
+    Ok(())
+}
+
+#[cfg(test)]
+fn reset_network() -> Result<()> {
     let reset_res = Command::new("sh")
         .current_dir("scripts/sandbox")
         .arg("./sandbox_reset_for_tests.sh")

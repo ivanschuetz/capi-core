@@ -116,7 +116,7 @@ mod tests {
         dependencies,
         network_util::wait_for_pending_transaction,
         teal::{load_teal, load_teal_template},
-        testing::{network_test_util::reset_network, test_data::creator, TESTS_DEFAULT_PRECISION},
+        testing::{network_test_util::test_init, test_data::creator, TESTS_DEFAULT_PRECISION},
     };
     use algonaut::{
         model::algod::v2::TealKeyValue,
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_create_app() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
         let algod = dependencies::algod();

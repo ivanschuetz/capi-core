@@ -17,7 +17,7 @@ mod tests {
                 create_project_flow::create_project_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
             },
-            network_test_util::reset_network,
+            network_test_util::test_init,
             project_general::check_schema,
             test_data::{creator, customer, investor1, project_specs},
             TESTS_DEFAULT_PRECISION,
@@ -27,7 +27,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_drain() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
         let algod = dependencies::algod();

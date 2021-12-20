@@ -6,7 +6,7 @@ mod tests {
             flow::create_project_flow::create_project_flow, test_data::project_specs,
             TESTS_DEFAULT_PRECISION,
         },
-        testing::{network_test_util::reset_network, test_data::creator},
+        testing::{network_test_util::test_init, test_data::creator},
     };
     use anyhow::Result;
     use serial_test::serial;
@@ -15,7 +15,7 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_create_project_flow() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
         let algod = dependencies::algod();

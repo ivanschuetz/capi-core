@@ -16,7 +16,7 @@ mod tests {
                 invest_in_project_flow::{invests_flow, invests_optins_flow},
                 unstake_flow::unstake_flow,
             },
-            network_test_util::reset_network,
+            network_test_util::test_init,
             test_data::{creator, investor1, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -25,7 +25,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_unstake() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 
@@ -112,7 +112,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_partial_unstake_not_allowed() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 

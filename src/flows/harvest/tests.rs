@@ -19,7 +19,7 @@ mod tests {
         state::central_app_state::{central_global_state, central_investor_state_from_acc},
         testing::{
             flow::harvest_flow::{harvest_flow, harvest_precs},
-            network_test_util::reset_network,
+            network_test_util::test_init,
             project_general::check_schema,
             test_data::{creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
@@ -29,7 +29,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_harvest() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 
@@ -88,7 +88,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_harvest_max() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_cannot_harvest_more_than_max() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_harvest_max_with_repeated_fractional_shares_percentage() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 
@@ -302,7 +302,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_2_successful_harvests() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 

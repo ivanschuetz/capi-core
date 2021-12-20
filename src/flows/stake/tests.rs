@@ -28,7 +28,7 @@ mod tests {
                 stake_flow::stake_flow,
                 unstake_flow::unstake_flow,
             },
-            network_test_util::reset_network,
+            network_test_util::test_init,
             test_data::{self, creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -37,7 +37,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_stake() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 

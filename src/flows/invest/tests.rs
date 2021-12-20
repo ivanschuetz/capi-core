@@ -11,7 +11,7 @@ mod tests {
     use crate::testing::flow::invest_in_project_flow::{invests_flow, invests_optins_flow};
     use crate::testing::flow::stake_flow::stake_flow;
     use crate::testing::flow::unstake_flow::unstake_flow;
-    use crate::testing::network_test_util::reset_network;
+    use crate::testing::network_test_util::test_init;
     use crate::testing::test_data::{customer, investor2};
     use crate::testing::TESTS_DEFAULT_PRECISION;
     use crate::{
@@ -32,7 +32,7 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_invests_flow() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
         let algod = dependencies::algod();
@@ -120,7 +120,7 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_increments_shares_when_investing_twice() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
         let algod = dependencies::algod();
@@ -163,7 +163,7 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_increments_shares_when_investing_and_staking() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
         let algod = dependencies::algod();
@@ -212,7 +212,7 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_increments_shares_when_staking_and_investing() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
         let algod = dependencies::algod();
@@ -261,7 +261,7 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_increments_shares_when_staking_twice() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
         let algod = dependencies::algod();
@@ -318,7 +318,7 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_invest_after_drain_inits_already_harvested_correctly() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
         let algod = dependencies::algod();
@@ -369,7 +369,7 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_stake_after_drain_inits_already_harvested_correctly() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
         let algod = dependencies::algod();

@@ -18,7 +18,7 @@ mod tests {
                 invest_in_project_flow::{invests_flow, invests_optins_flow},
                 withdraw_flow::{withdraw_flow, withdraw_precs},
             },
-            network_test_util::reset_network,
+            network_test_util::test_init,
             test_data::{creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -27,7 +27,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_withdraw_success() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 
@@ -76,7 +76,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_withdraw_without_enough_funds_fails() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 
@@ -145,7 +145,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_withdraw_by_not_creator_fails() -> Result<()> {
-        reset_network()?;
+        test_init()?;
 
         // deps
 
