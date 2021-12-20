@@ -75,7 +75,7 @@ pub fn debug_teal_rendered(txs: &[SignedTransaction], file_name: &str) -> Result
 fn debug_teal_internal(txs: &[SignedTransaction], folder: &str, file_name: &str) -> Result<()> {
     tealdbg::launch(
         Config {
-            // node_dir: Some("/Users/ischuetz/algo_nets/net/Node"),
+            // node_dir: Some("./scripts/private_net/net/Node"),
             ..Config::default()
         },
         txs,
