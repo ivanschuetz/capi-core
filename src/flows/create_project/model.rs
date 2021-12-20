@@ -67,7 +67,7 @@ pub struct CreateProjectSigned {
     // see more notes in old repo
     pub create_app_tx: SignedTransaction,
 
-    // escrow lsig opt-ins (signed when created)
+    // escrows opt-in (lsig - signed when created)
     // to be submitted before possible asset transfers
     // on project creation assets are transferred only to investing escrow,
     // we opt-in all the escrows that may touch the assets later here too, just to leave the system "initialized"

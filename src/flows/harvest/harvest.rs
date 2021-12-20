@@ -79,7 +79,7 @@ pub fn harvest_app_call_tx(
 
 pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<String> {
     log::debug!("Submit harvest..");
-    crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
+    // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
     let txs = vec![
         signed.app_call_tx_signed.clone(),
