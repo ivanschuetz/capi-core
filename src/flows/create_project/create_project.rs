@@ -100,6 +100,8 @@ pub async fn create_project_txs(
         // asset (shares) opt-ins
         &mut setup_staking_escrow_to_sign.escrow_shares_optin_tx,
         &mut setup_invest_escrow_to_sign.escrow_shares_optin_tx,
+        // asset (shares) transfer to investing escrow
+        &mut setup_invest_escrow_to_sign.escrow_funding_shares_asset_tx,
     ])?;
 
     // Now that the lsig txs have been assigned a group id, sign (by their respective programs)
@@ -156,23 +158,16 @@ pub async fn submit_create_project(
     // crate::teal::debug_teal_rendered(&signed.optin_txs, "investing_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&signed.optin_txs, "staking_escrow").unwrap();
 
-    // First tx group to submit - everything except the asset (shares) xfer to the escrow
-    let mut first_group = vec![signed.create_app_tx];
+    let mut signed_txs = vec![signed.create_app_tx];
     for tx in signed.escrow_funding_txs {
-        first_group.push(tx)
+        signed_txs.push(tx)
     }
     for tx in signed.optin_txs {
-        first_group.push(tx)
+        signed_txs.push(tx)
     }
-    let central_app_id = broadcast_txs_and_retrieve_app_id(algod, &first_group).await?;
+    signed_txs.push(signed.xfer_shares_to_invest_escrow);
 
-    // Second tx to submit - asset xfer, which requires asset (shares) opt-in (submitted in first group)
-    let submit_shares_xfer_tx_res = algod
-        .broadcast_signed_transaction(&signed.xfer_shares_to_invest_escrow)
-        .await?;
-    let _ = wait_for_pending_transaction(algod, &submit_shares_xfer_tx_res.tx_id)
-        .await?
-        .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
+    let central_app_id = broadcast_txs_and_retrieve_app_id(algod, &signed_txs).await?;
 
     Ok(SubmitCreateProjectResult {
         project: Project {

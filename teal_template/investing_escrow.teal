@@ -3,7 +3,7 @@
 
 // escrow setup on project creation
 global GroupSize
-int 7
+int 8
 ==
 
 bz after_tx_group_access

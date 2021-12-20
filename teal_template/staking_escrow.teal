@@ -1,7 +1,7 @@
 #pragma version 4
 // asset opt-ins on project creation
 global GroupSize
-int 7
+int 8
 ==
 bz branch_after_group_access
 gtxn 5 XferAsset

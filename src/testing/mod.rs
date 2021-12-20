@@ -1,4 +1,4 @@
-pub mod algorand_generic_ad_hoc_tests;
+pub mod algorand_checks;
 pub mod flow;
 pub mod generate_mnemonic;
 pub mod network_test_util;
