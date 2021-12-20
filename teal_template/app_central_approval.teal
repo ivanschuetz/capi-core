@@ -4,16 +4,15 @@ txn ApplicationID
 int 0
 ==
 
-// Note: temporary (maybe): we want to send create app in a group with the other project setup txs
 global GroupSize
-int 1
+int 7
 ==
 &&
 
 bnz branch_create
 
 global GroupSize
-int 1 // central opt in
+int 1 // central opt in - TODO what is this? who's opting in?
 ==
 bnz branch_opt_in
 

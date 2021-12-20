@@ -50,7 +50,7 @@ pub async fn create_project_txs(
     )
     .await?;
 
-    let create_app_tx = create_app_tx(
+    let mut create_app_tx = create_app_tx(
         algod,
         programs.central_app_approval,
         programs.central_app_clear,
@@ -63,7 +63,6 @@ pub async fn create_project_txs(
         &central_to_sign.escrow.address,
     )
     .await?;
-    // let mut create_app_tx = create_app_tx(algod, &creator).await?;
 
     // TODO why do we do this (invest and staking escrows setup) here instead of directly on project creation? there seem to be no deps on post-creation things?
     let mut setup_staking_escrow_to_sign = setup_staking_escrow_txs(
@@ -85,9 +84,16 @@ pub async fn create_project_txs(
     )
     .await?;
 
-    //////////////////////////////
-    // asset opt-ins (have to be before the other transactions)
+    // First tx group to submit - everything except the asset (shares) xfer to the escrow (which requires opt-in to be submitted first)
     TxGroup::assign_group_id(vec![
+        // app create (must be first in the group to return the app id, apparently)
+        &mut create_app_tx,
+        // funding
+        &mut central_to_sign.fund_min_balance_tx,
+        &mut customer_to_sign.fund_min_balance_tx,
+        &mut setup_staking_escrow_to_sign.escrow_funding_algos_tx,
+        &mut setup_invest_escrow_to_sign.escrow_funding_algos_tx,
+        // asset (shares) opt-ins
         &mut setup_staking_escrow_to_sign.escrow_shares_optin_tx,
         &mut setup_invest_escrow_to_sign.escrow_shares_optin_tx,
     ])?;
@@ -99,20 +105,10 @@ pub async fn create_project_txs(
     let invest_escrow = setup_invest_escrow_to_sign.escrow.clone();
     let invest_escrow_shares_optin_tx_signed =
         invest_escrow.sign(&setup_invest_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
-
     let optin_txs = vec![
         staking_escrow_shares_optin_tx_signed,
         invest_escrow_shares_optin_tx_signed,
     ];
-
-    //////////////////////////////
-
-    TxGroup::assign_group_id(vec![
-        &mut central_to_sign.fund_min_balance_tx,
-        &mut customer_to_sign.fund_min_balance_tx,
-        &mut setup_staking_escrow_to_sign.escrow_funding_algos_tx,
-        &mut setup_invest_escrow_to_sign.escrow_funding_algos_tx,
-    ])?;
 
     Ok(CreateProjectToSign {
         specs: specs.to_owned(),
@@ -123,7 +119,7 @@ pub async fn create_project_txs(
         central_escrow: central_to_sign.escrow,
         customer_escrow: customer_to_sign.escrow,
 
-        // initial funding (algos) round, to be signed by creator
+        // initial funding (algos), to be signed by creator
         escrow_funding_txs: vec![
             central_to_sign.fund_min_balance_tx,
             customer_to_sign.fund_min_balance_tx,
@@ -156,35 +152,23 @@ pub async fn submit_create_project(
     // crate::teal::debug_teal_rendered(&signed.optin_txs, "investing_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&signed.optin_txs, "staking_escrow").unwrap();
 
-    let _ = algod
-        .broadcast_signed_transactions(&signed.escrow_funding_txs)
-        .await?;
+    // First tx group to submit - everything except the asset (shares) xfer to the escrow
+    let mut first_group = vec![signed.create_app_tx];
+    for tx in signed.escrow_funding_txs {
+        first_group.push(tx)
+    }
+    for tx in signed.optin_txs {
+        first_group.push(tx)
+    }
+    let central_app_id = broadcast_txs_and_retrieve_app_id(algod, &first_group).await?;
 
-    let central_app_id = broadcast_txs_and_retrieve_app_id(algod, &[signed.create_app_tx]).await?;
-    // Now that the escrows are funded, opt them in
-
-    log::debug!(
-        "broadcasting project creation opt ins({:?})",
-        signed.optin_txs.len()
-    );
-    let submit_grouped_optin_txs_res = algod
-        .broadcast_signed_transactions(&signed.optin_txs)
-        .await?;
-    let _ = wait_for_pending_transaction(algod, &submit_grouped_optin_txs_res.tx_id)
-        .await?
-        .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
-    log::debug!("Executed optin txs");
-
-    // now that the escrows are opted in, send them assets
+    // Second tx to submit - asset xfer, which requires asset (shares) opt-in (submitted in first group)
     let submit_shares_xfer_tx_res = algod
         .broadcast_signed_transaction(&signed.xfer_shares_to_invest_escrow)
         .await?;
     let _ = wait_for_pending_transaction(algod, &submit_shares_xfer_tx_res.tx_id)
         .await?
         .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
-    log::debug!("Executed escrow xfer txs");
-
-    ///////////
 
     Ok(SubmitCreateProjectResult {
         project: Project {
@@ -204,14 +188,12 @@ async fn broadcast_txs_and_retrieve_app_id(
     algod: &Algod,
     txs: &[SignedTransaction],
 ) -> Result<u64> {
-    ///////////////////////////////////////////////////////////¯
-    // TODO investigate: application_index is None in p_tx when executing the app create tx together with the other txs
-    // see more notes in old repo
-    ///////////////////////////////////////////////////////////¯
     log::debug!("Creating central app..");
-    // let central_app_id = p_tx
-    //     .application_index
-    //     .ok_or(anyhow!("Pending tx didn't have app id"))?;
+
+    // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "investing_escrow").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "staking_escrow").unwrap();
+
     let create_app_res = algod.broadcast_signed_transactions(txs).await?;
     let p_tx = wait_for_pending_transaction(algod, &create_app_res.tx_id)
         .await?
@@ -219,10 +201,6 @@ async fn broadcast_txs_and_retrieve_app_id(
     let central_app_id = p_tx
         .application_index
         .ok_or_else(|| anyhow!("Pending tx didn't have app id"))?;
-    log::debug!("?? (see todo) central_app_id: {:?}", central_app_id);
-
-    ///////////////////////////////////////////////////////////¯
-    ///////////////////////////////////////////////////////////¯
 
     Ok(central_app_id)
 }

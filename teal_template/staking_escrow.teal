@@ -1,10 +1,10 @@
 #pragma version 4
 // asset opt-ins on project creation
 global GroupSize
-int 2
+int 7
 ==
 bz branch_after_group_access
-gtxn 0 XferAsset
+gtxn 5 XferAsset
 int {shares_asset_id}
 ==
 bnz branch_shares_opt_in
@@ -20,27 +20,27 @@ int 0
 return
 
 branch_shares_opt_in:
-gtxn 0 XferAsset
+gtxn 5 XferAsset
 int {shares_asset_id}
 ==
-gtxn 0 TypeEnum
+gtxn 5 TypeEnum
 int axfer
 ==
 &&
-gtxn 0 AssetAmount
+gtxn 5 AssetAmount
 int 0
 ==
 &&
 
-gtxn 0 Fee
+gtxn 5 Fee
 int 1000
 <=
 &&
-gtxn 0 RekeyTo
+gtxn 5 RekeyTo
 global ZeroAddress
 ==
 &&
-gtxn 0 AssetCloseTo
+gtxn 5 AssetCloseTo
 global ZeroAddress
 ==
 &&
