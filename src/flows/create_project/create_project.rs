@@ -37,16 +37,17 @@ pub async fn create_project_txs(
         precision
     );
 
-    // TODO reuse transaction params for all these txs, also in other places
+    let params = algod.suggested_transaction_params().await?;
 
     let mut central_to_sign =
-        setup_central_escrow(algod, &creator, programs.central_escrow).await?;
+        setup_central_escrow(algod, &creator, programs.central_escrow, &params).await?;
 
     let mut customer_to_sign = setup_customer_escrow(
         algod,
         &creator,
         central_to_sign.escrow.address,
         programs.customer_escrow,
+        &params,
     )
     .await?;
 
@@ -61,6 +62,7 @@ pub async fn create_project_txs(
         specs.investors_share,
         &customer_to_sign.escrow.address,
         &central_to_sign.escrow.address,
+        &params,
     )
     .await?;
 
@@ -71,6 +73,7 @@ pub async fn create_project_txs(
         shares_asset_id,
         specs.shares.count,
         &creator,
+        &params,
     )
     .await?;
     let mut setup_invest_escrow_to_sign = setup_investing_escrow_txs(
@@ -81,6 +84,7 @@ pub async fn create_project_txs(
         specs.asset_price,
         &creator,
         setup_staking_escrow_to_sign.escrow.address,
+        &params,
     )
     .await?;
 

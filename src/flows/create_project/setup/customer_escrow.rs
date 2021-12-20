@@ -1,6 +1,6 @@
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos},
+    core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{account::ContractAccount, Pay, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
@@ -21,15 +21,16 @@ pub async fn setup_customer_escrow(
     project_creator: &Address,
     central_address: Address,
     source: TealSourceTemplate,
+    params: &SuggestedTransactionParams,
 ) -> Result<SetupCustomerEscrowToSign> {
     let source = render_customer_escrow(central_address, source)?;
     let escrow = ContractAccount::new(algod.compile_teal(&source.0).await?);
     Ok(SetupCustomerEscrowToSign {
         fund_min_balance_tx: create_payment_tx(
-            algod,
             project_creator,
             &escrow.address,
             MIN_BALANCE + FIXED_FEE,
+            params,
         )
         .await?,
         escrow,
@@ -64,13 +65,16 @@ pub async fn submit_setup_customer_escrow(
 }
 
 async fn create_payment_tx(
-    algod: &Algod,
     sender: &Address,
     receiver: &Address,
     amount: MicroAlgos,
+    params: &SuggestedTransactionParams,
 ) -> Result<Transaction> {
-    let params = algod.suggested_transaction_params().await?;
-    let tx = &mut TxnBuilder::with(params, Pay::new(*sender, *receiver, amount).build()).build();
+    let tx = &mut TxnBuilder::with(
+        params.to_owned(),
+        Pay::new(*sender, *receiver, amount).build(),
+    )
+    .build();
     Ok(tx.clone())
 }
 

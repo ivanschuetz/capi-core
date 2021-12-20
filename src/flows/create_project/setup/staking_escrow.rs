@@ -1,6 +1,6 @@
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos},
+    core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
         account::ContractAccount, AcceptAsset, Pay, SignedTransaction, Transaction, TxnBuilder,
     },
@@ -40,6 +40,7 @@ pub async fn setup_staking_escrow_txs(
     shares_asset_id: u64,
     asset_amount: u64,
     creator: &Address,
+    params: &SuggestedTransactionParams,
 ) -> Result<SetupStakingEscrowToSign> {
     println!(
         "Setting up escrow with asset id: {}, amount: {}, creator: {:?}",
@@ -49,17 +50,15 @@ pub async fn setup_staking_escrow_txs(
     let escrow = create_staking_escrow(algod, shares_asset_id, source).await?;
     println!("Generated staking escrow address: {:?}", escrow.address);
 
-    let params = algod.suggested_transaction_params().await?;
-
     // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
     let fund_algos_tx = &mut TxnBuilder::with(
-        params.clone(),
+        params.to_owned(),
         Pay::new(*creator, escrow.address, MicroAlgos(1_000_000)).build(),
     )
     .build();
 
     let shares_optin_tx = &mut TxnBuilder::with(
-        params,
+        params.to_owned(),
         AcceptAsset::new(escrow.address, shares_asset_id).build(),
     )
     .build();

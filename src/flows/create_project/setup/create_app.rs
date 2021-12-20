@@ -1,6 +1,6 @@
 use algonaut::{
     algod::v2::Algod,
-    core::Address,
+    core::{Address, SuggestedTransactionParams},
     transaction::{transaction::StateSchema, CreateApplication, Transaction, TxnBuilder},
 };
 use anyhow::{anyhow, Result};
@@ -25,6 +25,7 @@ pub async fn create_app_tx(
     investors_share: u64,
     customer_escrow: &Address,
     central_escrow: &Address,
+    params: &SuggestedTransactionParams,
 ) -> Result<Transaction> {
     log::debug!(
         "Creating central app with asset id: {}, supply: {}",
@@ -44,9 +45,8 @@ pub async fn create_app_tx(
     let compiled_approval_program = algod.compile_teal(&approval_source.0).await?;
     let compiled_clear_program = algod.compile_teal(&clear_source.0).await?;
 
-    let params = algod.suggested_transaction_params().await?;
     let tx = TxnBuilder::with(
-        params,
+        params.to_owned(),
         CreateApplication::new(
             *creator,
             compiled_approval_program.clone().program,
@@ -140,6 +140,8 @@ mod tests {
         let approval_template = load_teal_template("app_central_approval")?;
         let clear_source = load_teal("app_central_clear")?;
 
+        let params = algod.suggested_transaction_params().await?;
+
         // asset id and supply aren't used here so we can pass anything (0 in this case)
         let tx = create_app_tx(
             &algod,
@@ -158,6 +160,7 @@ mod tests {
             &"P7GEWDXXW5IONRW6XRIRVPJCT2XXEQGOBGG65VJPBUOYZEJCBZWTPHS3VQ"
                 .parse()
                 .map_err(Error::msg)?,
+            &params,
         )
         .await?;
 
