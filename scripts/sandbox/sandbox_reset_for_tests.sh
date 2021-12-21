@@ -1,6 +1,6 @@
 # run before each test
 
-# reset sandbox (this also starts it)
+# reset sandbox
 sandbox reset
 
 sh ./fund_accounts_sandbox.sh
