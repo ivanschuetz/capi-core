@@ -3,8 +3,6 @@ use std::fs;
 use algonaut::transaction::SignedTransaction;
 use anyhow::{anyhow, Result};
 use serde::Serialize;
-use tealdbg::Config;
-// use tealdbg::Config;
 use tinytemplate::TinyTemplate;
 
 // not rendered teal template (with placeholders)
@@ -73,13 +71,5 @@ pub fn debug_teal_rendered(txs: &[SignedTransaction], file_name: &str) -> Result
 /// file_name without .teal
 #[allow(dead_code)]
 fn debug_teal_internal(txs: &[SignedTransaction], folder: &str, file_name: &str) -> Result<()> {
-    tealdbg::launch(
-        Config {
-            // node_dir: Some("./scripts/private_net/net/Node"),
-            ..Config::default()
-        },
-        txs,
-        format!("{}/{}.teal", folder, file_name),
-    )
-    .map_err(|e| anyhow!(e))
+    tealdbg::launch_default(txs, &format!("{}/{}.teal", folder, file_name)).map_err(|e| anyhow!(e))
 }

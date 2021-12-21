@@ -155,10 +155,6 @@ pub async fn submit_create_project(
         signed.escrow_funding_txs.len()
     );
 
-    // crate::teal::debug_teal_rendered(&signed.optin_txs, "app_central_approval").unwrap();
-    // crate::teal::debug_teal_rendered(&signed.optin_txs, "investing_escrow").unwrap();
-    // crate::teal::debug_teal_rendered(&signed.optin_txs, "staking_escrow").unwrap();
-
     let mut signed_txs = vec![signed.create_app_tx];
     for tx in signed.escrow_funding_txs {
         signed_txs.push(tx)
@@ -167,6 +163,10 @@ pub async fn submit_create_project(
         signed_txs.push(tx)
     }
     signed_txs.push(signed.xfer_shares_to_invest_escrow);
+
+    // crate::teal::debug_teal_rendered(&signed_txs, "app_central_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&signed_txs, "investing_escrow").unwrap();
+    // crate::teal::debug_teal_rendered(&signed_txs, "staking_escrow").unwrap();
 
     let central_app_id = broadcast_txs_and_retrieve_app_id(algod, &signed_txs).await?;
 
