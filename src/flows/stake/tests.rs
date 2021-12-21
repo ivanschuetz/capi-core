@@ -41,7 +41,7 @@ mod tests {
 
         // deps
 
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor1 = investor1();
         let investor2 = investor2();

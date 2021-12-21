@@ -1,7 +1,7 @@
 pub mod api;
 mod debug_msg_pack_submit_par;
 pub mod decimal_util;
-mod dependencies;
+pub mod dependencies;
 pub mod diagnostics;
 pub mod flows;
 mod logger;

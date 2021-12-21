@@ -18,7 +18,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
         let creator = creator();
 
         // UI

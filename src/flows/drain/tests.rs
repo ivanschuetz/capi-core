@@ -30,7 +30,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
         // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
         let creator = creator();
         let drainer = investor1();

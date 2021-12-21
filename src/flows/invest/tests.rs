@@ -35,7 +35,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
 
@@ -123,7 +123,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
 
@@ -166,7 +166,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
 
@@ -215,7 +215,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
 
@@ -264,7 +264,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
 
@@ -321,7 +321,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
         let drainer = investor2();
@@ -372,7 +372,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
         let drainer = investor2();

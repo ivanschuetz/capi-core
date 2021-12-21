@@ -1,6 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use anyhow::Result;
 
+#[cfg(not(target_arch = "wasm32"))]
 #[allow(dead_code)]
 pub fn init_logger() -> Result<()> {
     match log4rs::init_file("./log_config.yml", Default::default()) {

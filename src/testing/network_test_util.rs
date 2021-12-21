@@ -1,6 +1,7 @@
 #[cfg(test)]
 use {
     crate::logger::init_logger,
+    crate::dependencies::{network, Network},
     anyhow::Result,
     std::process::Command,
     std::{
@@ -13,17 +14,24 @@ use {
 #[cfg(test)]
 pub fn test_init() -> Result<()> {
     init_logger()?;
-    reset_network()?;
+    reset_network(&network())?;
     Ok(())
 }
 
 #[cfg(test)]
-fn reset_network() -> Result<()> {
-    let reset_res = Command::new("sh")
-        .current_dir("scripts/sandbox")
-        .arg("./sandbox_reset_for_tests.sh")
-        // .current_dir("scripts/private_net")
-        // .arg("./private_net_reset_for_tests.sh")
+fn reset_network(net: &Network) -> Result<()> {
+    let mut cmd = Command::new("sh");
+
+    let cmd_with_net_args = match net {
+        &Network::SandboxPrivate => cmd
+            .current_dir("scripts/sandbox")
+            .arg("./sandbox_reset_for_tests.sh"),
+        Network::Private => cmd
+            .current_dir("scripts/private_net")
+            .arg("./private_net_reset_for_tests.sh"),
+    };
+
+    let reset_res = cmd_with_net_args
         .stdout(Stdio::piped())
         .spawn()?
         .stdout

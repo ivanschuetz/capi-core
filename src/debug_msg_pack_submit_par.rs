@@ -21,7 +21,7 @@ mod tests {
     #[test]
     #[ignore]
     async fn debug_msg_pack_submit_par() -> Result<()> {
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
 
         // update rendered teal if needed - since teal was rendered with WASM,
         // it's possible that the saved teal used here is outdated

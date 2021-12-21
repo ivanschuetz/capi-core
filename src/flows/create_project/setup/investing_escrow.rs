@@ -159,7 +159,7 @@ mod tests {
             render_investing_escrow(template, 123, MicroAlgos(1_000_000), Address::new([0; 32]))?;
 
         // deps
-        let algod = dependencies::algod();
+        let algod = dependencies::algod_for_tests();
 
         let _ = algod.compile_teal(&source.0).await?;
 

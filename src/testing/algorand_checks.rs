@@ -4,7 +4,9 @@
 #[cfg(test)]
 use super::test_data::{creator, investor1};
 #[cfg(test)]
-use crate::{dependencies::algod, network_util::wait_for_pending_transaction, teal::load_teal};
+use crate::{
+    dependencies::algod_for_tests, network_util::wait_for_pending_transaction, teal::load_teal,
+};
 #[cfg(test)]
 use algonaut::{
     algod::v2::Algod,
@@ -136,7 +138,7 @@ pub async fn transfer_asset_and_sign(
 #[test]
 #[ignore]
 async fn create_app_has_to_be_first_in_group_to_retrieve_app_id() -> Result<()> {
-    let algod = algod();
+    let algod = algod_for_tests();
 
     let sender = creator();
 
@@ -168,7 +170,7 @@ async fn create_app_has_to_be_first_in_group_to_retrieve_app_id() -> Result<()> 
 #[test]
 #[ignore]
 async fn optin_and_receive_asset_can_be_in_the_same_group() -> Result<()> {
-    let algod = algod();
+    let algod = algod_for_tests();
 
     let asset_creator_and_sender = creator();
     let assset_receiver = investor1();
