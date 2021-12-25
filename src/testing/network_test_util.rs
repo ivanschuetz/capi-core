@@ -1,8 +1,10 @@
 #[cfg(test)]
 use {
-    crate::logger::init_logger,
     crate::dependencies::{network, Network},
+    crate::logger::init_logger,
     anyhow::Result,
+    dotenv::dotenv,
+    std::env,
     std::process::Command,
     std::{
         io::{BufRead, BufReader},
@@ -13,7 +15,13 @@ use {
 /// Common tests initialization
 #[cfg(test)]
 pub fn test_init() -> Result<()> {
-    init_logger()?;
+    // load vars in .env file
+    dotenv().ok();
+
+    if env::var("TESTS_LOGGING")?.parse::<i32>()? == 1 {
+        init_logger()?;
+        log::debug!("Logging is enabled");
+    }
     reset_network(&network())?;
     Ok(())
 }
