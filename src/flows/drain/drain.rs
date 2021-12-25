@@ -112,7 +112,7 @@ pub async fn submit_drain_customer_escrow(
             signed.pay_fee_tx.clone(),
         ])
         .await?;
-    println!("Drain customer escrow tx id: {:?}", res.tx_id);
+    log::debug!("Drain customer escrow tx id: {:?}", res.tx_id);
     Ok(res.tx_id)
 }
 

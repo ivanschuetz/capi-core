@@ -28,14 +28,14 @@ mod tests {
         let project = create_project_flow(&algod, &creator, &specs, precision).await?;
 
         // UI
-        println!("Submitted create project txs, project: {:?}", project);
+        log::debug!("Submitted create project txs, project: {:?}", project);
 
         let creator_infos = algod.account_information(&creator.address()).await?;
         let created_assets = creator_infos.created_assets;
 
         assert_eq!(created_assets.len(), 1);
 
-        println!("created_assets {:?}", created_assets);
+        log::debug!("created_assets {:?}", created_assets);
 
         // created asset checks
         assert_eq!(created_assets[0].params.creator, creator.address());

@@ -80,7 +80,7 @@ pub async fn create_project_flow(
     )
     .await?;
 
-    println!("Created project: {:?}", create_res.project);
+    log::debug!("Created project: {:?}", create_res.project);
 
     Ok(create_res.project)
 }

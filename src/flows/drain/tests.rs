@@ -65,12 +65,12 @@ mod tests {
             .amount;
         let drainer_balance = algod.account_information(&drainer.address()).await?.amount;
 
-        println!(
+        log::debug!(
             "customer_escrow_balance last: {:?}",
             customer_escrow_balance
         );
-        println!("central_escrow_balance last: {:?}", central_escrow_balance);
-        println!("drainer_balance last: {:?}", drainer_balance);
+        log::debug!("central_escrow_balance last: {:?}", central_escrow_balance);
+        log::debug!("drainer_balance last: {:?}", drainer_balance);
         // check that customer escrow was drained. Account keeps min balance, and fee (to be able to pay for the harvest tx (before it's funded in the same group))
         assert_eq!(MIN_BALANCE + FIXED_FEE, customer_escrow_balance);
         // check that central escrow has now the funds from customer escrow (funds at creation: MIN_BALANCE + FIXED_FEE)

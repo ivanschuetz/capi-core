@@ -42,13 +42,15 @@ pub async fn setup_staking_escrow_txs(
     creator: &Address,
     params: &SuggestedTransactionParams,
 ) -> Result<SetupStakingEscrowToSign> {
-    println!(
+    log::debug!(
         "Setting up escrow with asset id: {}, amount: {}, creator: {:?}",
-        shares_asset_id, asset_amount, creator
+        shares_asset_id,
+        asset_amount,
+        creator
     );
 
     let escrow = create_staking_escrow(algod, shares_asset_id, source).await?;
-    println!("Generated staking escrow address: {:?}", escrow.address);
+    log::debug!("Generated staking escrow address: {:?}", escrow.address);
 
     // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
     let fund_algos_tx = &mut TxnBuilder::with(
@@ -81,7 +83,7 @@ pub async fn submit_staking_setup_escrow(
     let shares_optin_escrow_res = algod
         .broadcast_signed_transaction(&signed.shares_optin_tx)
         .await?;
-    println!("shares_optin_escrow_res: {:?}", shares_optin_escrow_res);
+    log::debug!("shares_optin_escrow_res: {:?}", shares_optin_escrow_res);
 
     Ok(SubmitSetupStakingEscrowRes {
         shares_optin_escrow_algos_tx_id: shares_optin_escrow_res.tx_id,

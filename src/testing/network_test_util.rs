@@ -49,7 +49,7 @@ fn reset_network(net: &Network) -> Result<()> {
         .lines()
         .filter_map(|line| line.ok())
     {
-        // println!("{}", _line);
+        // log::debug!("{}", _line);
     }
 
     Ok(())

@@ -28,7 +28,7 @@ pub async fn invest_txs(
     asset_count: u64,
     asset_price: MicroAlgos,
 ) -> Result<InvestToSign> {
-    println!("Investing in project: {:?}", project);
+    log::debug!("Investing in project: {:?}", project);
 
     let params = algod.suggested_transaction_params().await?;
 

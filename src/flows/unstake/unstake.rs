@@ -91,7 +91,7 @@ pub async fn submit_unstake(algod: &Algod, signed: UnstakeSigned) -> Result<Stri
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
-    println!("Unstake tx id: {:?}", res.tx_id);
+    log::debug!("Unstake tx id: {:?}", res.tx_id);
     Ok(res.tx_id)
 }
 

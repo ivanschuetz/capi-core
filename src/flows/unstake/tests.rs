@@ -78,7 +78,7 @@ mod tests {
         let unstake_share_amount = buy_asset_amount;
 
         let unstake_tx_id = unstake_flow(&algod, &project, &investor, unstake_share_amount).await?;
-        println!("?? unstake tx id: {:?}", unstake_tx_id);
+        log::debug!("?? unstake tx id: {:?}", unstake_tx_id);
         let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
 
         // shares not anymore in staking escrow

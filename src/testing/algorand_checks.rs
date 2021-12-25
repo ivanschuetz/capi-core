@@ -161,7 +161,7 @@ async fn create_app_has_to_be_first_in_group_to_retrieve_app_id() -> Result<()> 
         .unwrap();
 
     let app_id = p_tx.application_index;
-    println!("app_id: {:?}", app_id);
+    log::debug!("app_id: {:?}", app_id);
 
     Ok(())
 }
@@ -199,7 +199,7 @@ async fn optin_and_receive_asset_can_be_in_the_same_group() -> Result<()> {
         .broadcast_signed_transactions(&[optin_to_asset_signed_tx, receive_asset_signed_tx])
         .await;
 
-    println!("res: {:?}", res);
+    log::debug!("res: {:?}", res);
     assert!(res.is_ok());
 
     Ok(())

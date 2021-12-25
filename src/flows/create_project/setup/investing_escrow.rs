@@ -61,9 +61,11 @@ pub async fn setup_investing_escrow_txs(
     staking_escrow_address: Address,
     params: &SuggestedTransactionParams,
 ) -> Result<SetupInvestingEscrowToSign> {
-    println!(
+    log::debug!(
         "Setting up escrow with asset id: {}, amount: {}, creator: {:?}",
-        shares_asset_id, asset_amount, creator
+        shares_asset_id,
+        asset_amount,
+        creator
     );
 
     let escrow = create_investing_escrow(
@@ -74,7 +76,7 @@ pub async fn setup_investing_escrow_txs(
         source,
     )
     .await?;
-    println!("Generated investing escrow address: {:?}", escrow.address);
+    log::debug!("Generated investing escrow address: {:?}", escrow.address);
 
     // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
     let fund_algos_tx = &mut TxnBuilder::with(
@@ -115,7 +117,7 @@ pub async fn submit_investing_setup_escrow(
     let shares_optin_escrow_res = algod
         .broadcast_signed_transaction(&signed.shares_optin_tx)
         .await?;
-    println!("shares_optin_escrow_res: {:?}", shares_optin_escrow_res);
+    log::debug!("shares_optin_escrow_res: {:?}", shares_optin_escrow_res);
 
     Ok(SubmitSetupEscrowRes {
         shares_optin_escrow_algos_tx_id: shares_optin_escrow_res.tx_id,
@@ -139,7 +141,7 @@ mod tests {
     use anyhow::Result;
     use tokio::test;
 
-    // Prints the rendered TEAL
+    // Logs the rendered TEAL
     #[test]
     #[ignore]
     async fn test_render_escrow() -> Result<()> {
@@ -147,7 +149,7 @@ mod tests {
         let source =
             render_investing_escrow(template, 123, MicroAlgos(1_000_000), Address::new([0; 32]))?;
         let source_str = String::from_utf8(source.0)?;
-        println!("source: {}", source_str);
+        log::debug!("source: {}", source_str);
         Ok(())
     }
 

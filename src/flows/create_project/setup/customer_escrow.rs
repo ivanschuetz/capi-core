@@ -60,7 +60,7 @@ pub async fn submit_setup_customer_escrow(
     let res = algod
         .broadcast_signed_transaction(&signed.fund_min_balance_tx)
         .await?;
-    println!("Payment tx id: {:?}", res.tx_id);
+    log::debug!("Payment tx id: {:?}", res.tx_id);
     Ok(res.tx_id)
 }
 

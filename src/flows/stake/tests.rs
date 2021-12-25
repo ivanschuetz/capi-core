@@ -172,7 +172,7 @@ mod tests {
         // investor2 harvests: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         // the harvest amount is the smallest number possible, to show that we can't retrieve anything
         let harvest_flow_res = harvest_flow(&algod, &project, &investor2, MicroAlgos(1)).await;
-        println!("Expected error harvesting: {:?}", harvest_flow_res);
+        log::debug!("Expected error harvesting: {:?}", harvest_flow_res);
         // If there's nothing to harvest, the smart contract fails (transfer amount > allowed)
         assert!(harvest_flow_res.is_err());
 
@@ -203,7 +203,7 @@ mod tests {
             TESTS_DEFAULT_PRECISION,
             project.specs.investors_share,
         );
-        println!(
+        log::debug!(
             "Harvesting max possible amount (expected to succeed): {:?}",
             investor2_entitled_amount
         );

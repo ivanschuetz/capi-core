@@ -167,7 +167,7 @@ mod tests {
         let signed_tx = creator.sign_transaction(&tx)?;
         let res = algod.broadcast_signed_transaction(&signed_tx).await?;
 
-        println!("App created! tx id: {:?}", res.tx_id);
+        log::debug!("App created! tx id: {:?}", res.tx_id);
         let p_tx_opt = wait_for_pending_transaction(&algod, &res.tx_id).await?;
         assert!(p_tx_opt.is_some());
         let p_tx = p_tx_opt.unwrap();

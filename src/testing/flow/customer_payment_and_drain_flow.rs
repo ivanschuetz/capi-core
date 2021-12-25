@@ -72,7 +72,7 @@ pub async fn customer_payment_and_drain_flow(
     let pay_fee_tx_signed = drainer.sign_transaction(&drain_to_sign.pay_fee_tx)?;
     let app_call_tx_signed = drainer.sign_transaction(&drain_to_sign.app_call_tx)?;
 
-    println!(
+    log::debug!(
         "customer_escrow_balance before drain: {:?}",
         customer_escrow_balance
     );
@@ -128,7 +128,7 @@ async fn send_payment_to_customer_escrow(
     let signed_tx = customer.sign_transaction(tx)?;
     let res = algod.broadcast_signed_transaction(&signed_tx).await?;
 
-    println!("Customer payment tx id: {:?}", res.tx_id);
+    log::debug!("Customer payment tx id: {:?}", res.tx_id);
 
     Ok(res.tx_id)
 }
