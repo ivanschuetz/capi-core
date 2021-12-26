@@ -7,6 +7,9 @@ use algonaut::{
     },
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
+
+use crate::withdrawal_note_prefix::generate_withdrawal_tx_note;
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -17,7 +20,7 @@ pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 pub async fn withdraw(
     algod: &Algod,
     creator: Address,
-    amount: MicroAlgos,
+    inputs: &WithdrawalInputs,
     central_escrow: &ContractAccount,
 ) -> Result<WithdrawToSign> {
     log::debug!("Creating withdrawal txs..");
@@ -30,8 +33,9 @@ pub async fn withdraw(
             fee: FIXED_FEE,
             ..params.clone()
         },
-        Pay::new(central_escrow.address, creator, amount).build(),
+        Pay::new(central_escrow.address, creator, inputs.amount).build(),
     )
+    .note(to_note(&inputs)?)
     .build();
 
     // The creator pays the fee of the withdraw tx (signed by central escrow)
@@ -52,6 +56,17 @@ pub async fn withdraw(
         withdraw_tx: signed_withdraw_tx,
         pay_withdraw_fee_tx,
     })
+}
+
+fn to_note(withdrawal: &WithdrawalInputs) -> Result<Vec<u8>> {
+    // TODO compression, e.g. https://github.com/silentsokolov/rust-smaz
+    // in a test it compressed ~40% of regular english text (from random wikipedia article)
+    // it increased WASM file size by only ~16kb
+    let body = withdrawal.description.clone();
+    Ok(generate_withdrawal_tx_note(
+        withdrawal.project_id.parse()?,
+        &body,
+    ))
 }
 
 pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<String> {
@@ -80,4 +95,11 @@ pub struct WithdrawToSign {
 pub struct WithdrawSigned {
     pub withdraw_tx: SignedTransaction,
     pub pay_withdraw_fee_tx: SignedTransaction,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct WithdrawalInputs {
+    pub project_id: String,
+    pub amount: MicroAlgos,
+    pub description: String,
 }

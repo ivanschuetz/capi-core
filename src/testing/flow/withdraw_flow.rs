@@ -3,7 +3,7 @@ use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
 #[cfg(test)]
 use crate::flows::{
     create_project::model::Project,
-    withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned},
+    withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs},
 };
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
@@ -55,7 +55,17 @@ pub async fn withdraw_flow(
     let withdrawer_balance_before_withdrawing =
         algod.account_information(&creator.address()).await?.amount;
 
-    let to_sign = withdraw(&algod, creator.address(), amount, &project.central_escrow).await?;
+    let to_sign = withdraw(
+        &algod,
+        creator.address(),
+        &WithdrawalInputs {
+            project_id: "0".to_owned(),
+            amount,
+            description: "Withdrawing from tests".to_owned(),
+        },
+        &project.central_escrow,
+    )
+    .await?;
 
     // UI
     let pay_withdraw_fee_tx_signed = creator.sign_transaction(&to_sign.pay_withdraw_fee_tx)?;

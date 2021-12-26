@@ -29,15 +29,8 @@ pub struct ProjectForUsers {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct WithdrawalInputs {
-    pub project_id: String,
-    pub amount: MicroAlgos,
-    pub description: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Withdrawal {
-    pub project_id: String,
+    pub project_id: u64,
     pub amount: MicroAlgos,
     pub description: String,
     pub date: DateTime<Utc>,

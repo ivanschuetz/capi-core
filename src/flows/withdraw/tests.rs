@@ -10,7 +10,9 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, FIXED_FEE},
+        flows::withdraw::withdraw::{
+            submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs, FIXED_FEE,
+        },
         testing::{
             flow::{
                 create_project_flow::create_project_flow,
@@ -110,7 +112,11 @@ mod tests {
         let to_sign = withdraw(
             &algod,
             creator.address(),
-            withdraw_amount,
+            &WithdrawalInputs {
+                project_id: "0".to_owned(),
+                amount: withdraw_amount,
+                description: "Withdrawing from tests".to_owned(),
+            },
             &project.central_escrow,
         )
         .await?;
@@ -193,7 +199,11 @@ mod tests {
         let to_sign = withdraw(
             &algod,
             not_creator.address(),
-            withdraw_amount,
+            &WithdrawalInputs {
+                project_id: "0".to_owned(),
+                amount: withdraw_amount,
+                description: "Withdrawing from tests".to_owned(),
+            },
             &project.central_escrow,
         )
         .await?;

@@ -1,4 +1,7 @@
-use algonaut::algod::{v2::Algod, AlgodBuilder};
+use algonaut::{
+    algod::{v2::Algod, AlgodBuilder},
+    indexer::{v2::Indexer, IndexerBuilder},
+};
 
 #[derive(Debug)]
 pub enum Network {
@@ -56,15 +59,38 @@ pub fn algod() -> Algod {
     algod_for_net(&network())
 }
 
+/// Convenience to not have to pass env everywhere
+pub fn indexer() -> Indexer {
+    indexer_for_net(&network())
+}
+
 pub fn algod_for_tests() -> Algod {
     // for tests there's no need to pass an environment - network is hardcoded
     algod_for_net(&Network::SandboxPrivate)
+}
+
+pub fn indexer_for_tests() -> Indexer {
+    // for tests there's no need to pass an environment - network is hardcoded
+    indexer_for_net(&Network::SandboxPrivate)
 }
 
 fn algod_for_net(network: &Network) -> Algod {
     match network {
         Network::SandboxPrivate => sandbox_private_network_algod(),
         Network::Private => private_network_algod(),
+    }
+}
+
+fn indexer_for_net(network: &Network) -> Indexer {
+    match network {
+        Network::SandboxPrivate => sandbox_private_network_indexer(),
+        Network::Private => {
+            // Situational: since we've not needed indexer until now, the private network scripts don't support it.
+            // and since we switched to sandbox, no reason to spend time with this currently.
+            let msg = "Private network doesn't support indexer yet";
+            log::error!("{}", msg); // for WASM, which doesn't see panic messages
+            panic!("{}", msg);
+        }
     }
 }
 
@@ -75,6 +101,14 @@ fn sandbox_private_network_algod() -> Algod {
         .auth("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") // sandbox
         .build_v2()
         .expect("Couldn't initialize sandbox algod")
+}
+
+#[allow(dead_code)]
+fn sandbox_private_network_indexer() -> Indexer {
+    IndexerBuilder::new()
+        .bind("http://127.0.0.1:8980") // sandbox
+        .build_v2()
+        .expect("Couldn't initialize sandbox indexer")
 }
 
 #[allow(dead_code)]
