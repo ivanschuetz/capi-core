@@ -8,6 +8,7 @@ use algonaut::{
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // workaround for some algonaut types not being serializable with json (only msg pack)
@@ -43,6 +44,7 @@ impl TryFrom<ContractAccountJson> for ContractAccount {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectJson {
+    pub uuid: Uuid,
     pub specs: CreateProjectSpecs,
     pub shares_asset_id: u64,
     pub central_app_id: u64,
@@ -56,6 +58,7 @@ pub struct ProjectJson {
 impl From<Project> for ProjectJson {
     fn from(p: Project) -> Self {
         ProjectJson {
+            uuid: p.uuid,
             specs: p.specs,
             shares_asset_id: p.shares_asset_id,
             central_app_id: p.central_app_id,
@@ -73,6 +76,7 @@ impl TryFrom<ProjectJson> for Project {
 
     fn try_from(p: ProjectJson) -> Result<Self, Self::Error> {
         Ok(Project {
+            uuid: p.uuid,
             specs: p.specs,
             shares_asset_id: p.shares_asset_id,
             central_app_id: p.central_app_id,
@@ -92,6 +96,7 @@ impl TryFrom<ProjectJson> for Project {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectForUsersJson {
     pub id: String,
+    pub uuid: String,
     pub name: String,
     pub asset_price: MicroAlgos,
     pub investors_share: String,
@@ -111,6 +116,7 @@ impl From<ProjectForUsers> for ProjectForUsersJson {
     fn from(p: ProjectForUsers) -> Self {
         ProjectForUsersJson {
             id: p.id.clone(),
+            uuid: p.uuid.clone(),
             name: p.name.clone(),
             asset_price: p.asset_price,
             investors_share: p.investors_share.to_string(),
@@ -134,6 +140,7 @@ impl TryFrom<ProjectForUsersJson> for ProjectForUsers {
     fn try_from(p: ProjectForUsersJson) -> Result<Self, Self::Error> {
         Ok(ProjectForUsers {
             id: p.id.clone(),
+            uuid: p.uuid.clone(),
             name: p.name.clone(),
             asset_price: p.asset_price,
             investors_share: p.investors_share.parse()?,

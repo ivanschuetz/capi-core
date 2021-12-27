@@ -8,6 +8,7 @@ use algonaut::{
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::withdrawal_note_prefix::generate_withdrawal_tx_note;
 
@@ -35,7 +36,7 @@ pub async fn withdraw(
         },
         Pay::new(central_escrow.address, creator, inputs.amount).build(),
     )
-    .note(to_note(&inputs)?)
+    .note(to_note(inputs)?)
     .build();
 
     // The creator pays the fee of the withdraw tx (signed by central escrow)
@@ -63,10 +64,7 @@ fn to_note(withdrawal: &WithdrawalInputs) -> Result<Vec<u8>> {
     // in a test it compressed ~40% of regular english text (from random wikipedia article)
     // it increased WASM file size by only ~16kb
     let body = withdrawal.description.clone();
-    Ok(generate_withdrawal_tx_note(
-        withdrawal.project_id.parse()?,
-        &body,
-    ))
+    Ok(generate_withdrawal_tx_note(&withdrawal.project_uuid, &body))
 }
 
 pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<String> {
@@ -99,7 +97,7 @@ pub struct WithdrawSigned {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct WithdrawalInputs {
-    pub project_id: String,
+    pub project_uuid: Uuid,
     pub amount: MicroAlgos,
     pub description: String,
 }

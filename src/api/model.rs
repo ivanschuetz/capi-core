@@ -3,6 +3,7 @@ use std::error::Error;
 use algonaut::core::{Address, MicroAlgos};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 pub type DefaultError = Box<dyn Error + Send + Sync>;
 
@@ -13,6 +14,7 @@ pub type DefaultError = Box<dyn Error + Send + Sync>;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectForUsers {
     pub id: String,
+    pub uuid: String,
     pub name: String,
     pub asset_price: MicroAlgos,
     pub investors_share: u64,
@@ -30,7 +32,7 @@ pub struct ProjectForUsers {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Withdrawal {
-    pub project_id: u64,
+    pub project_uuid: Uuid,
     pub amount: MicroAlgos,
     pub description: String,
     pub date: DateTime<Utc>,

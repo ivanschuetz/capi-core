@@ -2,6 +2,7 @@ use std::convert::TryInto;
 
 use algonaut::{core::Address, indexer::v2::Indexer, model::indexer::v2::QueryAccountTransaction};
 use chrono::{DateTime, NaiveDateTime, Utc};
+use uuid::Uuid;
 
 use crate::{
     api::model::Withdrawal,
@@ -14,10 +15,14 @@ use anyhow::{anyhow, Result};
 pub async fn withdrawals(
     indexer: &Indexer,
     creator: &Address,
-    project_id: u64,
+    project_uuid: &Uuid,
 ) -> Result<Vec<Withdrawal>> {
-    let mut query = QueryAccountTransaction::default();
-    query.note_prefix = Some(withdrawal_tx_note_prefix_with_project_id_base64(project_id));
+    let query = QueryAccountTransaction {
+        note_prefix: Some(withdrawal_tx_note_prefix_with_project_id_base64(
+            project_uuid,
+        )),
+        ..Default::default()
+    };
 
     let txs = indexer
         .account_transactions(creator, &query)
@@ -39,17 +44,16 @@ pub async fn withdrawals(
             .ok_or_else(|| anyhow!("Unexpected: withdrawal tx has no note: {:?}", tx))?;
 
         // for now the only payload is the description
-        let withdrawal_description = strip_prefix_from_note(&note.as_bytes(), project_id)?;
+        let withdrawal_description = strip_prefix_from_note(note.as_bytes(), project_uuid)?;
 
         // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
         // Unclear when it's None. For now we just reject it.
         let round_time = tx
             .round_time
-            .clone()
             .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
         withdrawals.push(Withdrawal {
-            project_id,
+            project_uuid: project_uuid.to_owned(),
             amount: payment.amount,
             description: withdrawal_description,
             date: to_date(round_time)?,

@@ -4,6 +4,7 @@ use algonaut::{
     transaction::{tx_group::TxGroup, SignedTransaction},
 };
 use anyhow::{anyhow, Result};
+use uuid::Uuid;
 
 use crate::{
     flows::create_project::{
@@ -39,8 +40,16 @@ pub async fn create_project_txs(
 
     let params = algod.suggested_transaction_params().await?;
 
-    let mut central_to_sign =
-        setup_central_escrow(algod, &creator, programs.central_escrow, &params).await?;
+    let project_uuid = Uuid::new_v4();
+
+    let mut central_to_sign = setup_central_escrow(
+        algod,
+        &creator,
+        programs.central_escrow,
+        &params,
+        &project_uuid,
+    )
+    .await?;
 
     let mut customer_to_sign = setup_customer_escrow(
         algod,
@@ -117,6 +126,7 @@ pub async fn create_project_txs(
     ];
 
     Ok(CreateProjectToSign {
+        uuid: project_uuid,
         specs: specs.to_owned(),
         creator,
 
@@ -172,6 +182,7 @@ pub async fn submit_create_project(
 
     Ok(SubmitCreateProjectResult {
         project: Project {
+            uuid: signed.uuid,
             specs: signed.specs,
             shares_asset_id: signed.shares_asset_id,
             central_app_id,

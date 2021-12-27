@@ -37,3 +37,13 @@ gtxn 0 Receiver
 addr {project_creator_address}
 ==
 &&
+
+// check that the withdrawal note has the expected prefix
+// otherwise the creator can create withdrawals that will not be listed on the app / seen by investors
+// (the withdrawals are queried by prefix (using the indexer) - 
+// there seem to be no way currently to query by receiver address (so all payments central->creator), which would be simpler)
+gtxn 0 Note // withdrawal
+substring 0 20 // prefix: 4 bytes "capi" + 16 bytes project uuid
+byte b64 {withdrawal_prefix_base64}
+==
+&&

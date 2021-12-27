@@ -7,6 +7,7 @@ mod tests {
     use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
+    use uuid::Uuid;
 
     use crate::{
         dependencies,
@@ -113,7 +114,7 @@ mod tests {
             &algod,
             creator.address(),
             &WithdrawalInputs {
-                project_id: "0".to_owned(),
+                project_uuid: Uuid::new_v4(),
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
             },
@@ -200,7 +201,7 @@ mod tests {
             &algod,
             not_creator.address(),
             &WithdrawalInputs {
-                project_id: "0".to_owned(),
+                project_uuid: Uuid::new_v4(),
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
             },

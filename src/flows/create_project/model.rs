@@ -3,6 +3,7 @@ use algonaut::{
     transaction::{account::ContractAccount, SignedTransaction, Transaction},
 };
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreateProjectSpecs {
@@ -44,6 +45,7 @@ pub struct CreateProjectToSign {
     // (note that "to sign" in struct's name means that there are _some_ txs to sign. this is just passtrough data)
     pub optin_txs: Vec<SignedTransaction>,
 
+    pub uuid: Uuid,
     pub specs: CreateProjectSpecs,
     pub staking_escrow: ContractAccount,
     pub invest_escrow: ContractAccount,
@@ -76,6 +78,7 @@ pub struct CreateProjectSigned {
     //////////////////////////////////////////////
     // passthrough
     //////////////////////////////////////////////
+    pub uuid: Uuid,
     pub specs: CreateProjectSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
@@ -88,6 +91,7 @@ pub struct CreateProjectSigned {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Project {
     pub specs: CreateProjectSpecs,
+    pub uuid: Uuid,
     pub creator: Address,
     pub shares_asset_id: u64,
     pub central_app_id: u64,
