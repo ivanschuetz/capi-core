@@ -36,6 +36,7 @@ pub struct Withdrawal {
     pub amount: MicroAlgos,
     pub description: String,
     pub date: DateTime<Utc>,
+    pub tx_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

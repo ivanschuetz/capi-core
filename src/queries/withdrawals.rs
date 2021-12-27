@@ -57,6 +57,7 @@ pub async fn withdrawals(
             amount: payment.amount,
             description: withdrawal_description,
             date: to_date(round_time)?,
+            tx_id: tx.id.clone(),
         })
     }
 
