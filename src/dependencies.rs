@@ -1,7 +1,4 @@
-use algonaut::{
-    algod::{v2::Algod, AlgodBuilder},
-    indexer::{v2::Indexer, IndexerBuilder},
-};
+use algonaut::{algod::v2::Algod, indexer::v2::Indexer};
 
 #[derive(Debug)]
 pub enum Network {
@@ -96,26 +93,23 @@ fn indexer_for_net(network: &Network) -> Indexer {
 
 #[allow(dead_code)]
 fn sandbox_private_network_algod() -> Algod {
-    AlgodBuilder::new()
-        .bind("http://127.0.0.1:4001") // sandbox
-        .auth("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") // sandbox
-        .build_v2()
-        .expect("Couldn't initialize sandbox algod")
+    Algod::new(
+        "http://127.0.0.1:4001",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    )
+    .expect("Couldn't initialize sandbox algod")
 }
 
 #[allow(dead_code)]
 fn sandbox_private_network_indexer() -> Indexer {
-    IndexerBuilder::new()
-        .bind("http://127.0.0.1:8980") // sandbox
-        .build_v2()
-        .expect("Couldn't initialize sandbox indexer")
+    Indexer::new("http://127.0.0.1:8980").expect("Couldn't initialize sandbox indexer")
 }
 
 #[allow(dead_code)]
 fn private_network_algod() -> Algod {
-    AlgodBuilder::new()
-        .bind("http://127.0.0.1:53630")
-        .auth("44d70009a00561fe340b2584a9f2adc6fec6a16322554d44f56bef9e682844b9")
-        .build_v2()
-        .expect("Couldn't initialize algod")
+    Algod::new(
+        "http://127.0.0.1:53630",
+        "44d70009a00561fe340b2584a9f2adc6fec6a16322554d44f56bef9e682844b9",
+    )
+    .expect("Couldn't initialize algod")
 }
