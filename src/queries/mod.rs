@@ -1,2 +1,2 @@
-pub mod holders_count;
+pub mod shares_distribution;
 pub mod withdrawals;
