@@ -51,8 +51,6 @@ pub async fn withdraw_flow(
     creator: &Account,
     amount: MicroAlgos,
 ) -> Result<WithdrawTestFlowRes> {
-    use uuid::Uuid;
-
     // remember state
     let withdrawer_balance_before_withdrawing =
         algod.account_information(&creator.address()).await?.amount;
@@ -61,7 +59,7 @@ pub async fn withdraw_flow(
         &algod,
         creator.address(),
         &WithdrawalInputs {
-            project_uuid: Uuid::new_v4(),
+            project_uuid: project.uuid,
             amount,
             description: "Withdrawing from tests".to_owned(),
         },
