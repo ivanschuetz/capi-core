@@ -33,7 +33,13 @@ pub async fn shares_holders_distribution(
                 .checked_div(asset_supply_decimal)
                 // checked_div doesn't return the error, just an optional
                 // since we checked for zero divisor above, this should be an overflow, which shouldn't be possible (TODO confirm) as the divisor is originally u64
-                .ok_or_else(|| anyhow!("Unexpected: division: {} by {} returned an error"))?,
+                .ok_or_else(|| {
+                    anyhow!(
+                        "Unexpected: division: {} by {} returned an error",
+                        amount_decimal,
+                        asset_supply_decimal
+                    )
+                })?,
         });
     }
     Ok(holding_percentages)
