@@ -2,7 +2,7 @@
 use crate::teal::save_rendered_teal;
 use crate::{
     teal::{render_template, TealSource, TealSourceTemplate},
-    withdrawal_note_prefix::withdrawal_tx_note_prefix_with_project_id_base64,
+    tx_note::project_uuid_note_prefix_base64,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -45,7 +45,7 @@ fn render_central_escrow(
     project_creator: &Address,
     project_uuid: &Uuid,
 ) -> Result<TealSource> {
-    let withdrawal_note_prefix = withdrawal_tx_note_prefix_with_project_id_base64(project_uuid);
+    let withdrawal_note_prefix = project_uuid_note_prefix_base64(project_uuid);
 
     let escrow_source = render_template(
         source,

@@ -4,9 +4,7 @@ use uuid::Uuid;
 use crate::{
     api::model::Withdrawal,
     date_util::timestamp_seconds_to_date,
-    withdrawal_note_prefix::{
-        strip_prefix_from_note, withdrawal_tx_note_prefix_with_project_id_base64,
-    },
+    tx_note::{project_uuid_note_prefix_base64, strip_prefix_from_note},
 };
 use anyhow::{anyhow, Result};
 
@@ -22,9 +20,7 @@ pub async fn withdrawals(
     );
 
     let query = QueryAccountTransaction {
-        note_prefix: Some(withdrawal_tx_note_prefix_with_project_id_base64(
-            project_uuid,
-        )),
+        note_prefix: Some(project_uuid_note_prefix_base64(project_uuid)),
         ..Default::default()
     };
 
@@ -41,7 +37,7 @@ pub async fn withdrawals(
             .clone()
             .ok_or_else(|| anyhow!("Unexpected: transaction isn't a payment: {:?}", tx))?;
 
-        // Unexpected because we just fetched by note prefix, so logically it should have a note
+        // Unexpected because we just fetched by (a non empty) note prefix, so logically it should have a note
         let note = tx
             .note
             .clone()

@@ -24,6 +24,7 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
         if let Some(payment_tx) = &tx.payment_transaction {
             let receiver_address = payment_tx.receiver.parse::<Address>().map_err(Error::msg)?;
 
+            // Sanity check
             if &receiver_address != address {
                 return Err(anyhow!(
                     "Invalid state: tx receiver isn't the receiver we sent in the query"
