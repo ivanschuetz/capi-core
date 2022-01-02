@@ -67,7 +67,8 @@ pub async fn get_roadmap(
                 .round_time
                 .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
-            let saved_roadmap_item = to_saved_roadmap_item(&roadmap_item, round_time)?;
+            let saved_roadmap_item =
+                to_saved_roadmap_item(&roadmap_item, tx.id.clone(), round_time)?;
 
             items.push(saved_roadmap_item)
         } else {
@@ -87,6 +88,7 @@ pub struct Roadmap {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SavedRoadmapItem {
+    pub tx_id: String,
     pub project_uuid: Uuid,
     pub title: String,
     pub date: DateTime<Utc>,
@@ -94,8 +96,13 @@ pub struct SavedRoadmapItem {
     pub hash: HashDigest,
 }
 
-fn to_saved_roadmap_item(item: &RoadmapItem, round_time: u64) -> Result<SavedRoadmapItem> {
+fn to_saved_roadmap_item(
+    item: &RoadmapItem,
+    tx_id: String,
+    round_time: u64,
+) -> Result<SavedRoadmapItem> {
     Ok(SavedRoadmapItem {
+        tx_id,
         project_uuid: item.project_uuid.clone(),
         title: item.title.clone(),
         date: timestamp_seconds_to_date(round_time)?,
