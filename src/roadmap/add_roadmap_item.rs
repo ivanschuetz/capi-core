@@ -24,7 +24,7 @@ pub async fn add_roadmap_item(
 
     // 0 payment to themselves - we use a minimal tx only to store data.
     let tx = TxnBuilder::with(
-        params.to_owned(),
+        params,
         Pay::new(*project_creator, *project_creator, MicroAlgos(0)).build(),
     )
     .note(note)
@@ -73,7 +73,7 @@ impl RoadmapItemInputs {
     fn to_roadmap_item(&self) -> Result<RoadmapItem> {
         let hash = self.hash()?;
         Ok(RoadmapItem {
-            project_uuid: self.project_uuid.clone(),
+            project_uuid: self.project_uuid,
             title: self.title.clone(),
             parent: self.parent.clone(),
             hash,

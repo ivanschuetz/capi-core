@@ -70,11 +70,11 @@ async fn shares_holders_holdings(indexer: &Indexer, asset_id: u64) -> Result<Vec
             anyhow!("Invalid state: account has no holdings (we just queried by asset id)")
         })?;
 
-        let asset_amount = find_amount(asset_id, &asset_holding)?;
+        let asset_amount = find_amount(asset_id, asset_holding)?;
         // if accounts have no assets but are opted in, we get 0 count - filter those out
         if asset_amount > 0 {
             holdings.push(ShareHolding {
-                amount: find_amount(asset_id, &asset_holding)?,
+                amount: find_amount(asset_id, asset_holding)?,
                 address: holder.address,
             })
         }

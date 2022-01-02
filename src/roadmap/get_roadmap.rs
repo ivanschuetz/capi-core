@@ -41,7 +41,7 @@ pub async fn get_roadmap(
 
     let mut items = vec![];
     for tx in &response.transactions {
-        if let Some(_) = &tx.payment_transaction {
+        if tx.payment_transaction.is_some() {
             let sender_address = tx.sender.parse::<Address>().map_err(Error::msg)?;
 
             // Sanity check
@@ -103,10 +103,10 @@ fn to_saved_roadmap_item(
 ) -> Result<SavedRoadmapItem> {
     Ok(SavedRoadmapItem {
         tx_id,
-        project_uuid: item.project_uuid.clone(),
+        project_uuid: item.project_uuid,
         title: item.title.clone(),
         date: timestamp_seconds_to_date(round_time)?,
         parent: item.parent.clone(),
-        hash: item.hash.clone(),
+        hash: item.hash,
     })
 }
