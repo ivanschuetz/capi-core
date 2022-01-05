@@ -51,7 +51,7 @@ mod tests {
 
         // remeber state
         let central_balance_before_withdrawing = algod
-            .account_information(&project.central_escrow.address)
+            .account_information(project.central_escrow.address())
             .await?
             .amount;
         let creator_balance_bafore_withdrawing =
@@ -66,7 +66,7 @@ mod tests {
         after_withdrawal_success_or_failure_tests(
             &algod,
             &creator.address(),
-            &project.central_escrow.address,
+            project.central_escrow.address(),
             // creator got the amount and lost the fees for the withdraw txs (pay escrow fee and fee of that tx)
             creator_balance_bafore_withdrawing + withdraw_amount - FIXED_FEE * 2,
             // central lost the withdrawn amount
@@ -101,7 +101,7 @@ mod tests {
 
         // remeber state
         let central_balance_before_withdrawing = algod
-            .account_information(&project.central_escrow.address)
+            .account_information(project.central_escrow.address())
             .await?
             .amount;
         let creator_balance_bafore_withdrawing =
@@ -140,7 +140,7 @@ mod tests {
         test_withdrawal_did_not_succeed(
             &algod,
             &creator.address(),
-            &project.central_escrow.address,
+            project.central_escrow.address(),
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
         )
@@ -188,7 +188,7 @@ mod tests {
 
         // remeber state
         let central_balance_before_withdrawing = algod
-            .account_information(&project.central_escrow.address)
+            .account_information(project.central_escrow.address())
             .await?
             .amount;
         let creator_balance_bafore_withdrawing =
@@ -228,7 +228,7 @@ mod tests {
         test_withdrawal_did_not_succeed(
             &algod,
             &creator.address(),
-            &project.central_escrow.address,
+            project.central_escrow.address(),
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
         )

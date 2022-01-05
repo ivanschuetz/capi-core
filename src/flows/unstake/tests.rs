@@ -63,7 +63,7 @@ mod tests {
 
         // double check staking escrow's assets
         let staking_escrow_infos = algod
-            .account_information(&project.staking_escrow.address)
+            .account_information(project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
@@ -83,7 +83,7 @@ mod tests {
 
         // shares not anymore in staking escrow
         let staking_escrow_infos = algod
-            .account_information(&project.staking_escrow.address)
+            .account_information(project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
@@ -150,7 +150,7 @@ mod tests {
 
         // double check staking escrow's assets
         let staking_escrow_infos = algod
-            .account_information(&project.staking_escrow.address)
+            .account_information(project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
@@ -169,7 +169,7 @@ mod tests {
 
         // shares still in staking escrow
         let staking_escrow_infos = algod
-            .account_information(&project.staking_escrow.address)
+            .account_information(project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares

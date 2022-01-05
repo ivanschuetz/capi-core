@@ -56,11 +56,11 @@ mod tests {
         .await?;
 
         let customer_escrow_balance = algod
-            .account_information(&drain_res.project.customer_escrow.address)
+            .account_information(drain_res.project.customer_escrow.address())
             .await?
             .amount;
         let central_escrow_balance = algod
-            .account_information(&drain_res.project.central_escrow.address)
+            .account_information(drain_res.project.central_escrow.address())
             .await?
             .amount;
         let drainer_balance = algod.account_information(&drainer.address()).await?.amount;

@@ -163,7 +163,7 @@ mod tests {
 
         // staking escrow got assets
         let staking_escrow_infos = algod
-            .account_information(&project.staking_escrow.address)
+            .account_information(project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares

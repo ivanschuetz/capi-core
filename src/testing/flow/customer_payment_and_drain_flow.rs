@@ -27,14 +27,14 @@ pub async fn customer_payment_and_drain_flow(
     let customer_payment_tx_id = send_payment_to_customer_escrow(
         &algod,
         &customer,
-        &project.customer_escrow.address,
+        project.customer_escrow.address(),
         customer_payment_amount,
     )
     .await?;
     wait_for_pending_transaction(&algod, &customer_payment_tx_id).await?;
 
     let customer_escrow_balance = algod
-        .account_information(&project.customer_escrow.address)
+        .account_information(project.customer_escrow.address())
         .await?
         .amount;
     // let central_escrow_balance = algod

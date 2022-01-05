@@ -147,7 +147,7 @@ mod tests {
     async fn test_render_escrow() -> Result<()> {
         let template = load_teal_template("investing_escrow")?;
         let source =
-            render_investing_escrow(template, 123, MicroAlgos(1_000_000), Address::new([0; 32]))?;
+            render_investing_escrow(template, 123, MicroAlgos(1_000_000), &Address::new([0; 32]))?;
         let source_str = String::from_utf8(source.0)?;
         log::debug!("source: {}", source_str);
         Ok(())
@@ -158,7 +158,7 @@ mod tests {
     async fn test_render_escrow_and_compile() -> Result<()> {
         let template = load_teal_template("investing_escrow")?;
         let source =
-            render_investing_escrow(template, 123, MicroAlgos(1_000_000), Address::new([0; 32]))?;
+            render_investing_escrow(template, 123, MicroAlgos(1_000_000), &Address::new([0; 32]))?;
 
         // deps
         let algod = dependencies::algod_for_tests();

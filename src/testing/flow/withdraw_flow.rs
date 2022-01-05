@@ -34,7 +34,7 @@ pub async fn withdraw_precs(
     )
     .await?;
     let central_escrow_balance_after_drain = algod
-        .account_information(&drain_res.project.central_escrow.address)
+        .account_information(drain_res.project.central_escrow.address())
         .await?
         .amount;
 

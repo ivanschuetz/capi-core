@@ -57,7 +57,7 @@ mod tests {
         // staking escrow tests
 
         let staking_escrow_infos = algod
-            .account_information(&project.staking_escrow.address)
+            .account_information(project.staking_escrow.address())
             .await?;
         // staking escrow received the shares
         let staking_escrow_assets = staking_escrow_infos.assets;
@@ -95,7 +95,7 @@ mod tests {
         // invest escrow tests
 
         let invest_escrow = flow_res.project.invest_escrow;
-        let invest_escrow_infos = algod.account_information(&invest_escrow.address).await?;
+        let invest_escrow_infos = algod.account_information(invest_escrow.address()).await?;
         let invest_escrow_held_assets = invest_escrow_infos.assets;
         // escrow lost the bought assets
         assert_eq!(invest_escrow_held_assets.len(), 1);

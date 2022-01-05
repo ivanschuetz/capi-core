@@ -39,10 +39,11 @@ impl TryFrom<ContractAccountJson> for ContractAccount {
 
         // ContractAccount calculates the hash (address) - just double checking that the address we're discarding is the same
         if account.address().to_string() != ca.address {
-            Err(format!(
+            return Err(format!(
                 "Invalid state: the address: {} doesn't correspond to the program: {:?}",
                 ca.address, account.program
-            ))?;
+            )
+            .into());
         }
 
         Ok(account)

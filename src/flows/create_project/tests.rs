@@ -57,7 +57,7 @@ mod tests {
 
         // investing escrow funding checks
         let escrow = project.invest_escrow;
-        let escrow_infos = algod.account_information(&escrow.address).await?;
+        let escrow_infos = algod.account_information(escrow.address()).await?;
         // TODO refactor and check min algos balance
         let escrow_held_assets = escrow_infos.assets;
         assert_eq!(escrow_held_assets.len(), 1);
@@ -66,7 +66,7 @@ mod tests {
 
         // staking escrow funding checks
         let staking_escrow = project.staking_escrow;
-        let staking_escrow_infos = algod.account_information(&staking_escrow.address).await?;
+        let staking_escrow_infos = algod.account_information(staking_escrow.address()).await?;
         let staking_escrow_held_assets = staking_escrow_infos.assets;
         // TODO refactor and check min algos balance
         assert_eq!(staking_escrow_held_assets.len(), 1);

@@ -69,7 +69,7 @@ mod tests {
             &algod,
             &harvester,
             res.project.central_app_id,
-            res.project.central_escrow.address,
+            res.project.central_escrow.address(),
             precs.drain_res.drained_amount,
             // harvester got the amount - app call fee - pay for escrow fee - fee to pay for escrow fee
             res.harvester_balance_before_harvesting + res.harvest - FIXED_FEE * 3,
@@ -142,7 +142,7 @@ mod tests {
             &algod,
             &harvester,
             res.project.central_app_id,
-            res.project.central_escrow.address,
+            res.project.central_escrow.address(),
             precs.drain_res.drained_amount,
             // harvester got the amount - app call fee - pay for escrow fee - fee to pay for escrow fee
             res.harvester_balance_before_harvesting + res.harvest - FIXED_FEE * 3,
@@ -283,7 +283,7 @@ mod tests {
             &algod,
             &harvester,
             res.project.central_app_id,
-            res.project.central_escrow.address,
+            res.project.central_escrow.address(),
             precs.drain_res.drained_amount,
             // harvester got the amount - app call fee - pay for escrow fee - fee to pay for escrow fee
             res.harvester_balance_before_harvesting + res.harvest - FIXED_FEE * 3,
@@ -345,7 +345,7 @@ mod tests {
             &algod,
             &harvester,
             res2.project.central_app_id,
-            res2.project.central_escrow.address,
+            res2.project.central_escrow.address(),
             precs.drain_res.drained_amount,
             // 2 harvests: local state is the total harvested amount
             // FEES:
@@ -373,7 +373,7 @@ mod tests {
         algod: &Algod,
         harvester: &Account,
         central_app_id: u64,
-        central_escrow_address: Address,
+        central_escrow_address: &Address,
         // this parameter isn't ideal: it assumes that we did a (one) drain before harvesting
         // for now letting it there as it's a quick refactoring
         // arguably needed, it tests basically that the total received global state isn't affected by harvests

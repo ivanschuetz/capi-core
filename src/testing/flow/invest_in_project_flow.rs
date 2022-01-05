@@ -56,7 +56,7 @@ pub async fn invests_flow(
 
     // remember initial escrow's funds
     let escrow_infos = algod
-        .account_information(&project.invest_escrow.address)
+        .account_information(project.invest_escrow.address())
         .await?;
     let escrow_initial_amount = escrow_infos.amount;
 

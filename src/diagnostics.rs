@@ -24,12 +24,12 @@ pub async fn harvest_diagnostics(
     let investor_infos = algod.account_information(investor).await?;
 
     let central_balance = algod
-        .account_information(&project.central_escrow.address())
+        .account_information(project.central_escrow.address())
         .await?
         .amount;
 
     let customer_escrow_balance = algod
-        .account_information(&project.customer_escrow.address())
+        .account_information(project.customer_escrow.address())
         .await?
         .amount;
 

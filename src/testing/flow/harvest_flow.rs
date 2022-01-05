@@ -43,7 +43,7 @@ pub async fn harvest_precs(
         customer_payment_and_drain_flow(&algod, &drainer, &customer, central_funds, &project)
             .await?;
     let central_escrow_balance_after_drain = algod
-        .account_information(&drain_res.project.central_escrow.address)
+        .account_information(drain_res.project.central_escrow.address())
         .await?
         .amount;
 

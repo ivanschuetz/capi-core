@@ -69,8 +69,8 @@ pub async fn create_project_txs(
         specs.shares.count,
         precision,
         specs.investors_share,
-        &customer_to_sign.escrow.address(),
-        &central_to_sign.escrow.address(),
+        customer_to_sign.escrow.address(),
+        central_to_sign.escrow.address(),
         &params,
     )
     .await?;
