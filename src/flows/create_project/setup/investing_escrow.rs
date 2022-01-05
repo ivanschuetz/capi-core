@@ -1,7 +1,7 @@
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
-    transaction::{account::ContractAccount, AcceptAsset, Pay, TransferAsset, TxnBuilder},
+    transaction::{contract_account::ContractAccount, AcceptAsset, Pay, TransferAsset, TxnBuilder},
 };
 use anyhow::Result;
 use serde::Serialize;
@@ -22,7 +22,7 @@ pub async fn create_investing_escrow(
     algod: &Algod,
     shares_asset_id: u64,
     asset_price: MicroAlgos,
-    staking_escrow_address: Address,
+    staking_escrow_address: &Address,
     source: TealSourceTemplate,
 ) -> Result<ContractAccount> {
     let source =
@@ -35,7 +35,7 @@ fn render_investing_escrow(
     source: TealSourceTemplate,
     shares_asset_id: u64,
     asset_price: MicroAlgos, // affects the shares
-    staking_escrow_address: Address,
+    staking_escrow_address: &Address,
 ) -> Result<TealSource> {
     let escrow_source = render_template(
         source,
@@ -58,7 +58,7 @@ pub async fn setup_investing_escrow_txs(
     asset_amount: u64,
     asset_price: MicroAlgos,
     creator: &Address,
-    staking_escrow_address: Address,
+    staking_escrow_address: &Address,
     params: &SuggestedTransactionParams,
 ) -> Result<SetupInvestingEscrowToSign> {
     log::debug!(
@@ -76,24 +76,24 @@ pub async fn setup_investing_escrow_txs(
         source,
     )
     .await?;
-    log::debug!("Generated investing escrow address: {:?}", escrow.address);
+    log::debug!("Generated investing escrow address: {:?}", escrow.address());
 
     // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
     let fund_algos_tx = &mut TxnBuilder::with(
         params.to_owned(),
-        Pay::new(*creator, escrow.address, MicroAlgos(1_000_000)).build(),
+        Pay::new(*creator, *escrow.address(), MicroAlgos(1_000_000)).build(),
     )
     .build();
 
     let shares_optin_tx = &mut TxnBuilder::with(
         params.to_owned(),
-        AcceptAsset::new(escrow.address, shares_asset_id).build(),
+        AcceptAsset::new(*escrow.address(), shares_asset_id).build(),
     )
     .build();
 
     let fund_shares_asset_tx = &mut TxnBuilder::with(
         params.to_owned(),
-        TransferAsset::new(*creator, shares_asset_id, asset_amount, escrow.address).build(),
+        TransferAsset::new(*creator, shares_asset_id, asset_amount, *escrow.address()).build(),
     )
     .build();
 

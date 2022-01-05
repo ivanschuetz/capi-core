@@ -1,7 +1,9 @@
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
-    transaction::{account::ContractAccount, Pay, SignedTransaction, Transaction, TxnBuilder},
+    transaction::{
+        contract_account::ContractAccount, Pay, SignedTransaction, Transaction, TxnBuilder,
+    },
 };
 use anyhow::Result;
 use serde::Serialize;
@@ -19,7 +21,7 @@ pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 pub async fn setup_customer_escrow(
     algod: &Algod,
     project_creator: &Address,
-    central_address: Address,
+    central_address: &Address,
     source: TealSourceTemplate,
     params: &SuggestedTransactionParams,
 ) -> Result<SetupCustomerEscrowToSign> {
@@ -28,7 +30,7 @@ pub async fn setup_customer_escrow(
     Ok(SetupCustomerEscrowToSign {
         fund_min_balance_tx: create_payment_tx(
             project_creator,
-            &escrow.address,
+            escrow.address(),
             MIN_BALANCE + FIXED_FEE,
             params,
         )
@@ -38,7 +40,7 @@ pub async fn setup_customer_escrow(
 }
 
 fn render_customer_escrow(
-    central_address: Address,
+    central_address: &Address,
     source: TealSourceTemplate,
 ) -> Result<TealSource> {
     let escrow_source = render_template(

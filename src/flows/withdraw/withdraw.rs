@@ -2,7 +2,7 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        account::ContractAccount, tx_group::TxGroup, Pay, SignedTransaction, Transaction,
+        contract_account::ContractAccount, tx_group::TxGroup, Pay, SignedTransaction, Transaction,
         TxnBuilder,
     },
 };
@@ -34,7 +34,7 @@ pub async fn withdraw(
             fee: FIXED_FEE,
             ..params.clone()
         },
-        Pay::new(central_escrow.address, creator, inputs.amount).build(),
+        Pay::new(*central_escrow.address(), creator, inputs.amount).build(),
     )
     .note(to_note(inputs)?)
     .build();
@@ -45,7 +45,7 @@ pub async fn withdraw(
             fee: FIXED_FEE,
             ..params
         },
-        Pay::new(creator, central_escrow.address, FIXED_FEE).build(),
+        Pay::new(creator, *central_escrow.address(), FIXED_FEE).build(),
     )
     .build();
 

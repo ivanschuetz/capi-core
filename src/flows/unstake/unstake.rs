@@ -2,7 +2,7 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        account::ContractAccount, builder::CloseApplication, tx_group::TxGroup, Pay,
+        builder::CloseApplication, contract_account::ContractAccount, tx_group::TxGroup, Pay,
         SignedTransaction, Transaction, TransferAsset, TxnBuilder,
     },
 };
@@ -43,7 +43,7 @@ pub async fn unstake(
             ..params.clone()
         },
         TransferAsset::new(
-            staking_escrow.address,
+            *staking_escrow.address(),
             shares_asset_id,
             share_count,
             investor,
@@ -58,7 +58,7 @@ pub async fn unstake(
             fee: FIXED_FEE,
             ..params
         },
-        Pay::new(investor, staking_escrow.address, FIXED_FEE).build(),
+        Pay::new(investor, *staking_escrow.address(), FIXED_FEE).build(),
     )
     .build();
 

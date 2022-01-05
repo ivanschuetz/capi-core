@@ -2,7 +2,7 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        account::ContractAccount, builder::CallApplication, tx_group::TxGroup, Pay,
+        builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup, Pay,
         SignedTransaction, Transaction, TxnBuilder,
     },
 };
@@ -23,7 +23,7 @@ pub async fn drain_customer_escrow(
 ) -> Result<DrainCustomerEscrowToSign> {
     let params = algod.suggested_transaction_params().await?;
     let customer_escrow_balance = algod
-        .account_information(&customer_escrow.address)
+        .account_information(customer_escrow.address())
         .await?
         .amount;
 
@@ -35,8 +35,8 @@ pub async fn drain_customer_escrow(
             ..params.clone()
         },
         Pay::new(
-            customer_escrow.address,
-            central_escrow.address,
+            *customer_escrow.address(),
+            *central_escrow.address(),
             balance_to_drain,
         )
         .build(),
@@ -48,7 +48,7 @@ pub async fn drain_customer_escrow(
             fee: FIXED_FEE,
             ..params.clone()
         },
-        Pay::new(*drainer, customer_escrow.address, FIXED_FEE).build(),
+        Pay::new(*drainer, *customer_escrow.address(), FIXED_FEE).build(),
     )
     .build();
 

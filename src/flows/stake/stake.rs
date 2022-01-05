@@ -2,8 +2,8 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        account::ContractAccount, builder::CallApplication, tx_group::TxGroup, SignedTransaction,
-        Transaction, TransferAsset, TxnBuilder,
+        builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup,
+        SignedTransaction, Transaction, TransferAsset, TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -44,7 +44,7 @@ pub async fn stake(
             investor,
             shares_asset_id,
             share_count,
-            staking_escrow.address,
+            *staking_escrow.address(),
         )
         .build(),
     )

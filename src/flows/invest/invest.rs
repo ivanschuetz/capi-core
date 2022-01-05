@@ -2,8 +2,8 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        account::ContractAccount, builder::CallApplication, tx_group::TxGroup, AcceptAsset, Pay,
-        Transaction, TransferAsset, TxnBuilder,
+        builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup,
+        AcceptAsset, Pay, Transaction, TransferAsset, TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -41,7 +41,7 @@ pub async fn invest_txs(
         params.clone(),
         Pay::new(
             *investor,
-            project.invest_escrow.address,
+            *project.invest_escrow.address(),
             asset_price * asset_count,
         )
         .build(),
@@ -52,7 +52,7 @@ pub async fn invest_txs(
     // note that a reason to _not_ include it is to show it separately to the user, when signing. It can help with clarity (review).
     let mut pay_escrow_fee_tx = TxnBuilder::with(
         params.clone(),
-        Pay::new(*investor, project.invest_escrow.address, FIXED_FEE).build(), // shares xfer
+        Pay::new(*investor, *project.invest_escrow.address(), FIXED_FEE).build(), // shares xfer
     )
     .build();
 
@@ -68,10 +68,10 @@ pub async fn invest_txs(
             ..params
         },
         TransferAsset::new(
-            project.invest_escrow.address,
+            *project.invest_escrow.address(),
             project.shares_asset_id,
             asset_count,
-            staking_escrow.address,
+            *staking_escrow.address(),
         )
         .build(),
     )

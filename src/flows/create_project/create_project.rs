@@ -54,7 +54,7 @@ pub async fn create_project_txs(
     let mut customer_to_sign = setup_customer_escrow(
         algod,
         &creator,
-        central_to_sign.escrow.address,
+        central_to_sign.escrow.address(),
         programs.customer_escrow,
         &params,
     )
@@ -69,8 +69,8 @@ pub async fn create_project_txs(
         specs.shares.count,
         precision,
         specs.investors_share,
-        &customer_to_sign.escrow.address,
-        &central_to_sign.escrow.address,
+        &customer_to_sign.escrow.address(),
+        &central_to_sign.escrow.address(),
         &params,
     )
     .await?;
@@ -92,7 +92,7 @@ pub async fn create_project_txs(
         specs.shares.count,
         specs.asset_price,
         &creator,
-        setup_staking_escrow_to_sign.escrow.address,
+        setup_staking_escrow_to_sign.escrow.address(),
         &params,
     )
     .await?;

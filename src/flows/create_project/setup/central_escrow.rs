@@ -7,7 +7,9 @@ use crate::{
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
-    transaction::{account::ContractAccount, Pay, SignedTransaction, Transaction, TxnBuilder},
+    transaction::{
+        contract_account::ContractAccount, Pay, SignedTransaction, Transaction, TxnBuilder,
+    },
 };
 use anyhow::Result;
 use serde::Serialize;
@@ -31,7 +33,7 @@ pub async fn setup_central_escrow(
     Ok(SetupCentralEscrowToSign {
         fund_min_balance_tx: create_payment_tx(
             project_creator,
-            &escrow.address,
+            escrow.address(),
             MIN_BALANCE + FIXED_FEE,
             params,
         )

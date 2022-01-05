@@ -3,8 +3,8 @@ use std::convert::{TryFrom, TryInto};
 use super::model::{DefaultError, ProjectForUsers};
 use crate::flows::create_project::model::{CreateProjectSpecs, Project};
 use algonaut::{
-    core::{CompiledTealBytes, MicroAlgos},
-    transaction::account::ContractAccount,
+    core::{CompiledTeal, MicroAlgos},
+    transaction::contract_account::ContractAccount,
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -19,13 +19,13 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContractAccountJson {
     pub address: String,
-    pub program: CompiledTealBytes,
+    pub program: CompiledTeal,
 }
 
 impl From<ContractAccount> for ContractAccountJson {
     fn from(ca: ContractAccount) -> Self {
         ContractAccountJson {
-            address: ca.address.to_string(),
+            address: ca.address().to_string(),
             program: ca.program,
         }
     }
@@ -35,10 +35,17 @@ impl TryFrom<ContractAccountJson> for ContractAccount {
     type Error = DefaultError;
 
     fn try_from(ca: ContractAccountJson) -> Result<Self, Self::Error> {
-        Ok(ContractAccount {
-            address: ca.address.parse()?,
-            program: ca.program,
-        })
+        let account = ContractAccount::new(ca.program);
+
+        // ContractAccount calculates the hash (address) - just double checking that the address we're discarding is the same
+        if account.address().to_string() != ca.address {
+            Err(format!(
+                "Invalid state: the address: {} doesn't correspond to the program: {:?}",
+                ca.address, account.program
+            ))?;
+        }
+
+        Ok(account)
     }
 }
 

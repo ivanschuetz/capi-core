@@ -49,8 +49,8 @@ pub async fn create_app_tx(
         params.to_owned(),
         CreateApplication::new(
             *creator,
-            compiled_approval_program.clone().program,
-            compiled_clear_program.program,
+            compiled_approval_program.clone(),
+            compiled_clear_program,
             StateSchema {
                 number_ints: 1, // "total received"
                 number_byteslices: 0,

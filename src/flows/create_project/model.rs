@@ -1,6 +1,6 @@
 use algonaut::{
     core::{Address, MicroAlgos},
-    transaction::{account::ContractAccount, SignedTransaction, Transaction},
+    transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

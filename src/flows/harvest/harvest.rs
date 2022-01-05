@@ -3,7 +3,7 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        account::ContractAccount, builder::CallApplication, tx_group::TxGroup, Pay,
+        builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup, Pay,
         SignedTransaction, Transaction, TxnBuilder,
     },
 };
@@ -33,7 +33,7 @@ pub async fn harvest(
             fee: FIXED_FEE,
             ..params.clone()
         },
-        Pay::new(central_escrow.address, *harvester, amount).build(),
+        Pay::new(*central_escrow.address(), *harvester, amount).build(),
     )
     .build();
 
@@ -43,7 +43,7 @@ pub async fn harvest(
             fee: FIXED_FEE,
             ..params.clone()
         },
-        Pay::new(*harvester, central_escrow.address, FIXED_FEE).build(),
+        Pay::new(*harvester, *central_escrow.address(), FIXED_FEE).build(),
     )
     .build();
 
