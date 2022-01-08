@@ -1,6 +1,8 @@
 #[cfg(test)]
 use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
 #[cfg(test)]
+use super::invest_in_project_flow::invests_optins_flow;
+#[cfg(test)]
 use crate::flows::create_project::model::{CreateProjectSpecs, Project};
 #[cfg(test)]
 use crate::{
@@ -29,8 +31,6 @@ pub async fn harvest_precs(
     central_funds: MicroAlgos,
     precision: u64,
 ) -> Result<HarvestTestPrecsRes> {
-    use super::invest_in_project_flow::invests_optins_flow;
-
     let project = create_project_flow(&algod, &creator, &specs, precision).await?;
 
     // investor buys shares: this can be called after draining as well (without affecting test results)

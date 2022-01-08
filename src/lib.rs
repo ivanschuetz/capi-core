@@ -5,6 +5,7 @@ pub mod decimal_util;
 pub mod dependencies;
 pub mod diagnostics;
 pub mod flows;
+mod hashable;
 mod logger;
 pub mod network_util;
 pub mod queries;
