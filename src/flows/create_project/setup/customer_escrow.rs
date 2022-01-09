@@ -22,11 +22,10 @@ pub async fn setup_customer_escrow(
     algod: &Algod,
     project_creator: &Address,
     central_address: &Address,
-    source: TealSourceTemplate,
+    source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
 ) -> Result<SetupCustomerEscrowToSign> {
-    let source = render_customer_escrow(central_address, source)?;
-    let escrow = ContractAccount::new(algod.compile_teal(&source.0).await?);
+    let escrow = render_and_compile_customer_escrow(algod, central_address, source).await?;
     Ok(SetupCustomerEscrowToSign {
         fund_min_balance_tx: create_payment_tx(
             project_creator,
@@ -39,9 +38,18 @@ pub async fn setup_customer_escrow(
     })
 }
 
+pub async fn render_and_compile_customer_escrow(
+    algod: &Algod,
+    central_address: &Address,
+    source: &TealSourceTemplate,
+) -> Result<ContractAccount> {
+    let source = render_customer_escrow(central_address, source)?;
+    Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
+}
+
 fn render_customer_escrow(
     central_address: &Address,
-    source: TealSourceTemplate,
+    source: &TealSourceTemplate,
 ) -> Result<TealSource> {
     let escrow_source = render_template(
         source,

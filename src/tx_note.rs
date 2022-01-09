@@ -1,10 +1,10 @@
+use std::convert::TryInto;
+
 use algonaut::crypto::HashDigest;
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 use serde::{de::DeserializeOwned, Serialize};
 use uuid::Uuid;
-
-use crate::hashable::hash;
 
 /// Global note prefix for all projects on the platform
 /// fixed size of 4 characters
@@ -50,28 +50,29 @@ pub struct HashedStoredObject<T>
 where
     T: DeserializeOwned,
 {
+    // NOTE: this hash does NOT necessarily correspond directly to obj
+    // it can belong to a derivation of it. E.g. for projects, we hash the full instance, which contains the escrow compiled programs
+    // (we can't save them in the note, because of the size limitation)
     pub hash: HashDigest,
     pub obj: T,
 }
 
-/// Extracts the hashed object from note and verifies it against the hash.
+/// Extracts the hashed object from note
 /// The note's expected format is: <CAPI PREFIX><HASH><OBJECT>.
-/// Note that the usufulness of this verification depends on the context where it's used.
-/// E.g. in some places we have also query the transactions using the hash (indexer note prefix query).
-pub fn extract_and_verify_hashed_object<T>(note: &str) -> Result<HashedStoredObject<T>>
+/// Note that this does NOT verify the object against the hash
+/// (Reason being that the hash might not be directly from the object, but from a derivation of it)
+pub fn extract_hashed_object<T>(note: &str) -> Result<HashedStoredObject<T>>
 where
     T: DeserializeOwned,
 {
     // The api sends the bytes base64 encoded
     let note_decoded_bytes = BASE64.decode(note.as_bytes())?;
 
-    extract_and_verify_hashed_object_from_decoded_note_bytes(&note_decoded_bytes)
+    extract_hashed_object_from_decoded_note_bytes(&note_decoded_bytes)
 }
 
 // Just a helper function to prevent confusion with the non-decoded note string
-fn extract_and_verify_hashed_object_from_decoded_note_bytes<T>(
-    note: &[u8],
-) -> Result<HashedStoredObject<T>>
+fn extract_hashed_object_from_decoded_note_bytes<T>(note: &[u8]) -> Result<HashedStoredObject<T>>
 where
     T: DeserializeOwned,
 {
@@ -89,24 +90,17 @@ where
         ));
     }
 
-    let digest = note
+    let hash_bytes = note
         .get(4..36)
-        .ok_or_else(|| anyhow!("Not enough bytes in note to get digest. Note: {:?}", note))?;
+        .ok_or_else(|| anyhow!("Not enough bytes in note to get hash. Note: {:?}", note))?;
+    let hash = HashDigest(hash_bytes.try_into()?);
+
     let hashed_obj = note.get(36..note.len()).ok_or_else(|| {
         anyhow!(
             "Not enough bytes in note to get hashed object. Note: {:?}",
             note
         )
     })?;
-
-    let stored_obj_hash = hash(hashed_obj);
-    if stored_obj_hash.0 != digest {
-        return Err(anyhow!(
-            "The hashed object failed the hash verification. Object: {:?}, digest: {:?}",
-            hashed_obj,
-            digest
-        ));
-    }
 
     let res = rmp_serde::from_slice(hashed_obj).map_err(|e| {
         anyhow!(
@@ -116,10 +110,7 @@ where
         )
     })?;
 
-    Ok(HashedStoredObject {
-        hash: stored_obj_hash,
-        obj: res,
-    })
+    Ok(HashedStoredObject { hash, obj: res })
 }
 
 pub trait AsNotePayload: Serialize {

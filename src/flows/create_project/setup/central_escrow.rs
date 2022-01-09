@@ -24,12 +24,12 @@ pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 pub async fn setup_central_escrow(
     algod: &Algod,
     project_creator: &Address,
-    source: TealSourceTemplate,
+    source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
     project_uuid: &Uuid,
 ) -> Result<SetupCentralEscrowToSign> {
-    let source = render_central_escrow(source, project_creator, project_uuid)?;
-    let escrow = ContractAccount::new(algod.compile_teal(&source.0).await?);
+    let escrow =
+        render_and_compile_central_escrow(algod, project_creator, source, project_uuid).await?;
     Ok(SetupCentralEscrowToSign {
         fund_min_balance_tx: create_payment_tx(
             project_creator,
@@ -42,8 +42,18 @@ pub async fn setup_central_escrow(
     })
 }
 
+pub async fn render_and_compile_central_escrow(
+    algod: &Algod,
+    project_creator: &Address,
+    source: &TealSourceTemplate,
+    project_uuid: &Uuid,
+) -> Result<ContractAccount> {
+    let source = render_central_escrow(source, project_creator, project_uuid)?;
+    Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
+}
+
 fn render_central_escrow(
-    source: TealSourceTemplate,
+    source: &TealSourceTemplate,
     project_creator: &Address,
     project_uuid: &Uuid,
 ) -> Result<TealSource> {

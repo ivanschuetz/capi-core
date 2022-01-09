@@ -45,7 +45,7 @@ pub async fn create_project_txs(
     let mut central_to_sign = setup_central_escrow(
         algod,
         &creator,
-        programs.central_escrow,
+        &programs.escrows.central_escrow,
         &params,
         &project_uuid,
     )
@@ -55,14 +55,14 @@ pub async fn create_project_txs(
         algod,
         &creator,
         central_to_sign.escrow.address(),
-        programs.customer_escrow,
+        &programs.escrows.customer_escrow,
         &params,
     )
     .await?;
 
     let mut create_app_tx = create_app_tx(
         algod,
-        programs.central_app_approval,
+        &programs.central_app_approval,
         programs.central_app_clear,
         &creator,
         shares_asset_id,
@@ -78,7 +78,7 @@ pub async fn create_project_txs(
     // TODO why do we do this (invest and staking escrows setup) here instead of directly on project creation? there seem to be no deps on post-creation things?
     let mut setup_staking_escrow_to_sign = setup_staking_escrow_txs(
         algod,
-        programs.staking_escrow,
+        &programs.escrows.staking_escrow,
         shares_asset_id,
         specs.shares.count,
         &creator,
@@ -87,7 +87,7 @@ pub async fn create_project_txs(
     .await?;
     let mut setup_invest_escrow_to_sign = setup_investing_escrow_txs(
         algod,
-        programs.invest_escrow,
+        &programs.escrows.invest_escrow,
         shares_asset_id,
         specs.shares.count,
         specs.asset_price,
@@ -219,6 +219,10 @@ async fn broadcast_txs_and_retrieve_app_id(
 pub struct Programs {
     pub central_app_approval: TealSourceTemplate,
     pub central_app_clear: TealSource,
+    pub escrows: Escrows,
+}
+
+pub struct Escrows {
     pub central_escrow: TealSourceTemplate,
     pub customer_escrow: TealSourceTemplate,
     pub invest_escrow: TealSourceTemplate,

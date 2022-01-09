@@ -6,7 +6,7 @@ use crate::flows::create_project::{
 };
 #[cfg(test)]
 use crate::{
-    flows::create_project::create_project::Programs,
+    flows::create_project::create_project::{Escrows, Programs},
     teal::{load_teal, load_teal_template},
 };
 #[cfg(test)]
@@ -30,14 +30,7 @@ pub async fn create_project_flow(
 
     let create_assets_res = submit_create_assets(algod, &signed_create_shares_tx).await?;
 
-    let programs = Programs {
-        central_app_approval: load_teal_template("app_central_approval")?,
-        central_app_clear: load_teal("app_central_clear")?,
-        central_escrow: load_teal_template("central_escrow")?,
-        customer_escrow: load_teal_template("customer_escrow")?,
-        invest_escrow: load_teal_template("investing_escrow")?,
-        staking_escrow: load_teal_template("staking_escrow")?,
-    };
+    let programs = programs()?;
 
     // Rest of create project txs
     let to_sign = create_project_txs(
@@ -84,4 +77,18 @@ pub async fn create_project_flow(
     log::debug!("Created project: {:?}", create_res.project);
 
     Ok(create_res.project)
+}
+
+#[cfg(test)]
+pub fn programs() -> Result<Programs> {
+    Ok(Programs {
+        central_app_approval: load_teal_template("app_central_approval")?,
+        central_app_clear: load_teal("app_central_clear")?,
+        escrows: Escrows {
+            central_escrow: load_teal_template("central_escrow")?,
+            customer_escrow: load_teal_template("customer_escrow")?,
+            invest_escrow: load_teal_template("investing_escrow")?,
+            staking_escrow: load_teal_template("staking_escrow")?,
+        },
+    })
 }

@@ -42,12 +42,12 @@ fn load_file_bytes(folder: &str, file_name: &str) -> Result<Vec<u8>> {
     Ok(fs::read(format!("{}/{}.teal", folder, file_name))?)
 }
 
-pub fn render_template<T>(template: TealSourceTemplate, context: T) -> Result<TealSource>
+pub fn render_template<T>(template: &TealSourceTemplate, context: T) -> Result<TealSource>
 where
     T: Serialize,
 {
     let mut tt = TinyTemplate::new();
-    let teal_str = &String::from_utf8(template.0)?;
+    let teal_str = &String::from_utf8(template.0.to_owned())?;
     let template_identifier = "program"; // arbitrary identifier, see tinytemplate docs
     tt.add_template(template_identifier, teal_str)?;
 

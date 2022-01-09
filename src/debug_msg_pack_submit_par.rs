@@ -28,7 +28,7 @@ mod tests {
         let approval_template = load_teal_template("app_central_approval")?;
         // use parameters corresponding to current environment
         let _ = render_central_app(
-            approval_template,
+            &approval_template,
             2,
             100,
             TESTS_DEFAULT_PRECISION,

@@ -5,21 +5,19 @@ mod tests {
 
     use crate::{
         dependencies::{algod_for_tests, indexer_for_tests},
-        flows::create_project::storage::{
-            load_project::load_project,
-            save_project::{save_project, ProjectNoteProjectPayload},
-        },
+        flows::create_project::storage::{load_project::load_project, save_project::save_project},
+        hashable::Hashable,
         testing::{
-            flow::create_project_flow::create_project_flow,
+            flow::create_project_flow::{create_project_flow, programs},
             network_test_util::test_init,
             test_data::{creator, project_specs},
             TESTS_DEFAULT_PRECISION,
-        }, hashable::Hashable,
+        },
     };
 
     #[test]
     // For now ignore, as it needs a long delay (> 1 min) to wait for indexing
-    // TODO: can we trigger indexing somehow?
+    // TODO: can we trigger indexing manually?
     #[ignore]
     async fn saves_and_loads_project() -> Result<()> {
         test_init()?;
@@ -28,6 +26,7 @@ mod tests {
         let algod = algod_for_tests();
         let indexer = indexer_for_tests();
         let creator = creator();
+        let programs = programs()?;
 
         // UI
         let specs = project_specs();
@@ -53,17 +52,18 @@ mod tests {
 
         println!("Fetching project..");
 
-        let loaded_project =
-            load_project(&indexer, &creator.address(), &to_sign.stored_project.hash).await?;
+        let loaded_project = load_project(
+            &algod,
+            &indexer,
+            &creator.address(),
+            &to_sign.stored_project.hash,
+            &programs.escrows,
+        )
+        .await?;
 
         assert_eq!(project, loaded_project);
-
-        // Just additional checks that the note representations and hashes of both projects (the saved and loaded project) are equal
-        // this probably should be in dedicated tests, for now here.
-        let project_payload: ProjectNoteProjectPayload = project.into();
-        let loaded_project_payload: ProjectNoteProjectPayload = loaded_project.into();
-        assert_eq!(project_payload, loaded_project_payload);
-        assert_eq!(project_payload.hash()?, loaded_project_payload.hash()?);
+        // double check
+        assert_eq!(project.hash()?, loaded_project.hash()?);
 
         Ok(())
     }

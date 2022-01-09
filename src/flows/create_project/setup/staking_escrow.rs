@@ -16,14 +16,21 @@ use crate::teal::{render_template, TealSource, TealSourceTemplate};
 async fn create_staking_escrow(
     algod: &Algod,
     shares_asset_id: u64,
-    source: TealSourceTemplate,
+    source: &TealSourceTemplate,
 ) -> Result<ContractAccount> {
-    let source = render_staking_escrow(shares_asset_id, source)?;
-    let program = algod.compile_teal(&source.0).await?;
-    Ok(ContractAccount::new(program))
+    render_and_compile_staking_escrow(algod, shares_asset_id, source).await
 }
 
-fn render_staking_escrow(shares_asset_id: u64, source: TealSourceTemplate) -> Result<TealSource> {
+pub async fn render_and_compile_staking_escrow(
+    algod: &Algod,
+    shares_asset_id: u64,
+    source: &TealSourceTemplate,
+) -> Result<ContractAccount> {
+    let source = render_staking_escrow(shares_asset_id, source)?;
+    Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
+}
+
+fn render_staking_escrow(shares_asset_id: u64, source: &TealSourceTemplate) -> Result<TealSource> {
     let escrow_source = render_template(
         source,
         EditTemplateContext {
@@ -37,7 +44,7 @@ fn render_staking_escrow(shares_asset_id: u64, source: TealSourceTemplate) -> Re
 
 pub async fn setup_staking_escrow_txs(
     algod: &Algod,
-    source: TealSourceTemplate,
+    source: &TealSourceTemplate,
     shares_asset_id: u64,
     asset_amount: u64,
     creator: &Address,

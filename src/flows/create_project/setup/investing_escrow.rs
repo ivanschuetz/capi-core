@@ -23,16 +23,32 @@ pub async fn create_investing_escrow(
     shares_asset_id: u64,
     asset_price: MicroAlgos,
     staking_escrow_address: &Address,
-    source: TealSourceTemplate,
+    source: &TealSourceTemplate,
+) -> Result<ContractAccount> {
+    render_and_compile_investing_escrow(
+        algod,
+        shares_asset_id,
+        asset_price,
+        staking_escrow_address,
+        source,
+    )
+    .await
+}
+
+pub async fn render_and_compile_investing_escrow(
+    algod: &Algod,
+    shares_asset_id: u64,
+    asset_price: MicroAlgos,
+    staking_escrow_address: &Address,
+    source: &TealSourceTemplate,
 ) -> Result<ContractAccount> {
     let source =
         render_investing_escrow(source, shares_asset_id, asset_price, staking_escrow_address)?;
-    let program = algod.compile_teal(&source.0).await?;
-    Ok(ContractAccount::new(program))
+    Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
 fn render_investing_escrow(
-    source: TealSourceTemplate,
+    source: &TealSourceTemplate,
     shares_asset_id: u64,
     asset_price: MicroAlgos, // affects the shares
     staking_escrow_address: &Address,
@@ -53,7 +69,7 @@ fn render_investing_escrow(
 #[allow(clippy::too_many_arguments)]
 pub async fn setup_investing_escrow_txs(
     algod: &Algod,
-    source: TealSourceTemplate,
+    source: &TealSourceTemplate,
     shares_asset_id: u64,
     asset_amount: u64,
     asset_price: MicroAlgos,
@@ -146,8 +162,12 @@ mod tests {
     #[ignore]
     async fn test_render_escrow() -> Result<()> {
         let template = load_teal_template("investing_escrow")?;
-        let source =
-            render_investing_escrow(template, 123, MicroAlgos(1_000_000), &Address::new([0; 32]))?;
+        let source = render_investing_escrow(
+            &template,
+            123,
+            MicroAlgos(1_000_000),
+            &Address::new([0; 32]),
+        )?;
         let source_str = String::from_utf8(source.0)?;
         log::debug!("source: {}", source_str);
         Ok(())
@@ -157,8 +177,12 @@ mod tests {
     #[ignore]
     async fn test_render_escrow_and_compile() -> Result<()> {
         let template = load_teal_template("investing_escrow")?;
-        let source =
-            render_investing_escrow(template, 123, MicroAlgos(1_000_000), &Address::new([0; 32]))?;
+        let source = render_investing_escrow(
+            &template,
+            123,
+            MicroAlgos(1_000_000),
+            &Address::new([0; 32]),
+        )?;
 
         // deps
         let algod = dependencies::algod_for_tests();

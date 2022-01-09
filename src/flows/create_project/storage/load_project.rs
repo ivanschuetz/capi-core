@@ -1,35 +1,44 @@
 use crate::{
     flows::create_project::{
+        create_project::Escrows,
         model::{CreateProjectSpecs, CreateSharesSpecs, Project},
+        setup::{
+            central_escrow::render_and_compile_central_escrow,
+            customer_escrow::render_and_compile_customer_escrow,
+            investing_escrow::render_and_compile_investing_escrow,
+            staking_escrow::render_and_compile_staking_escrow,
+        },
         storage::save_project::ProjectNoteProjectPayload,
     },
     hashable::Hashable,
-    tx_note::{capi_note_prefix_bytes, extract_and_verify_hashed_object},
+    tx_note::{capi_note_prefix_bytes, extract_hashed_object},
 };
 use algonaut::{
+    algod::v2::Algod,
     core::Address,
     crypto::HashDigest,
     indexer::v2::Indexer,
     model::indexer::v2::{QueryTransaction, Role},
-    transaction::contract_account::ContractAccount,
 };
 use anyhow::{anyhow, Error, Result};
 use data_encoding::BASE64;
 
-fn project_hash_note_prefix(project_hash: &ProjectNotePayloadHash) -> Vec<u8> {
+fn project_hash_note_prefix(project_hash: &ProjectHash) -> Vec<u8> {
     [capi_note_prefix_bytes().as_slice(), &project_hash.0 .0].concat()
 }
 
-fn project_hash_note_prefix_base64(project_hash: &ProjectNotePayloadHash) -> String {
+fn project_hash_note_prefix_base64(project_hash: &ProjectHash) -> String {
     let prefix = project_hash_note_prefix(project_hash);
     println!("prefix bytes: {:?}", prefix);
     BASE64.encode(&prefix)
 }
 
 pub async fn load_project(
+    algod: &Algod,
     indexer: &Indexer,
     project_creator: &Address,
-    project_hash: &ProjectNotePayloadHash,
+    project_hash: &ProjectHash,
+    escrows: &Escrows,
 ) -> Result<Project> {
     let note_prefix = project_hash_note_prefix_base64(project_hash);
     log::debug!(
@@ -96,16 +105,22 @@ pub async fn load_project(
             // Considering that all these objects were created by the same account,
             // a failed hash verification means either malicious intent by the account, in which case it's suitable to invalidate other possible valid results created by them,
             // or a bug on our side, which would be critical and warrant to stop everything too.
-            let hashed_stored_project = extract_and_verify_hashed_object(&note)?;
+            let hashed_stored_project = extract_hashed_object(&note)?;
             let stored_project = hashed_stored_project.obj;
-            let stored_project_digest = ProjectNotePayloadHash(hashed_stored_project.hash);
+            let stored_project_digest = ProjectHash(hashed_stored_project.hash);
 
             // double check that digest in note is what we sent in the query, (if not, exit with error - there's a bug and we shouldn't continue)
             if project_hash.0 != stored_project_digest.0 {
                 return Err(anyhow!("Invalid state: The note prefix doesn't match the prefix used to query the indexer."));
             }
 
-            let project = storable_project_to_project(&stored_project, &stored_project_digest)?;
+            let project = storable_project_to_project(
+                algod,
+                &stored_project,
+                &stored_project_digest,
+                escrows,
+            )
+            .await?;
             projects.push(project);
         } else {
             // It can be worth inspecting these, as their purpose would be unclear.
@@ -129,40 +144,69 @@ pub async fn load_project(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProjectNotePayloadHash(pub HashDigest);
+pub struct ProjectHash(pub HashDigest);
 
-fn storable_project_to_project(
-    p: &ProjectNoteProjectPayload,
-    prefix_hash: &ProjectNotePayloadHash,
+/// Converts and completes the project data stored in note to a full project instance.
+/// It also verifies the hash.
+async fn storable_project_to_project(
+    algod: &Algod,
+    payload: &ProjectNoteProjectPayload,
+    prefix_hash: &ProjectHash,
+    escrows: &Escrows,
 ) -> Result<Project> {
-    // Security check: compare freshly calculated hash with prefix hash (used to find the project).
-    // (Note: "prefix hash" is the prefix contained in the note)
-    // This could happen because of a bug in our app or something malicious / a third party bug - anyone can store anything in the notes.
-    // Side note: in this case we [assume to have] fetched using the project's creator as sender, meaning that if malicious, the creator is the attacker.
-    let hash = ProjectNotePayloadHash(*p.hash()?.hash());
+    // Render and compile the escrows
+    let central_escrow_account = render_and_compile_central_escrow(
+        algod,
+        &payload.creator,
+        &escrows.central_escrow,
+        &payload.uuid,
+    )
+    .await?;
+    let customer_escrow_account = render_and_compile_customer_escrow(
+        algod,
+        &central_escrow_account.address(),
+        &escrows.customer_escrow,
+    )
+    .await?;
+    let staking_escrow_account =
+        render_and_compile_staking_escrow(algod, payload.shares_asset_id, &escrows.staking_escrow)
+            .await?;
+    let investing_escrow_account = render_and_compile_investing_escrow(
+        algod,
+        payload.shares_asset_id,
+        payload.asset_price,
+        &staking_escrow_account.address(),
+        &escrows.invest_escrow,
+    )
+    .await?;
+
+    let project = Project {
+        specs: CreateProjectSpecs {
+            name: payload.name.clone(),
+            shares: CreateSharesSpecs {
+                token_name: payload.asset_name.clone(),
+                count: payload.asset_supply,
+            },
+            asset_price: payload.asset_price,
+            investors_share: payload.investors_share,
+        },
+        uuid: payload.uuid,
+        creator: payload.creator,
+        shares_asset_id: payload.shares_asset_id,
+        central_app_id: payload.central_app_id,
+        invest_escrow: investing_escrow_account,
+        staking_escrow: staking_escrow_account,
+        central_escrow: central_escrow_account,
+        customer_escrow: customer_escrow_account,
+    };
+
+    // Verify hash (compare freshly calculated hash with prefix hash contained in note)
+    let hash = ProjectHash(*project.hash()?.hash());
     if &hash != prefix_hash {
         return Err(anyhow!(
-            "Invalid state: Stored project hash doesn't correspond to freshly calculated hash"
+            "Hash verification failed: Note hash doesn't correspond to calculated hash"
         ));
     }
 
-    Ok(Project {
-        specs: CreateProjectSpecs {
-            name: p.name.clone(),
-            shares: CreateSharesSpecs {
-                token_name: p.asset_name.clone(),
-                count: p.asset_supply,
-            },
-            asset_price: p.asset_price,
-            investors_share: p.investors_share,
-        },
-        uuid: p.uuid,
-        creator: p.creator,
-        shares_asset_id: p.shares_asset_id,
-        central_app_id: p.central_app_id,
-        invest_escrow: ContractAccount::new(p.invest_escrow.clone()),
-        staking_escrow: ContractAccount::new(p.staking_escrow.clone()),
-        central_escrow: ContractAccount::new(p.central_escrow.clone()),
-        customer_escrow: ContractAccount::new(p.customer_escrow.clone()),
-    })
+    Ok(project)
 }

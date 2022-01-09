@@ -16,7 +16,7 @@ use crate::{
 #[allow(clippy::too_many_arguments)]
 pub async fn create_app_tx(
     algod: &Algod,
-    approval_source: TealSourceTemplate,
+    approval_source: &TealSourceTemplate,
     clear_source: TealSource,
     creator: &Address,
     asset_id: u64,
@@ -68,7 +68,7 @@ pub async fn create_app_tx(
 }
 
 pub fn render_central_app(
-    source: TealSourceTemplate,
+    source: &TealSourceTemplate,
     asset_id: u64,
     asset_supply: u64,
     precision: u64,
@@ -145,7 +145,7 @@ mod tests {
         // asset id and supply aren't used here so we can pass anything (0 in this case)
         let tx = create_app_tx(
             &algod,
-            approval_template,
+            &approval_template,
             clear_source,
             &creator.address(),
             0,

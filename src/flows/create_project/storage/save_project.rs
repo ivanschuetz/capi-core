@@ -1,15 +1,17 @@
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, CompiledTeal, MicroAlgos, SuggestedTransactionParams},
+    core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{Pay, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{flows::create_project::model::Project, hashable::Hashable, tx_note::capi_note_prefix};
+use crate::{
+    flows::create_project::model::Project, hashable::Hashable, tx_note::capi_note_prefix_bytes,
+};
 
-use super::load_project::ProjectNotePayloadHash;
+use super::load_project::ProjectHash;
 
 pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
@@ -20,8 +22,7 @@ pub async fn save_project(
 ) -> Result<SaveProjectToSign> {
     let params = algod.suggested_transaction_params().await?;
 
-    let project_note_payload: ProjectNoteProjectPayload = project.to_owned().into();
-    let note = generate_note(project_note_payload)?;
+    let note = generate_note(project)?;
 
     log::debug!("Note bytes: {:?}", note.bytes.len());
 
@@ -48,23 +49,32 @@ pub async fn save_project(
 /// Already stored meaning: we submitted the storage tx successfully to the network (got a tx id)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoredProject {
-    pub hash: ProjectNotePayloadHash,
+    pub hash: ProjectHash,
     pub project: Project,
 }
 
-fn generate_note(project_payload: ProjectNoteProjectPayload) -> Result<ProjectNote> {
-    let hash_result = project_payload.hash()?;
-    let hash = hash_result.hash();
+fn generate_note(project: &Project) -> Result<ProjectNote> {
+    let project_hash_result = project.hash()?;
+    let project_hash = project_hash_result.hash();
 
-    let capi_prefix = capi_note_prefix();
-    let capi_prefix_bytes = capi_prefix.as_bytes();
+    let capi_prefix_bytes: &[u8] = &capi_note_prefix_bytes();
 
-    let bytes = [capi_prefix_bytes, &hash.0, &hash_result.hashed_bytes].concat();
+    let project_note_payload: ProjectNoteProjectPayload = project.to_owned().into();
+    let project_note_payload_bytes = project_note_payload.bytes()?;
+
+    // Note that the hash belongs to the Project instance, not the saved payload.
+    // This allows us to store a minimal representation and validate the generated full Project against the hash.
+    // In this case minimal means that the programs (escrows) are not stored: they can be rendered on demand.
+    let bytes = [
+        capi_prefix_bytes,
+        &project_hash.0,
+        &project_note_payload_bytes,
+    ]
+    .concat();
 
     Ok(ProjectNote {
         bytes,
-        hash: ProjectNotePayloadHash(hash.to_owned()),
-        project_payload,
+        hash: ProjectHash(project_hash.to_owned()),
     })
 }
 
@@ -73,10 +83,7 @@ fn generate_note(project_payload: ProjectNoteProjectPayload) -> Result<ProjectNo
 struct ProjectNote {
     bytes: Vec<u8>,
 
-    hash: ProjectNotePayloadHash,
-    // the payload that was hashed - adding it just for readability
-    #[allow(dead_code)]
-    project_payload: ProjectNoteProjectPayload,
+    hash: ProjectHash,
 }
 
 /// The project representation that's directly stored in the storage tx note
@@ -97,10 +104,12 @@ pub struct ProjectNoteProjectPayload {
     pub creator: Address,
     pub shares_asset_id: u64,
     pub central_app_id: u64,
-    pub invest_escrow: CompiledTeal,
-    pub staking_escrow: CompiledTeal,
-    pub central_escrow: CompiledTeal,
-    pub customer_escrow: CompiledTeal,
+}
+
+impl ProjectNoteProjectPayload {
+    fn bytes(&self) -> Result<Vec<u8>> {
+        Ok(rmp_serde::to_vec_named(self)?)
+    }
 }
 
 impl From<Project> for ProjectNoteProjectPayload {
@@ -116,15 +125,11 @@ impl From<Project> for ProjectNoteProjectPayload {
             creator: p.creator,
             shares_asset_id: p.shares_asset_id,
             central_app_id: p.central_app_id,
-            invest_escrow: p.invest_escrow.program,
-            staking_escrow: p.staking_escrow.program,
-            central_escrow: p.central_escrow.program,
-            customer_escrow: p.customer_escrow.program,
         }
     }
 }
 
-impl Hashable for ProjectNoteProjectPayload {}
+impl Hashable for Project {}
 
 pub async fn submit_save_project(algod: &Algod, signed: SaveProjectSigned) -> Result<String> {
     let res = algod.broadcast_signed_transaction(&signed.tx).await?;
