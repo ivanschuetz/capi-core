@@ -22,6 +22,7 @@ use algonaut::{
 };
 use anyhow::{anyhow, Error, Result};
 use data_encoding::BASE64;
+use futures::join;
 
 fn project_hash_note_prefix(project_hash: &ProjectHash) -> Vec<u8> {
     [capi_note_prefix_bytes().as_slice(), &project_hash.0 .0].concat()
@@ -155,30 +156,38 @@ async fn storable_project_to_project(
     escrows: &Escrows,
 ) -> Result<Project> {
     // Render and compile the escrows
-    let central_escrow_account = render_and_compile_central_escrow(
+    let central_escrow_account_fut = render_and_compile_central_escrow(
         algod,
         &payload.creator,
         &escrows.central_escrow,
         &payload.uuid,
-    )
-    .await?;
-    let customer_escrow_account = render_and_compile_customer_escrow(
+    );
+    let staking_escrow_account_fut =
+        render_and_compile_staking_escrow(algod, payload.shares_asset_id, &escrows.staking_escrow);
+
+    let (central_escrow_account_res, staking_escrow_account_res) =
+        join!(central_escrow_account_fut, staking_escrow_account_fut);
+    let central_escrow_account = central_escrow_account_res?;
+    let staking_escrow_account = staking_escrow_account_res?;
+
+    let customer_escrow_account_fut = render_and_compile_customer_escrow(
         algod,
         &central_escrow_account.address(),
         &escrows.customer_escrow,
-    )
-    .await?;
-    let staking_escrow_account =
-        render_and_compile_staking_escrow(algod, payload.shares_asset_id, &escrows.staking_escrow)
-            .await?;
-    let investing_escrow_account = render_and_compile_investing_escrow(
+    );
+
+    let investing_escrow_account_fut = render_and_compile_investing_escrow(
         algod,
         payload.shares_asset_id,
         payload.asset_price,
         &staking_escrow_account.address(),
         &escrows.invest_escrow,
-    )
-    .await?;
+    );
+
+    let (customer_escrow_account_res, investing_escrow_account_res) =
+        join!(customer_escrow_account_fut, investing_escrow_account_fut);
+    let customer_escrow_account = customer_escrow_account_res?;
+    let investing_escrow_account = investing_escrow_account_res?;
 
     let project = Project {
         specs: CreateProjectSpecs {
