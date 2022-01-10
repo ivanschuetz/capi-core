@@ -5,12 +5,12 @@ use algonaut::{
     transaction::{Pay, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
-use data_encoding::BASE64;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
-use uuid::Uuid;
 
-use crate::tx_note::project_uuid_note_prefix;
+use crate::{
+    flows::create_project::storage::load_project::ProjectHash, tx_note::capi_note_prefix_bytes,
+};
 
 pub async fn add_roadmap_item(
     algod: &Algod,
@@ -54,7 +54,7 @@ pub struct AddRoadmapItemToSigned {
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct RoadmapItemInputs {
-    pub project_uuid: Uuid,
+    pub project_hash: ProjectHash,
     pub title: String,
     pub parent: Box<Option<HashDigest>>,
 }
@@ -73,7 +73,7 @@ impl RoadmapItemInputs {
     fn to_roadmap_item(&self) -> Result<RoadmapItem> {
         let hash = self.hash()?;
         Ok(RoadmapItem {
-            project_uuid: self.project_uuid,
+            project_hash: self.project_hash.clone(),
             title: self.title.clone(),
             parent: self.parent.clone(),
             hash,
@@ -84,24 +84,19 @@ impl RoadmapItemInputs {
 // roadmap item model + hash
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RoadmapItem {
-    pub project_uuid: Uuid,
+    pub project_hash: ProjectHash,
     pub title: String,
     pub parent: Box<Option<HashDigest>>,
     pub hash: HashDigest,
 }
 
 fn roadmap_item_as_tx_note(item: &RoadmapItem) -> Result<Vec<u8>> {
-    let base64 = BASE64.encode(&rmp_serde::to_vec_named(&item)?);
-    let str = format!(
-        "{}{}",
-        project_uuid_note_prefix(&item.project_uuid),
-        // encode the hashed item in the note
-        // note that we've 2 rounds of msg pack:
-        // 1) msg pack over the non-hashed object -> bytes to generate the hash (we could use any other binary representation)
-        // 2) msg pack over the hashed object -> to store the serialized struct in note (we could use e.g. JSON instead, but msg pack is more compact)
-        // to reverse: 1) deserialize hashed item from msg pack, 2) create non-hashed object with deserialized item, 3) validate non-hashed object with hash
-        base64
-    );
-    // finally, encode the note as utf-8 (we could use any other byte representation)
-    Ok(str.as_bytes().to_vec())
+    let project_hash = &item.project_hash;
+    let capi_prefix_bytes: &[u8] = &capi_note_prefix_bytes();
+
+    let item_bytes = &rmp_serde::to_vec_named(&item)?;
+
+    let bytes = [capi_prefix_bytes, &project_hash.0 .0, item_bytes].concat();
+
+    Ok(bytes)
 }

@@ -13,26 +13,16 @@ use crate::{
         storage::save_project::ProjectNoteProjectPayload,
     },
     hashable::Hashable,
-    tx_note::{capi_note_prefix_bytes, extract_hashed_object},
+    tx_note::{extract_hashed_object, project_hash_note_prefix_base64},
 };
 use algonaut::{
     algod::v2::Algod, crypto::HashDigest, indexer::v2::Indexer,
     model::indexer::v2::QueryTransaction,
 };
 use anyhow::{anyhow, Result};
-use data_encoding::{BASE64, BASE64URL};
+use data_encoding::BASE64URL;
 use futures::join;
 use serde::{Deserialize, Serialize};
-
-fn project_hash_note_prefix(project_hash: &ProjectHash) -> Vec<u8> {
-    [capi_note_prefix_bytes().as_slice(), &project_hash.0 .0].concat()
-}
-
-fn project_hash_note_prefix_base64(project_hash: &ProjectHash) -> String {
-    let prefix = project_hash_note_prefix(project_hash);
-    println!("prefix bytes: {:?}", prefix);
-    BASE64.encode(&prefix)
-}
 
 pub async fn load_project(
     algod: &Algod,
@@ -159,12 +149,8 @@ async fn storable_project_to_project(
     escrows: &Escrows,
 ) -> Result<Project> {
     // Render and compile the escrows
-    let central_escrow_account_fut = render_and_compile_central_escrow(
-        algod,
-        &payload.creator,
-        &escrows.central_escrow,
-        &payload.uuid,
-    );
+    let central_escrow_account_fut =
+        render_and_compile_central_escrow(algod, &payload.creator, &escrows.central_escrow);
     let staking_escrow_account_fut =
         render_and_compile_staking_escrow(algod, payload.shares_asset_id, &escrows.staking_escrow);
 

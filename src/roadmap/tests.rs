@@ -6,8 +6,12 @@ mod tests {
 
     use crate::{
         dependencies,
-        roadmap::add_roadmap_item::{
-            add_roadmap_item, submit_add_roadmap_item, AddRoadmapItemToSigned, RoadmapItemInputs,
+        roadmap::{
+            add_roadmap_item::{
+                add_roadmap_item, submit_add_roadmap_item, AddRoadmapItemToSigned,
+                RoadmapItemInputs,
+            },
+            get_roadmap::{get_roadmap, SavedRoadmapItem},
         },
         testing::{
             flow::create_project_flow::create_project_flow,
@@ -19,12 +23,15 @@ mod tests {
 
     #[test]
     #[serial]
+    // For now ignore, as it needs a long delay (> 1 min) to wait for indexing
+    // TODO: can we trigger indexing manually?
+    #[ignore]
     async fn test_add_roadmap_item() -> Result<()> {
         test_init()?;
 
         // deps
         let algod = dependencies::algod_for_tests();
-        // let indexer = dependencies::indexer_for_tests();
+        let indexer = dependencies::indexer_for_tests();
         let creator = creator();
 
         // UI
@@ -34,7 +41,7 @@ mod tests {
             create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
 
         let inputs = RoadmapItemInputs {
-            project_uuid: project.uuid,
+            project_hash: project.hash()?,
             title: "MVP Release".to_owned(),
             parent: Box::new(None),
         };
@@ -48,35 +55,33 @@ mod tests {
             submit_add_roadmap_item(&algod, &AddRoadmapItemToSigned { tx: signed_tx }).await?;
         log::debug!("Add roadmap item tx id: {}", tx_id);
 
-        // // check that the item was added correctly
-        // // commented for now as it needs a long pause for the indexer to get the transaction, and we don't want to add this delay to the tests
-        // //
-        // // maybe it's possible to trigger indexing manually to not have to wait?
-        // std::thread::sleep(std::time::Duration::from_secs(120));
+        log::debug!("Waiting for indexing..");
+        std::thread::sleep(std::time::Duration::from_secs(120));
 
-        // // check that we can retrieve the same item we just saved
+        // check that the item was added correctly
 
-        // let saved_roadmap = get_roadmap(&indexer, &creator.address(), &project.uuid).await?;
+        let saved_roadmap = get_roadmap(&indexer, &creator.address(), &project.hash()?).await?;
 
-        // assert_eq!(1, saved_roadmap.items.len());
+        assert_eq!(1, saved_roadmap.items.len());
 
-        // let saved_item = &saved_roadmap.items[0];
-        // assert_eq!(
-        //     inputs,
-        //     saved_roadmap_item_into_roadmap_item_inputs(saved_item)
-        // );
+        // check that we can retrieve the same item we just saved
+        let saved_item = &saved_roadmap.items[0];
+        assert_eq!(
+            inputs,
+            saved_roadmap_item_into_roadmap_item_inputs(saved_item)
+        );
 
         Ok(())
     }
 
-    // // we need this convertion only for tests so here and explicit
-    // fn saved_roadmap_item_into_roadmap_item_inputs(
-    //     saved_item: &SavedRoadmapItem,
-    // ) -> RoadmapItemInputs {
-    //     RoadmapItemInputs {
-    //         project_uuid: saved_item.project_uuid.clone(),
-    //         title: saved_item.title.clone(),
-    //         parent: saved_item.parent.clone(),
-    //     }
-    // }
+    // we need this convertion only for tests so here and explicit
+    fn saved_roadmap_item_into_roadmap_item_inputs(
+        saved_item: &SavedRoadmapItem,
+    ) -> RoadmapItemInputs {
+        RoadmapItemInputs {
+            project_hash: saved_item.project_hash.clone(),
+            title: saved_item.title.clone(),
+            parent: saved_item.parent.clone(),
+        }
+    }
 }

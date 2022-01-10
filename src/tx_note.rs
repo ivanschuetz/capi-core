@@ -45,6 +45,20 @@ pub fn strip_prefix_from_note(note: &[u8], project_uuid: &Uuid) -> Result<String
         .to_owned())
 }
 
+fn project_hash_note_prefix(project_hash: &ProjectHash) -> Vec<u8> {
+    [capi_note_prefix_bytes().as_slice(), &project_hash.0 .0].concat()
+}
+
+pub fn project_hash_note_prefix_base64(project_hash: &ProjectHash) -> String {
+    let prefix = project_hash_note_prefix(project_hash);
+    println!("prefix bytes: {:?}", prefix);
+    BASE64.encode(&prefix)
+}
+
+// NOTE: the relationship between hash and obj is arbitrary - this represents just a specific note format.
+// It can be e.g. the project's hash + roadmap item (the hash here acts as id: "item belongs to this project")
+// Or it can be a hash of a derivation of the hashed object (e.g. we store a minimal representation of project, the hash belong to the original)
+// Or it can be an actual hash of the object.
 #[derive(Debug, Clone)]
 pub struct HashedStoredObject<T>
 where

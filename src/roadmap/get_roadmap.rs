@@ -1,3 +1,8 @@
+use crate::{
+    date_util::timestamp_seconds_to_date,
+    flows::create_project::storage::load_project::ProjectHash,
+    tx_note::{extract_hashed_object, project_hash_note_prefix_base64},
+};
 use algonaut::{
     core::Address,
     crypto::HashDigest,
@@ -6,28 +11,21 @@ use algonaut::{
 };
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
-use data_encoding::BASE64;
 use serde::Serialize;
-use uuid::Uuid;
-
-use crate::{
-    date_util::timestamp_seconds_to_date,
-    tx_note::{project_uuid_note_prefix_base64, strip_prefix_from_note},
-};
 
 use super::add_roadmap_item::RoadmapItem;
 
 pub async fn get_roadmap(
     indexer: &Indexer,
     project_creator: &Address,
-    project_uuid: &Uuid,
+    project_hash: &ProjectHash,
 ) -> Result<Roadmap> {
-    let note_prefix = project_uuid_note_prefix_base64(project_uuid);
+    let note_prefix = project_hash_note_prefix_base64(project_hash);
     log::debug!(
-        "Feching roadmap with prefix: {:?}, sender: {:?}, uuid (encoded in prefix): {:?}",
+        "Feching roadmap with prefix: {:?}, sender: {:?}, project id (encoded in prefix): {:?}",
         note_prefix,
         project_creator,
-        project_uuid
+        project_hash
     );
 
     let response = indexer
@@ -57,9 +55,7 @@ pub async fn get_roadmap(
                 .clone()
                 .ok_or_else(|| anyhow!("Unexpected: roadmap tx has no note: {:?}", tx))?;
 
-            let note_payload_str = strip_prefix_from_note(note.as_bytes(), project_uuid)?;
-            let msg_pack_to_deserialize = BASE64.decode(note_payload_str.as_bytes())?;
-            let roadmap_item = rmp_serde::from_slice::<RoadmapItem>(&msg_pack_to_deserialize)?;
+            let hashed_stored_project = extract_hashed_object(&note)?;
 
             // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
             // Unclear when it's None. For now we just reject it.
@@ -68,7 +64,7 @@ pub async fn get_roadmap(
                 .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
             let saved_roadmap_item =
-                to_saved_roadmap_item(&roadmap_item, tx.id.clone(), round_time)?;
+                to_saved_roadmap_item(&hashed_stored_project.obj, tx.id.clone(), round_time)?;
 
             items.push(saved_roadmap_item)
         } else {
@@ -89,7 +85,7 @@ pub struct Roadmap {
 #[derive(Debug, Clone, Serialize)]
 pub struct SavedRoadmapItem {
     pub tx_id: String,
-    pub project_uuid: Uuid,
+    pub project_hash: ProjectHash,
     pub title: String,
     pub date: DateTime<Utc>,
     pub parent: Box<Option<HashDigest>>,
@@ -103,7 +99,7 @@ fn to_saved_roadmap_item(
 ) -> Result<SavedRoadmapItem> {
     Ok(SavedRoadmapItem {
         tx_id,
-        project_uuid: item.project_uuid,
+        project_hash: item.project_hash.clone(),
         title: item.title.clone(),
         date: timestamp_seconds_to_date(round_time)?,
         parent: item.parent.clone(),
