@@ -66,7 +66,7 @@ fn to_note(withdrawal: &WithdrawalInputs) -> Result<Vec<u8>> {
     let body = withdrawal.description.clone();
     // The reason that we generate the note with a UUID and not the hash,
     // is that we want to verify in TEAL that this UUID is used (so all the transactions can be found by prefix)
-    Ok(generate_withdrawal_tx_note(&withdrawal.project_uuid, &body))
+    Ok(generate_withdrawal_tx_note(&body))
 }
 
 pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<String> {

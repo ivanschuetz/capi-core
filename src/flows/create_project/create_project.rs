@@ -42,14 +42,8 @@ pub async fn create_project_txs(
 
     let project_uuid = Uuid::new_v4();
 
-    let mut central_to_sign = setup_central_escrow(
-        algod,
-        &creator,
-        &programs.escrows.central_escrow,
-        &params,
-        &project_uuid,
-    )
-    .await?;
+    let mut central_to_sign =
+        setup_central_escrow(algod, &creator, &programs.escrows.central_escrow, &params).await?;
 
     let mut customer_to_sign = setup_customer_escrow(
         algod,

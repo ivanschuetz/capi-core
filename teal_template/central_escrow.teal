@@ -43,7 +43,7 @@ addr {project_creator_address}
 // (the withdrawals are queried by prefix (using the indexer) - 
 // there seem to be no way currently to query by receiver address (so all payments central->creator), which would be simpler)
 gtxn 0 Note // withdrawal
-substring 0 40 // prefix: 4 characters "capi" + 36 characters project uuid. TODO consider using bytes directly (not sure about syntax) - 20 bytes in this case, instead of characters
+substring 0 12 // prefix: 4 characters "capi" + 8 characters "withdrawal". TODO consider using bytes directly (not sure about TEAL syntax)
 byte b64 {withdrawal_prefix_base64}
 ==
 &&

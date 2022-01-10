@@ -4,7 +4,8 @@ use algonaut::crypto::HashDigest;
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 use serde::{de::DeserializeOwned, Serialize};
-use uuid::Uuid;
+
+use crate::flows::create_project::storage::load_project::ProjectHash;
 
 /// Global note prefix for all projects on the platform
 /// fixed size of 4 characters
@@ -18,27 +19,26 @@ pub fn capi_note_prefix_bytes() -> [u8; 4] {
     [99, 97, 112, 105]
 }
 
-/// Prefix containing the project id
-/// This is prepended this to all the withdrawal notes
-/// Has a fixed size of 40 characters (4 characters capi prefix + 36 characters uuid)
-pub fn project_uuid_note_prefix(project_uuid: &Uuid) -> String {
-    format!("{}{}", capi_note_prefix(), project_uuid)
+/// Prepended this to all the withdrawal notes, to filter txs
+/// Has a fixed size of 12 characters (4 characters capi prefix + 8 characters withdraw string)
+pub fn withdraw_note_prefix() -> String {
+    format!("{}{}", capi_note_prefix(), "withdraw")
 }
 
 /// Base64 representation of the withdrawal prefix (utf8 encoding).
 /// Used to query the withdrawal transactions from the indexer.
-pub fn project_uuid_note_prefix_base64(project_uuid: &Uuid) -> String {
-    let str = project_uuid_note_prefix(project_uuid);
+pub fn withdraw_note_prefix_base64() -> String {
+    let str = withdraw_note_prefix();
     BASE64.encode(str.as_bytes())
 }
 
 /// Extract the note body
-pub fn strip_prefix_from_note(note: &[u8], project_uuid: &Uuid) -> Result<String> {
+pub fn strip_withdraw_prefix_from_note(note: &[u8]) -> Result<String> {
     let note_decoded_bytes = &BASE64.decode(note)?;
     let note_str = std::str::from_utf8(note_decoded_bytes)?;
 
     Ok(note_str
-        .strip_prefix(&project_uuid_note_prefix(project_uuid))
+        .strip_prefix(&withdraw_note_prefix())
         .ok_or_else(|| {
             anyhow!("Note (assumed to have been fetched with prefix) doesn't have expected prefix.")
         })?
@@ -60,13 +60,10 @@ pub fn project_hash_note_prefix_base64(project_hash: &ProjectHash) -> String {
 // Or it can be a hash of a derivation of the hashed object (e.g. we store a minimal representation of project, the hash belong to the original)
 // Or it can be an actual hash of the object.
 #[derive(Debug, Clone)]
-pub struct HashedStoredObject<T>
+pub struct ObjectAndHash<T>
 where
     T: DeserializeOwned,
 {
-    // NOTE: this hash does NOT necessarily correspond directly to obj
-    // it can belong to a derivation of it. E.g. for projects, we hash the full instance, which contains the escrow compiled programs
-    // (we can't save them in the note, because of the size limitation)
     pub hash: HashDigest,
     pub obj: T,
 }
@@ -75,18 +72,18 @@ where
 /// The note's expected format is: <CAPI PREFIX><HASH><OBJECT>.
 /// Note that this does NOT verify the object against the hash
 /// (Reason being that the hash might not be directly from the object, but from a derivation of it)
-pub fn extract_hashed_object<T>(note: &str) -> Result<HashedStoredObject<T>>
+pub fn extract_hashed_object<T>(note: &str) -> Result<ObjectAndHash<T>>
 where
     T: DeserializeOwned,
 {
     // The api sends the bytes base64 encoded
     let note_decoded_bytes = BASE64.decode(note.as_bytes())?;
 
-    extract_hashed_object_from_decoded_note_bytes(&note_decoded_bytes)
+    extract_hash_and_object_from_decoded_note_bytes(&note_decoded_bytes)
 }
 
 // Just a helper function to prevent confusion with the non-decoded note string
-fn extract_hashed_object_from_decoded_note_bytes<T>(note: &[u8]) -> Result<HashedStoredObject<T>>
+fn extract_hash_and_object_from_decoded_note_bytes<T>(note: &[u8]) -> Result<ObjectAndHash<T>>
 where
     T: DeserializeOwned,
 {
@@ -124,7 +121,7 @@ where
         )
     })?;
 
-    Ok(HashedStoredObject { hash, obj: res })
+    Ok(ObjectAndHash { hash, obj: res })
 }
 
 pub trait AsNotePayload: Serialize {

@@ -2,7 +2,7 @@
 use crate::teal::save_rendered_teal;
 use crate::{
     teal::{render_template, TealSource, TealSourceTemplate},
-    tx_note::project_uuid_note_prefix_base64,
+    tx_note::withdraw_note_prefix_base64,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -13,7 +13,6 @@ use algonaut::{
 };
 use anyhow::Result;
 use serde::Serialize;
-use uuid::Uuid;
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -26,10 +25,8 @@ pub async fn setup_central_escrow(
     project_creator: &Address,
     source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
-    project_uuid: &Uuid,
 ) -> Result<SetupCentralEscrowToSign> {
-    let escrow =
-        render_and_compile_central_escrow(algod, project_creator, source, project_uuid).await?;
+    let escrow = render_and_compile_central_escrow(algod, project_creator, source).await?;
     Ok(SetupCentralEscrowToSign {
         fund_min_balance_tx: create_payment_tx(
             project_creator,
@@ -46,18 +43,16 @@ pub async fn render_and_compile_central_escrow(
     algod: &Algod,
     project_creator: &Address,
     source: &TealSourceTemplate,
-    project_uuid: &Uuid,
 ) -> Result<ContractAccount> {
-    let source = render_central_escrow(source, project_creator, project_uuid)?;
+    let source = render_central_escrow(source, project_creator)?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
 fn render_central_escrow(
     source: &TealSourceTemplate,
     project_creator: &Address,
-    project_uuid: &Uuid,
 ) -> Result<TealSource> {
-    let withdrawal_note_prefix = project_uuid_note_prefix_base64(project_uuid);
+    let withdrawal_note_prefix = withdraw_note_prefix_base64();
 
     let escrow_source = render_template(
         source,
