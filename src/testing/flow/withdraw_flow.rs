@@ -59,7 +59,6 @@ pub async fn withdraw_flow(
         &algod,
         creator.address(),
         &WithdrawalInputs {
-            project_uuid: project.uuid,
             amount,
             description: "Withdrawing from tests".to_owned(),
         },

@@ -31,10 +31,6 @@ gloo-timers = { version = "0.2.1", features = ["futures"] }
 
 rust_decimal = "1.15"
 
-# uuid = { version = "0.8", features = ["serde", "v4"] }
-# need this version for v4 to work on WASM
-uuid = { git = "https://github.com/uuid-rs/uuid", tag = "1.0.0-alpha.1", features = ["serde", "v4"] }
-
 sha2 = "0.9.5"
 futures = "0.3.19"
 

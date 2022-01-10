@@ -6,7 +6,6 @@ use algonaut::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::{
     date_util::timestamp_seconds_to_date,
@@ -70,7 +69,6 @@ pub async fn withdrawals(
                     .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
                 withdrawals.push(Withdrawal {
-                    project_uuid: project.uuid,
                     amount: payment.amount,
                     description: withdrawal_description,
                     date: timestamp_seconds_to_date(round_time)?,
@@ -85,7 +83,6 @@ pub async fn withdrawals(
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Withdrawal {
-    pub project_uuid: Uuid,
     pub amount: MicroAlgos,
     pub description: String,
     pub date: DateTime<Utc>,

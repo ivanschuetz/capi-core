@@ -188,7 +188,6 @@ async fn storable_project_to_project(
             asset_price: payload.asset_price,
             investors_share: payload.investors_share,
         },
-        uuid: payload.uuid,
         creator: payload.creator,
         shares_asset_id: payload.shares_asset_id,
         central_app_id: payload.central_app_id,

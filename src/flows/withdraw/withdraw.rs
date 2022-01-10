@@ -8,7 +8,6 @@ use algonaut::{
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::withdrawal_note_prefix::generate_withdrawal_tx_note;
 
@@ -99,7 +98,6 @@ pub struct WithdrawSigned {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct WithdrawalInputs {
-    pub project_uuid: Uuid,
     pub amount: MicroAlgos,
     pub description: String,
 }

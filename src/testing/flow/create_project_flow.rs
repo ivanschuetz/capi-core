@@ -58,7 +58,6 @@ pub async fn create_project_flow(
     let create_res = submit_create_project(
         &algod,
         CreateProjectSigned {
-            uuid: to_sign.uuid,
             specs: to_sign.specs,
             creator: creator.address(),
             shares_asset_id: create_assets_res.shares_id,

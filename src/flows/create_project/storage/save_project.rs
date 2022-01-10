@@ -5,7 +5,6 @@ use algonaut::{
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::{
     flows::create_project::model::Project, hashable::Hashable, tx_note::capi_note_prefix_bytes,
@@ -74,7 +73,6 @@ pub struct ProjectNoteProjectPayload {
 
     pub asset_price: MicroAlgos,
     pub investors_share: u64,
-    pub uuid: Uuid,
     pub creator: Address,
     pub shares_asset_id: u64,
     pub central_app_id: u64,
@@ -95,7 +93,6 @@ impl From<Project> for ProjectNoteProjectPayload {
             asset_supply: p.specs.shares.count,
             asset_price: p.specs.asset_price,
             investors_share: p.specs.investors_share,
-            uuid: p.uuid,
             creator: p.creator,
             shares_asset_id: p.shares_asset_id,
             central_app_id: p.central_app_id,
