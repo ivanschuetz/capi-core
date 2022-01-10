@@ -64,6 +64,8 @@ fn to_note(withdrawal: &WithdrawalInputs) -> Result<Vec<u8>> {
     // in a test it compressed ~40% of regular english text (from random wikipedia article)
     // it increased WASM file size by only ~16kb
     let body = withdrawal.description.clone();
+    // The reason that we generate the note with a UUID and not the hash,
+    // is that we want to verify in TEAL that this UUID is used (so all the transactions can be found by prefix)
     Ok(generate_withdrawal_tx_note(&withdrawal.project_uuid, &body))
 }
 

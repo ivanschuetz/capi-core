@@ -1,4 +1,5 @@
 use algonaut::{
+    algod::v2::Algod,
     core::{Address, MicroAlgos},
     indexer::v2::Indexer,
     model::indexer::v2::QueryAccountTransaction,
@@ -9,24 +10,31 @@ use uuid::Uuid;
 
 use crate::{
     date_util::timestamp_seconds_to_date,
+    flows::create_project::{
+        create_project::Escrows,
+        storage::load_project::{load_project, ProjectHash},
+    },
     tx_note::{project_uuid_note_prefix_base64, strip_prefix_from_note},
 };
 use anyhow::{anyhow, Result};
 
-// TODO user project hash instead of uuid?
 pub async fn withdrawals(
+    algod: &Algod,
     indexer: &Indexer,
     creator: &Address,
-    project_uuid: &Uuid,
+    project_hash: &ProjectHash,
+    escrows: &Escrows,
 ) -> Result<Vec<Withdrawal>> {
     log::debug!(
         "Querying withdrawals by: {:?} for project: {:?}",
         creator,
-        project_uuid
+        project_hash.url_str()
     );
 
+    let project = load_project(algod, indexer, project_hash, escrows).await?;
+
     let query = QueryAccountTransaction {
-        note_prefix: Some(project_uuid_note_prefix_base64(project_uuid)),
+        note_prefix: Some(project_uuid_note_prefix_base64(&project.uuid)),
         ..Default::default()
     };
 
@@ -50,7 +58,7 @@ pub async fn withdrawals(
             .ok_or_else(|| anyhow!("Unexpected: withdrawal tx has no note: {:?}", tx))?;
 
         // for now the only payload is the description
-        let withdrawal_description = strip_prefix_from_note(note.as_bytes(), project_uuid)?;
+        let withdrawal_description = strip_prefix_from_note(note.as_bytes(), &project.uuid)?;
 
         // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
         // Unclear when it's None. For now we just reject it.
@@ -59,7 +67,7 @@ pub async fn withdrawals(
             .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
         withdrawals.push(Withdrawal {
-            project_uuid: project_uuid.to_owned(),
+            project_uuid: project.uuid,
             amount: payment.amount,
             description: withdrawal_description,
             date: timestamp_seconds_to_date(round_time)?,
