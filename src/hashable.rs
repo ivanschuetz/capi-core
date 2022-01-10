@@ -18,7 +18,7 @@ pub trait Hashable: Serialize {
 }
 
 pub fn hash(bytes: &[u8]) -> HashDigest {
-    HashDigest(sha2::Sha512Trunc256::digest(&bytes).into())
+    HashDigest(sha2::Sha512Trunc256::digest(bytes).into())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

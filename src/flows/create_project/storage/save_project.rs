@@ -26,7 +26,7 @@ pub async fn save_project(
     let tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
-            ..params.clone()
+            ..params
         },
         Pay::new(*creator, *creator, MicroAlgos(0)).build(),
     )

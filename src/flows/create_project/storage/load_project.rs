@@ -175,7 +175,7 @@ async fn storable_project_to_project(
 
     let customer_escrow_account_fut = render_and_compile_customer_escrow(
         algod,
-        &central_escrow_account.address(),
+        central_escrow_account.address(),
         &escrows.customer_escrow,
     );
 
@@ -183,7 +183,7 @@ async fn storable_project_to_project(
         algod,
         payload.shares_asset_id,
         payload.asset_price,
-        &staking_escrow_account.address(),
+        staking_escrow_account.address(),
         &escrows.invest_escrow,
     );
 
