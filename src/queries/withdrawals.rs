@@ -1,13 +1,19 @@
-use algonaut::{core::Address, indexer::v2::Indexer, model::indexer::v2::QueryAccountTransaction};
+use algonaut::{
+    core::{Address, MicroAlgos},
+    indexer::v2::Indexer,
+    model::indexer::v2::QueryAccountTransaction,
+};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    api::model::Withdrawal,
     date_util::timestamp_seconds_to_date,
     tx_note::{project_uuid_note_prefix_base64, strip_prefix_from_note},
 };
 use anyhow::{anyhow, Result};
 
+// TODO user project hash instead of uuid?
 pub async fn withdrawals(
     indexer: &Indexer,
     creator: &Address,
@@ -62,4 +68,13 @@ pub async fn withdrawals(
     }
 
     Ok(withdrawals)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Withdrawal {
+    pub project_uuid: Uuid,
+    pub amount: MicroAlgos,
+    pub description: String,
+    pub date: DateTime<Utc>,
+    pub tx_id: String,
 }

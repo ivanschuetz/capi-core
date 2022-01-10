@@ -44,7 +44,7 @@ mod tests {
         println!(
             "Creator: {:?}, project hash: {:?}, tx id: {:?}. Will wait for indexing..",
             creator.address(),
-            to_sign.stored_project.hash,
+            to_sign.project.hash()?,
             tx_id
         );
 
@@ -55,15 +55,14 @@ mod tests {
         let loaded_project = load_project(
             &algod,
             &indexer,
-            &creator.address(),
-            &to_sign.stored_project.hash,
+            &to_sign.project.hash()?,
             &programs.escrows,
         )
         .await?;
 
         assert_eq!(project, loaded_project);
         // double check
-        assert_eq!(project.hash()?, loaded_project.hash()?);
+        assert_eq!(project.compute_hash()?, loaded_project.compute_hash()?);
 
         Ok(())
     }

@@ -2,8 +2,12 @@ use algonaut::{
     core::{Address, MicroAlgos},
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
 };
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+use crate::hashable::Hashable;
+use super::storage::load_project::ProjectHash;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreateProjectSpecs {
@@ -99,6 +103,12 @@ pub struct Project {
     pub staking_escrow: ContractAccount,
     pub central_escrow: ContractAccount,
     pub customer_escrow: ContractAccount,
+}
+
+impl Project {
+    pub fn hash(&self) -> Result<ProjectHash> {
+        Ok(ProjectHash(*self.compute_hash()?.hash()))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

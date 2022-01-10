@@ -1,3 +1,5 @@
+use std::{convert::TryInto, str::FromStr};
+
 use crate::{
     flows::create_project::{
         create_project::Escrows,
@@ -14,15 +16,13 @@ use crate::{
     tx_note::{capi_note_prefix_bytes, extract_hashed_object},
 };
 use algonaut::{
-    algod::v2::Algod,
-    core::Address,
-    crypto::HashDigest,
-    indexer::v2::Indexer,
-    model::indexer::v2::{QueryTransaction, Role},
+    algod::v2::Algod, crypto::HashDigest, indexer::v2::Indexer,
+    model::indexer::v2::QueryTransaction,
 };
-use anyhow::{anyhow, Error, Result};
-use data_encoding::BASE64;
+use anyhow::{anyhow, Result};
+use data_encoding::{BASE64, BASE64URL};
 use futures::join;
+use serde::{Deserialize, Serialize};
 
 fn project_hash_note_prefix(project_hash: &ProjectHash) -> Vec<u8> {
     [capi_note_prefix_bytes().as_slice(), &project_hash.0 .0].concat()
@@ -37,25 +37,21 @@ fn project_hash_note_prefix_base64(project_hash: &ProjectHash) -> String {
 pub async fn load_project(
     algod: &Algod,
     indexer: &Indexer,
-    project_creator: &Address,
     project_hash: &ProjectHash,
     escrows: &Escrows,
 ) -> Result<Project> {
     let note_prefix = project_hash_note_prefix_base64(project_hash);
     log::debug!(
-        "Feching project with prefix: {:?}, sender: {:?}, hash (encoded in prefix): {:?}",
+        // "Feching project with prefix: {:?}, sender: {:?}, hash (encoded in prefix): {:?}",
+        "Feching project with prefix: {:?}, hash (encoded in prefix): {:?}",
         note_prefix,
-        project_creator,
         project_hash
     );
 
+    // Note that we might get a lot of transactions here, if someone were to flood the network with identically prefixed txs
+    // see https://app.asana.com/0/1201562975827155/1201637281163058/f
     let response = indexer
         .transactions(&QueryTransaction {
-            // Note that querying by creator is not strictly necessary here (prefix with hash guarantees that we get the correct project data, it doesn't matter who submitted it)
-            // but why not - if it doesn't slow down the query significantly (TODO check), more checks is always better.
-            // It can help with (maybe unlikely - submitting significant amounts of txs can get expensive) possible flooding attacks (txs with the same project data), to slow down or cause OOM errors in the client.
-            address: Some(project_creator.to_string()),
-            address_role: Some(Role::Sender),
             note_prefix: Some(note_prefix.clone()),
             ..QueryTransaction::default()
         })
@@ -76,31 +72,20 @@ pub async fn load_project(
     // For now just a log warning. It should likely be a UI warning (TODO).
     if response.transactions.len() > 1 {
         log::warn!(
-            "Multiple transactions found for (project hash: {:?}, creator: {})",
+            // "Multiple transactions found for (project hash: {:?}, creator: {})",
+            "Multiple transactions found for project hash: {:?}",
             project_hash,
-            project_creator
+            // project_creator
         )
     }
 
     for tx in &response.transactions {
         if tx.payment_transaction.is_some() {
-            let sender_address = tx.sender.parse::<Address>().map_err(Error::msg)?;
-
-            // Sanity check
-            if &sender_address != project_creator {
-                return Err(anyhow!(
-                    "Invalid state: tx sender isn't the sender we sent in the query"
-                ));
-            }
-
             // Unexpected because we just fetched by (a non empty) note prefix, so logically it should have a note
             let note = tx
                 .note
                 .clone()
                 .ok_or_else(|| anyhow!("Unexpected: project storage tx has no note: {:?}", tx))?;
-
-            // TODO extract the prefix (hash) and payload (project data)
-            // let note_decoded_bytes = &BASE64.decode(note)?;
 
             // For now we'll fail the entire operation if the hash verification of one of the results fail
             // Considering that all these objects were created by the same account,
@@ -144,8 +129,26 @@ pub async fn load_project(
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectHash(pub HashDigest);
+impl ProjectHash {
+    pub fn url_str(&self) -> String {
+        BASE64URL.encode(&self.0 .0)
+    }
+}
+
+/// Inverse of url_str().. TODO should correspond to to_string, so either replace url_str with to_string or create an independent function for the URL parsing.
+impl FromStr for ProjectHash {
+    type Err = anyhow::Error;
+    fn from_str(string: &str) -> Result<Self> {
+        let hash_bytes: Vec<u8> = BASE64URL.decode(string.as_bytes())?;
+        let hash_bytes_array: [u8; 32] = hash_bytes
+            .try_into()
+            .map_err(|_| anyhow!("Couldn't convert hash bytes vec to digest array"))?;
+        let digest = HashDigest(hash_bytes_array);
+        Ok(ProjectHash(digest))
+    }
+}
 
 /// Converts and completes the project data stored in note to a full project instance.
 /// It also verifies the hash.
@@ -210,7 +213,7 @@ async fn storable_project_to_project(
     };
 
     // Verify hash (compare freshly calculated hash with prefix hash contained in note)
-    let hash = ProjectHash(*project.hash()?.hash());
+    let hash = ProjectHash(*project.compute_hash()?.hash());
     if &hash != prefix_hash {
         return Err(anyhow!(
             "Hash verification failed: Note hash doesn't correspond to calculated hash"

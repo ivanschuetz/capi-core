@@ -11,8 +11,6 @@ use crate::{
     flows::create_project::model::Project, hashable::Hashable, tx_note::capi_note_prefix_bytes,
 };
 
-use super::load_project::ProjectHash;
-
 pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 pub async fn save_project(
@@ -23,8 +21,7 @@ pub async fn save_project(
     let params = algod.suggested_transaction_params().await?;
 
     let note = generate_note(project)?;
-
-    log::debug!("Note bytes: {:?}", note.bytes.len());
+    // log::debug!("Note bytes: {:?}", note.len());
 
     let tx = TxnBuilder::with(
         SuggestedTransactionParams {
@@ -33,29 +30,17 @@ pub async fn save_project(
         },
         Pay::new(*creator, *creator, MicroAlgos(0)).build(),
     )
-    .note(note.bytes)
+    .note(note)
     .build();
 
     Ok(SaveProjectToSign {
         tx,
-        stored_project: StoredProject {
-            hash: note.hash,
-            project: project.to_owned(),
-        },
+        project: project.to_owned(),
     })
 }
 
-/// Represents a project that has been already stored on the chain, with its hash
-/// Already stored meaning: we submitted the storage tx successfully to the network (got a tx id)
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StoredProject {
-    pub hash: ProjectHash,
-    pub project: Project,
-}
-
-fn generate_note(project: &Project) -> Result<ProjectNote> {
-    let project_hash_result = project.hash()?;
-    let project_hash = project_hash_result.hash();
+fn generate_note(project: &Project) -> Result<Vec<u8>> {
+    let project_hash = project.hash()?;
 
     let capi_prefix_bytes: &[u8] = &capi_note_prefix_bytes();
 
@@ -67,23 +52,12 @@ fn generate_note(project: &Project) -> Result<ProjectNote> {
     // In this case minimal means that the programs (escrows) are not stored: they can be rendered on demand.
     let bytes = [
         capi_prefix_bytes,
-        &project_hash.0,
+        &project_hash.0 .0,
         &project_note_payload_bytes,
     ]
     .concat();
 
-    Ok(ProjectNote {
-        bytes,
-        hash: ProjectHash(project_hash.to_owned()),
-    })
-}
-
-/// Bundles the note's bytes with some fields (assumed to be serialized in the bytes) for convenient access
-#[derive(Debug, Clone)]
-struct ProjectNote {
-    bytes: Vec<u8>,
-
-    hash: ProjectHash,
+    Ok(bytes)
 }
 
 /// The project representation that's directly stored in the storage tx note
@@ -133,14 +107,14 @@ impl Hashable for Project {}
 
 pub async fn submit_save_project(algod: &Algod, signed: SaveProjectSigned) -> Result<String> {
     let res = algod.broadcast_signed_transaction(&signed.tx).await?;
-    log::debug!("Stake tx id: {:?}", res.tx_id);
+    log::debug!("Save project tx id: {:?}", res.tx_id);
     Ok(res.tx_id)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SaveProjectToSign {
     pub tx: Transaction,
-    pub stored_project: StoredProject,
+    pub project: Project,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

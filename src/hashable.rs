@@ -4,7 +4,7 @@ use serde::Serialize;
 use sha2::Digest;
 
 pub trait Hashable: Serialize {
-    fn hash(&self) -> Result<HashResult> {
+    fn compute_hash(&self) -> Result<HashResult> {
         let bytes = self.bytes_to_hash()?;
         Ok(HashResult {
             hash: hash(&bytes),
