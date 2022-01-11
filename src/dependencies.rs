@@ -4,6 +4,7 @@ use algonaut::{algod::v2::Algod, indexer::v2::Indexer};
 pub enum Network {
     Private,
     SandboxPrivate,
+    Test,
 }
 
 #[derive(Debug)]
@@ -19,6 +20,7 @@ pub fn network() -> Network {
     let network = match str {
         Some("private") => Network::Private,
         Some("sandbox_private") => Network::SandboxPrivate,
+        Some("test") => Network::Test,
         _ => {
             log::warn!("No network passed to build. Defaulting to SandboxPrivate.");
             Network::SandboxPrivate
@@ -71,10 +73,11 @@ pub fn indexer_for_tests() -> Indexer {
     indexer_for_net(&Network::SandboxPrivate)
 }
 
-fn algod_for_net(network: &Network) -> Algod {
+pub fn algod_for_net(network: &Network) -> Algod {
     match network {
         Network::SandboxPrivate => sandbox_private_network_algod(),
         Network::Private => private_network_algod(),
+        Network::Test => testnet_algod(),
     }
 }
 
@@ -88,6 +91,7 @@ fn indexer_for_net(network: &Network) -> Indexer {
             log::error!("{}", msg); // for WASM, which doesn't see panic messages
             panic!("{}", msg);
         }
+        Network::Test => testnet_indexer(),
     }
 }
 
@@ -101,15 +105,27 @@ fn sandbox_private_network_algod() -> Algod {
 }
 
 #[allow(dead_code)]
-fn sandbox_private_network_indexer() -> Indexer {
-    Indexer::new("http://127.0.0.1:8980").expect("Couldn't initialize sandbox indexer")
-}
-
-#[allow(dead_code)]
 fn private_network_algod() -> Algod {
     Algod::new(
         "http://127.0.0.1:53630",
         "44d70009a00561fe340b2584a9f2adc6fec6a16322554d44f56bef9e682844b9",
     )
     .expect("Couldn't initialize algod")
+}
+
+#[allow(dead_code)]
+fn testnet_algod() -> Algod {
+    Algod::with_headers("https://testnet.algoexplorerapi.io", vec![])
+        .expect("Couldn't initialize algod")
+}
+
+#[allow(dead_code)]
+fn sandbox_private_network_indexer() -> Indexer {
+    Indexer::new("http://127.0.0.1:8980").expect("Couldn't initialize sandbox indexer")
+}
+
+#[allow(dead_code)]
+fn testnet_indexer() -> Indexer {
+    Indexer::new("https://algoindexer.testnet.algoexplorerapi.io/v2")
+        .expect("Couldn't initialize sandbox indexer")
 }

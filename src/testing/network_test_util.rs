@@ -37,6 +37,7 @@ fn reset_network(net: &Network) -> Result<()> {
         Network::Private => cmd
             .current_dir("scripts/private_net")
             .arg("./private_net_reset_for_tests.sh"),
+        Network::Test => panic!("Not supported: reseting testnet"),
     };
 
     let reset_res = cmd_with_net_args
