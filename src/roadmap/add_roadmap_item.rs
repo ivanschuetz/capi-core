@@ -4,7 +4,7 @@ use algonaut::{
     crypto::HashDigest,
     transaction::{Pay, SignedTransaction, Transaction, TxnBuilder},
 };
-use anyhow::{Error, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
@@ -97,9 +97,9 @@ fn roadmap_item_as_tx_note(item: &RoadmapItem) -> Result<Vec<u8>> {
 
     // Decoding with Address is a hack, as the project id is a tx id, which isn't an address, but it uses the same encoding.
     // TODO (low prio) non hack solution
-    let project_id_bytes = item.project_id.0.parse::<Address>().map_err(Error::msg)?.0;
+    let project_id_bytes = item.project_id.bytes();
 
-    let bytes = [capi_prefix_bytes, &project_id_bytes, item_bytes].concat();
+    let bytes = [capi_prefix_bytes, project_id_bytes, item_bytes].concat();
 
     Ok(bytes)
 }

@@ -9,7 +9,7 @@ use algonaut::{
     indexer::v2::Indexer,
     model::indexer::v2::{QueryTransaction, Role},
 };
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
@@ -38,8 +38,7 @@ pub async fn get_roadmap(
     // Decoding with Address is a hack, as the project id is a tx id, which isn't an address, but it uses the same encoding.
     // TODO (low prio) non hack solution
     // TODO include item's type in prefix (currently this works because it doesn't conflict with the other queries)
-    let project_id_bytes = project_id.0.parse::<Address>().map_err(Error::msg)?.0;
-    let note_prefix = project_hash_note_prefix(&HashDigest(project_id_bytes));
+    let note_prefix = project_hash_note_prefix(&project_id.0 .0);
     let note_prefix_str = String::from_utf8(note_prefix)?;
 
     for tx in response.transactions {

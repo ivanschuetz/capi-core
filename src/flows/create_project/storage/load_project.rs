@@ -1,3 +1,5 @@
+use std::{convert::TryInto, str::FromStr};
+
 use crate::{
     flows::create_project::{
         create_project::Escrows,
@@ -15,6 +17,7 @@ use crate::{
 };
 use algonaut::{algod::v2::Algod, crypto::HashDigest, indexer::v2::Indexer};
 use anyhow::{anyhow, Result};
+use data_encoding::BASE32_NOPAD;
 use futures::join;
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +29,7 @@ pub async fn load_project(
 ) -> Result<Project> {
     log::debug!("Fetching project with tx id: {:?}", project_id);
 
-    let response = indexer.transaction_info(&project_id.0).await?;
+    let response = indexer.transaction_info(&project_id.0.to_string()).await?;
 
     let tx = response.transaction;
 
@@ -59,7 +62,40 @@ pub async fn load_project(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ProjectId(pub String);
+pub struct ProjectId(pub TxId);
+impl FromStr for ProjectId {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(ProjectId(s.parse()?))
+    }
+}
+impl ToString for ProjectId {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+impl ProjectId {
+    pub fn bytes(&self) -> &[u8] {
+        &self.0 .0 .0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TxId(pub HashDigest);
+impl FromStr for TxId {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let bytes_vec = BASE32_NOPAD.decode(s.as_bytes())?;
+        Ok(Self(HashDigest(bytes_vec.try_into().map_err(
+            |v: Vec<u8>| anyhow!("Tx id bytes vec has wrong length: {}", v.len()),
+        )?)))
+    }
+}
+impl ToString for TxId {
+    fn to_string(&self) -> String {
+        BASE32_NOPAD.encode(&self.0 .0)
+    }
+}
 
 /// Converts and completes the project data stored in note to a full project instance.
 /// It also verifies the hash.

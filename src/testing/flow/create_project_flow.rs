@@ -99,9 +99,11 @@ pub async fn create_project_flow(
     )
     .await?;
 
+    let project_id = submit_save_project_tx_id.parse()?;
+
     Ok(CreateProjectFlowRes {
         project: create_res.project,
-        project_id: ProjectId(submit_save_project_tx_id),
+        project_id,
     })
 }
 

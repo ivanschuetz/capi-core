@@ -5,10 +5,7 @@ mod tests {
 
     use crate::{
         dependencies::{algod_for_tests, indexer_for_tests},
-        flows::create_project::storage::{
-            load_project::{load_project, ProjectId},
-            save_project::save_project,
-        },
+        flows::create_project::storage::{load_project::load_project, save_project::save_project},
         hashable::Hashable,
         testing::{
             flow::create_project_flow::{create_project_flow, programs},
@@ -55,8 +52,9 @@ mod tests {
 
         println!("Fetching project..");
 
-        let loaded_project =
-            load_project(&algod, &indexer, &ProjectId(tx_id), &programs.escrows).await?;
+        let project_id = tx_id.parse()?;
+
+        let loaded_project = load_project(&algod, &indexer, &project_id, &programs.escrows).await?;
 
         assert_eq!(project.project, loaded_project);
         // double check
