@@ -1,4 +1,10 @@
 #[cfg(test)]
+use crate::flows::create_project::storage::load_project::ProjectId;
+#[cfg(test)]
+use crate::flows::create_project::storage::save_project::{
+    save_project, submit_save_project, SaveProjectSigned,
+};
+#[cfg(test)]
 use crate::flows::create_project::{
     create_project::{create_project_txs, submit_create_project},
     model::{CreateProjectSigned, CreateProjectSpecs, Project},
@@ -15,12 +21,19 @@ use algonaut::{algod::v2::Algod, transaction::account::Account};
 use anyhow::Result;
 
 #[cfg(test)]
+#[derive(Debug, Clone)]
+pub struct CreateProjectFlowRes {
+    pub project: Project,
+    pub project_id: ProjectId,
+}
+
+#[cfg(test)]
 pub async fn create_project_flow(
     algod: &Algod,
     creator: &Account,
     specs: &CreateProjectSpecs,
     precision: u64,
-) -> Result<Project> {
+) -> Result<CreateProjectFlowRes> {
     // Create asset first: id needed in app template
     let create_assets_txs =
         create_investor_assets_txs(&algod, &creator.address(), &specs.shares).await?;
@@ -75,7 +88,21 @@ pub async fn create_project_flow(
 
     log::debug!("Created project: {:?}", create_res.project);
 
-    Ok(create_res.project)
+    let save_res = save_project(algod, &creator.address(), &create_res.project).await?;
+    let signed_save_project = creator.sign_transaction(&save_res.tx)?;
+
+    let submit_save_project_tx_id = submit_save_project(
+        &algod,
+        SaveProjectSigned {
+            tx: signed_save_project,
+        },
+    )
+    .await?;
+
+    Ok(CreateProjectFlowRes {
+        project: create_res.project,
+        project_id: ProjectId(submit_save_project_tx_id),
+    })
 }
 
 #[cfg(test)]

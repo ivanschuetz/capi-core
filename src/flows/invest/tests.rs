@@ -48,16 +48,16 @@ mod tests {
 
         // precs
 
-        invests_optins_flow(&algod, &investor, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // flow
 
-        let flow_res = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+        let flow_res = invests_flow(&algod, &investor, buy_asset_amount, &project.project).await?;
 
         // staking escrow tests
 
         let staking_escrow_infos = algod
-            .account_information(project.staking_escrow.address())
+            .account_information(project.project.staking_escrow.address())
             .await?;
         // staking escrow received the shares
         let staking_escrow_assets = staking_escrow_infos.assets;
@@ -69,7 +69,7 @@ mod tests {
 
         let investor_infos = algod.account_information(&investor.address()).await?;
         let central_investor_state =
-            central_investor_state_from_acc(&investor_infos, project.central_app_id)?;
+            central_investor_state_from_acc(&investor_infos, project.project.central_app_id)?;
 
         // investor has shares
         assert_eq!(buy_asset_amount, central_investor_state.shares);
@@ -137,24 +137,26 @@ mod tests {
 
         // precs
 
-        invests_optins_flow(&algod, &investor, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // flow
 
-        invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+        invests_flow(&algod, &investor, buy_asset_amount, &project.project).await?;
 
         // double check: investor has shares for first investment
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.central_app_id).await?;
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
         assert_eq!(buy_asset_amount, investor_state.shares);
 
-        invests_flow(&algod, &investor, buy_asset_amount2, &project).await?;
+        invests_flow(&algod, &investor, buy_asset_amount2, &project.project).await?;
 
         // tests
 
         // investor has shares for both investments
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.central_app_id).await?;
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
         assert_eq!(buy_asset_amount + buy_asset_amount2, investor_state.shares);
 
         Ok(())
@@ -180,30 +182,32 @@ mod tests {
 
         // precs
 
-        invests_optins_flow(&algod, &investor, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // for user to have some free shares (assets) to stake
-        buy_and_unstake_shares(&algod, &investor, &project, stake_amount).await?;
+        buy_and_unstake_shares(&algod, &investor, &project.project, stake_amount).await?;
 
         // flow
 
         // buy shares: automatically staked
-        invests_optins_flow(&algod, &investor, &project).await?; // optin again: unstaking opts user out
-        invests_flow(&algod, &investor, invest_amount, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
+        invests_flow(&algod, &investor, invest_amount, &project.project).await?;
 
         // double check: investor has shares for first investment
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.central_app_id).await?;
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
         assert_eq!(invest_amount, investor_state.shares);
 
         // stake shares
-        stake_flow(&algod, &project, &investor, stake_amount).await?;
+        stake_flow(&algod, &project.project, &investor, stake_amount).await?;
 
         // tests
 
         // investor has shares for investment + staking
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.central_app_id).await?;
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
         assert_eq!(stake_amount + invest_amount, investor_state.shares);
 
         Ok(())
@@ -229,30 +233,32 @@ mod tests {
 
         // precs
 
-        invests_optins_flow(&algod, &investor, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // for user to have some free shares (assets) to stake
-        buy_and_unstake_shares(&algod, &investor, &project, stake_amount).await?;
+        buy_and_unstake_shares(&algod, &investor, &project.project, stake_amount).await?;
 
         // flow
 
         // stake shares
-        invests_optins_flow(&algod, &investor, &project).await?; // optin again: unstaking opts user out
-        stake_flow(&algod, &project, &investor, stake_amount).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
+        stake_flow(&algod, &project.project, &investor, stake_amount).await?;
 
         // double check: investor has staked shares
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.central_app_id).await?;
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
         assert_eq!(stake_amount, investor_state.shares);
 
         // buy shares: automatically staked
-        invests_flow(&algod, &investor, invest_amount, &project).await?;
+        invests_flow(&algod, &investor, invest_amount, &project.project).await?;
 
         // tests
 
         // investor has shares for investment + staking
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.central_app_id).await?;
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
         assert_eq!(stake_amount + invest_amount, investor_state.shares);
 
         Ok(())
@@ -280,13 +286,13 @@ mod tests {
 
         // precs
 
-        invests_optins_flow(&algod, &investor, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // for user to have free shares (assets) to stake
         buy_and_unstake_shares(
             &algod,
             &investor,
-            &project,
+            &project.project,
             stake_amount1 + stake_amount2 + invest_amount_not_stake,
         )
         .await?;
@@ -294,22 +300,24 @@ mod tests {
         // flow
 
         // stake shares
-        invests_optins_flow(&algod, &investor, &project).await?; // optin again: unstaking opts user out
-        stake_flow(&algod, &project, &investor, stake_amount1).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
+        stake_flow(&algod, &project.project, &investor, stake_amount1).await?;
 
         // double check: investor has staked shares
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.central_app_id).await?;
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
         assert_eq!(stake_amount1, investor_state.shares);
 
         // stake more shares
-        stake_flow(&algod, &project, &investor, stake_amount2).await?;
+        stake_flow(&algod, &project.project, &investor, stake_amount2).await?;
 
         // tests
 
         // investor has shares for investment + staking
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.central_app_id).await?;
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
         assert_eq!(stake_amount1 + stake_amount2, investor_state.shares);
 
         Ok(())
@@ -338,26 +346,33 @@ mod tests {
 
         // add some funds
         let central_funds = MicroAlgos(10 * 1_000_000);
-        customer_payment_and_drain_flow(&algod, &drainer, &customer, central_funds, &project)
-            .await?;
+        customer_payment_and_drain_flow(
+            &algod,
+            &drainer,
+            &customer,
+            central_funds,
+            &project.project,
+        )
+        .await?;
 
-        invests_optins_flow(&algod, &investor, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // flow
-        invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+        invests_flow(&algod, &investor, buy_asset_amount, &project.project).await?;
 
         // tests
 
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.central_app_id).await?;
-        let central_state = central_global_state(&algod, project.central_app_id).await?;
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
+        let central_state = central_global_state(&algod, project.project.central_app_id).await?;
 
         let investor_entitled_harvest = calculate_entitled_harvest(
             central_state.received,
-            project.specs.shares.count,
+            project.project.specs.shares.count,
             buy_asset_amount,
             TESTS_DEFAULT_PRECISION,
-            project.specs.investors_share,
+            project.project.specs.investors_share,
         );
 
         // investing inits the "harvested" amount to entitled amount (to prevent double harvest)
@@ -389,30 +404,37 @@ mod tests {
 
         // add some funds
         let central_funds = MicroAlgos(10 * 1_000_000);
-        customer_payment_and_drain_flow(&algod, &drainer, &customer, central_funds, &project)
-            .await?;
+        customer_payment_and_drain_flow(
+            &algod,
+            &drainer,
+            &customer,
+            central_funds,
+            &project.project,
+        )
+        .await?;
 
-        invests_optins_flow(&algod, &investor, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // for user to have some free shares (assets) to stake
-        buy_and_unstake_shares(&algod, &investor, &project, buy_asset_amount).await?;
+        buy_and_unstake_shares(&algod, &investor, &project.project, buy_asset_amount).await?;
 
         // flow
-        invests_optins_flow(&algod, &investor, &project).await?; // optin again: unstaking opts user out
-        stake_flow(&algod, &project, &investor, buy_asset_amount).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
+        stake_flow(&algod, &project.project, &investor, buy_asset_amount).await?;
 
         // tests
 
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.central_app_id).await?;
-        let central_state = central_global_state(&algod, project.central_app_id).await?;
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
+        let central_state = central_global_state(&algod, project.project.central_app_id).await?;
 
         let investor_entitled_harvest = calculate_entitled_harvest(
             central_state.received,
-            project.specs.shares.count,
+            project.project.specs.shares.count,
             buy_asset_amount,
             TESTS_DEFAULT_PRECISION,
-            project.specs.investors_share,
+            project.project.specs.investors_share,
         );
 
         // staking inits the "harvested" amount to entitled amount (to prevent double harvest)

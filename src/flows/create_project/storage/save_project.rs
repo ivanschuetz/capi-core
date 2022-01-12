@@ -51,7 +51,7 @@ fn generate_note(project: &Project) -> Result<Vec<u8>> {
     // In this case minimal means that the programs (escrows) are not stored: they can be rendered on demand.
     let bytes = [
         capi_prefix_bytes,
-        &project_hash.0 .0,
+        &project_hash.0,
         &project_note_payload_bytes,
     ]
     .concat();

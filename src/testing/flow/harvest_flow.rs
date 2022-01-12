@@ -35,13 +35,18 @@ pub async fn harvest_precs(
 
     // investor buys shares: this can be called after draining as well (without affecting test results)
     // the only order required for this is draining->harvesting, obviously harvesting has to be executed after draining (if it's to harvest the drained funds)
-    invests_optins_flow(&algod, &harvester, &project).await?;
-    let _ = invests_flow(&algod, &harvester, buy_asset_amount, &project).await?;
+    invests_optins_flow(&algod, &harvester, &project.project).await?;
+    let _ = invests_flow(&algod, &harvester, buy_asset_amount, &project.project).await?;
 
     // payment and draining
-    let drain_res =
-        customer_payment_and_drain_flow(&algod, &drainer, &customer, central_funds, &project)
-            .await?;
+    let drain_res = customer_payment_and_drain_flow(
+        &algod,
+        &drainer,
+        &customer,
+        central_funds,
+        &project.project,
+    )
+    .await?;
     let central_escrow_balance_after_drain = algod
         .account_information(drain_res.project.central_escrow.address())
         .await?
@@ -50,7 +55,7 @@ pub async fn harvest_precs(
     // end precs
 
     Ok(HarvestTestPrecsRes {
-        project,
+        project: project.project,
         central_escrow_balance_after_drain,
         drain_res,
     })

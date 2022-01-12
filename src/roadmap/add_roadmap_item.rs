@@ -4,12 +4,12 @@ use algonaut::{
     crypto::HashDigest,
     transaction::{Pay, SignedTransaction, Transaction, TxnBuilder},
 };
-use anyhow::Result;
+use anyhow::{Error, Result};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
 use crate::{
-    flows::create_project::storage::load_project::ProjectHash, tx_note::capi_note_prefix_bytes,
+    flows::create_project::storage::load_project::ProjectId, tx_note::capi_note_prefix_bytes,
 };
 
 pub async fn add_roadmap_item(
@@ -54,7 +54,7 @@ pub struct AddRoadmapItemToSigned {
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct RoadmapItemInputs {
-    pub project_hash: ProjectHash,
+    pub project_id: ProjectId,
     pub title: String,
     pub parent: Box<Option<HashDigest>>,
 }
@@ -73,7 +73,7 @@ impl RoadmapItemInputs {
     fn to_roadmap_item(&self) -> Result<RoadmapItem> {
         let hash = self.hash()?;
         Ok(RoadmapItem {
-            project_hash: self.project_hash.clone(),
+            project_id: self.project_id.clone(),
             title: self.title.clone(),
             parent: self.parent.clone(),
             hash,
@@ -84,19 +84,22 @@ impl RoadmapItemInputs {
 // roadmap item model + hash
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RoadmapItem {
-    pub project_hash: ProjectHash,
+    pub project_id: ProjectId,
     pub title: String,
     pub parent: Box<Option<HashDigest>>,
     pub hash: HashDigest,
 }
 
 fn roadmap_item_as_tx_note(item: &RoadmapItem) -> Result<Vec<u8>> {
-    let project_hash = &item.project_hash;
     let capi_prefix_bytes: &[u8] = &capi_note_prefix_bytes();
 
     let item_bytes = &rmp_serde::to_vec_named(&item)?;
 
-    let bytes = [capi_prefix_bytes, &project_hash.0 .0, item_bytes].concat();
+    // Decoding with Address is a hack, as the project id is a tx id, which isn't an address, but it uses the same encoding.
+    // TODO (low prio) non hack solution
+    let project_id_bytes = item.project_id.0.parse::<Address>().map_err(Error::msg)?.0;
+
+    let bytes = [capi_prefix_bytes, &project_id_bytes, item_bytes].concat();
 
     Ok(bytes)
 }

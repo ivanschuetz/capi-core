@@ -1,7 +1,7 @@
 use crate::{
     date_util::timestamp_seconds_to_date,
-    flows::create_project::storage::load_project::ProjectHash,
-    tx_note::{extract_hashed_object, project_hash_note_prefix_base64},
+    flows::create_project::storage::load_project::ProjectId,
+    tx_note::{extract_hash_and_object_from_decoded_note, project_hash_note_prefix},
 };
 use algonaut::{
     core::Address,
@@ -18,63 +18,53 @@ use super::add_roadmap_item::RoadmapItem;
 pub async fn get_roadmap(
     indexer: &Indexer,
     project_creator: &Address,
-    project_hash: &ProjectHash,
+    project_id: &ProjectId,
 ) -> Result<Roadmap> {
-    let note_prefix = project_hash_note_prefix_base64(project_hash);
-    log::debug!(
-        "Feching roadmap with prefix: {:?}, sender: {:?}, project id (encoded in prefix): {:?}",
-        note_prefix,
-        project_creator,
-        project_hash
-    );
+    // We get all the txs sent by project's creator and filter manually by the project prefix
+    // Algorand's indexer has performance problems with note-prefix and it doesn't work at all with AlgoExplorer or PureStake currently:
+    // https://github.com/algorand/indexer/issues/358
+    // https://github.com/algorand/indexer/issues/669
 
     let response = indexer
         .transactions(&QueryTransaction {
             address: Some(project_creator.to_string()),
             address_role: Some(Role::Sender),
-            note_prefix: Some(note_prefix),
             ..QueryTransaction::default()
         })
         .await?;
 
-    let mut items = vec![];
-    for tx in &response.transactions {
-        if tx.payment_transaction.is_some() {
-            let sender_address = tx.sender.parse::<Address>().map_err(Error::msg)?;
+    let mut roadmap_items = vec![];
 
-            // Sanity check
-            if &sender_address != project_creator {
-                return Err(anyhow!(
-                    "Invalid state: tx sender isn't the sender we sent in the query"
-                ));
+    // Decoding with Address is a hack, as the project id is a tx id, which isn't an address, but it uses the same encoding.
+    // TODO (low prio) non hack solution
+    // TODO include item's type in prefix (currently this works because it doesn't conflict with the other queries)
+    let project_id_bytes = project_id.0.parse::<Address>().map_err(Error::msg)?.0;
+    let note_prefix = project_hash_note_prefix(&HashDigest(project_id_bytes));
+    let note_prefix_str = String::from_utf8(note_prefix)?;
+
+    for tx in response.transactions {
+        // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
+        // Unclear when it's None. For now we just reject it.
+        let round_time = tx
+            .round_time
+            .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
+
+        if let Some(_) = tx.payment_transaction {
+            if let Some(note) = tx.note.clone() {
+                if note.starts_with(&note_prefix_str) {
+                    let obj_with_hash = extract_hash_and_object_from_decoded_note(&note)?;
+                    let saved_roadmap_item =
+                        to_saved_roadmap_item(&obj_with_hash.obj, tx.id.clone(), round_time)?;
+
+                    roadmap_items.push(saved_roadmap_item);
+                }
             }
-
-            // Unexpected because we just fetched by (a non empty) note prefix, so logically it should have a note
-            let note = tx
-                .note
-                .clone()
-                .ok_or_else(|| anyhow!("Unexpected: roadmap tx has no note: {:?}", tx))?;
-
-            let hashed_stored_project = extract_hashed_object(&note)?;
-
-            // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
-            // Unclear when it's None. For now we just reject it.
-            let round_time = tx
-                .round_time
-                .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
-
-            let saved_roadmap_item =
-                to_saved_roadmap_item(&hashed_stored_project.obj, tx.id.clone(), round_time)?;
-
-            items.push(saved_roadmap_item)
-        } else {
-            // It can be worth inspecting these, as their purpose would be unclear.
-            // if creator add roadmap items with our UI, the txs will always be payments (unless there's a bug).
-            log::trace!("Roadmap txs query returned a non-payment tx: {:?}", tx);
         }
     }
 
-    Ok(Roadmap { items })
+    Ok(Roadmap {
+        items: roadmap_items,
+    })
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -85,7 +75,7 @@ pub struct Roadmap {
 #[derive(Debug, Clone, Serialize)]
 pub struct SavedRoadmapItem {
     pub tx_id: String,
-    pub project_hash: ProjectHash,
+    pub project_id: ProjectId,
     pub title: String,
     pub date: DateTime<Utc>,
     pub parent: Box<Option<HashDigest>>,
@@ -99,7 +89,7 @@ fn to_saved_roadmap_item(
 ) -> Result<SavedRoadmapItem> {
     Ok(SavedRoadmapItem {
         tx_id,
-        project_hash: item.project_hash.clone(),
+        project_id: item.project_id.clone(),
         title: item.title.clone(),
         date: timestamp_seconds_to_date(round_time)?,
         parent: item.parent.clone(),

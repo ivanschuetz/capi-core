@@ -51,7 +51,7 @@ mod tests {
             &drainer,
             &customer,
             customer_payment_amount,
-            &project,
+            &project.project,
         )
         .await?;
 
@@ -89,7 +89,7 @@ mod tests {
 
         // test the global state after drain
         let app = algod
-            .application_information(project.central_app_id)
+            .application_information(project.project.central_app_id)
             .await?;
         assert_eq!(1, app.params.global_state.len());
         let key_value = &app.params.global_state[0];

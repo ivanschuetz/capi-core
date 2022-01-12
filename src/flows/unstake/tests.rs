@@ -43,8 +43,8 @@ mod tests {
             create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
                 .await?;
 
-        invests_optins_flow(&algod, &investor, &project).await?;
-        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
+        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project.project).await?;
         // TODO double check tests for state (at least important) tested (e.g. investor has shares, staking doesn't etc.)
 
         // double check investor's assets
@@ -54,7 +54,7 @@ mod tests {
         assert_eq!(0, investor_assets[0].amount); // doesn't have shares (they're sent directly to staking escrow)
 
         let investor_state =
-            central_investor_state_from_acc(&investor_infos, project.central_app_id)?;
+            central_investor_state_from_acc(&investor_infos, project.project.central_app_id)?;
         // double check investor's local state
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
@@ -63,7 +63,7 @@ mod tests {
 
         // double check staking escrow's assets
         let staking_escrow_infos = algod
-            .account_information(project.staking_escrow.address())
+            .account_information(project.project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
@@ -77,13 +77,14 @@ mod tests {
         // in the real application, unstake_share_amount is retrieved from indexer
         let unstake_share_amount = buy_asset_amount;
 
-        let unstake_tx_id = unstake_flow(&algod, &project, &investor, unstake_share_amount).await?;
+        let unstake_tx_id =
+            unstake_flow(&algod, &project.project, &investor, unstake_share_amount).await?;
         log::debug!("?? unstake tx id: {:?}", unstake_tx_id);
         let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
 
         // shares not anymore in staking escrow
         let staking_escrow_infos = algod
-            .account_information(project.staking_escrow.address())
+            .account_information(project.project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
@@ -131,8 +132,8 @@ mod tests {
             create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
                 .await?;
 
-        invests_optins_flow(&algod, &investor, &project).await?;
-        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
+        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project.project).await?;
 
         // double check investor's assets
         let investor_infos = algod.account_information(&investor.address()).await?;
@@ -142,7 +143,7 @@ mod tests {
 
         // double check investor's local state
         let investor_state =
-            central_investor_state_from_acc(&investor_infos, project.central_app_id)?;
+            central_investor_state_from_acc(&investor_infos, project.project.central_app_id)?;
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
         // harvested total is 0 (hasn't harvested yet)
@@ -150,7 +151,7 @@ mod tests {
 
         // double check staking escrow's assets
         let staking_escrow_infos = algod
-            .account_information(project.staking_escrow.address())
+            .account_information(project.project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
@@ -163,13 +164,14 @@ mod tests {
 
         let unstake_share_amount = partial_amount;
 
-        let unstake_result = unstake_flow(&algod, &project, &investor, unstake_share_amount).await;
+        let unstake_result =
+            unstake_flow(&algod, &project.project, &investor, unstake_share_amount).await;
 
         assert!(unstake_result.is_err());
 
         // shares still in staking escrow
         let staking_escrow_infos = algod
-            .account_information(project.staking_escrow.address())
+            .account_information(project.project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
@@ -182,7 +184,7 @@ mod tests {
         assert_eq!(0, investor_assets[0].amount); // no shares
 
         let investor_state =
-            central_investor_state_from_acc(&investor_infos, project.central_app_id)?;
+            central_investor_state_from_acc(&investor_infos, project.project.central_app_id)?;
         // investor local state not changed
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);

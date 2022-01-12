@@ -1,11 +1,11 @@
 use algonaut::{
     core::{Address, MicroAlgos},
+    crypto::HashDigest,
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use super::storage::load_project::ProjectHash;
 use crate::hashable::Hashable;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -102,8 +102,8 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn hash(&self) -> Result<ProjectHash> {
-        Ok(ProjectHash(*self.compute_hash()?.hash()))
+    pub fn hash(&self) -> Result<HashDigest> {
+        Ok(*self.compute_hash()?.hash())
     }
 }
 

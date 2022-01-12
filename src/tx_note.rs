@@ -5,8 +5,6 @@ use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::flows::create_project::storage::load_project::ProjectHash;
-
 /// Global note prefix for all projects on the platform
 /// fixed size of 4 characters
 pub fn capi_note_prefix() -> String {
@@ -45,14 +43,8 @@ pub fn strip_withdraw_prefix_from_note(note: &[u8]) -> Result<String> {
         .to_owned())
 }
 
-fn project_hash_note_prefix(project_hash: &ProjectHash) -> Vec<u8> {
-    [capi_note_prefix_bytes().as_slice(), &project_hash.0 .0].concat()
-}
-
-pub fn project_hash_note_prefix_base64(project_hash: &ProjectHash) -> String {
-    let prefix = project_hash_note_prefix(project_hash);
-    println!("prefix bytes: {:?}", prefix);
-    BASE64.encode(&prefix)
+pub fn project_hash_note_prefix(project_hash: &HashDigest) -> Vec<u8> {
+    [capi_note_prefix_bytes().as_slice(), &project_hash.0].concat()
 }
 
 // NOTE: the relationship between hash and obj is arbitrary - this represents just a specific note format.
@@ -72,7 +64,7 @@ where
 /// The note's expected format is: <CAPI PREFIX><HASH><OBJECT>.
 /// Note that this does NOT verify the object against the hash
 /// (Reason being that the hash might not be directly from the object, but from a derivation of it)
-pub fn extract_hashed_object<T>(note: &str) -> Result<ObjectAndHash<T>>
+pub fn extract_hash_and_object_from_decoded_note<T>(note: &str) -> Result<ObjectAndHash<T>>
 where
     T: DeserializeOwned,
 {

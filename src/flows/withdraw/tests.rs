@@ -47,11 +47,18 @@ mod tests {
                 .await?;
         let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
 
-        withdraw_precs(&algod, &drainer, &customer, &project, pay_and_drain_amount).await?;
+        withdraw_precs(
+            &algod,
+            &drainer,
+            &customer,
+            &project.project,
+            pay_and_drain_amount,
+        )
+        .await?;
 
         // remeber state
         let central_balance_before_withdrawing = algod
-            .account_information(project.central_escrow.address())
+            .account_information(project.project.central_escrow.address())
             .await?
             .amount;
         let creator_balance_bafore_withdrawing =
@@ -59,14 +66,14 @@ mod tests {
 
         // flow
 
-        withdraw_flow(&algod, &project, &creator, withdraw_amount).await?;
+        withdraw_flow(&algod, &project.project, &creator, withdraw_amount).await?;
 
         // test
 
         after_withdrawal_success_or_failure_tests(
             &algod,
             &creator.address(),
-            project.central_escrow.address(),
+            project.project.central_escrow.address(),
             // creator got the amount and lost the fees for the withdraw txs (pay escrow fee and fee of that tx)
             creator_balance_bafore_withdrawing + withdraw_amount - FIXED_FEE * 2,
             // central lost the withdrawn amount
@@ -96,12 +103,12 @@ mod tests {
 
         // Investor buys some shares
         let investor_shares_count = 10;
-        invests_optins_flow(&algod, &investor, &project).await?;
-        invests_flow(&algod, &investor, investor_shares_count, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_flow(&algod, &investor, investor_shares_count, &project.project).await?;
 
         // remeber state
         let central_balance_before_withdrawing = algod
-            .account_information(project.central_escrow.address())
+            .account_information(project.project.central_escrow.address())
             .await?
             .amount;
         let creator_balance_bafore_withdrawing =
@@ -116,7 +123,7 @@ mod tests {
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
             },
-            &project.central_escrow,
+            &project.project.central_escrow,
         )
         .await?;
 
@@ -139,7 +146,7 @@ mod tests {
         test_withdrawal_did_not_succeed(
             &algod,
             &creator.address(),
-            project.central_escrow.address(),
+            project.project.central_escrow.address(),
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
         )
@@ -176,18 +183,18 @@ mod tests {
             &drainer,
             &customer,
             pay_and_drain_amount,
-            &project,
+            &project.project,
         )
         .await?;
 
         // Investor buys some shares
         let investor_shares_count = 10;
-        invests_optins_flow(&algod, &investor, &project).await?;
-        invests_flow(&algod, &investor, investor_shares_count, &project).await?;
+        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_flow(&algod, &investor, investor_shares_count, &project.project).await?;
 
         // remeber state
         let central_balance_before_withdrawing = algod
-            .account_information(project.central_escrow.address())
+            .account_information(project.project.central_escrow.address())
             .await?
             .amount;
         let creator_balance_bafore_withdrawing =
@@ -202,7 +209,7 @@ mod tests {
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
             },
-            &project.central_escrow,
+            &project.project.central_escrow,
         )
         .await?;
 
@@ -226,7 +233,7 @@ mod tests {
         test_withdrawal_did_not_succeed(
             &algod,
             &creator.address(),
-            project.central_escrow.address(),
+            project.project.central_escrow.address(),
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
         )

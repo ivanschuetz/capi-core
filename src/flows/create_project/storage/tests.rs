@@ -5,7 +5,10 @@ mod tests {
 
     use crate::{
         dependencies::{algod_for_tests, indexer_for_tests},
-        flows::create_project::storage::{load_project::load_project, save_project::save_project},
+        flows::create_project::storage::{
+            load_project::{load_project, ProjectId},
+            save_project::save_project,
+        },
         hashable::Hashable,
         testing::{
             flow::create_project_flow::{create_project_flow, programs},
@@ -35,11 +38,11 @@ mod tests {
 
         let project = create_project_flow(&algod, &creator, &specs, precision).await?;
 
-        let to_sign = save_project(&algod, &creator.address(), &project).await?;
+        let to_sign = save_project(&algod, &creator.address(), &project.project).await?;
 
         let signed_tx = creator.sign_transaction(&to_sign.tx)?;
 
-        let tx_id = algod.broadcast_signed_transaction(&signed_tx).await?;
+        let tx_id = algod.broadcast_signed_transaction(&signed_tx).await?.tx_id;
 
         println!(
             "Creator: {:?}, project hash: {:?}, tx id: {:?}. Will wait for indexing..",
@@ -52,17 +55,15 @@ mod tests {
 
         println!("Fetching project..");
 
-        let loaded_project = load_project(
-            &algod,
-            &indexer,
-            &to_sign.project.hash()?,
-            &programs.escrows,
-        )
-        .await?;
+        let loaded_project =
+            load_project(&algod, &indexer, &ProjectId(tx_id), &programs.escrows).await?;
 
-        assert_eq!(project, loaded_project);
+        assert_eq!(project.project, loaded_project);
         // double check
-        assert_eq!(project.compute_hash()?, loaded_project.compute_hash()?);
+        assert_eq!(
+            project.project.compute_hash()?,
+            loaded_project.compute_hash()?
+        );
 
         Ok(())
     }

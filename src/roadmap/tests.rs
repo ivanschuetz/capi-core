@@ -41,7 +41,7 @@ mod tests {
             create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
 
         let inputs = RoadmapItemInputs {
-            project_hash: project.hash()?,
+            project_id: project.project_id.clone(),
             title: "MVP Release".to_owned(),
             parent: Box::new(None),
         };
@@ -60,7 +60,7 @@ mod tests {
 
         // check that the item was added correctly
 
-        let saved_roadmap = get_roadmap(&indexer, &creator.address(), &project.hash()?).await?;
+        let saved_roadmap = get_roadmap(&indexer, &creator.address(), &project.project_id).await?;
 
         assert_eq!(1, saved_roadmap.items.len());
 
@@ -79,7 +79,7 @@ mod tests {
         saved_item: &SavedRoadmapItem,
     ) -> RoadmapItemInputs {
         RoadmapItemInputs {
-            project_hash: saved_item.project_hash.clone(),
+            project_id: saved_item.project_id.clone(),
             title: saved_item.title.clone(),
             parent: saved_item.parent.clone(),
         }

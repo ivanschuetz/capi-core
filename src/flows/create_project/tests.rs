@@ -42,12 +42,12 @@ mod tests {
         // name matches specs
         assert_eq!(
             created_assets[0].params.name,
-            Some(project.specs.shares.token_name.clone())
+            Some(project.project.specs.shares.token_name.clone())
         );
         // unit matches specs
         assert_eq!(
             created_assets[0].params.unit_name,
-            Some(project.specs.shares.token_name.clone())
+            Some(project.project.specs.shares.token_name.clone())
         );
         assert_eq!(specs.shares.count, created_assets[0].params.total);
         let creator_assets = creator_infos.assets;
@@ -56,23 +56,29 @@ mod tests {
         assert_eq!(0, creator_assets[0].amount);
 
         // investing escrow funding checks
-        let escrow = project.invest_escrow;
+        let escrow = project.project.invest_escrow;
         let escrow_infos = algod.account_information(escrow.address()).await?;
         // TODO refactor and check min algos balance
         let escrow_held_assets = escrow_infos.assets;
         assert_eq!(escrow_held_assets.len(), 1);
-        assert_eq!(escrow_held_assets[0].asset_id, project.shares_asset_id);
-        assert_eq!(escrow_held_assets[0].amount, project.specs.shares.count);
+        assert_eq!(
+            escrow_held_assets[0].asset_id,
+            project.project.shares_asset_id
+        );
+        assert_eq!(
+            escrow_held_assets[0].amount,
+            project.project.specs.shares.count
+        );
 
         // staking escrow funding checks
-        let staking_escrow = project.staking_escrow;
+        let staking_escrow = project.project.staking_escrow;
         let staking_escrow_infos = algod.account_information(staking_escrow.address()).await?;
         let staking_escrow_held_assets = staking_escrow_infos.assets;
         // TODO refactor and check min algos balance
         assert_eq!(staking_escrow_held_assets.len(), 1);
         assert_eq!(
             staking_escrow_held_assets[0].asset_id,
-            project.shares_asset_id
+            project.project.shares_asset_id
         );
         assert_eq!(staking_escrow_held_assets[0].amount, 0); // nothing staked yet
 

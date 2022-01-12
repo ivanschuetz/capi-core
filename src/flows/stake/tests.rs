@@ -59,8 +59,8 @@ mod tests {
             create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
                 .await?;
 
-        invests_optins_flow(&algod, &investor1, &project).await?;
-        let _ = invests_flow(&algod, &investor1, buy_asset_amount, &project).await?;
+        invests_optins_flow(&algod, &investor1, &project.project).await?;
+        let _ = invests_flow(&algod, &investor1, buy_asset_amount, &project.project).await?;
 
         // drain (to generate dividend). note that investor doesn't reclaim it (doesn't seem relevant for this test)
         // (the draining itself may also not be relevant, just for a more realistic pre-trade scenario)
@@ -70,13 +70,14 @@ mod tests {
             &drainer,
             &customer,
             customer_payment_amount,
-            &project,
+            &project.project,
         )
         .await?;
 
         // investor1 unstakes
         let traded_shares = buy_asset_amount;
-        let unstake_tx_id = unstake_flow(&algod, &project, &investor1, traded_shares).await?;
+        let unstake_tx_id =
+            unstake_flow(&algod, &project.project, &investor1, traded_shares).await?;
         let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
 
         // investor2 gets shares from investor1 externally
@@ -86,7 +87,7 @@ mod tests {
         let params = algod.suggested_transaction_params().await?;
         let shares_optin_tx = &mut TxnBuilder::with(
             params.clone(),
-            AcceptAsset::new(investor2.address(), project.shares_asset_id).build(),
+            AcceptAsset::new(investor2.address(), project.project.shares_asset_id).build(),
         )
         .build();
         let signed_shares_optin_tx = investor2.sign_transaction(shares_optin_tx)?;
@@ -100,7 +101,7 @@ mod tests {
             params.clone(),
             TransferAsset::new(
                 investor1.address(),
-                project.shares_asset_id,
+                project.project.shares_asset_id,
                 traded_shares,
                 investor2.address(),
             )
@@ -116,7 +117,8 @@ mod tests {
         // is there a way to avoid the investor confirming txs 2 times here?
 
         let app_optins_txs =
-            invest_or_staking_app_optins_txs(&algod, &project, &investor2.address()).await?;
+            invest_or_staking_app_optins_txs(&algod, &project.project, &investor2.address())
+                .await?;
         // UI
         let mut app_optins_signed_txs = vec![];
         for optin_tx in app_optins_txs {
@@ -129,7 +131,7 @@ mod tests {
         // flow
 
         // investor2 stakes the acquired shares
-        stake_flow(&algod, &project, &investor2, traded_shares).await?;
+        stake_flow(&algod, &project.project, &investor2, traded_shares).await?;
 
         // tests
 
@@ -145,14 +147,14 @@ mod tests {
         let central_total_received = customer_payment_amount;
         let investor2_entitled_amount = calculate_entitled_harvest(
             central_total_received,
-            project.specs.shares.count,
+            project.project.specs.shares.count,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
-            project.specs.investors_share,
+            project.project.specs.investors_share,
         );
 
         let investor_state =
-            central_investor_state_from_acc(&investor2_infos, project.central_app_id)?;
+            central_investor_state_from_acc(&investor2_infos, project.project.central_app_id)?;
         // shares local state initialized to shares
         assert_eq!(traded_shares, investor_state.shares);
         // harvested total is initialized to entitled amount
@@ -163,7 +165,7 @@ mod tests {
 
         // staking escrow got assets
         let staking_escrow_infos = algod
-            .account_information(project.staking_escrow.address())
+            .account_information(project.project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
@@ -171,7 +173,8 @@ mod tests {
 
         // investor2 harvests: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         // the harvest amount is the smallest number possible, to show that we can't retrieve anything
-        let harvest_flow_res = harvest_flow(&algod, &project, &investor2, MicroAlgos(1)).await;
+        let harvest_flow_res =
+            harvest_flow(&algod, &project.project, &investor2, MicroAlgos(1)).await;
         log::debug!("Expected error harvesting: {:?}", harvest_flow_res);
         // If there's nothing to harvest, the smart contract fails (transfer amount > allowed)
         assert!(harvest_flow_res.is_err());
@@ -183,7 +186,7 @@ mod tests {
             &drainer,
             &customer,
             customer_payment_amount_2,
-            &project,
+            &project.project,
         )
         .await?;
 
@@ -198,16 +201,22 @@ mod tests {
         // we'll harvest the max possible amount
         let investor2_entitled_amount = calculate_entitled_harvest(
             customer_payment_amount_2,
-            project.specs.shares.count,
+            project.project.specs.shares.count,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
-            project.specs.investors_share,
+            project.project.specs.investors_share,
         );
         log::debug!(
             "Harvesting max possible amount (expected to succeed): {:?}",
             investor2_entitled_amount
         );
-        let _ = harvest_flow(&algod, &project, &investor2, investor2_entitled_amount).await?;
+        let _ = harvest_flow(
+            &algod,
+            &project.project,
+            &investor2,
+            investor2_entitled_amount,
+        )
+        .await?;
         // just a rename to help with clarity a bit
         let expected_harvested_amount = investor2_entitled_amount;
         let investor2_infos = algod.account_information(&investor2.address()).await?;
@@ -219,7 +228,7 @@ mod tests {
 
         // investor's harvested local state was updated:
         let investor_state =
-            central_investor_state_from_acc(&investor2_infos, project.central_app_id)?;
+            central_investor_state_from_acc(&investor2_infos, project.project.central_app_id)?;
         // the shares haven't changed
         assert_eq!(traded_shares, investor_state.shares);
         // the harvested total was updated:

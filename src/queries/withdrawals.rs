@@ -11,9 +11,9 @@ use crate::{
     date_util::timestamp_seconds_to_date,
     flows::create_project::{
         create_project::Escrows,
-        storage::load_project::{load_project, ProjectHash},
+        storage::load_project::{load_project, ProjectId},
     },
-    tx_note::{strip_withdraw_prefix_from_note, withdraw_note_prefix_base64},
+    tx_note::strip_withdraw_prefix_from_note,
 };
 use anyhow::{anyhow, Error, Result};
 
@@ -21,26 +21,36 @@ pub async fn withdrawals(
     algod: &Algod,
     indexer: &Indexer,
     creator: &Address,
-    project_hash: &ProjectHash,
+    project_hash: &ProjectId,
     escrows: &Escrows,
 ) -> Result<Vec<Withdrawal>> {
-    log::debug!(
-        "Querying withdrawals by: {:?} for project: {:?}",
-        creator,
-        project_hash.url_str()
-    );
+    log::debug!("Querying withdrawals by: {:?}", creator);
 
     let project = load_project(algod, indexer, project_hash, escrows).await?;
 
     let query = QueryAccountTransaction {
-        note_prefix: Some(withdraw_note_prefix_base64()),
+        // For now no prefix filtering
+        // Algorand's indexer has performance problems with note-prefix and it doesn't work at all with AlgoExplorer or PureStake currently:
+        // https://github.com/algorand/indexer/issues/358
+        // https://github.com/algorand/indexer/issues/669
+        // note_prefix: Some(withdraw_note_prefix_base64()),
         ..Default::default()
     };
 
+    // TODO filter txs by receiver (creator) - this returns everything associated with creator
     let txs = indexer
         .account_transactions(creator, &query)
         .await?
         .transactions;
+
+    // TODO (low prio) compare performance of above vs this (i.e. querying account txs vs txs with receiver field)
+    // Note that none is using note prefix currently, see note in query above.
+    // let query = QueryTransaction {
+    //     address: Some(creator.to_string()),
+    //     address_role: Some(Role::Receiver),
+    //     ..Default::default()
+    // };
+    // let txs = indexer.transactions(&query).await?.transactions;
 
     let mut withdrawals = vec![];
 
@@ -53,7 +63,8 @@ pub async fn withdrawals(
             // account_transactions returns all the txs "related" to the account, i.e. can be sender or receiver
             // we're interested only in central escrow -> creator
             if sender_address == *project.central_escrow.address() && receiver_address == *creator {
-                // Unexpected because we just fetched by (a non empty) note prefix, so logically it should have a note
+                // This is an error because all transactions central escrow -> creator are withdrawals and are expected to have a note with prefix.
+                // (this is enforced in the central escrow TEAL)
                 let note = tx
                     .note
                     .clone()

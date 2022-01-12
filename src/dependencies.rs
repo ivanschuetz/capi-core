@@ -126,6 +126,6 @@ fn sandbox_private_network_indexer() -> Indexer {
 
 #[allow(dead_code)]
 fn testnet_indexer() -> Indexer {
-    Indexer::new("https://algoindexer.testnet.algoexplorerapi.io/v2")
+    Indexer::new("https://algoindexer.testnet.algoexplorerapi.io")
         .expect("Couldn't initialize sandbox indexer")
 }
