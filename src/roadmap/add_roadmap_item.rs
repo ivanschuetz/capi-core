@@ -1,3 +1,5 @@
+use super::note::roadmap_item_to_note;
+use crate::flows::create_project::storage::load_project::ProjectId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
@@ -8,10 +10,6 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
-use crate::{
-    flows::create_project::storage::load_project::ProjectId, tx_note::capi_note_prefix_bytes,
-};
-
 pub async fn add_roadmap_item(
     algod: &Algod,
     project_creator: &Address,
@@ -20,7 +18,7 @@ pub async fn add_roadmap_item(
     let params = algod.suggested_transaction_params().await?;
 
     let roadmap_item = item_inputs.to_roadmap_item()?;
-    let note = roadmap_item_as_tx_note(&roadmap_item)?;
+    let note = roadmap_item_to_note(&roadmap_item)?;
 
     // 0 payment to themselves - we use a minimal tx only to store data.
     let tx = TxnBuilder::with(
@@ -88,18 +86,4 @@ pub struct RoadmapItem {
     pub title: String,
     pub parent: Box<Option<HashDigest>>,
     pub hash: HashDigest,
-}
-
-fn roadmap_item_as_tx_note(item: &RoadmapItem) -> Result<Vec<u8>> {
-    let capi_prefix_bytes: &[u8] = &capi_note_prefix_bytes();
-
-    let item_bytes = &rmp_serde::to_vec_named(&item)?;
-
-    // Decoding with Address is a hack, as the project id is a tx id, which isn't an address, but it uses the same encoding.
-    // TODO (low prio) non hack solution
-    let project_id_bytes = item.project_id.bytes();
-
-    let bytes = [capi_prefix_bytes, project_id_bytes, item_bytes].concat();
-
-    Ok(bytes)
 }

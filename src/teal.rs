@@ -47,7 +47,7 @@ where
     T: Serialize,
 {
     let mut tt = TinyTemplate::new();
-    let teal_str = &String::from_utf8(template.0.to_owned())?;
+    let teal_str = std::str::from_utf8(&template.0)?;
     let template_identifier = "program"; // arbitrary identifier, see tinytemplate docs
     tt.add_template(template_identifier, teal_str)?;
 

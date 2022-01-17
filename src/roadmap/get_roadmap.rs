@@ -1,7 +1,6 @@
+use super::{add_roadmap_item::RoadmapItem, note::base64_maybe_roadmap_note_to_roadmap_item};
 use crate::{
-    date_util::timestamp_seconds_to_date,
-    flows::create_project::storage::load_project::ProjectId,
-    tx_note::{extract_hash_and_object_from_decoded_note, project_hash_note_prefix},
+    date_util::timestamp_seconds_to_date, flows::create_project::storage::load_project::ProjectId,
 };
 use algonaut::{
     core::Address,
@@ -12,8 +11,6 @@ use algonaut::{
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-
-use super::add_roadmap_item::RoadmapItem;
 
 pub async fn get_roadmap(
     indexer: &Indexer,
@@ -35,12 +32,6 @@ pub async fn get_roadmap(
 
     let mut roadmap_items = vec![];
 
-    // Decoding with Address is a hack, as the project id is a tx id, which isn't an address, but it uses the same encoding.
-    // TODO (low prio) non hack solution
-    // TODO include item's type in prefix (currently this works because it doesn't conflict with the other queries)
-    let note_prefix = project_hash_note_prefix(&project_id.0 .0);
-    let note_prefix_str = String::from_utf8(note_prefix)?;
-
     for tx in response.transactions {
         // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
         // Unclear when it's None. For now we just reject it.
@@ -48,13 +39,13 @@ pub async fn get_roadmap(
             .round_time
             .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
-        if let Some(_) = tx.payment_transaction {
+        if tx.payment_transaction.is_some() {
             if let Some(note) = tx.note.clone() {
-                if note.starts_with(&note_prefix_str) {
-                    let obj_with_hash = extract_hash_and_object_from_decoded_note(&note)?;
+                if let Some(roadmap_item) =
+                    base64_maybe_roadmap_note_to_roadmap_item(&note, project_id)?
+                {
                     let saved_roadmap_item =
-                        to_saved_roadmap_item(&obj_with_hash.obj, tx.id.clone(), round_time)?;
-
+                        to_saved_roadmap_item(&roadmap_item, tx.id.clone(), round_time)?;
                     roadmap_items.push(saved_roadmap_item);
                 }
             }

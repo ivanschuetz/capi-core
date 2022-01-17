@@ -12,5 +12,3 @@ pub mod roadmap;
 pub mod state;
 pub mod teal;
 mod testing;
-mod tx_note;
-mod withdrawal_note_prefix;

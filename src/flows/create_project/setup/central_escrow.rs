@@ -1,9 +1,6 @@
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
-use crate::{
-    teal::{render_template, TealSource, TealSourceTemplate},
-    tx_note::withdraw_note_prefix_base64,
-};
+use crate::teal::{render_template, TealSource, TealSourceTemplate};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -52,13 +49,10 @@ fn render_central_escrow(
     source: &TealSourceTemplate,
     project_creator: &Address,
 ) -> Result<TealSource> {
-    let withdrawal_note_prefix = withdraw_note_prefix_base64();
-
     let escrow_source = render_template(
         source,
         CentralEscrowTemplateContext {
             project_creator_address: project_creator.to_string(),
-            withdrawal_prefix_base64: withdrawal_note_prefix,
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -106,5 +100,9 @@ pub struct SetupCentralEscrowSigned {
 #[derive(Serialize)]
 struct CentralEscrowTemplateContext {
     project_creator_address: String,
-    withdrawal_prefix_base64: String,
+}
+
+#[derive(Serialize)]
+struct SomeContext {
+    address: String,
 }

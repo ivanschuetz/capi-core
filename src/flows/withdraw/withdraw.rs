@@ -9,7 +9,7 @@ use algonaut::{
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::withdrawal_note_prefix::generate_withdrawal_tx_note;
+use crate::flows::withdraw::note::withdrawal_to_note;
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -35,7 +35,7 @@ pub async fn withdraw(
         },
         Pay::new(*central_escrow.address(), creator, inputs.amount).build(),
     )
-    .note(to_note(inputs)?)
+    .note(withdrawal_to_note(inputs)?)
     .build();
 
     // The creator pays the fee of the withdraw tx (signed by central escrow)
@@ -56,16 +56,6 @@ pub async fn withdraw(
         withdraw_tx: signed_withdraw_tx,
         pay_withdraw_fee_tx,
     })
-}
-
-fn to_note(withdrawal: &WithdrawalInputs) -> Result<Vec<u8>> {
-    // TODO compression, e.g. https://github.com/silentsokolov/rust-smaz
-    // in a test it compressed ~40% of regular english text (from random wikipedia article)
-    // it increased WASM file size by only ~16kb
-    let body = withdrawal.description.clone();
-    // The reason that we generate the note with a UUID and not the hash,
-    // is that we want to verify in TEAL that this UUID is used (so all the transactions can be found by prefix)
-    Ok(generate_withdrawal_tx_note(&body))
 }
 
 pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<String> {

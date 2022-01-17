@@ -9,11 +9,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     date_util::timestamp_seconds_to_date,
-    flows::create_project::{
-        create_project::Escrows,
-        storage::load_project::{load_project, ProjectId},
+    flows::{
+        create_project::{
+            create_project::Escrows,
+            storage::load_project::{load_project, ProjectId},
+        },
+        withdraw::note::base64_withdrawal_note_to_withdrawal_description,
     },
-    tx_note::strip_withdraw_prefix_from_note,
 };
 use anyhow::{anyhow, Error, Result};
 
@@ -71,7 +73,8 @@ pub async fn withdrawals(
                     .ok_or_else(|| anyhow!("Unexpected: withdrawal tx has no note: {:?}", tx))?;
 
                 // for now the only payload is the description
-                let withdrawal_description = strip_withdraw_prefix_from_note(note.as_bytes())?;
+                let withdrawal_description =
+                    base64_withdrawal_note_to_withdrawal_description(&note)?;
 
                 // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
                 // Unclear when it's None. For now we just reject it.
