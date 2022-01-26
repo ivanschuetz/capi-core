@@ -44,7 +44,14 @@ mod tests {
                 .await?;
 
         invests_optins_flow(&algod, &investor, &project.project).await?;
-        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project.project).await?;
+        let _ = invests_flow(
+            &algod,
+            &investor,
+            buy_asset_amount,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
         // TODO double check tests for state (at least important) tested (e.g. investor has shares, staking doesn't etc.)
 
         // double check investor's assets
@@ -133,7 +140,14 @@ mod tests {
                 .await?;
 
         invests_optins_flow(&algod, &investor, &project.project).await?;
-        let _ = invests_flow(&algod, &investor, buy_asset_amount, &project.project).await?;
+        let _ = invests_flow(
+            &algod,
+            &investor,
+            buy_asset_amount,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
 
         // double check investor's assets
         let investor_infos = algod.account_information(&investor.address()).await?;

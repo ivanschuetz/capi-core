@@ -1,5 +1,7 @@
-use crate::flows::create_project::{
-    create_project::Escrows, model::Project, storage::note::base64_note_to_project,
+use crate::{
+    date_util::timestamp_seconds_to_date,
+    flows::create_project::{create_project::Escrows, storage::note::base64_note_to_project},
+    queries::my_projects::StoredProject,
 };
 use algonaut::{algod::v2::Algod, crypto::HashDigest, indexer::v2::Indexer};
 use anyhow::{anyhow, Result};
@@ -7,6 +9,7 @@ use data_encoding::BASE32_NOPAD;
 use serde::{Deserialize, Serialize};
 use std::{
     convert::{TryFrom, TryInto},
+    hash::Hash,
     str::FromStr,
 };
 
@@ -15,7 +18,7 @@ pub async fn load_project(
     indexer: &Indexer,
     project_id: &ProjectId,
     escrows: &Escrows,
-) -> Result<Project> {
+) -> Result<StoredProject> {
     log::debug!("Fetching project with tx id: {:?}", project_id);
 
     let response = indexer.transaction_info(&project_id.0.to_string()).await?;
@@ -30,7 +33,23 @@ pub async fn load_project(
             .ok_or_else(|| anyhow!("Unexpected: project storage tx has no note: {:?}", tx))?;
 
         let project = base64_note_to_project(algod, escrows, &note).await?;
-        Ok(project)
+
+        let round_time = tx
+            .round_time
+            .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
+
+        // Sanity check
+        if tx.id.parse::<TxId>()? != project_id.0 {
+            return Err(anyhow!(
+                "Invalid state: tx returned by indexer has a different id to the one we queried"
+            ));
+        }
+
+        Ok(StoredProject {
+            id: project_id.to_owned(),
+            project,
+            stored_date: timestamp_seconds_to_date(round_time)?,
+        })
     } else {
         // It can be worth inspecting these, as their purpose would be unclear.
         // if the project was created with our UI (and it worked correctly), the txs will always be payments.
@@ -41,7 +60,7 @@ pub async fn load_project(
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct ProjectId(pub TxId);
 impl FromStr for ProjectId {
     type Err = anyhow::Error;
@@ -54,6 +73,7 @@ impl ToString for ProjectId {
         self.0.to_string()
     }
 }
+
 impl ProjectId {
     pub fn bytes(&self) -> &[u8] {
         &self.0 .0 .0
@@ -82,6 +102,15 @@ impl FromStr for TxId {
         )?)))
     }
 }
+
+impl Hash for TxId {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // HashDigest doesn't implement Hash - and we can't add it because it's in Algonaut,
+        // and seems overkill to add this to Algonaut, so we call it on the wrapped bytes
+        self.0 .0.hash(state);
+    }
+}
+
 impl ToString for TxId {
     fn to_string(&self) -> String {
         BASE32_NOPAD.encode(&self.0 .0)

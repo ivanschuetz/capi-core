@@ -33,9 +33,9 @@ mod tests {
 
         let precision = TESTS_DEFAULT_PRECISION;
 
-        let project = create_project_flow(&algod, &creator, &specs, precision).await?;
+        let create_project_res = create_project_flow(&algod, &creator, &specs, precision).await?;
 
-        let to_sign = save_project(&algod, &creator.address(), &project.project).await?;
+        let to_sign = save_project(&algod, &creator.address(), &create_project_res.project).await?;
 
         let signed_tx = creator.sign_transaction(&to_sign.tx)?;
 
@@ -54,13 +54,13 @@ mod tests {
 
         let project_id = tx_id.parse()?;
 
-        let loaded_project = load_project(&algod, &indexer, &project_id, &programs.escrows).await?;
+        let stored_project = load_project(&algod, &indexer, &project_id, &programs.escrows).await?;
 
-        assert_eq!(project.project, loaded_project);
+        assert_eq!(create_project_res.project, stored_project.project);
         // double check
         assert_eq!(
-            project.project.compute_hash()?,
-            loaded_project.compute_hash()?
+            create_project_res.project.compute_hash()?,
+            stored_project.project.compute_hash()?
         );
 
         Ok(())

@@ -64,7 +64,9 @@ pub async fn withdrawals(
 
             // account_transactions returns all the txs "related" to the account, i.e. can be sender or receiver
             // we're interested only in central escrow -> creator
-            if sender_address == *project.central_escrow.address() && receiver_address == *creator {
+            if sender_address == *project.project.central_escrow.address()
+                && receiver_address == *creator
+            {
                 // This is an error because all transactions central escrow -> creator are withdrawals and are expected to have a note with prefix.
                 // (this is enforced in the central escrow TEAL)
                 let note = tx

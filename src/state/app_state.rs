@@ -35,12 +35,20 @@ pub fn local_state_from_account(
         .ok_or(ApplicationLocalStateError::NotOptedIn)
 }
 
+pub fn local_state_with_key(
+    app_local_state: ApplicationLocalState,
+    key: &AppStateKey,
+) -> Option<TealValue> {
+    find_value(&app_local_state.key_value, key)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApplicationLocalStateError {
     NotOptedIn,
     Msg(String),
 }
 
+#[derive(Debug, Clone)]
 pub struct AppStateKey<'a>(pub &'a str);
 
 /// Just a wrapper equivalent to ApplicationLocalState (provided by the SDK), to offer a similar interface
@@ -49,6 +57,7 @@ pub struct ApplicationGlobalState(Vec<TealKeyValue>);
 pub trait ApplicationStateExt {
     fn find(&self, key: &AppStateKey) -> Option<TealValue>;
     fn find_uint(&self, key: &AppStateKey) -> Option<u64>;
+    fn find_bytes(&self, key: &AppStateKey) -> Option<Vec<u8>>;
 }
 
 impl ApplicationStateExt for ApplicationLocalState {
@@ -59,6 +68,10 @@ impl ApplicationStateExt for ApplicationLocalState {
     fn find_uint(&self, key: &AppStateKey) -> Option<u64> {
         self.find(key).map(|kv| kv.uint)
     }
+
+    fn find_bytes(&self, key: &AppStateKey) -> Option<Vec<u8>> {
+        self.find(key).map(|kv| kv.bytes)
+    }
 }
 
 impl ApplicationStateExt for ApplicationGlobalState {
@@ -68,6 +81,10 @@ impl ApplicationStateExt for ApplicationGlobalState {
 
     fn find_uint(&self, key: &AppStateKey) -> Option<u64> {
         self.find(key).map(|kv| kv.uint)
+    }
+
+    fn find_bytes(&self, key: &AppStateKey) -> Option<Vec<u8>> {
+        self.find(key).map(|kv| kv.bytes)
     }
 }
 

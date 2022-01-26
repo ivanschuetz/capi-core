@@ -104,7 +104,14 @@ mod tests {
         // Investor buys some shares
         let investor_shares_count = 10;
         invests_optins_flow(&algod, &investor, &project.project).await?;
-        invests_flow(&algod, &investor, investor_shares_count, &project.project).await?;
+        invests_flow(
+            &algod,
+            &investor,
+            investor_shares_count,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
 
         // remeber state
         let central_balance_before_withdrawing = algod
@@ -190,7 +197,14 @@ mod tests {
         // Investor buys some shares
         let investor_shares_count = 10;
         invests_optins_flow(&algod, &investor, &project.project).await?;
-        invests_flow(&algod, &investor, investor_shares_count, &project.project).await?;
+        invests_flow(
+            &algod,
+            &investor,
+            investor_shares_count,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
 
         // remeber state
         let central_balance_before_withdrawing = algod

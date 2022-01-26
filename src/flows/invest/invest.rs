@@ -8,7 +8,7 @@ use algonaut::{
 };
 use anyhow::Result;
 
-use crate::flows::create_project::model::Project;
+use crate::flows::create_project::{model::Project, storage::load_project::ProjectId};
 
 use super::model::{InvestResult, InvestSigned, InvestToSign};
 
@@ -27,13 +27,19 @@ pub async fn invest_txs(
     shares_asset_id: u64,
     asset_count: u64,
     asset_price: MicroAlgos,
+    project_id: &ProjectId,
 ) -> Result<InvestToSign> {
     log::debug!("Investing in project: {:?}", project);
 
     let params = algod.suggested_transaction_params().await?;
 
-    let mut central_app_investor_setup_tx =
-        central_app_investor_setup_tx(&params, central_app_id, shares_asset_id, *investor)?;
+    let mut central_app_investor_setup_tx = central_app_investor_setup_tx(
+        &params,
+        central_app_id,
+        shares_asset_id,
+        *investor,
+        project_id,
+    )?;
 
     // TODO why is this sending the algos to the invest escrow instead of to the central? why not caught by tests yet?
     // should be most likely the central as that's where we withdraw funds from
@@ -105,6 +111,7 @@ pub fn central_app_investor_setup_tx(
     app_id: u64,
     shares_asset_id: u64,
     investor: Address,
+    project_id: &ProjectId,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
         SuggestedTransactionParams {
@@ -113,6 +120,7 @@ pub fn central_app_investor_setup_tx(
         },
         CallApplication::new(investor, app_id)
             .foreign_assets(vec![shares_asset_id])
+            .app_arguments(vec![project_id.bytes().to_vec()])
             .build(),
     )
     .build();

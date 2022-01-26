@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod tests {
     use crate::flows::create_project::model::Project;
+    use crate::flows::create_project::storage::load_project::ProjectId;
     use crate::flows::harvest::harvest::calculate_entitled_harvest;
     use crate::network_util::wait_for_pending_transaction;
+    use crate::queries::my_projects::my_current_invested_projects;
     use crate::state::central_app_state::{
         central_global_state, central_investor_state, central_investor_state_from_acc,
     };
-    use crate::testing::flow::create_project_flow::create_project_flow;
+    use crate::testing::flow::create_project_flow::{create_project_flow, programs};
     use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
     use crate::testing::flow::invest_in_project_flow::{invests_flow, invests_optins_flow};
     use crate::testing::flow::stake_flow::stake_flow;
@@ -52,7 +54,14 @@ mod tests {
 
         // flow
 
-        let flow_res = invests_flow(&algod, &investor, buy_asset_amount, &project.project).await?;
+        let flow_res = invests_flow(
+            &algod,
+            &investor,
+            buy_asset_amount,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
 
         // staking escrow tests
 
@@ -73,6 +82,12 @@ mod tests {
 
         // investor has shares
         assert_eq!(buy_asset_amount, central_investor_state.shares);
+
+        // check that the project id was initialized
+        assert_eq!(project.project_id, central_investor_state.project_id);
+
+        // check that harvested is 0 (nothing harvested yet)
+        assert_eq!(MicroAlgos(0), central_investor_state.harvested);
 
         // double check: investor didn't receive any shares
         let investor_assets = investor_infos.assets;
@@ -141,7 +156,14 @@ mod tests {
 
         // flow
 
-        invests_flow(&algod, &investor, buy_asset_amount, &project.project).await?;
+        invests_flow(
+            &algod,
+            &investor,
+            buy_asset_amount,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
 
         // double check: investor has shares for first investment
         let investor_state =
@@ -149,7 +171,14 @@ mod tests {
                 .await?;
         assert_eq!(buy_asset_amount, investor_state.shares);
 
-        invests_flow(&algod, &investor, buy_asset_amount2, &project.project).await?;
+        invests_flow(
+            &algod,
+            &investor,
+            buy_asset_amount2,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
 
         // tests
 
@@ -185,13 +214,27 @@ mod tests {
         invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // for user to have some free shares (assets) to stake
-        buy_and_unstake_shares(&algod, &investor, &project.project, stake_amount).await?;
+        buy_and_unstake_shares(
+            &algod,
+            &investor,
+            &project.project,
+            stake_amount,
+            &project.project_id,
+        )
+        .await?;
 
         // flow
 
         // buy shares: automatically staked
         invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
-        invests_flow(&algod, &investor, invest_amount, &project.project).await?;
+        invests_flow(
+            &algod,
+            &investor,
+            invest_amount,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
 
         // double check: investor has shares for first investment
         let investor_state =
@@ -236,7 +279,14 @@ mod tests {
         invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // for user to have some free shares (assets) to stake
-        buy_and_unstake_shares(&algod, &investor, &project.project, stake_amount).await?;
+        buy_and_unstake_shares(
+            &algod,
+            &investor,
+            &project.project,
+            stake_amount,
+            &project.project_id,
+        )
+        .await?;
 
         // flow
 
@@ -251,7 +301,14 @@ mod tests {
         assert_eq!(stake_amount, investor_state.shares);
 
         // buy shares: automatically staked
-        invests_flow(&algod, &investor, invest_amount, &project.project).await?;
+        invests_flow(
+            &algod,
+            &investor,
+            invest_amount,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
 
         // tests
 
@@ -294,6 +351,7 @@ mod tests {
             &investor,
             &project.project,
             stake_amount1 + stake_amount2 + invest_amount_not_stake,
+            &project.project_id,
         )
         .await?;
 
@@ -358,7 +416,14 @@ mod tests {
         invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // flow
-        invests_flow(&algod, &investor, buy_asset_amount, &project.project).await?;
+        invests_flow(
+            &algod,
+            &investor,
+            buy_asset_amount,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
 
         // tests
 
@@ -416,7 +481,14 @@ mod tests {
         invests_optins_flow(&algod, &investor, &project.project).await?;
 
         // for user to have some free shares (assets) to stake
-        buy_and_unstake_shares(&algod, &investor, &project.project, buy_asset_amount).await?;
+        buy_and_unstake_shares(
+            &algod,
+            &investor,
+            &project.project,
+            buy_asset_amount,
+            &project.project_id,
+        )
+        .await?;
 
         // flow
         invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
@@ -443,13 +515,64 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_query_my_investment() -> Result<()> {
+        test_init()?;
+
+        // deps
+        let algod = dependencies::algod_for_tests();
+        let indexer = dependencies::indexer_for_tests();
+        let creator = creator();
+        let investor = investor1();
+
+        // UI
+        let buy_asset_amount = 10;
+        let specs = project_specs();
+
+        let project =
+            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+
+        // precs
+
+        invests_optins_flow(&algod, &investor, &project.project).await?;
+
+        // flow
+
+        invests_flow(
+            &algod,
+            &investor,
+            buy_asset_amount,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
+
+        // check that the invested projects query returns the project where the user invested
+
+        let my_invested_projects = my_current_invested_projects(
+            &algod,
+            &indexer,
+            &investor.address(),
+            &programs()?.escrows,
+        )
+        .await?;
+
+        assert_eq!(1, my_invested_projects.len());
+        assert_eq!(project.project_id, my_invested_projects[0].id);
+        assert_eq!(project.project, my_invested_projects[0].project);
+
+        Ok(())
+    }
+
     async fn buy_and_unstake_shares(
         algod: &Algod,
         investor: &Account,
         project: &Project,
         shares_amount: u64,
+        project_id: &ProjectId,
     ) -> Result<()> {
-        invests_flow(&algod, &investor, shares_amount, &project).await?;
+        invests_flow(&algod, &investor, shares_amount, &project, project_id).await?;
         let unstake_tx_id = unstake_flow(&algod, &project, &investor, shares_amount).await?;
         wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
         Ok(())

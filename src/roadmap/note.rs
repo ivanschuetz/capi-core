@@ -7,7 +7,7 @@ use std::convert::TryInto;
 
 /// a general (capi) note prefix
 /// for now used only here, so here. we might use it for other kind of notes in the future.
-fn capi_note_prefix_bytes() -> [u8; 4] {
+pub fn capi_note_prefix() -> [u8; 4] {
     // Just an arbitrary byte sequence (here specifically: control char, space, tilde, control char)
     // (we don't need this to be human readable)
     [0x8, 0x20, 0x7e, 0x82]
@@ -28,7 +28,7 @@ pub fn roadmap_item_to_note(item: &RoadmapItem) -> Result<Vec<u8>> {
         // these prefixes are just helpers to indicate how to parse the data
         // note also that there's no strict reason to have 2 separate prefixes, it's a bit of an historic artifact since the capi prefix was used somewhere else too previously
         // but doesn't hurt to keep it - maybe we use again the capi prefix somewhere else.
-        capi_note_prefix_bytes().as_slice(),
+        capi_note_prefix().as_slice(),
         &roadmap_note_identifier(),
         &version_bytes,
         item.project_id.bytes(),
@@ -84,7 +84,7 @@ fn maybe_roadmap_note_to_roadmap_payload(
     // Since we're parsing notes that are only potentially roadmap / capi notes / don't belong to the current project,
     // not finding these prefixes is valid (it just returns None)
     if let Some(maybe_capi_prefix) = note.get(0..4) {
-        if maybe_capi_prefix != capi_note_prefix_bytes() {
+        if maybe_capi_prefix != capi_note_prefix() {
             return Ok(None);
         }
         if let Some(maybe_roadmap_prefix) = note.get(4..8) {

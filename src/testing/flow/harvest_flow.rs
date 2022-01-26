@@ -36,7 +36,14 @@ pub async fn harvest_precs(
     // investor buys shares: this can be called after draining as well (without affecting test results)
     // the only order required for this is draining->harvesting, obviously harvesting has to be executed after draining (if it's to harvest the drained funds)
     invests_optins_flow(&algod, &harvester, &project.project).await?;
-    let _ = invests_flow(&algod, &harvester, buy_asset_amount, &project.project).await?;
+    let _ = invests_flow(
+        &algod,
+        &harvester,
+        buy_asset_amount,
+        &project.project,
+        &project.project_id,
+    )
+    .await?;
 
     // payment and draining
     let drain_res = customer_payment_and_drain_flow(

@@ -60,7 +60,14 @@ mod tests {
                 .await?;
 
         invests_optins_flow(&algod, &investor1, &project.project).await?;
-        let _ = invests_flow(&algod, &investor1, buy_asset_amount, &project.project).await?;
+        let _ = invests_flow(
+            &algod,
+            &investor1,
+            buy_asset_amount,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
 
         // drain (to generate dividend). note that investor doesn't reclaim it (doesn't seem relevant for this test)
         // (the draining itself may also not be relevant, just for a more realistic pre-trade scenario)

@@ -89,6 +89,8 @@ pub struct CreateProjectSigned {
     pub customer_escrow: ContractAccount,
 }
 
+/// Note that Project doesn't know its id (ProjectId), because it's generated after it's stored (it's the id of the storage tx),
+/// TODO it probably makes sense to nane the id "StoredProjectId" to be more accurate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Project {
     pub specs: CreateProjectSpecs,

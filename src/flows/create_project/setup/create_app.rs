@@ -56,8 +56,8 @@ pub async fn create_app_tx(
                 number_byteslices: 0,
             },
             StateSchema {
-                number_ints: 2, // for investors: "shares" and "already retrieved"
-                number_byteslices: 0,
+                number_ints: 2,       // for investors: "shares", "already retrieved"
+                number_byteslices: 1, // for investors: "project"
             },
         )
         .build(),
