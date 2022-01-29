@@ -4,13 +4,14 @@ use crate::{
     flows::drain::drain::{
         drain_customer_escrow, submit_drain_customer_escrow, DrainCustomerEscrowSigned,
     },
+    flows::pay_project::pay_project::{pay_project, submit_pay_project, PayProjectSigned},
     network_util::wait_for_pending_transaction,
 };
 #[cfg(test)]
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
-    transaction::{account::Account, Pay, Transaction, TxnBuilder},
+    transaction::{account::Account, Transaction},
 };
 #[cfg(test)]
 use anyhow::Result;
@@ -114,21 +115,14 @@ pub struct CustomerPaymentAndDrainFlowRes {
 async fn send_payment_to_customer_escrow(
     algod: &Algod,
     customer: &Account,
-    escrow_address: &Address,
+    customer_escrow: &Address,
     amount: MicroAlgos,
 ) -> Result<String> {
-    let params = algod.suggested_transaction_params().await?;
-
-    let tx = &mut TxnBuilder::with(
-        params.clone(),
-        Pay::new(customer.address(), *escrow_address, amount).build(),
-    )
-    .build();
-
-    let signed_tx = customer.sign_transaction(tx)?;
-    let res = algod.broadcast_signed_transaction(&signed_tx).await?;
-
-    log::debug!("Customer payment tx id: {:?}", res.tx_id);
-
-    Ok(res.tx_id)
+    let tx = pay_project(algod, &customer.address(), customer_escrow, amount)
+        .await?
+        .tx;
+    let signed_tx = customer.sign_transaction(&tx)?;
+    let tx_id = submit_pay_project(algod, PayProjectSigned { tx: signed_tx }).await?;
+    log::debug!("Customer payment tx id: {:?}", tx_id);
+    Ok(tx_id)
 }

@@ -68,6 +68,7 @@ pub struct SavedRoadmapItem {
     pub project_id: ProjectId,
     pub title: String,
     pub date: DateTime<Utc>,
+    pub saved_date: DateTime<Utc>,
     pub parent: Box<Option<HashDigest>>,
     pub hash: HashDigest,
 }
@@ -81,7 +82,8 @@ fn to_saved_roadmap_item(
         tx_id,
         project_id: item.project_id.clone(),
         title: item.title.clone(),
-        date: timestamp_seconds_to_date(round_time)?,
+        date: item.date.clone(),
+        saved_date: timestamp_seconds_to_date(round_time)?,
         parent: item.parent.clone(),
         hash: item.hash,
     })

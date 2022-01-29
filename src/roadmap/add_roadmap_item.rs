@@ -7,6 +7,7 @@ use algonaut::{
     transaction::{Pay, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
@@ -55,6 +56,7 @@ pub struct RoadmapItemInputs {
     pub project_id: ProjectId,
     pub title: String,
     pub parent: Box<Option<HashDigest>>,
+    pub date: DateTime<Utc>,
 }
 
 impl RoadmapItemInputs {
@@ -75,6 +77,7 @@ impl RoadmapItemInputs {
             title: self.title.clone(),
             parent: self.parent.clone(),
             hash,
+            date: self.date.clone(),
         })
     }
 }
@@ -86,4 +89,5 @@ pub struct RoadmapItem {
     pub title: String,
     pub parent: Box<Option<HashDigest>>,
     pub hash: HashDigest,
+    pub date: DateTime<Utc>,
 }
