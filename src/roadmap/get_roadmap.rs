@@ -1,6 +1,6 @@
 use super::{add_roadmap_item::RoadmapItem, note::base64_maybe_roadmap_note_to_roadmap_item};
 use crate::{
-    date_util::timestamp_seconds_to_date, flows::create_project::storage::load_project::ProjectId,
+    date_util::timestamp_seconds_to_date, flows::create_project::storage::load_project::{ProjectId, TxId},
 };
 use algonaut::{
     core::Address,
@@ -45,7 +45,7 @@ pub async fn get_roadmap(
                     base64_maybe_roadmap_note_to_roadmap_item(&note, project_id)?
                 {
                     let saved_roadmap_item =
-                        to_saved_roadmap_item(&roadmap_item, tx.id.clone(), round_time)?;
+                        to_saved_roadmap_item(&roadmap_item, &tx.id.parse()?, round_time)?;
                     roadmap_items.push(saved_roadmap_item);
                 }
             }
@@ -64,7 +64,7 @@ pub struct Roadmap {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SavedRoadmapItem {
-    pub tx_id: String,
+    pub tx_id: TxId,
     pub project_id: ProjectId,
     pub title: String,
     pub date: DateTime<Utc>,
@@ -75,11 +75,11 @@ pub struct SavedRoadmapItem {
 
 fn to_saved_roadmap_item(
     item: &RoadmapItem,
-    tx_id: String,
+    tx_id: &TxId,
     round_time: u64,
 ) -> Result<SavedRoadmapItem> {
     Ok(SavedRoadmapItem {
-        tx_id,
+        tx_id: tx_id.clone(),
         project_id: item.project_id.clone(),
         title: item.title.clone(),
         date: item.date.clone(),

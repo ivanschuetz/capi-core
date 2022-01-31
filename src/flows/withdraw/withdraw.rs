@@ -9,7 +9,7 @@ use algonaut::{
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::flows::withdraw::note::withdrawal_to_note;
+use crate::flows::{withdraw::note::withdrawal_to_note, create_project::storage::load_project::TxId};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -58,7 +58,7 @@ pub async fn withdraw(
     })
 }
 
-pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<String> {
+pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<TxId> {
     log::debug!("Submit withdrawal txs..");
 
     let txs = vec![
@@ -71,7 +71,7 @@ pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<S
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Withdrawal txs tx id: {}", res.tx_id);
 
-    Ok(res.tx_id)
+    Ok(res.tx_id.parse()?)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

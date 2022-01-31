@@ -12,7 +12,7 @@ use crate::{
     flows::{
         create_project::{
             create_project::Escrows,
-            storage::load_project::{load_project, ProjectId},
+            storage::load_project::{load_project, ProjectId, TxId},
         },
         withdraw::note::base64_withdrawal_note_to_withdrawal_description,
     },
@@ -23,12 +23,12 @@ pub async fn withdrawals(
     algod: &Algod,
     indexer: &Indexer,
     creator: &Address,
-    project_hash: &ProjectId,
+    project_id: &ProjectId,
     escrows: &Escrows,
 ) -> Result<Vec<Withdrawal>> {
     log::debug!("Querying withdrawals by: {:?}", creator);
 
-    let project = load_project(algod, indexer, project_hash, escrows).await?;
+    let project = load_project(algod, indexer, project_id, escrows).await?;
 
     let query = QueryAccountTransaction {
         // For now no prefix filtering
@@ -88,7 +88,7 @@ pub async fn withdrawals(
                     amount: payment.amount,
                     description: withdrawal_description,
                     date: timestamp_seconds_to_date(round_time)?,
-                    tx_id: tx.id.clone(),
+                    tx_id: tx.id.clone().parse()?,
                 })
             }
         }
@@ -102,5 +102,5 @@ pub struct Withdrawal {
     pub amount: MicroAlgos,
     pub description: String,
     pub date: DateTime<Utc>,
-    pub tx_id: String,
+    pub tx_id: TxId,
 }

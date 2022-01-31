@@ -6,7 +6,7 @@ use algonaut::{
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 
-use crate::date_util::timestamp_seconds_to_date;
+use crate::{date_util::timestamp_seconds_to_date, flows::create_project::storage::load_project::TxId};
 
 pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<Vec<Payment>> {
     log::debug!("Retrieving payment to: {:?}", address);
@@ -38,6 +38,7 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
                 .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
             payments.push(Payment {
+                tx_id: tx.id.parse()?,
                 amount: payment_tx.amount,
                 sender: tx.sender.parse().map_err(Error::msg)?,
                 date: timestamp_seconds_to_date(round_time)?,
@@ -54,6 +55,7 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
 
 #[derive(Debug, Clone)]
 pub struct Payment {
+    pub tx_id: TxId,
     pub amount: MicroAlgos,
     pub sender: Address,
     pub date: DateTime<Utc>,
