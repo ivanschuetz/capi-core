@@ -174,6 +174,7 @@ async fn storable_project_to_project(
             },
             asset_price: payload.asset_price,
             investors_share: payload.investors_share,
+            logo_url: payload.logo_url.clone(),
         },
         creator: payload.creator,
         shares_asset_id: payload.shares_asset_id,
@@ -211,6 +212,7 @@ pub struct ProjectNoteProjectPayload {
 
     pub asset_price: MicroAlgos,
     pub investors_share: u64,
+    pub logo_url: String,
     pub creator: Address,
     pub shares_asset_id: u64,
     pub central_app_id: u64,
@@ -231,6 +233,7 @@ impl From<Project> for ProjectNoteProjectPayload {
             asset_supply: p.specs.shares.count,
             asset_price: p.specs.asset_price,
             investors_share: p.specs.investors_share,
+            logo_url: p.specs.logo_url,
             creator: p.creator,
             shares_asset_id: p.shares_asset_id,
             central_app_id: p.central_app_id,

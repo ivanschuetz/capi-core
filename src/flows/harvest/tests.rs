@@ -244,6 +244,7 @@ mod tests {
             },
             asset_price: MicroAlgos(5_000_000),
             investors_share: 100,
+            logo_url: "https://placekitten.com/200/300".to_owned(),
         };
         // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
 

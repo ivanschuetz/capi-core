@@ -33,6 +33,7 @@ rust_decimal = "1.15"
 
 sha2 = "0.9.5"
 futures = "0.3.19"
+url = "2.2.2"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 log4rs = "1.0.0"
