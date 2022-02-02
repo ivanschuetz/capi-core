@@ -39,6 +39,7 @@ pub fn project_specs() -> CreateProjectSpecs {
         shares: shares_specs(),
         asset_price: MicroAlgos(5_000_000),
         investors_share: 40,
+        logo_url: "https://placekitten.com/200/300".to_string(),
     }
 }
 

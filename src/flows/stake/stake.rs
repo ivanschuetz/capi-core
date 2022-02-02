@@ -1,4 +1,4 @@
-use crate::flows::create_project::storage::load_project::TxId;
+use crate::flows::create_project::storage::load_project::{TxId, ProjectId};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -22,6 +22,7 @@ pub async fn stake(
     shares_asset_id: u64,
     central_app_id: u64,
     staking_escrow: &ContractAccount,
+    project_id: &ProjectId,
 ) -> Result<StakeToSign> {
     let params = algod.suggested_transaction_params().await?;
 
@@ -31,7 +32,9 @@ pub async fn stake(
             fee: FIXED_FEE,
             ..params.clone()
         },
-        CallApplication::new(investor, central_app_id).build(),
+        CallApplication::new(investor, central_app_id)
+            .app_arguments(vec![project_id.bytes().to_vec()])
+            .build(),
     )
     .build();
 

@@ -138,7 +138,14 @@ mod tests {
         // flow
 
         // investor2 stakes the acquired shares
-        stake_flow(&algod, &project.project, &investor2, traded_shares).await?;
+        stake_flow(
+            &algod,
+            &project.project,
+            &project.project_id,
+            &investor2,
+            traded_shares,
+        )
+        .await?;
 
         // tests
 

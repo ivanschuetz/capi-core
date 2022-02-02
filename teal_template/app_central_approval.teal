@@ -120,6 +120,14 @@ gtxn 1 AssetAmount // staked xfer (this will become "holdings", if the group pas
 callsub entitled_harvest_microalgos_for_shares
 app_local_put
 
+// save the project id in local state, so we can find projects were a user invested in (with the indexer)  
+// TODO rename in CapiProject or maybe something more cryptic - this key name is used to identify the state as belonging to capi / project id use case
+// - we don't have app id when querying this, only the sender account and this key
+gtxn 0 Sender
+byte "Project"
+gtxn 0 ApplicationArgs 0 // first/only arg of the application call (first in the group)
+app_local_put
+
 return
 
 branch_investor_setup:

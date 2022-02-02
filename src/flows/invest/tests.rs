@@ -243,7 +243,14 @@ mod tests {
         assert_eq!(invest_amount, investor_state.shares);
 
         // stake shares
-        stake_flow(&algod, &project.project, &investor, stake_amount).await?;
+        stake_flow(
+            &algod,
+            &project.project,
+            &project.project_id,
+            &investor,
+            stake_amount,
+        )
+        .await?;
 
         // tests
 
@@ -292,7 +299,14 @@ mod tests {
 
         // stake shares
         invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
-        stake_flow(&algod, &project.project, &investor, stake_amount).await?;
+        stake_flow(
+            &algod,
+            &project.project,
+            &project.project_id,
+            &investor,
+            stake_amount,
+        )
+        .await?;
 
         // double check: investor has staked shares
         let investor_state =
@@ -359,7 +373,14 @@ mod tests {
 
         // stake shares
         invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
-        stake_flow(&algod, &project.project, &investor, stake_amount1).await?;
+        stake_flow(
+            &algod,
+            &project.project,
+            &project.project_id,
+            &investor,
+            stake_amount1,
+        )
+        .await?;
 
         // double check: investor has staked shares
         let investor_state =
@@ -368,7 +389,14 @@ mod tests {
         assert_eq!(stake_amount1, investor_state.shares);
 
         // stake more shares
-        stake_flow(&algod, &project.project, &investor, stake_amount2).await?;
+        stake_flow(
+            &algod,
+            &project.project,
+            &project.project_id,
+            &investor,
+            stake_amount2,
+        )
+        .await?;
 
         // tests
 
@@ -492,7 +520,14 @@ mod tests {
 
         // flow
         invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
-        stake_flow(&algod, &project.project, &investor, buy_asset_amount).await?;
+        stake_flow(
+            &algod,
+            &project.project,
+            &project.project_id,
+            &investor,
+            buy_asset_amount,
+        )
+        .await?;
 
         // tests
 
