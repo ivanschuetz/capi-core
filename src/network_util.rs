@@ -1,3 +1,4 @@
+use crate::flows::create_project::storage::load_project::TxId;
 use algonaut::{algod::v2::Algod, error::AlgonautError, model::algod::v2::PendingTransaction};
 use instant::Instant;
 use std::time::Duration;
@@ -5,13 +6,15 @@ use std::time::Duration;
 /// Utility function to wait on a transaction to be confirmed
 pub async fn wait_for_pending_transaction(
     algod: &Algod,
-    tx_id: &str,
+    tx_id: &TxId,
 ) -> Result<Option<PendingTransaction>, AlgonautError> {
     let timeout = Duration::from_secs(60);
     let start = Instant::now();
     log::debug!("Start waiting for pending tx confirmation..");
     loop {
-        let pending_transaction = algod.pending_transaction_with_id(tx_id).await?;
+        let pending_transaction = algod
+            .pending_transaction_with_id(&tx_id.to_string())
+            .await?;
         // If the transaction has been confirmed or we time out, exit.
         if pending_transaction.confirmed_round.is_some() {
             return Ok(Some(pending_transaction));

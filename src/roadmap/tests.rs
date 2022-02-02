@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use chrono::Utc;
     use serial_test::serial;
     use tokio::test;
 
@@ -44,6 +45,7 @@ mod tests {
             project_id: project.project_id.clone(),
             title: "MVP Release".to_owned(),
             parent: Box::new(None),
+            date: Utc::now(),
         };
 
         let to_sign = add_roadmap_item(&algod, &creator.address(), &inputs).await?;
@@ -82,6 +84,7 @@ mod tests {
             project_id: saved_item.project_id.clone(),
             title: saved_item.title.clone(),
             parent: saved_item.parent.clone(),
+            date: saved_item.date.clone(),
         }
     }
 }

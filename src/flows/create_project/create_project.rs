@@ -195,7 +195,7 @@ async fn broadcast_txs_and_retrieve_app_id(
     // crate::teal::debug_teal_rendered(&txs, "staking_escrow").unwrap();
 
     let create_app_res = algod.broadcast_signed_transactions(txs).await?;
-    let p_tx = wait_for_pending_transaction(algod, &create_app_res.tx_id)
+    let p_tx = wait_for_pending_transaction(algod, &create_app_res.tx_id.parse()?)
         .await?
         .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
     let central_app_id = p_tx

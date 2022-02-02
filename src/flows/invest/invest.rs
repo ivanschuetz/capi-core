@@ -141,7 +141,7 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     Ok(InvestResult {
-        tx_id: res.tx_id,
+        tx_id: res.tx_id.parse()?,
         project: signed.project.clone(),
         central_app_investor_setup_tx: signed.central_app_setup_tx.clone(),
         payment_tx: signed.payment_tx.clone(),

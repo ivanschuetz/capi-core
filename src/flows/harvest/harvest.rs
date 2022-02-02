@@ -1,4 +1,4 @@
-use crate::decimal_util::AsDecimal;
+use crate::{decimal_util::AsDecimal, flows::create_project::storage::load_project::TxId};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -77,7 +77,7 @@ pub fn harvest_app_call_tx(
     Ok(tx)
 }
 
-pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<String> {
+pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxId> {
     log::debug!("Submit harvest..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
@@ -90,7 +90,7 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<Str
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Harvest tx id: {:?}", res.tx_id);
-    Ok(res.tx_id)
+    Ok(res.tx_id.parse()?)
 }
 
 pub fn calculate_entitled_harvest(

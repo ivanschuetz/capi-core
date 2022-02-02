@@ -28,7 +28,7 @@ pub async fn submit_create_assets(
 ) -> Result<CreateAssetsResult> {
     let create_shares_tx_res = algod.broadcast_signed_transaction(create_shares).await?;
 
-    let shares_asset_id = wait_for_pending_transaction(algod, &create_shares_tx_res.tx_id)
+    let shares_asset_id = wait_for_pending_transaction(algod, &create_shares_tx_res.tx_id.parse()?)
         .await?
         .ok_or_else(|| anyhow!("No pending tx to retrieve shares asset id"))?
         .asset_index

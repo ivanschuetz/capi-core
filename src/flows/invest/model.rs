@@ -1,4 +1,4 @@
-use crate::flows::create_project::model::Project;
+use crate::flows::create_project::{model::Project, storage::load_project::TxId};
 use algonaut::transaction::{SignedTransaction, Transaction};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,7 +25,7 @@ pub struct InvestSigned {
 pub struct InvestResult {
     // TODO id of what tx? do we need this?
     // more generally for what do we need all these fields, if it's only for testing it should be somewhere else
-    pub tx_id: String,
+    pub tx_id: TxId,
     pub project: Project,
     pub central_app_investor_setup_tx: SignedTransaction,
     pub payment_tx: SignedTransaction,

@@ -1,6 +1,8 @@
 #[cfg(test)]
 use crate::flows::create_project::model::Project;
 #[cfg(test)]
+use crate::flows::create_project::storage::load_project::TxId;
+#[cfg(test)]
 use crate::flows::unstake::unstake::unstake;
 #[cfg(test)]
 use crate::flows::unstake::unstake::{submit_unstake, UnstakeSigned};
@@ -15,7 +17,7 @@ pub async fn unstake_flow(
     project: &Project,
     investor: &Account,
     shares_to_unstake: u64,
-) -> Result<String> {
+) -> Result<TxId> {
     let to_sign = unstake(
         &algod,
         investor.address(),

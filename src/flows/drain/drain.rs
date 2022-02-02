@@ -1,3 +1,4 @@
+use crate::flows::create_project::storage::load_project::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -85,7 +86,7 @@ pub fn drain_app_call_tx(
 pub async fn submit_drain_customer_escrow(
     algod: &Algod,
     signed: &DrainCustomerEscrowSigned,
-) -> Result<String> {
+) -> Result<TxId> {
     // crate::teal::debug_teal_rendered(
     //     &[
     //         signed.app_call_tx_signed.clone(),
@@ -113,7 +114,7 @@ pub async fn submit_drain_customer_escrow(
         ])
         .await?;
     log::debug!("Drain customer escrow tx id: {:?}", res.tx_id);
-    Ok(res.tx_id)
+    Ok(res.tx_id.parse()?)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

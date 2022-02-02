@@ -108,7 +108,7 @@ pub async fn create_asset_and_sign(algod: &Algod, sender: &Account) -> Result<u6
     let create_asset_res = algod
         .broadcast_signed_transaction(&create_asset_signed_tx)
         .await?;
-    let p_tx = wait_for_pending_transaction(&algod, &create_asset_res.tx_id)
+    let p_tx = wait_for_pending_transaction(&algod, &create_asset_res.tx_id.parse()?)
         .await?
         .unwrap();
     let asset_id = p_tx.asset_index.unwrap();
@@ -130,7 +130,7 @@ pub async fn transfer_asset_and_sign(
     let transfer_res = algod
         .broadcast_signed_transaction(&transfer_signed_tx)
         .await?;
-    wait_for_pending_transaction(&algod, &transfer_res.tx_id).await?;
+    wait_for_pending_transaction(&algod, &transfer_res.tx_id.parse()?).await?;
     Ok(())
 }
 
@@ -155,7 +155,7 @@ async fn create_app_has_to_be_first_in_group_to_retrieve_app_id() -> Result<()> 
         .broadcast_signed_transactions(&[create_app_signed_tx, pay_signed_tx])
         .await
         .unwrap();
-    let p_tx = wait_for_pending_transaction(&algod, &create_app_res.tx_id)
+    let p_tx = wait_for_pending_transaction(&algod, &create_app_res.tx_id.parse()?)
         .await
         .unwrap()
         .unwrap();

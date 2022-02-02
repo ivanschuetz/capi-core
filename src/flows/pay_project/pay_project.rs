@@ -1,3 +1,4 @@
+use crate::flows::create_project::storage::load_project::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
@@ -26,10 +27,10 @@ pub async fn pay_project(
     Ok(PayProjectToSign { tx })
 }
 
-pub async fn submit_pay_project(algod: &Algod, signed: PayProjectSigned) -> Result<String> {
+pub async fn submit_pay_project(algod: &Algod, signed: PayProjectSigned) -> Result<TxId> {
     let res = algod.broadcast_signed_transaction(&signed.tx).await?;
     log::debug!("Pay project tx id: {:?}", res.tx_id);
-    Ok(res.tx_id)
+    Ok(res.tx_id.parse()?)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

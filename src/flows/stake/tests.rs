@@ -101,7 +101,7 @@ mod tests {
         let res = algod
             .broadcast_signed_transaction(&signed_shares_optin_tx)
             .await?;
-        let _ = wait_for_pending_transaction(&algod, &res.tx_id);
+        let _ = wait_for_pending_transaction(&algod, &res.tx_id.parse()?);
 
         // investor1 sends shares to investor2 (e.g. as part of atomic swap in a dex)
         let trade_tx = &mut TxnBuilder::with(
@@ -117,7 +117,7 @@ mod tests {
         .build();
         let signed_trade_tx = investor1.sign_transaction(trade_tx)?;
         let res = algod.broadcast_signed_transaction(&signed_trade_tx).await?;
-        let _ = wait_for_pending_transaction(&algod, &res.tx_id);
+        let _ = wait_for_pending_transaction(&algod, &res.tx_id.parse()?);
 
         // investor2 opts in to our app. this will be on our website.
         // TODO confirm: can't we opt in in the same group (accessing local state during opt in fails)?,

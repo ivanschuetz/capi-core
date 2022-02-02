@@ -1,6 +1,7 @@
 #[cfg(test)]
 use crate::{
     flows::create_project::model::Project,
+    flows::create_project::storage::load_project::TxId,
     flows::drain::drain::{
         drain_customer_escrow, submit_drain_customer_escrow, DrainCustomerEscrowSigned,
     },
@@ -117,7 +118,7 @@ async fn send_payment_to_customer_escrow(
     customer: &Account,
     customer_escrow: &Address,
     amount: MicroAlgos,
-) -> Result<String> {
+) -> Result<TxId> {
     let tx = pay_project(algod, &customer.address(), customer_escrow, amount)
         .await?
         .tx;

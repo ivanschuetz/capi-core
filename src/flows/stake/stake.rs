@@ -1,3 +1,4 @@
+use crate::flows::create_project::storage::load_project::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -59,7 +60,7 @@ pub async fn stake(
     })
 }
 
-pub async fn submit_stake(algod: &Algod, signed: StakeSigned) -> Result<String> {
+pub async fn submit_stake(algod: &Algod, signed: StakeSigned) -> Result<TxId> {
     let txs = vec![
         signed.central_app_call_setup_tx.clone(),
         signed.shares_xfer_tx_signed.clone(),
@@ -67,7 +68,7 @@ pub async fn submit_stake(algod: &Algod, signed: StakeSigned) -> Result<String> 
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Stake tx id: {:?}", res.tx_id);
-    Ok(res.tx_id)
+    Ok(res.tx_id.parse()?)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

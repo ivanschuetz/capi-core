@@ -1,4 +1,7 @@
-use crate::flows::{create_project::model::Project, shared::app::optin_to_app};
+use crate::flows::{
+    create_project::{model::Project, storage::load_project::TxId},
+    shared::app::optin_to_app,
+};
 use algonaut::{
     algod::v2::Algod,
     core::Address,
@@ -23,9 +26,9 @@ pub async fn invest_or_staking_app_optins_txs(
 pub async fn submit_invest_or_staking_app_optins(
     algod: &Algod,
     signed: Vec<SignedTransaction>,
-) -> Result<String> {
+) -> Result<TxId> {
     // crate::teal::debug_teal_rendered(&signed, "app_central_approval").unwrap();
     let res = algod.broadcast_signed_transactions(&signed).await?;
     log::debug!("Investor app optins tx id: {}", res.tx_id);
-    Ok(res.tx_id)
+    Ok(res.tx_id.parse()?)
 }

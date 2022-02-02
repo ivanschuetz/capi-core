@@ -1,3 +1,4 @@
+use crate::flows::create_project::storage::load_project::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -78,7 +79,7 @@ pub async fn unstake(
     })
 }
 
-pub async fn submit_unstake(algod: &Algod, signed: UnstakeSigned) -> Result<String> {
+pub async fn submit_unstake(algod: &Algod, signed: UnstakeSigned) -> Result<TxId> {
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
     let txs = vec![
@@ -92,7 +93,7 @@ pub async fn submit_unstake(algod: &Algod, signed: UnstakeSigned) -> Result<Stri
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Unstake tx id: {:?}", res.tx_id);
-    Ok(res.tx_id)
+    Ok(res.tx_id.parse()?)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
