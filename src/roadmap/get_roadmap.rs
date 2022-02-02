@@ -1,6 +1,7 @@
 use super::{add_roadmap_item::RoadmapItem, note::base64_maybe_roadmap_note_to_roadmap_item};
 use crate::{
-    date_util::timestamp_seconds_to_date, flows::create_project::storage::load_project::{ProjectId, TxId},
+    date_util::timestamp_seconds_to_date,
+    flows::create_project::storage::load_project::{ProjectId, TxId},
 };
 use algonaut::{
     core::Address,
@@ -82,7 +83,7 @@ fn to_saved_roadmap_item(
         tx_id: tx_id.clone(),
         project_id: item.project_id.clone(),
         title: item.title.clone(),
-        date: item.date.clone(),
+        date: item.date,
         saved_date: timestamp_seconds_to_date(round_time)?,
         parent: item.parent.clone(),
         hash: item.hash,

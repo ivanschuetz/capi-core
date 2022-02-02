@@ -149,7 +149,7 @@ pub async fn my_created_projects(
         if tx.payment_transaction.is_some() {
             if let Some(note) = &tx.note {
                 if !note.is_empty() {
-                    match base64_note_to_project(algod, escrows, &note).await {
+                    match base64_note_to_project(algod, escrows, note).await {
                         Ok(project) => {
                             // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
                             // Unclear when it's None. For now we just reject it.

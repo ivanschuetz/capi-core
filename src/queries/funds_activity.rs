@@ -1,18 +1,17 @@
+use crate::flows::{
+    create_project::{
+        create_project::Escrows,
+        storage::load_project::{ProjectId, TxId},
+    },
+    withdraw::withdrawals::withdrawals,
+};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     indexer::v2::Indexer,
 };
-use anyhow::{Result};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
-use crate::{
-    flows::{create_project::{
-        create_project::Escrows,
-        storage::{
-            load_project::{ ProjectId, TxId},
-        },
-    }, withdraw::withdrawals::withdrawals},
-};
 
 use super::received_payments::received_payments;
 
@@ -27,7 +26,8 @@ pub struct FundsActivityEntry {
 
 #[derive(Debug, Clone)]
 pub enum FundsActivityEntryType {
-    Income, Spending
+    Income,
+    Spending,
 }
 
 pub async fn funds_activity(
@@ -38,7 +38,6 @@ pub async fn funds_activity(
     customer_escrow_address: &Address,
     escrows: &Escrows,
 ) -> Result<Vec<FundsActivityEntry>> {
-
     let withdrawals = withdrawals(algod, indexer, creator, project_id, escrows).await?;
     let payments = received_payments(indexer, customer_escrow_address).await?;
 
@@ -58,7 +57,9 @@ pub async fn funds_activity(
         funds_activity.push(FundsActivityEntry {
             date: payment.date,
             type_: FundsActivityEntryType::Income,
-            description: payment.note.unwrap_or("No description provided".to_owned()),
+            description: payment
+                .note
+                .unwrap_or_else(|| "No description provided".to_owned()),
             amount: payment.amount,
             tx_id: payment.tx_id.clone(),
         })

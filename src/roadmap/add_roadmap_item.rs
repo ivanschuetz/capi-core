@@ -77,7 +77,7 @@ impl RoadmapItemInputs {
             title: self.title.clone(),
             parent: self.parent.clone(),
             hash,
-            date: self.date.clone(),
+            date: self.date,
         })
     }
 }

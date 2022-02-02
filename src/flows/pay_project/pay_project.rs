@@ -19,7 +19,7 @@ pub async fn pay_project(
     let params = algod.suggested_transaction_params().await?;
 
     let tx = TxnBuilder::with(
-        params.clone(),
+        params,
         Pay::new(*customer, *customer_escrow, amount).build(),
     )
     .build();

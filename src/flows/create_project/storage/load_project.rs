@@ -91,7 +91,7 @@ impl TryFrom<&[u8]> for ProjectId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, Serialize, Deserialize)]
 pub struct TxId(pub HashDigest);
 impl FromStr for TxId {
     type Err = anyhow::Error;
@@ -108,6 +108,14 @@ impl Hash for TxId {
         // HashDigest doesn't implement Hash - and we can't add it because it's in Algonaut,
         // and seems overkill to add this to Algonaut, so we call it on the wrapped bytes
         self.0 .0.hash(state);
+    }
+}
+
+// Implemented to be consistent with the manual Hash implementation (also: Clippy complains otherwise)
+// with the macro implementation it would compare the wrapped HashDigest instead of the bytes in HashDigest - it leads to the same result but not strictly consistent.
+impl PartialEq for TxId {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 .0 == other.0 .0
     }
 }
 
