@@ -91,11 +91,3 @@ pub async fn funds_activity(
 
     Ok(funds_activity)
 }
-
-#[derive(Debug, Clone)]
-pub struct Payment {
-    pub amount: MicroAlgos,
-    pub sender: Address,
-    pub date: DateTime<Utc>,
-    pub note: Option<String>,
-}
