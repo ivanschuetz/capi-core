@@ -18,7 +18,7 @@ pub async fn local_state(
     algod: &Algod,
     address: &Address,
     app_id: u64,
-) -> Result<ApplicationLocalState, ApplicationLocalStateError> {
+) -> Result<ApplicationLocalState, ApplicationLocalStateError<'static>> {
     let investor_account_infos = algod.account_information(address).await?;
     local_state_from_account(&investor_account_infos, app_id)
 }
@@ -26,7 +26,7 @@ pub async fn local_state(
 pub fn local_state_from_account(
     account: &Account,
     app_id: u64,
-) -> Result<ApplicationLocalState, ApplicationLocalStateError> {
+) -> Result<ApplicationLocalState, ApplicationLocalStateError<'static>> {
     account
         .apps_local_state
         .iter()
@@ -43,12 +43,13 @@ pub fn local_state_with_key(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ApplicationLocalStateError {
+pub enum ApplicationLocalStateError<'a> {
     NotOptedIn,
+    LocalStateNotFound(AppStateKey<'a>),
     Msg(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppStateKey<'a>(pub &'a str);
 
 /// Just a wrapper equivalent to ApplicationLocalState (provided by the SDK), to offer a similar interface
@@ -105,20 +106,20 @@ impl TealKeyValueExt for TealKeyValue {
     }
 }
 
-impl Display for ApplicationLocalStateError {
+impl Display for ApplicationLocalStateError<'static> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
-impl From<AlgonautError> for ApplicationLocalStateError {
+impl From<AlgonautError> for ApplicationLocalStateError<'static> {
     fn from(err: AlgonautError) -> Self {
         ApplicationLocalStateError::Msg(err.to_string())
     }
 }
 
-impl From<ApplicationLocalStateError> for anyhow::Error {
-    fn from(err: ApplicationLocalStateError) -> Self {
+impl From<ApplicationLocalStateError<'static>> for anyhow::Error {
+    fn from(err: ApplicationLocalStateError<'static>) -> Self {
         anyhow!("{}", err)
     }
 }

@@ -552,6 +552,7 @@ mod tests {
 
     #[test]
     #[serial] // reset network (cmd)
+    #[ignore] // indexer pause
     async fn test_query_my_investment() -> Result<()> {
         test_init()?;
 
@@ -584,6 +585,9 @@ mod tests {
         .await?;
 
         // check that the invested projects query returns the project where the user invested
+
+        // // give time for indexing
+        std::thread::sleep(std::time::Duration::from_secs(10));
 
         let my_invested_projects = my_current_invested_projects(
             &algod,

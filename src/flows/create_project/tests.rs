@@ -2,6 +2,7 @@
 mod tests {
     use crate::{
         dependencies,
+        state::{app_state::ApplicationLocalStateError, central_app_state::central_investor_state},
         testing::{
             flow::create_project_flow::create_project_flow, test_data::project_specs,
             TESTS_DEFAULT_PRECISION,
@@ -81,6 +82,15 @@ mod tests {
             project.project.shares_asset_id
         );
         assert_eq!(staking_escrow_held_assets[0].amount, 0); // nothing staked yet
+
+        // sanity check: the creator doesn't opt in to the app (doesn't invest or stake)
+        let central_state_res =
+            central_investor_state(&algod, &creator.address(), project.project.central_app_id)
+                .await;
+        assert_eq!(
+            Err(ApplicationLocalStateError::NotOptedIn),
+            central_state_res
+        );
 
         Ok(())
     }

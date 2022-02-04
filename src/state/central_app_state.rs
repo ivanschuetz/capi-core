@@ -11,7 +11,7 @@ use algonaut::{
     core::{Address, MicroAlgos},
     model::algod::v2::{Account, ApplicationLocalState},
 };
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 
 const GLOBAL_TOTAL_RECEIVED: AppStateKey = AppStateKey("CentralReceivedTotal");
 
@@ -31,6 +31,7 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
     })
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CentralAppInvestorState {
     pub shares: u64,
     pub harvested: MicroAlgos,
@@ -41,43 +42,57 @@ pub async fn central_investor_state(
     algod: &Algod,
     investor: &Address,
     app_id: u64,
-) -> Result<CentralAppInvestorState, ApplicationLocalStateError> {
+) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
     let local_state = local_state(algod, investor, app_id).await?;
     central_investor_state_from_local_state(&local_state)
-        .map_err(|e| ApplicationLocalStateError::Msg(e.to_string()))
 }
 
 pub fn central_investor_state_from_acc(
     account: &Account,
     app_id: u64,
-) -> Result<CentralAppInvestorState, ApplicationLocalStateError> {
+) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
     let local_state = local_state_from_account(account, app_id)?;
     central_investor_state_from_local_state(&local_state)
         .map_err(|e| ApplicationLocalStateError::Msg(e.to_string()))
 }
 
 /// Private: assumes that local state belongs to the central app (thus returns defaults values if local state isn't set)
-/// It also expects (as the name implies) the user to be currently invested - returns error otherwise.
+/// Expects the user to be invested  (as the name indicates) - returns error otherwise.
 fn central_investor_state_from_local_state(
     state: &ApplicationLocalState,
-) -> Result<CentralAppInvestorState> {
-    // TODO why do these 2 fallback to 0 again? they're initialized to 0 when investing in TEAL, is it because the backend doesn't return 0s?
-    // TODO related with above, we're not differentiating between (local state doesn't exist (not opted in)) and 0 value here - problematic?
-    let shares = state.find_uint(&LOCAL_SHARES).unwrap_or(0);
-    let harvested = MicroAlgos(state.find_uint(&LOCAL_HARVESTED_TOTAL).unwrap_or(0));
+) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
+    let shares = get_uint_value_or_error(state, &LOCAL_SHARES)?;
+    let harvested = MicroAlgos(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
+    let project_id_bytes = get_bytes_value_or_error(state, &LOCAL_PROJECT)?;
 
-    // Assumes that user has already invested (exits with error if project id not set, which is done during investing)
-    let project_id_bytes = state
-        .find_bytes(&LOCAL_PROJECT)
-        .ok_or_else(|| anyhow!("Project id not found in central local state."))?;
-
-    let project_id: ProjectId = project_id_bytes.as_slice().try_into()?;
+    let project_id: ProjectId = project_id_bytes
+        .as_slice()
+        .try_into()
+        .map_err(|e: anyhow::Error| ApplicationLocalStateError::Msg(e.to_string()))?;
 
     Ok(CentralAppInvestorState {
         shares,
         harvested,
         project_id,
     })
+}
+
+fn get_uint_value_or_error(
+    state: &ApplicationLocalState,
+    key: &AppStateKey<'static>,
+) -> Result<u64, ApplicationLocalStateError<'static>> {
+    state
+        .find_uint(&key)
+        .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
+}
+
+fn get_bytes_value_or_error(
+    state: &ApplicationLocalState,
+    key: &AppStateKey<'static>,
+) -> Result<Vec<u8>, ApplicationLocalStateError<'static>> {
+    state
+        .find_bytes(&key)
+        .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
 }
 
 /// Gets project ids for all the capi apps where the user is opted in
