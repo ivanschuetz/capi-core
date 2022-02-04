@@ -13,7 +13,7 @@ use algonaut::{
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
-use super::received_payments::received_payments;
+use super::received_payments::{received_payments, Payment};
 
 #[derive(Debug, Clone)]
 pub struct FundsActivityEntry {
@@ -36,10 +36,19 @@ pub async fn funds_activity(
     creator: &Address,
     project_id: &ProjectId,
     customer_escrow_address: &Address,
+    central_escrow_address: &Address,
     escrows: &Escrows,
 ) -> Result<Vec<FundsActivityEntry>> {
     let withdrawals = withdrawals(algod, indexer, creator, project_id, escrows).await?;
-    let payments = received_payments(indexer, customer_escrow_address).await?;
+    // payments to the customer escrow
+    let customer_escrow_payments = received_payments(indexer, customer_escrow_address).await?;
+    // payments to the central escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)
+    let central_escrow_payments = received_payments(indexer, central_escrow_address).await?;
+    // filter out draining (payments from customer escrow to central escrow), which would duplicate payments to the customer escrow
+    let filtered_central_escrow_payments: Vec<Payment> = central_escrow_payments
+        .into_iter()
+        .filter(|p| &p.sender != customer_escrow_address)
+        .collect();
 
     let mut funds_activity = vec![];
 
@@ -53,7 +62,19 @@ pub async fn funds_activity(
         })
     }
 
-    for payment in payments {
+    for payment in customer_escrow_payments {
+        funds_activity.push(FundsActivityEntry {
+            date: payment.date,
+            type_: FundsActivityEntryType::Income,
+            description: payment
+                .note
+                .unwrap_or_else(|| "No description provided".to_owned()),
+            amount: payment.amount,
+            tx_id: payment.tx_id.clone(),
+        })
+    }
+
+    for payment in filtered_central_escrow_payments {
         funds_activity.push(FundsActivityEntry {
             date: payment.date,
             type_: FundsActivityEntryType::Income,
