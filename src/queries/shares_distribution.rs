@@ -1,20 +1,35 @@
 use algonaut::{
+    algod::v2::Algod,
     core::Address,
     indexer::v2::Indexer,
-    model::indexer::v2::{AssetHolding, QueryAccount},
+    model::indexer::v2::{Account, AssetHolding, QueryAccount},
 };
 use anyhow::{anyhow, Result};
 use rust_decimal::Decimal;
+
+use crate::state::central_app_state::central_investor_state;
 
 /// Returns holders of the asset with their respective amounts and percentages.
 /// See [shares_holders_holdings] doc for more details.
 /// This function just "decorates" [shares_holders_holdings] with the percentage calculation.
 pub async fn shares_holders_distribution(
+    algod: &Algod,
     indexer: &Indexer,
     asset_id: u64,
+    app_id: u64,
     asset_supply: u64,
+    investing_escrow: &Address,
+    staking_escrow: &Address,
 ) -> Result<Vec<ShareHoldingPercentage>> {
-    let holdings = shares_holders_holdings(indexer, asset_id).await?;
+    let holdings = share_sholders(
+        algod,
+        indexer,
+        asset_id,
+        app_id,
+        investing_escrow,
+        staking_escrow,
+    )
+    .await?;
     let asset_supply_decimal: Decimal = asset_supply.into();
 
     if asset_supply_decimal.is_zero() {
@@ -45,15 +60,63 @@ pub async fn shares_holders_distribution(
     Ok(holding_percentages)
 }
 
-/// See [shares_holders_holdings] doc
-pub async fn holders_count(indexer: &Indexer, asset_id: u64) -> Result<usize> {
-    let holders_holdings = shares_holders_holdings(indexer, asset_id).await?;
-    Ok(holders_holdings.len())
+/// Addresses holding shares (either the asset directly or local state (staked)). Excluding the investing and staking escrow.
+async fn share_sholders(
+    algod: &Algod,
+    indexer: &Indexer,
+    asset_id: u64,
+    app_id: u64,
+    investing_escrow: &Address,
+    staking_escrow: &Address,
+) -> Result<Vec<ShareHolding>> {
+    let mut holdings =
+        non_stakers_holdings(indexer, asset_id, investing_escrow, staking_escrow).await?;
+    let stakers = stakers_holdings(algod, indexer, app_id).await?;
+    holdings.extend(stakers);
+    Ok(holdings)
+}
+
+// TODO paginate? but clarify first whether we'll actually use this, it's quite expensive either way
+// we've to fetch the local state for each account to get the share count
+async fn stakers(indexer: &Indexer, app_id: u64) -> Result<Vec<Account>> {
+    // get all the accounts opted in to the app (stakers/investors)
+    let accounts = indexer
+        .accounts(&QueryAccount {
+            application_id: Some(app_id),
+            ..QueryAccount::default()
+        })
+        .await?;
+
+    Ok(accounts.accounts)
+}
+
+async fn stakers_holdings(
+    algod: &Algod,
+    indexer: &Indexer,
+    app_id: u64,
+) -> Result<Vec<ShareHolding>> {
+    let stakers = stakers(indexer, app_id).await?;
+    let mut holdings = vec![];
+    for staker in stakers {
+        // TODO (low prio) small optimization: read only the shares amount
+        // TODO consider using join to parallelize these requests
+        let state = central_investor_state(algod, &staker.address, app_id).await?;
+        holdings.push(ShareHolding {
+            address: staker.address,
+            amount: state.shares,
+        })
+    }
+    Ok(holdings)
 }
 
 /// Returns a list all (unique) addresses that hold the asset, with their respective amounts.
 /// Note: amount > 0, i.e. excludes addresses that are opted in but don't hold the asset.
-async fn shares_holders_holdings(indexer: &Indexer, asset_id: u64) -> Result<Vec<ShareHolding>> {
+async fn non_stakers_holdings(
+    indexer: &Indexer,
+    asset_id: u64,
+    investing_escrow: &Address,
+    staking_escrow: &Address,
+) -> Result<Vec<ShareHolding>> {
     let accounts = indexer
         .accounts(&QueryAccount {
             asset_id: Some(asset_id),
@@ -71,8 +134,12 @@ async fn shares_holders_holdings(indexer: &Indexer, asset_id: u64) -> Result<Vec
         })?;
 
         let asset_amount = find_amount(asset_id, asset_holding)?;
-        // if accounts have no assets but are opted in, we get 0 count - filter those out
-        if asset_amount > 0 {
+
+        if asset_amount > 0 // if accounts have no assets but are opted in, we get 0 count - filter those out
+            // the investing or staking escrow shouldn't show up on the holders list
+            && &holder.address != investing_escrow
+            && &holder.address != staking_escrow
+        {
             holdings.push(ShareHolding {
                 amount: find_amount(asset_id, asset_holding)?,
                 address: holder.address,
@@ -80,6 +147,18 @@ async fn shares_holders_holdings(indexer: &Indexer, asset_id: u64) -> Result<Vec
         }
     }
     Ok(holdings)
+}
+
+/// See [shares_holders_holdings] doc
+pub async fn holders_count(
+    indexer: &Indexer,
+    asset_id: u64,
+    investing_escrow: &Address,
+    staking_escrow: &Address,
+) -> Result<usize> {
+    let holders_holdings =
+        non_stakers_holdings(indexer, asset_id, investing_escrow, staking_escrow).await?;
+    Ok(holders_holdings.len())
 }
 
 /// Helper to get asset holding amount for asset id
