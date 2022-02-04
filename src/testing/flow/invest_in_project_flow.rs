@@ -55,11 +55,11 @@ pub async fn invests_flow(
     let investor_infos = algod.account_information(&investor.address()).await?;
     let investor_initial_amount = investor_infos.amount;
 
-    // remember initial escrow's funds
-    let escrow_infos = algod
-        .account_information(project.invest_escrow.address())
+    // remember initial central escrow's funds
+    let central_escrow_infos = algod
+        .account_information(project.central_escrow.address())
         .await?;
-    let escrow_initial_amount = escrow_infos.amount;
+    let central_escrow_initial_amount = central_escrow_infos.amount;
 
     let to_sign = invest_txs(
         &algod,
@@ -101,7 +101,7 @@ pub async fn invests_flow(
 
     Ok(InvestInProjectTestFlowRes {
         investor_initial_amount,
-        escrow_initial_amount,
+        central_escrow_initial_amount,
         invest_res,
         project: project.to_owned(),
     })
@@ -112,7 +112,7 @@ pub async fn invests_flow(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InvestInProjectTestFlowRes {
     pub investor_initial_amount: MicroAlgos,
-    pub escrow_initial_amount: MicroAlgos,
+    pub central_escrow_initial_amount: MicroAlgos,
     pub invest_res: InvestResult,
     pub project: Project,
 }

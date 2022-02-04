@@ -7,7 +7,7 @@ use anyhow::Result;
 
 use crate::{flows::create_project::model::Project, hashable::Hashable};
 
-use super::note::project_to_note;
+use super::{load_project::TxId, note::project_to_note};
 
 pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
@@ -39,10 +39,10 @@ pub async fn save_project(
 
 impl Hashable for Project {}
 
-pub async fn submit_save_project(algod: &Algod, signed: SaveProjectSigned) -> Result<String> {
+pub async fn submit_save_project(algod: &Algod, signed: SaveProjectSigned) -> Result<TxId> {
     let res = algod.broadcast_signed_transaction(&signed.tx).await?;
     log::debug!("Save project tx id: {:?}", res.tx_id);
-    Ok(res.tx_id)
+    Ok(res.tx_id.parse()?)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -41,13 +41,11 @@ pub async fn invest_txs(
         project_id,
     )?;
 
-    // TODO why is this sending the algos to the invest escrow instead of to the central? why not caught by tests yet?
-    // should be most likely the central as that's where we withdraw funds from
     let mut send_algos_tx = TxnBuilder::with(
         params.clone(),
         Pay::new(
             *investor,
-            *project.invest_escrow.address(),
+            *project.central_escrow.address(),
             asset_price * asset_count,
         )
         .build(),

@@ -13,12 +13,13 @@ use crate::flows::create_project::{
 #[cfg(test)]
 use crate::{
     flows::create_project::create_project::{Escrows, Programs},
+    network_util::wait_for_pending_transaction,
     teal::{load_teal, load_teal_template},
 };
 #[cfg(test)]
 use algonaut::{algod::v2::Algod, transaction::account::Account};
 #[cfg(test)]
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
 #[cfg(test)]
 #[derive(Debug, Clone)]
@@ -99,7 +100,11 @@ pub async fn create_project_flow(
     )
     .await?;
 
-    let project_id = submit_save_project_tx_id.parse()?;
+    let project_id = ProjectId(submit_save_project_tx_id.clone());
+
+    let _ = wait_for_pending_transaction(&algod, &submit_save_project_tx_id)
+        .await?
+        .ok_or(anyhow!("Couldn't get pending tx"))?;
 
     Ok(CreateProjectFlowRes {
         project: create_res.project,

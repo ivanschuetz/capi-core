@@ -112,7 +112,7 @@ mod tests {
         let invest_escrow = flow_res.project.invest_escrow;
         let invest_escrow_infos = algod.account_information(invest_escrow.address()).await?;
         let invest_escrow_held_assets = invest_escrow_infos.assets;
-        // escrow lost the bought assets
+        // investing escrow lost the bought assets
         assert_eq!(invest_escrow_held_assets.len(), 1);
         assert_eq!(
             invest_escrow_held_assets[0].asset_id,
@@ -122,11 +122,16 @@ mod tests {
             invest_escrow_held_assets[0].amount,
             flow_res.project.specs.shares.count - buy_asset_amount
         );
-        // escrow received the payed algos
-        // Note that escrow doesn't lose algos: the investor sends a payment to cover the escrow's fees.
+
+        // central escrow tests
+
+        // central escrow received paid algos
+        let central_escrow_infos = algod
+            .account_information(project.project.central_escrow.address())
+            .await?;
         assert_eq!(
-            flow_res.escrow_initial_amount + paid_amount,
-            invest_escrow_infos.amount
+            flow_res.central_escrow_initial_amount + paid_amount,
+            central_escrow_infos.amount
         );
 
         Ok(())
