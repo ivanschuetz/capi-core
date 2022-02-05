@@ -70,7 +70,7 @@ async fn share_sholders(
     staking_escrow: &Address,
 ) -> Result<Vec<ShareHolding>> {
     let mut holdings =
-        non_stakers_holdings(indexer, asset_id, investing_escrow, staking_escrow).await?;
+        free_assets_holdings(indexer, asset_id, investing_escrow, staking_escrow).await?;
     let stakers = stakers_holdings(algod, indexer, app_id).await?;
     holdings.extend(stakers);
     Ok(holdings)
@@ -111,7 +111,7 @@ async fn stakers_holdings(
 
 /// Returns a list all (unique) addresses that hold the asset, with their respective amounts.
 /// Note: amount > 0, i.e. excludes addresses that are opted in but don't hold the asset.
-async fn non_stakers_holdings(
+async fn free_assets_holdings(
     indexer: &Indexer,
     asset_id: u64,
     investing_escrow: &Address,
@@ -157,7 +157,7 @@ pub async fn holders_count(
     staking_escrow: &Address,
 ) -> Result<usize> {
     let holders_holdings =
-        non_stakers_holdings(indexer, asset_id, investing_escrow, staking_escrow).await?;
+        free_assets_holdings(indexer, asset_id, investing_escrow, staking_escrow).await?;
     Ok(holders_holdings.len())
 }
 
