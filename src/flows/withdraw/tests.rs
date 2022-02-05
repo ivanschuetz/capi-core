@@ -95,14 +95,17 @@ mod tests {
 
         // precs
 
-        let withdraw_amount = MicroAlgos(1_000_000); // UI
+        let project_specs = project_specs();
+        let investor_shares_count = 10;
+
+        let investment_amount = project_specs.asset_price * investor_shares_count;
+
+        let withdraw_amount = investment_amount + MicroAlgos(1); // > investment amount (which is in the funds when withdrawing)
 
         let project =
-            create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
-                .await?;
+            create_project_flow(&algod, &creator, &project_specs, TESTS_DEFAULT_PRECISION).await?;
 
         // Investor buys some shares
-        let investor_shares_count = 10;
         invests_optins_flow(&algod, &investor, &project.project).await?;
         invests_flow(
             &algod,
