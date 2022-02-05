@@ -18,7 +18,10 @@ mod tests {
             stake::stake::FIXED_FEE,
         },
         network_util::wait_for_pending_transaction,
-        state::central_app_state::central_investor_state_from_acc,
+        state::{
+            app_state::ApplicationLocalStateError,
+            central_app_state::{central_investor_state, central_investor_state_from_acc},
+        },
         testing::{
             flow::{
                 create_project_flow::create_project_flow,
@@ -250,6 +253,104 @@ mod tests {
         assert_eq!(
             total_withdrawn_after_staking_setup_call + expected_harvested_amount,
             investor_state.harvested
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_partial_stake() -> Result<()> {
+        test_init()?;
+
+        // deps
+
+        let algod = dependencies::algod_for_tests();
+        let creator = creator();
+        let investor = investor1();
+
+        // UI
+
+        let partial_stake_amount = 4;
+        let buy_asset_amount = partial_stake_amount + 6;
+
+        // precs
+
+        let project =
+            create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
+                .await?;
+
+        invests_optins_flow(&algod, &investor, &project.project).await?;
+        let _ = invests_flow(
+            &algod,
+            &investor,
+            buy_asset_amount,
+            &project.project,
+            &project.project_id,
+        )
+        .await?;
+
+        // investor unstakes - note that partial unstaking isn't possible, only staking
+
+        let unstake_tx_id =
+            unstake_flow(&algod, &project.project, &investor, buy_asset_amount).await?;
+        let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
+
+        // sanity checks
+
+        // investor was opted out (implies: no shares staked)
+        let investor_state_res =
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await;
+        assert_eq!(
+            Err(ApplicationLocalStateError::NotOptedIn),
+            investor_state_res
+        );
+
+        // investor has the unstaked shares
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let investor_assets = &investor_infos.assets;
+        assert_eq!(1, investor_assets.len()); // opted in to shares
+        assert_eq!(buy_asset_amount, investor_assets[0].amount);
+
+        // investor stakes again a part of the shares
+
+        // optin to app
+        let app_optins_txs =
+            invest_or_staking_app_optins_txs(&algod, &project.project, &investor.address()).await?;
+        let mut app_optins_signed_txs = vec![];
+        for optin_tx in app_optins_txs {
+            app_optins_signed_txs.push(investor.sign_transaction(&optin_tx)?);
+        }
+        let app_optins_tx_id =
+            submit_invest_or_staking_app_optins(&algod, app_optins_signed_txs).await?;
+        let _ = wait_for_pending_transaction(&algod, &app_optins_tx_id);
+
+        // stake
+        stake_flow(
+            &algod,
+            &project.project,
+            &project.project_id,
+            &investor,
+            partial_stake_amount,
+        )
+        .await?;
+
+        // tests
+
+        // investor staked the shares
+        let investor_state =
+            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+                .await?;
+        assert_eq!(partial_stake_amount, investor_state.shares);
+
+        // investor has the remaining free shares
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let investor_assets = &investor_infos.assets;
+        assert_eq!(1, investor_assets.len()); // opted in to shares
+        assert_eq!(
+            buy_asset_amount - partial_stake_amount,
+            investor_assets[0].amount
         );
 
         Ok(())
