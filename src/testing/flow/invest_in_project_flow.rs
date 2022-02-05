@@ -1,6 +1,6 @@
 #[cfg(test)]
 use crate::flows::invest::app_optins::{
-    invest_or_staking_app_optins_txs, submit_invest_or_staking_app_optins,
+    invest_or_staking_app_optin_tx, submit_invest_or_staking_app_optin,
 };
 #[cfg(test)]
 use crate::flows::{
@@ -25,18 +25,14 @@ pub async fn invests_optins_flow(
     project: &Project,
 ) -> Result<()> {
     // app optins (have to happen before invest_txs, which initializes investor's local state)
-    let app_optins_txs =
-        invest_or_staking_app_optins_txs(algod, project, &investor.address()).await?;
+    let app_optin_tx = invest_or_staking_app_optin_tx(algod, project, &investor.address()).await?;
 
     // UI
-    let mut app_optins_signed_txs = vec![];
-    for optin_tx in app_optins_txs {
-        app_optins_signed_txs.push(investor.sign_transaction(&optin_tx)?);
-    }
+    let app_optin_signed_tx = investor.sign_transaction(&app_optin_tx)?;
 
-    let app_optins_tx_id =
-        submit_invest_or_staking_app_optins(algod, app_optins_signed_txs.clone()).await?;
-    let _ = wait_for_pending_transaction(&algod, &app_optins_tx_id).await?;
+    let app_optin_tx_id =
+        submit_invest_or_staking_app_optin(algod, app_optin_signed_tx.clone()).await?;
+    let _ = wait_for_pending_transaction(&algod, &app_optin_tx_id).await?;
 
     Ok(())
 }

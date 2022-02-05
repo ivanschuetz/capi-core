@@ -13,7 +13,7 @@ mod tests {
         flows::{
             harvest::harvest::calculate_entitled_harvest,
             invest::app_optins::{
-                invest_or_staking_app_optins_txs, submit_invest_or_staking_app_optins,
+                invest_or_staking_app_optin_tx, submit_invest_or_staking_app_optin,
             },
             stake::stake::FIXED_FEE,
         },
@@ -126,17 +126,13 @@ mod tests {
         // TODO confirm: can't we opt in in the same group (accessing local state during opt in fails)?,
         // is there a way to avoid the investor confirming txs 2 times here?
 
-        let app_optins_txs =
-            invest_or_staking_app_optins_txs(&algod, &project.project, &investor2.address())
-                .await?;
+        let app_optin_tx =
+            invest_or_staking_app_optin_tx(&algod, &project.project, &investor2.address()).await?;
         // UI
-        let mut app_optins_signed_txs = vec![];
-        for optin_tx in app_optins_txs {
-            app_optins_signed_txs.push(investor2.sign_transaction(&optin_tx)?);
-        }
-        let app_optins_tx_id =
-            submit_invest_or_staking_app_optins(&algod, app_optins_signed_txs).await?;
-        let _ = wait_for_pending_transaction(&algod, &app_optins_tx_id);
+        let app_optin_signed_tx = investor2.sign_transaction(&app_optin_tx)?;
+        let app_optin_tx_id =
+            submit_invest_or_staking_app_optin(&algod, app_optin_signed_tx).await?;
+        let _ = wait_for_pending_transaction(&algod, &app_optin_tx_id);
 
         // flow
 
@@ -316,15 +312,12 @@ mod tests {
         // investor stakes again a part of the shares
 
         // optin to app
-        let app_optins_txs =
-            invest_or_staking_app_optins_txs(&algod, &project.project, &investor.address()).await?;
-        let mut app_optins_signed_txs = vec![];
-        for optin_tx in app_optins_txs {
-            app_optins_signed_txs.push(investor.sign_transaction(&optin_tx)?);
-        }
-        let app_optins_tx_id =
-            submit_invest_or_staking_app_optins(&algod, app_optins_signed_txs).await?;
-        let _ = wait_for_pending_transaction(&algod, &app_optins_tx_id);
+        let app_optins_tx =
+            invest_or_staking_app_optin_tx(&algod, &project.project, &investor.address()).await?;
+        let app_optin_signed_tx = investor.sign_transaction(&app_optins_tx)?;
+        let app_optin_tx_id =
+            submit_invest_or_staking_app_optin(&algod, app_optin_signed_tx).await?;
+        let _ = wait_for_pending_transaction(&algod, &app_optin_tx_id);
 
         // stake
         stake_flow(
