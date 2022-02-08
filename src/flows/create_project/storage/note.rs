@@ -168,6 +168,7 @@ async fn storable_project_to_project(
     let project = Project {
         specs: CreateProjectSpecs {
             name: payload.name.clone(),
+            description: payload.description.clone(),
             shares: CreateSharesSpecs {
                 token_name: payload.asset_name.clone(),
                 count: payload.asset_supply,
@@ -175,6 +176,7 @@ async fn storable_project_to_project(
             asset_price: payload.asset_price,
             investors_share: payload.investors_share,
             logo_url: payload.logo_url.clone(),
+            social_media_url: payload.social_media_url.clone(),
         },
         creator: payload.creator,
         shares_asset_id: payload.shares_asset_id,
@@ -202,6 +204,7 @@ async fn storable_project_to_project(
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProjectNoteProjectPayload {
     pub name: String,
+    pub description: String,
     pub asset_id: u64,
 
     // NOTE: asset name and supply are redundant, we save them to not have to fetch the asset infos (also, they're short).
@@ -213,6 +216,7 @@ pub struct ProjectNoteProjectPayload {
     pub asset_price: MicroAlgos,
     pub investors_share: u64,
     pub logo_url: String,
+    pub social_media_url: String,
     pub creator: Address,
     pub shares_asset_id: u64,
     pub central_app_id: u64,
@@ -228,6 +232,8 @@ impl From<Project> for ProjectNoteProjectPayload {
     fn from(p: Project) -> Self {
         ProjectNoteProjectPayload {
             name: p.specs.name.clone(),
+            description: p.specs.description.clone(),
+            social_media_url: p.specs.social_media_url.clone(),
             asset_id: p.shares_asset_id,
             asset_name: p.specs.shares.token_name,
             asset_supply: p.specs.shares.count,

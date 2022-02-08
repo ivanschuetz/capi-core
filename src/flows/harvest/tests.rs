@@ -238,6 +238,8 @@ mod tests {
         let precision = TESTS_DEFAULT_PRECISION;
         let specs = CreateProjectSpecs {
             name: "Pancakes ltd".to_owned(),
+            description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
+            social_media_url: "https://twitter.com/capi_fin".to_owned(),
             shares: CreateSharesSpecs {
                 token_name: "PCK".to_owned(),
                 count: 300,
