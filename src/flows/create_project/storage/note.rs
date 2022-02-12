@@ -1,7 +1,9 @@
 use crate::{
     flows::create_project::{
         create_project::Escrows,
-        model::{CreateProjectSpecs, CreateSharesSpecs, Project},
+        create_project_specs::CreateProjectSpecs,
+        create_shares_specs::CreateSharesSpecs,
+        model::Project,
         setup::{
             central_escrow::render_and_compile_central_escrow,
             customer_escrow::render_and_compile_customer_escrow,
@@ -166,18 +168,18 @@ async fn storable_project_to_project(
     let investing_escrow_account = investing_escrow_account_res?;
 
     let project = Project {
-        specs: CreateProjectSpecs {
-            name: payload.name.clone(),
-            description: payload.description.clone(),
-            shares: CreateSharesSpecs {
+        specs: CreateProjectSpecs::new(
+            payload.name.clone(),
+            payload.description.clone(),
+            CreateSharesSpecs {
                 token_name: payload.asset_name.clone(),
                 count: payload.asset_supply,
             },
-            asset_price: payload.asset_price,
-            investors_share: payload.investors_share,
-            logo_url: payload.logo_url.clone(),
-            social_media_url: payload.social_media_url.clone(),
-        },
+            payload.investors_count,
+            payload.asset_price,
+            payload.logo_url.clone(),
+            payload.social_media_url.clone(),
+        )?,
         creator: payload.creator,
         shares_asset_id: payload.shares_asset_id,
         central_app_id: payload.central_app_id,
@@ -214,7 +216,10 @@ pub struct ProjectNoteProjectPayload {
     pub asset_supply: u64,
 
     pub asset_price: MicroAlgos,
-    pub investors_share: u64,
+    // Note that this is only useful when creating the project
+    // for now leaving it here - might be useful to display somewhere the creation parameters TODO consider removing
+    pub investors_count: u64,
+
     pub logo_url: String,
     pub social_media_url: String,
     pub creator: Address,
@@ -235,10 +240,10 @@ impl From<Project> for ProjectNoteProjectPayload {
             description: p.specs.description.clone(),
             social_media_url: p.specs.social_media_url.clone(),
             asset_id: p.shares_asset_id,
-            asset_name: p.specs.shares.token_name,
+            asset_name: p.specs.shares.token_name.clone(),
             asset_supply: p.specs.shares.count,
             asset_price: p.specs.asset_price,
-            investors_share: p.specs.investors_share,
+            investors_count: p.specs.investors_part(),
             logo_url: p.specs.logo_url,
             creator: p.creator,
             shares_asset_id: p.shares_asset_id,

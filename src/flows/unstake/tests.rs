@@ -74,7 +74,10 @@ mod tests {
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
-        assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
+        assert_eq!(
+            project.project.specs.creator_part() + buy_asset_amount,
+            staking_escrow_assets[0].amount
+        );
 
         // remember state
         let investor_balance_before_unstaking = investor_infos.amount;
@@ -95,7 +98,10 @@ mod tests {
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
-        assert_eq!(0, staking_escrow_assets[0].amount); // lost shares
+        assert_eq!(
+            project.project.specs.creator_part(),
+            staking_escrow_assets[0].amount
+        ); // lost shares
 
         // investor got shares
         let investor_infos = algod.account_information(&investor.address()).await?;
@@ -169,7 +175,10 @@ mod tests {
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
-        assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
+        assert_eq!(
+            project.project.specs.creator_part() + buy_asset_amount,
+            staking_escrow_assets[0].amount
+        );
 
         // remember state
         let investor_balance_before_unstaking = investor_infos.amount;
@@ -189,7 +198,10 @@ mod tests {
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
-        assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount); // lost shares
+        assert_eq!(
+            project.project.specs.creator_part() + buy_asset_amount,
+            staking_escrow_assets[0].amount
+        ); // lost shares
 
         // investor didn't get anything
         let investor_infos = algod.account_information(&investor.address()).await?;

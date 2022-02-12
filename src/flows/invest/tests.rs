@@ -71,7 +71,10 @@ mod tests {
         // staking escrow received the shares
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len());
-        assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
+        assert_eq!(
+            project.project.specs.creator_part() + buy_asset_amount,
+            staking_escrow_assets[0].amount
+        );
         // staking escrow doesn't send any transactions so not testing balances (we could "double check" though)
 
         // investor tests
@@ -120,7 +123,7 @@ mod tests {
         );
         assert_eq!(
             invest_escrow_held_assets[0].amount,
-            flow_res.project.specs.shares.count - buy_asset_amount
+            flow_res.project.specs.investors_part() - buy_asset_amount
         );
 
         // central escrow tests
@@ -470,7 +473,6 @@ mod tests {
             project.project.specs.shares.count,
             buy_asset_amount,
             TESTS_DEFAULT_PRECISION,
-            project.project.specs.investors_share,
         );
 
         // investing inits the "harvested" amount to entitled amount (to prevent double harvest)
@@ -546,7 +548,6 @@ mod tests {
             project.project.specs.shares.count,
             buy_asset_amount,
             TESTS_DEFAULT_PRECISION,
-            project.project.specs.investors_share,
         );
 
         // staking inits the "harvested" amount to entitled amount (to prevent double harvest)

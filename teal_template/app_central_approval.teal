@@ -16,7 +16,30 @@ int 1 // central opt in - TODO what is this? who's opting in?
 ==
 bnz branch_opt_in
 
-after_args_access2:
+global GroupSize
+int 2
+==
+gtxn 0 NumAppArgs
+int 1
+==
+&&
+bnz branch_creator_investor_setup
+
+// TODO refactor TEAL..
+global GroupSize
+int 2
+==
+gtxn 0 NumAppArgs
+int 1
+==
+&&
+bz after_args_access
+gtxn 0 ApplicationArgs 1
+byte b64 b3B0X2luX3RtcA== // opt_in_tmp
+==
+bnz branch_opt_in
+
+after_args_access:
 
 global GroupSize
 int 2
@@ -171,6 +194,47 @@ app_local_put
 int 1
 return
 
+branch_creator_investor_setup:
+// TODO refactor with branch_investor_setup
+
+// initialize / increment shares
+gtxn 0 Sender
+byte "Shares"
+
+gtxn 0 Sender
+byte "Shares"
+app_local_get
+
+gtxn 1 AssetAmount // shares bought
+
++
+app_local_put
+
+// initialize already retrieved (ends with app_local_put at the end of /////// block)
+gtxn 0 Sender // sender of app call (investor)
+byte "HarvestedTotal"
+
+// TODO: important: this will reset "already harvested" to "entitled amount" *each time the investor buys shares*
+// see more notes in old repo
+
+// get the asset holdings of caller
+gtxn 0 Sender
+byte "Shares"
+app_local_get
+callsub entitled_harvest_microalgos_for_shares
+app_local_put
+
+// save the project id in local state, so we can find projects were a user invested in (with the indexer)  
+// TODO rename in CapiProject or maybe something more cryptic - this key name is used to identify the state as belonging to capi / project id use case
+// - we don't have app id when querying this, only the sender account and this key
+gtxn 0 Sender
+byte "Project"
+gtxn 0 ApplicationArgs 0 // first/only arg of the application call (first in the group)
+app_local_put
+
+int 1
+return
+
 branch_drain:
 gtxn 0 TypeEnum // app call
 int appl
@@ -281,9 +345,6 @@ entitled_harvest_microalgos_for_shares:
 int {precision}
 *
 
-int {investors_share} // already multiplied with precision
-*
-
 // the asset's total supply
 int {asset_supply} 
 
@@ -297,7 +358,7 @@ app_global_get
 // percentage user is entitled to from received total
 *
 
-int {precision_square} // revert mult
+int {precision} // revert mult
 /
 
 retsub

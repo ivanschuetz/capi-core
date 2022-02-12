@@ -15,7 +15,7 @@ pub async fn invest_or_staking_app_optin_tx(
     investor: &Address,
 ) -> Result<Transaction> {
     let params = algod.suggested_transaction_params().await?;
-    let central_optin_tx = optin_to_app(&params, project.central_app_id, *investor).await?;
+    let central_optin_tx = optin_to_app(&params, project.central_app_id, *investor)?;
     Ok(central_optin_tx)
 }
 

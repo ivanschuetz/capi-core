@@ -1,0 +1,39 @@
+#pragma version 4
+
+txn ApplicationID
+int 0
+==
+bnz branch_create
+
+gtxn 0 ApplicationArgs 0
+byte b64 b3B0X2lu // opt_in
+==
+gtxn 1 ApplicationArgs 0
+byte b64 d3JpdGVfbG9jYWxfc3RhdGU= // write_local_state
+==
+&&
+bnz branch_increment_local_state
+
+int 0
+return
+
+branch_create:
+int 1
+return
+
+branch_increment_local_state:
+
+gtxn 0 Sender
+byte "MyLocalState"
+
+gtxn 0 Sender
+byte "MyLocalState"
+app_local_get
+
+int 10
++
+
+app_local_put
+
+int 1
+return

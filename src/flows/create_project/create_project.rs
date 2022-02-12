@@ -18,8 +18,9 @@ use crate::{
     teal::{TealSource, TealSourceTemplate},
 };
 
-use super::model::{
-    CreateProjectSigned, CreateProjectSpecs, CreateProjectToSign, SubmitCreateProjectResult,
+use super::{
+    create_project_specs::CreateProjectSpecs,
+    model::{CreateProjectSigned, CreateProjectToSign, SubmitCreateProjectResult},
 };
 
 pub async fn create_project_txs(
@@ -59,7 +60,6 @@ pub async fn create_project_txs(
         shares_asset_id,
         specs.shares.count,
         precision,
-        specs.investors_share,
         customer_to_sign.escrow.address(),
         central_to_sign.escrow.address(),
         &params,
@@ -80,11 +80,11 @@ pub async fn create_project_txs(
         algod,
         &programs.escrows.invest_escrow,
         shares_asset_id,
-        specs.shares.count,
         specs.asset_price,
         &creator,
         setup_staking_escrow_to_sign.escrow.address(),
         &params,
+        specs.investors_part(),
     )
     .await?;
 

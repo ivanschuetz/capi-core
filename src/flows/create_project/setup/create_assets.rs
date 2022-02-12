@@ -6,7 +6,7 @@ use algonaut::{
 use anyhow::{anyhow, Result};
 
 use crate::{
-    flows::create_project::model::{CreateSharesSpecs, CreateSharesToSign},
+    flows::create_project::{create_shares_specs::CreateSharesSpecs, model::CreateSharesToSign},
     network_util::wait_for_pending_transaction,
 };
 
@@ -46,13 +46,13 @@ pub struct CreateAssetsResult {
 
 async fn create_shares_tx(
     tx_params: &SuggestedTransactionParams,
-    config: &CreateSharesSpecs,
+    specs: &CreateSharesSpecs,
     creator: Address,
 ) -> Result<Transaction> {
-    let unit_and_asset_name = config.token_name.to_owned();
+    let unit_and_asset_name = specs.token_name.to_owned();
     Ok(TxnBuilder::with(
         tx_params.clone(),
-        CreateAsset::new(creator, config.count, 0, false)
+        CreateAsset::new(creator, specs.count, 0, false)
             .unit_name(unit_and_asset_name.clone())
             .asset_name(unit_and_asset_name)
             .build(),

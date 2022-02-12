@@ -163,7 +163,6 @@ mod tests {
             project.project.specs.shares.count,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
-            project.project.specs.investors_share,
         );
 
         let investor_state =
@@ -182,7 +181,10 @@ mod tests {
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
-        assert_eq!(traded_shares, staking_escrow_assets[0].amount);
+        assert_eq!(
+            project.project.specs.creator_part() + traded_shares,
+            staking_escrow_assets[0].amount
+        );
 
         // investor2 harvests: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         // the harvest amount is the smallest number possible, to show that we can't retrieve anything
@@ -217,7 +219,6 @@ mod tests {
             project.project.specs.shares.count,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
-            project.project.specs.investors_share,
         );
         log::debug!(
             "Harvesting max possible amount (expected to succeed): {:?}",

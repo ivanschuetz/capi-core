@@ -82,7 +82,7 @@ fn get_uint_value_or_error(
     key: &AppStateKey<'static>,
 ) -> Result<u64, ApplicationLocalStateError<'static>> {
     state
-        .find_uint(&key)
+        .find_uint(key)
         .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
 }
 
@@ -91,7 +91,7 @@ fn get_bytes_value_or_error(
     key: &AppStateKey<'static>,
 ) -> Result<Vec<u8>, ApplicationLocalStateError<'static>> {
     state
-        .find_bytes(&key)
+        .find_bytes(key)
         .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
 }
 

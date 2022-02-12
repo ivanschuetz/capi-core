@@ -71,16 +71,16 @@ pub async fn setup_investing_escrow_txs(
     algod: &Algod,
     source: &TealSourceTemplate,
     shares_asset_id: u64,
-    asset_amount: u64,
     asset_price: MicroAlgos,
     creator: &Address,
     staking_escrow_address: &Address,
     params: &SuggestedTransactionParams,
+    investors_shares: u64,
 ) -> Result<SetupInvestingEscrowToSign> {
     log::debug!(
-        "Setting up escrow with asset id: {}, amount: {}, creator: {:?}",
+        "Setting up escrow with asset id: {}, investors_shares: {:?}, creator: {:?}",
         shares_asset_id,
-        asset_amount,
+        investors_shares,
         creator
     );
 
@@ -107,9 +107,16 @@ pub async fn setup_investing_escrow_txs(
     )
     .build();
 
+    // Send the supply dedicated to investors to the investor's escrow
     let fund_shares_asset_tx = &mut TxnBuilder::with(
         params.to_owned(),
-        TransferAsset::new(*creator, shares_asset_id, asset_amount, *escrow.address()).build(),
+        TransferAsset::new(
+            *creator,
+            shares_asset_id,
+            investors_shares,
+            *escrow.address(),
+        )
+        .build(),
     )
     .build();
 

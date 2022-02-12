@@ -3,7 +3,7 @@ use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
 #[cfg(test)]
 use super::invest_in_project_flow::invests_optins_flow;
 #[cfg(test)]
-use crate::flows::create_project::model::{CreateProjectSpecs, Project};
+use crate::flows::create_project::{create_project_specs::CreateProjectSpecs, model::Project};
 #[cfg(test)]
 use crate::{
     flows::harvest::harvest::{harvest, submit_harvest, HarvestSigned},

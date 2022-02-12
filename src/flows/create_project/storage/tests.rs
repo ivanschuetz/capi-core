@@ -5,7 +5,9 @@ mod tests {
 
     use crate::{
         dependencies::{algod_for_tests, indexer_for_tests},
-        flows::create_project::storage::{load_project::load_project, save_project::save_project},
+        flows::create_project::storage::{
+            load_project::load_project, save_project::save_project_and_optin_to_app,
+        },
         hashable::Hashable,
         testing::{
             flow::create_project_flow::{create_project_flow, programs},
@@ -35,11 +37,16 @@ mod tests {
 
         let create_project_res = create_project_flow(&algod, &creator, &specs, precision).await?;
 
-        let to_sign = save_project(&algod, &creator.address(), &create_project_res.project).await?;
+        let to_sign =
+            save_project_and_optin_to_app(&algod, &creator.address(), &create_project_res.project)
+                .await?;
 
-        let signed_tx = creator.sign_transaction(&to_sign.tx)?;
+        let signed_save_project_tx = creator.sign_transaction(&to_sign.save_project_tx)?;
 
-        let tx_id = algod.broadcast_signed_transaction(&signed_tx).await?.tx_id;
+        let tx_id = algod
+            .broadcast_signed_transaction(&signed_save_project_tx)
+            .await?
+            .tx_id;
 
         println!(
             "Creator: {:?}, project hash: {:?}, tx id: {:?}. Will wait for indexing..",

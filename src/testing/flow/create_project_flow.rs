@@ -1,13 +1,20 @@
 #[cfg(test)]
 use crate::flows::create_project::storage::load_project::ProjectId;
 #[cfg(test)]
-use crate::flows::create_project::storage::save_project::{
-    save_project, submit_save_project, SaveProjectSigned,
+use crate::flows::create_project::storage::{
+    creator_investor_setup::{
+        creator_investor_setup, submit_creator_investor_setup, CreatorInvestorSetupSigned,
+    },
+    save_project::{
+        save_project_and_optin_to_app, submit_save_project_and_optin_to_app, SaveProjectSigned,
+    },
 };
+
 #[cfg(test)]
 use crate::flows::create_project::{
     create_project::{create_project_txs, submit_create_project},
-    model::{CreateProjectSigned, CreateProjectSpecs, Project},
+    create_project_specs::CreateProjectSpecs,
+    model::{CreateProjectSigned, Project},
     setup::create_assets::{create_investor_assets_txs, submit_create_assets},
 };
 #[cfg(test)]
@@ -69,6 +76,7 @@ pub async fn create_project_flow(
 
     // Create the asset (submit signed tx) and generate escrow funding tx
     // Note that the escrow is generated after the asset, because it uses the asset id (in teal, inserted with template)
+
     let create_res = submit_create_project(
         &algod,
         CreateProjectSigned {
@@ -89,13 +97,16 @@ pub async fn create_project_flow(
 
     log::debug!("Created project: {:?}", create_res.project);
 
-    let save_res = save_project(algod, &creator.address(), &create_res.project).await?;
-    let signed_save_project = creator.sign_transaction(&save_res.tx)?;
+    let save_res =
+        save_project_and_optin_to_app(algod, &creator.address(), &create_res.project).await?;
+    let signed_app_optin = creator.sign_transaction(&save_res.app_optin_tx)?;
+    let signed_save_project = creator.sign_transaction(&save_res.save_project_tx)?;
 
-    let submit_save_project_tx_id = submit_save_project(
+    let submit_save_project_tx_id = submit_save_project_and_optin_to_app(
         &algod,
         SaveProjectSigned {
-            tx: signed_save_project,
+            app_optin_tx: signed_app_optin,
+            save_project_tx: signed_save_project,
         },
     )
     .await?;
@@ -103,6 +114,39 @@ pub async fn create_project_flow(
     let project_id = ProjectId(submit_save_project_tx_id.clone());
 
     let _ = wait_for_pending_transaction(&algod, &submit_save_project_tx_id)
+        .await?
+        .ok_or(anyhow!("Couldn't get pending tx"))?;
+
+    let creator_investor_setup = creator_investor_setup(
+        &algod,
+        &creator.address(),
+        create_res.project.central_app_id,
+        create_res.project.shares_asset_id,
+        &project_id,
+        &create_res.project,
+    )
+    .await?;
+    let signed_investor_app_setup_tx =
+        creator.sign_transaction(&creator_investor_setup.investor_app_setup_tx)?;
+    let singed_stake_shares_tx =
+        creator.sign_transaction(&creator_investor_setup.stake_shares_tx)?;
+    let submit_creator_investor_setup_tx_id = submit_creator_investor_setup(
+        &algod,
+        CreatorInvestorSetupSigned {
+            investor_app_setup_tx: signed_investor_app_setup_tx,
+            stake_shares_tx: singed_stake_shares_tx,
+        },
+    )
+    .await?;
+
+    log::debug!(
+        "Creator investor setup tx id: {:?}",
+        submit_creator_investor_setup_tx_id
+    );
+    // Waiting for this tx shouldn't be needed for most flows (only if depending on the creator doing investor's actions)
+    // Here it's ok as it's only for testing and with dev mode it's not expensive
+
+    let _ = wait_for_pending_transaction(&algod, &submit_creator_investor_setup_tx_id)
         .await?
         .ok_or(anyhow!("Couldn't get pending tx"))?;
 

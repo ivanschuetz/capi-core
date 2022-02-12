@@ -96,7 +96,7 @@ fn find_value(key_values: &[TealKeyValue], key: &AppStateKey) -> Option<TealValu
         .map(|kv| kv.value.clone())
 }
 
-trait TealKeyValueExt {
+pub trait TealKeyValueExt {
     fn key_matches(&self, key: &AppStateKey) -> bool;
 }
 

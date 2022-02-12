@@ -9,7 +9,9 @@ use algonaut::{
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::flows::{withdraw::note::withdrawal_to_note, create_project::storage::load_project::TxId};
+use crate::flows::{
+    create_project::storage::load_project::TxId, withdraw::note::withdrawal_to_note,
+};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);

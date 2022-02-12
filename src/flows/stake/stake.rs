@@ -1,4 +1,4 @@
-use crate::flows::create_project::storage::load_project::{TxId, ProjectId};
+use crate::flows::create_project::storage::load_project::{ProjectId, TxId};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -39,20 +39,13 @@ pub async fn stake(
     .build();
 
     // Send investor's assets to staking escrow
-    let mut shares_xfer_tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params
-        },
-        TransferAsset::new(
-            investor,
-            shares_asset_id,
-            share_count,
-            *staking_escrow.address(),
-        )
-        .build(),
-    )
-    .build();
+    let mut shares_xfer_tx = stake_shares_tx(
+        &params,
+        &investor,
+        shares_asset_id,
+        share_count,
+        staking_escrow.address(),
+    );
 
     let txs_for_group = vec![&mut app_call_tx, &mut shares_xfer_tx];
     TxGroup::assign_group_id(txs_for_group)?;
@@ -61,6 +54,26 @@ pub async fn stake(
         central_app_call_setup_tx: app_call_tx.clone(),
         shares_xfer_tx: shares_xfer_tx.clone(),
     })
+}
+
+pub fn stake_shares_tx(
+    params: &SuggestedTransactionParams,
+    investor: &Address,
+    shares_id: u64,
+    shares_count: u64,
+    staking_escrow: &Address,
+) -> Transaction {
+    TxnBuilder::with(
+        params.to_owned(),
+        TransferAsset::new(
+            investor.to_owned(),
+            shares_id,
+            shares_count,
+            *staking_escrow,
+        )
+        .build(),
+    )
+    .build()
 }
 
 pub async fn submit_stake(algod: &Algod, signed: StakeSigned) -> Result<TxId> {

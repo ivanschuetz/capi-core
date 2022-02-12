@@ -66,33 +66,19 @@ pub async fn invest_txs(
     )
     .build();
 
-    let mut receive_shares_asset_tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params
-        },
-        TransferAsset::new(
-            *project.invest_escrow.address(),
-            project.shares_asset_id,
-            asset_count,
-            *staking_escrow.address(),
-        )
-        .build(),
-    )
-    .build();
+    let mut stake_shares_tx =
+        stake_shares_tx(&params, project, asset_count, staking_escrow.address());
 
     let txs_for_group = vec![
         &mut central_app_investor_setup_tx,
         &mut send_algos_tx,
         &mut shares_optin_tx,
-        &mut receive_shares_asset_tx,
+        &mut stake_shares_tx,
         &mut pay_escrow_fee_tx,
     ];
     TxGroup::assign_group_id(txs_for_group)?;
 
-    let receive_shares_asset_signed_tx = project
-        .invest_escrow
-        .sign(&receive_shares_asset_tx, vec![])?;
+    let receive_shares_asset_signed_tx = project.invest_escrow.sign(&stake_shares_tx, vec![])?;
 
     Ok(InvestToSign {
         project: project.to_owned(),
@@ -123,6 +109,27 @@ pub fn central_app_investor_setup_tx(
     )
     .build();
     Ok(tx)
+}
+
+/// The shares are sent directly from the investor escrow to the staking escrow
+/// Effectively, the investor is staking their shares (bought in the same tx group)
+fn stake_shares_tx(
+    params: &SuggestedTransactionParams,
+    project: &Project,
+    asset_count: u64,
+    staking_escrow: &Address,
+) -> Transaction {
+    TxnBuilder::with(
+        params.to_owned(),
+        TransferAsset::new(
+            *project.invest_escrow.address(),
+            project.shares_asset_id,
+            asset_count,
+            *staking_escrow,
+        )
+        .build(),
+    )
+    .build()
 }
 
 pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<InvestResult> {

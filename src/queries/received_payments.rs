@@ -6,7 +6,9 @@ use algonaut::{
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 
-use crate::{date_util::timestamp_seconds_to_date, flows::create_project::storage::load_project::TxId};
+use crate::{
+    date_util::timestamp_seconds_to_date, flows::create_project::storage::load_project::TxId,
+};
 
 pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<Vec<Payment>> {
     log::debug!("Retrieving payment to: {:?}", address);

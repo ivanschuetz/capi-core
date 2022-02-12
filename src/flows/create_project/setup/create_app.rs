@@ -3,15 +3,12 @@ use algonaut::{
     core::{Address, SuggestedTransactionParams},
     transaction::{transaction::StateSchema, CreateApplication, Transaction, TxnBuilder},
 };
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use serde::Serialize;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
-use crate::{
-    decimal_util::AsDecimal,
-    teal::{render_template, TealSource, TealSourceTemplate},
-};
+use crate::teal::{render_template, TealSource, TealSourceTemplate};
 
 #[allow(clippy::too_many_arguments)]
 pub async fn create_app_tx(
@@ -22,7 +19,6 @@ pub async fn create_app_tx(
     asset_id: u64,
     asset_supply: u64,
     precision: u64,
-    investors_share: u64,
     customer_escrow: &Address,
     central_escrow: &Address,
     params: &SuggestedTransactionParams,
@@ -37,7 +33,6 @@ pub async fn create_app_tx(
         asset_id,
         asset_supply,
         precision,
-        investors_share,
         customer_escrow,
         central_escrow,
     )?;
@@ -72,24 +67,15 @@ pub fn render_central_app(
     asset_id: u64,
     asset_supply: u64,
     precision: u64,
-    investors_share: u64,
     customer_escrow: &Address,
     central_escrow: &Address,
 ) -> Result<TealSource> {
-    let precision_square = precision
-        .checked_pow(2)
-        .ok_or_else(|| anyhow!("Precision squared overflow: {}", precision))?;
-    let investors_share =
-        ((investors_share.as_decimal() / 100.as_decimal()) * precision.as_decimal()).floor();
-
     let source = render_template(
         source,
         RenderCentralAppContext {
             asset_id: asset_id.to_string(),
             asset_supply: asset_supply.to_string(),
-            investors_share: investors_share.to_string(),
             precision: precision.to_string(),
-            precision_square: precision_square.to_string(),
             customer_escrow_address: customer_escrow.to_string(),
             central_escrow_address: central_escrow.to_string(),
         },
@@ -103,9 +89,7 @@ pub fn render_central_app(
 struct RenderCentralAppContext {
     asset_id: String,
     asset_supply: String,
-    investors_share: String,
     precision: String,
-    precision_square: String,
     customer_escrow_address: String,
     central_escrow_address: String,
 }
@@ -151,7 +135,6 @@ mod tests {
             0,
             0,
             TESTS_DEFAULT_PRECISION,
-            40,
             // random: this address doesn't affect this test
             &"3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA"
                 .parse()

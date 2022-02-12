@@ -1,5 +1,7 @@
 #[cfg(test)]
-use crate::flows::create_project::model::{CreateProjectSpecs, CreateSharesSpecs};
+use crate::flows::create_project::{
+    create_project_specs::CreateProjectSpecs, create_shares_specs::CreateSharesSpecs,
+};
 #[cfg(test)]
 use algonaut::core::MicroAlgos;
 #[cfg(test)]
@@ -34,15 +36,23 @@ pub fn customer() -> Account {
 
 #[cfg(test)]
 pub fn project_specs() -> CreateProjectSpecs {
-    CreateProjectSpecs {
-        name: "Pancakes ltd".to_owned(),
-        description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
-        shares: shares_specs(),
-        asset_price: MicroAlgos(5_000_000),
-        investors_share: 40,
-        logo_url: "https://placekitten.com/200/300".to_string(),
-        social_media_url: "https://twitter.com/capi_fin".to_owned(),
-    }
+    // use rust_decimal::Decimal;
+
+    // let percentage = 40;
+    // let shares_specs = shares_specs();
+    // let percentage_decimal = Decimal::from(percentage) / Decimal::from(100);
+
+    CreateProjectSpecs::new(
+        "Pancakes ltd".to_owned(),
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
+        shares_specs(),
+        40,
+        MicroAlgos(5_000_000),
+        // shares_distribution: SharesDistributionSpecs::from_investors_percentage(percentage_decimal.try_into().unwrap(), shares_specs.count).unwrap(),
+        "https://placekitten.com/200/300".to_string(),
+        "https://twitter.com/capi_fin".to_owned(),
+    // unwrap: error only if investors_count > count and we're passing correct hardcoded values + this is only for testing
+    ).unwrap()
 }
 
 #[cfg(test)]

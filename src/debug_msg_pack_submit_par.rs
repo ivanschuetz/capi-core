@@ -32,7 +32,6 @@ mod tests {
             2,
             100,
             TESTS_DEFAULT_PRECISION,
-            40,
             &"3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA"
                 .parse()
                 .map_err(Error::msg)?,

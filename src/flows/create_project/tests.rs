@@ -2,13 +2,14 @@
 mod tests {
     use crate::{
         dependencies,
-        state::{app_state::ApplicationLocalStateError, central_app_state::central_investor_state},
+        state::central_app_state::central_investor_state,
         testing::{
             flow::create_project_flow::create_project_flow, test_data::project_specs,
             TESTS_DEFAULT_PRECISION,
         },
         testing::{network_test_util::test_init, test_data::creator},
     };
+    use algonaut::core::MicroAlgos;
     use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
@@ -52,7 +53,7 @@ mod tests {
         );
         assert_eq!(specs.shares.count, created_assets[0].params.total);
         let creator_assets = creator_infos.assets;
-        // creator sent all the assets to the escrow (during project creation): has 0
+        // creator sent the investor's assets to the escrow and staked theirs: has 0 shares
         assert_eq!(1, creator_assets.len()); // not opted-out (TODO maybe do this, no reason for creator to be opted in in the investor assets) so still there
         assert_eq!(0, creator_assets[0].amount);
 
@@ -63,12 +64,12 @@ mod tests {
         let escrow_held_assets = escrow_infos.assets;
         assert_eq!(escrow_held_assets.len(), 1);
         assert_eq!(
+            project.project.shares_asset_id,
             escrow_held_assets[0].asset_id,
-            project.project.shares_asset_id
         );
         assert_eq!(
+            project.project.specs.investors_part(),
             escrow_held_assets[0].amount,
-            project.project.specs.shares.count
         );
 
         // staking escrow funding checks
@@ -81,16 +82,20 @@ mod tests {
             staking_escrow_held_assets[0].asset_id,
             project.project.shares_asset_id
         );
-        assert_eq!(staking_escrow_held_assets[0].amount, 0); // nothing staked yet
+        // the creator's shares are in the staking escrow
+        assert_eq!(specs.creator_part(), staking_escrow_held_assets[0].amount);
 
-        // sanity check: the creator doesn't opt in to the app (doesn't invest or stake)
-        let central_state_res =
+        // the creator's central app local state is initialized correctly
+
+        let central_state =
             central_investor_state(&algod, &creator.address(), project.project.central_app_id)
-                .await;
-        assert_eq!(
-            Err(ApplicationLocalStateError::NotOptedIn),
-            central_state_res
-        );
+                .await?;
+        // the staked shares
+        assert_eq!(project.project.specs.creator_part(), central_state.shares);
+        // nothing has been harvested yet
+        assert_eq!(MicroAlgos(0), central_state.harvested);
+        // project id initialized
+        assert_eq!(project.project_id, central_state.project_id);
 
         Ok(())
     }

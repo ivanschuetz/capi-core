@@ -1,24 +1,13 @@
+use crate::hashable::Hashable;
 use algonaut::{
-    core::{Address, MicroAlgos},
+    core::Address,
     crypto::HashDigest,
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::hashable::Hashable;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CreateProjectSpecs {
-    pub name: String,
-    pub description: String,
-    pub shares: CreateSharesSpecs,
-    pub asset_price: MicroAlgos,
-    pub logo_url: String, // TODO limit size (this is stored in note) - maybe use newtype
-    pub social_media_url: String, // this can be later in an extension (possibly with more links)
-    pub investors_share: u64, // percentage as entered by the user, e.g. 30%. No fractionals.
-                          // TODO maybe use Decimal, ensure valid range (1..100)
-}
+use super::create_project_specs::CreateProjectSpecs;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubmitSetupEscrowRes {
@@ -115,12 +104,6 @@ impl Project {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubmitCreateProjectResult {
     pub project: Project,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CreateSharesSpecs {
-    pub token_name: String,
-    pub count: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -4,16 +4,25 @@
 #[cfg(test)]
 use super::test_data::{creator, investor1};
 #[cfg(test)]
+use crate::testing::network_test_util::test_init;
+#[cfg(test)]
 use crate::{
-    dependencies::algod_for_tests, network_util::wait_for_pending_transaction, teal::load_teal,
+    dependencies::algod_for_tests,
+    network_util::wait_for_pending_transaction,
+    state::app_state::{AppStateKey, ApplicationStateExt},
+    teal::load_teal,
 };
+use algonaut::core::SuggestedTransactionParams;
 #[cfg(test)]
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     transaction::{
-        account::Account, transaction::StateSchema, tx_group::TxGroup, AcceptAsset,
-        CreateApplication, CreateAsset, Pay, Transaction, TransferAsset, TxnBuilder,
+        account::Account,
+        builder::{CallApplication, OptInApplication},
+        transaction::StateSchema,
+        tx_group::TxGroup,
+        AcceptAsset, CreateApplication, CreateAsset, Pay, Transaction, TransferAsset, TxnBuilder,
     },
 };
 #[cfg(test)]
@@ -203,4 +212,165 @@ async fn optin_and_receive_asset_can_be_in_the_same_group() -> Result<()> {
     assert!(res.is_ok());
 
     Ok(())
+}
+
+/// Weird? when opting in to an app and incrementing local state in a tx group, the state is incremented twice
+/// is the smart contract being executed twice? The debugger shows only one execution (and increment).
+#[cfg(test)]
+#[test]
+#[ignore]
+async fn app_optin_and_local_state_access_in_same_group_increments_state_twice() -> Result<()> {
+    test_init()?;
+
+    let algod = algod_for_tests();
+
+    let creator = creator();
+
+    let params = algod.suggested_transaction_params().await?;
+
+    let app_id =
+        create_increment_local_state_app(&algod, &creator, &params, "increment_local_state_twice")
+            .await?;
+
+    let mut optin_tx = TxnBuilder::with(
+        params.clone(),
+        // TODO: investigate: Using CallApplication here instead of OptInApplication opts in the user too. Is this expected? Reviewed that the SDK is sending the correct integer.
+        // CallApplication::new(caller.address(), app_id).app_arguments(vec!["opt_in".as_bytes().to_vec()]).build(),
+        OptInApplication::new(creator.address(), app_id)
+            .app_arguments(vec!["opt_in".as_bytes().to_vec()])
+            .build(),
+    )
+    .build();
+    let mut write_local_state_tx = TxnBuilder::with(
+        params,
+        CallApplication::new(creator.address(), app_id)
+            .app_arguments(vec!["write_local_state".as_bytes().to_vec()])
+            .build(),
+    )
+    .build();
+
+    TxGroup::assign_group_id(vec![&mut optin_tx, &mut write_local_state_tx]).unwrap();
+
+    let signed_optin_tx = creator.sign_transaction(&optin_tx)?;
+    let signed_write_local_state_tx = creator.sign_transaction(&write_local_state_tx)?;
+
+    let res = algod
+        .broadcast_signed_transactions(&[signed_optin_tx, signed_write_local_state_tx])
+        .await?;
+
+    wait_for_pending_transaction(&algod, &res.tx_id.parse()?)
+        .await?
+        .unwrap();
+
+    let local_state =
+        crate::state::app_state::local_state(&algod, &creator.address(), app_id).await?;
+
+    let incremented_value = local_state.find_uint(&AppStateKey("MyLocalState"));
+
+    // this is the problem: we do only +10 in TEAL, but it's executed 2x, so 20
+    assert_eq!(incremented_value.unwrap(), 20);
+
+    Ok(())
+}
+
+#[cfg(test)]
+#[test]
+#[ignore]
+async fn app_optin_and_local_state_access_in_separate_groups_increments_state_once() -> Result<()> {
+    test_init()?;
+
+    let algod = algod_for_tests();
+
+    let creator = creator();
+
+    let params = algod.suggested_transaction_params().await?;
+
+    let app_id =
+        create_increment_local_state_app(&algod, &creator, &params, "increment_local_state_once")
+            .await?;
+
+    let optin_tx = TxnBuilder::with(
+        params.clone(),
+        // TODO: investigate: Using CallApplication here instead of OptInApplication opts in the user too. Is this expected? Reviewed that the SDK is sending the correct integer.
+        // CallApplication::new(caller.address(), app_id).app_arguments(vec!["opt_in".as_bytes().to_vec()]).build(),
+        OptInApplication::new(creator.address(), app_id)
+            .app_arguments(vec!["opt_in".as_bytes().to_vec()])
+            .build(),
+    )
+    .build();
+
+    let write_local_state_tx = TxnBuilder::with(
+        params,
+        CallApplication::new(creator.address(), app_id)
+            .app_arguments(vec!["write_local_state".as_bytes().to_vec()])
+            .build(),
+    )
+    .build();
+
+    let signed_optin_tx = creator.sign_transaction(&optin_tx)?;
+    let signed_write_local_state_tx = creator.sign_transaction(&write_local_state_tx)?;
+
+    let res = algod.broadcast_signed_transaction(&signed_optin_tx).await?;
+
+    wait_for_pending_transaction(&algod, &res.tx_id.parse()?)
+        .await?
+        .unwrap();
+
+    let res = algod
+        .broadcast_signed_transaction(&signed_write_local_state_tx)
+        .await?;
+
+    wait_for_pending_transaction(&algod, &res.tx_id.parse()?)
+        .await?
+        .unwrap();
+
+    let local_state =
+        crate::state::app_state::local_state(&algod, &creator.address(), app_id).await?;
+
+    let incremented_value = local_state.find_uint(&AppStateKey("MyLocalState"));
+
+    // the state is incremented only once, as expected
+    assert_eq!(incremented_value.unwrap(), 10);
+
+    Ok(())
+}
+
+/// Returns created app id
+async fn create_increment_local_state_app(
+    algod: &Algod,
+    sender: &Account,
+    params: &SuggestedTransactionParams,
+    teal_file_name: &str,
+) -> Result<u64> {
+    let teal_source = load_teal(teal_file_name)?;
+    let compiled_approval_program = algod.compile_teal(&teal_source.0).await?;
+    let compiled_clear_program = algod.compile_teal(&teal_source.0).await?;
+
+    let create_app_tx = TxnBuilder::with(
+        params.clone(),
+        CreateApplication::new(
+            sender.address(),
+            compiled_approval_program.clone(),
+            compiled_clear_program,
+            StateSchema {
+                number_ints: 0,
+                number_byteslices: 0,
+            },
+            StateSchema {
+                number_ints: 1,
+                number_byteslices: 0,
+            },
+        )
+        .build(),
+    )
+    .build();
+    let create_app_signed_tx = sender.sign_transaction(&create_app_tx)?;
+    let create_app_res = algod
+        .broadcast_signed_transaction(&create_app_signed_tx)
+        .await?;
+    let p_tx = wait_for_pending_transaction(&algod, &create_app_res.tx_id.parse()?)
+        .await?
+        .unwrap();
+
+    Ok(p_tx.application_index.unwrap())
 }
