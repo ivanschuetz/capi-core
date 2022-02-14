@@ -1,18 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use algonaut::{
-        algod::v2::Algod,
-        core::{Address, MicroAlgos},
-    };
+    use algonaut::{algod::v2::Algod, core::Address};
     use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
 
     use crate::{
         dependencies,
-        flows::withdraw::withdraw::{
-            submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs, FIXED_FEE,
-        },
+        flows::withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs},
+        funds::{FundsAmount, FundsAssetId},
+        state::account_state::funds_holdings,
         testing::{
             flow::{
                 create_project_flow::create_project_flow,
@@ -20,7 +17,7 @@ mod tests {
                 invest_in_project_flow::{invests_flow, invests_optins_flow},
                 withdraw_flow::{withdraw_flow, withdraw_precs},
             },
-            network_test_util::test_init,
+            network_test_util::{create_and_distribute_funds_asset, test_init},
             test_data::{creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -37,15 +34,21 @@ mod tests {
         let creator = creator();
         let drainer = investor1();
         let customer = customer();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // precs
 
-        let withdraw_amount = MicroAlgos(1_000_000); // UI
+        let withdraw_amount = FundsAmount(1_000_000); // UI
 
-        let project =
-            create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
-                .await?;
-        let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
+        let pay_and_drain_amount = FundsAmount(10 * 1_000_000);
 
         withdraw_precs(
             &algod,
@@ -53,29 +56,40 @@ mod tests {
             &customer,
             &project.project,
             pay_and_drain_amount,
+            funds_asset_id,
         )
         .await?;
 
         // remeber state
-        let central_balance_before_withdrawing = algod
-            .account_information(project.project.central_escrow.address())
-            .await?
-            .amount;
+        let central_balance_before_withdrawing = funds_holdings(
+            &algod,
+            project.project.central_escrow.address(),
+            funds_asset_id,
+        )
+        .await?;
         let creator_balance_bafore_withdrawing =
-            algod.account_information(&creator.address()).await?.amount;
+            funds_holdings(&algod, &creator.address(), funds_asset_id).await?;
 
         // flow
 
-        withdraw_flow(&algod, &project.project, &creator, withdraw_amount).await?;
+        withdraw_flow(
+            &algod,
+            &project.project,
+            &creator,
+            withdraw_amount,
+            funds_asset_id,
+        )
+        .await?;
 
         // test
 
         after_withdrawal_success_or_failure_tests(
             &algod,
             &creator.address(),
+            funds_asset_id,
             project.project.central_escrow.address(),
-            // creator got the amount and lost the fees for the withdraw txs (pay escrow fee and fee of that tx)
-            creator_balance_bafore_withdrawing + withdraw_amount - FIXED_FEE * 2,
+            // creator got the amount
+            creator_balance_bafore_withdrawing + withdraw_amount,
             // central lost the withdrawn amount
             central_balance_before_withdrawing - withdraw_amount,
         )
@@ -92,18 +106,25 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // precs
 
         let project_specs = project_specs();
         let investor_shares_count = 10;
 
-        let investment_amount = project_specs.asset_price * investor_shares_count;
+        let investment_amount = project_specs.share_price * investor_shares_count;
 
-        let withdraw_amount = investment_amount + MicroAlgos(1); // > investment amount (which is in the funds when withdrawing)
+        let withdraw_amount = investment_amount + FundsAmount(1); // > investment amount (which is in the funds when withdrawing)
 
-        let project =
-            create_project_flow(&algod, &creator, &project_specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         // Investor buys some shares
         invests_optins_flow(&algod, &investor, &project.project).await?;
@@ -111,24 +132,28 @@ mod tests {
             &algod,
             &investor,
             investor_shares_count,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
         .await?;
 
-        // remeber state
-        let central_balance_before_withdrawing = algod
-            .account_information(project.project.central_escrow.address())
-            .await?
-            .amount;
+        // remember state
+        let central_balance_before_withdrawing = funds_holdings(
+            &algod,
+            project.project.central_escrow.address(),
+            funds_asset_id,
+        )
+        .await?;
         let creator_balance_bafore_withdrawing =
-            algod.account_information(&creator.address()).await?.amount;
+            funds_holdings(&algod, &creator.address(), funds_asset_id).await?;
 
         // flow
 
         let to_sign = withdraw(
             &algod,
             creator.address(),
+            funds_asset_id,
             &WithdrawalInputs {
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
@@ -156,6 +181,7 @@ mod tests {
         test_withdrawal_did_not_succeed(
             &algod,
             &creator.address(),
+            funds_asset_id,
             project.project.central_escrow.address(),
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
@@ -177,21 +203,28 @@ mod tests {
         let investor = investor2();
         let customer = customer();
         let not_creator = investor2();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // precs
 
-        let withdraw_amount = MicroAlgos(1_000_000); // UI
+        let withdraw_amount = FundsAmount(1_000_000); // UI
 
-        let project =
-            create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
-                .await?;
-        let pay_and_drain_amount = MicroAlgos(10 * 1_000_000);
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
+        let pay_and_drain_amount = FundsAmount(10 * 1_000_000);
 
         // customer payment and draining, to have some funds to withdraw
         customer_payment_and_drain_flow(
             &algod,
             &drainer,
             &customer,
+            funds_asset_id,
             pay_and_drain_amount,
             &project.project,
         )
@@ -204,24 +237,28 @@ mod tests {
             &algod,
             &investor,
             investor_shares_count,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
         .await?;
 
-        // remeber state
-        let central_balance_before_withdrawing = algod
-            .account_information(project.project.central_escrow.address())
-            .await?
-            .amount;
+        // remember state
+        let central_balance_before_withdrawing = funds_holdings(
+            &algod,
+            project.project.central_escrow.address(),
+            funds_asset_id,
+        )
+        .await?;
         let creator_balance_bafore_withdrawing =
-            algod.account_information(&creator.address()).await?.amount;
+            funds_holdings(&algod, &creator.address(), funds_asset_id).await?;
 
         // flow
 
         let to_sign = withdraw(
             &algod,
             not_creator.address(),
+            funds_asset_id,
             &WithdrawalInputs {
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
@@ -250,6 +287,7 @@ mod tests {
         test_withdrawal_did_not_succeed(
             &algod,
             &creator.address(),
+            funds_asset_id,
             project.project.central_escrow.address(),
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
@@ -260,13 +298,15 @@ mod tests {
     async fn test_withdrawal_did_not_succeed(
         algod: &Algod,
         creator_address: &Address,
+        funds_asset_id: FundsAssetId,
         central_escrow_address: &Address,
-        creator_balance_before_withdrawing: MicroAlgos,
-        central_balance_before_withdrawing: MicroAlgos,
+        creator_balance_before_withdrawing: FundsAmount,
+        central_balance_before_withdrawing: FundsAmount,
     ) -> Result<()> {
         after_withdrawal_success_or_failure_tests(
             algod,
             creator_address,
+            funds_asset_id,
             central_escrow_address,
             creator_balance_before_withdrawing,
             central_balance_before_withdrawing,
@@ -277,20 +317,19 @@ mod tests {
     async fn after_withdrawal_success_or_failure_tests(
         algod: &Algod,
         creator_address: &Address,
+        funds_asset_id: FundsAssetId,
         central_escrow_address: &Address,
-        expected_withdrawer_balance: MicroAlgos,
-        expected_central_balance: MicroAlgos,
+        expected_withdrawer_amount: FundsAmount,
+        expected_central_amount: FundsAmount,
     ) -> Result<()> {
         // check creator's balance
-        let withdrawer_account = algod.account_information(&creator_address).await?;
-        assert_eq!(expected_withdrawer_balance, withdrawer_account.amount);
+        let withdrawer_amount = funds_holdings(algod, creator_address, funds_asset_id).await?;
+        assert_eq!(expected_withdrawer_amount, withdrawer_amount);
 
         // check central's balance
-        let central_escrow_balance = algod
-            .account_information(central_escrow_address)
-            .await?
-            .amount;
-        assert_eq!(expected_central_balance, central_escrow_balance);
+        let central_escrow_amount =
+            funds_holdings(algod, central_escrow_address, funds_asset_id).await?;
+        assert_eq!(expected_central_amount, central_escrow_amount);
 
         Ok(())
     }

@@ -1,13 +1,17 @@
 use algonaut::{
-    core::{Address, MicroAlgos},
+    core::Address,
     indexer::v2::Indexer,
     model::indexer::v2::{QueryTransaction, Role},
 };
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 
-use crate::{date_util::timestamp_seconds_to_date, flows::create_project::storage::load_project::TxId};
+use crate::{
+    date_util::timestamp_seconds_to_date, flows::create_project::storage::load_project::TxId,
+    funds::FundsAmount,
+};
 
+/// Project payments, i.e. funds asset transfers
 pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<Vec<Payment>> {
     log::debug!("Retrieving payment to: {:?}", address);
 
@@ -21,7 +25,7 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
 
     let mut payments = vec![];
     for tx in &response.transactions {
-        if let Some(payment_tx) = &tx.payment_transaction {
+        if let Some(payment_tx) = &tx.asset_transfer_transaction {
             let receiver_address = payment_tx.receiver.parse::<Address>().map_err(Error::msg)?;
 
             // Sanity check
@@ -39,7 +43,7 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
 
             payments.push(Payment {
                 tx_id: tx.id.parse()?,
-                amount: payment_tx.amount,
+                amount: FundsAmount(payment_tx.amount),
                 sender: tx.sender.parse().map_err(Error::msg)?,
                 date: timestamp_seconds_to_date(round_time)?,
                 note: tx.note.clone(),
@@ -56,7 +60,7 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
 #[derive(Debug, Clone)]
 pub struct Payment {
     pub tx_id: TxId,
-    pub amount: MicroAlgos,
+    pub amount: FundsAmount,
     pub sender: Address,
     pub date: DateTime<Utc>,
     pub note: Option<String>,

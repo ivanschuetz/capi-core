@@ -5,6 +5,10 @@ use super::invest_in_project_flow::invests_optins_flow;
 #[cfg(test)]
 use crate::flows::create_project::model::{CreateProjectSpecs, Project};
 #[cfg(test)]
+use crate::funds::{FundsAmount, FundsAssetId};
+#[cfg(test)]
+use crate::state::account_state::funds_holdings;
+#[cfg(test)]
 use crate::{
     flows::harvest::harvest::{harvest, submit_harvest, HarvestSigned},
     network_util::wait_for_pending_transaction,
@@ -15,7 +19,7 @@ use crate::{
     },
 };
 #[cfg(test)]
-use algonaut::{algod::v2::Algod, core::MicroAlgos, transaction::account::Account};
+use algonaut::{algod::v2::Algod, transaction::account::Account};
 #[cfg(test)]
 use anyhow::Result;
 
@@ -24,14 +28,15 @@ pub async fn harvest_precs(
     algod: &Algod,
     creator: &Account,
     specs: &CreateProjectSpecs,
+    funds_asset_id: FundsAssetId,
     harvester: &Account,
     drainer: &Account,
     customer: &Account,
     buy_asset_amount: u64, // UI
-    central_funds: MicroAlgos,
+    central_funds: FundsAmount,
     precision: u64,
 ) -> Result<HarvestTestPrecsRes> {
-    let project = create_project_flow(&algod, &creator, &specs, precision).await?;
+    let project = create_project_flow(&algod, &creator, &specs, funds_asset_id, precision).await?;
 
     // investor buys shares: this can be called after draining as well (without affecting test results)
     // the only order required for this is draining->harvesting, obviously harvesting has to be executed after draining (if it's to harvest the drained funds)
@@ -40,6 +45,7 @@ pub async fn harvest_precs(
         &algod,
         &harvester,
         buy_asset_amount,
+        funds_asset_id,
         &project.project,
         &project.project_id,
     )
@@ -50,14 +56,18 @@ pub async fn harvest_precs(
         &algod,
         &drainer,
         &customer,
+        funds_asset_id,
         central_funds,
         &project.project,
     )
     .await?;
-    let central_escrow_balance_after_drain = algod
-        .account_information(drain_res.project.central_escrow.address())
-        .await?
-        .amount;
+
+    let central_escrow_balance_after_drain = funds_holdings(
+        algod,
+        drain_res.project.central_escrow.address(),
+        funds_asset_id,
+    )
+    .await?;
 
     // end precs
 
@@ -73,18 +83,18 @@ pub async fn harvest_flow(
     algod: &Algod,
     project: &Project,
     harvester: &Account,
-    amount: MicroAlgos,
+    funds_asset_id: FundsAssetId,
+    amount: FundsAmount,
 ) -> Result<HarvestTestFlowRes> {
     // remember state
-    let harvester_balance_before_harvesting = algod
-        .account_information(&harvester.address())
-        .await?
-        .amount;
+    let harvester_balance_before_harvesting =
+        funds_holdings(algod, &harvester.address(), funds_asset_id).await?;
 
     let to_sign = harvest(
         &algod,
         &harvester.address(),
         project.central_app_id,
+        funds_asset_id,
         amount,
         &project.central_escrow,
     )
@@ -110,7 +120,7 @@ pub async fn harvest_flow(
     Ok(HarvestTestFlowRes {
         project: project.clone(),
         harvester_balance_before_harvesting,
-        harvest: amount,
+        harvest: amount.to_owned(),
         // drain_res: precs.drain_res.clone(),
     })
 }
@@ -120,8 +130,8 @@ pub async fn harvest_flow(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HarvestTestFlowRes {
     pub project: Project,
-    pub harvester_balance_before_harvesting: MicroAlgos,
-    pub harvest: MicroAlgos,
+    pub harvester_balance_before_harvesting: FundsAmount,
+    pub harvest: FundsAmount,
 }
 
 #[cfg(test)]
@@ -129,6 +139,6 @@ pub struct HarvestTestFlowRes {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HarvestTestPrecsRes {
     pub project: Project,
-    pub central_escrow_balance_after_drain: MicroAlgos,
+    pub central_escrow_balance_after_drain: FundsAmount,
     pub drain_res: CustomerPaymentAndDrainFlowRes,
 }

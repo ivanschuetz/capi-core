@@ -3,7 +3,7 @@
 
 // escrow setup on project creation
 global GroupSize
-int 8
+int 10
 ==
 
 bz after_tx_group_access
@@ -83,10 +83,16 @@ global ZeroAddress
 ==
 &&
 
-// check that algos sent match asset receive * algo price per asset
-gtxn 1 Amount // algos (send)
+// check that asset sent has the expected id 
+gtxn 1 XferAsset
+int {funds_asset_id}
+==
+&&
+
+// check that asset sent matches asset receive * share price
+gtxn 1 AssetAmount // asset (send)
 gtxn 3 AssetAmount // asset (receive)
-int {asset_price} // price (microalgos) per asset
+int {share_price} // price (in funds asset) per asset
 * 
 ==
 &&

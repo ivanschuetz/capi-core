@@ -14,7 +14,9 @@ int 2
 
 bnz branch_withdraw
 
-int 0
+global GroupSize
+int 10
+==
 return
 
 branch_harvest:
@@ -24,16 +26,25 @@ return
 
 branch_withdraw:
 
-gtxn 0 TypeEnum // withdrawal
+// pay fee
+gtxn 0 TypeEnum
 int pay
 ==
 
-gtxn 1 TypeEnum // pay withdrawal fee
-int pay
+// it's an asset transfer
+gtxn 1 TypeEnum
+int axfer
 ==
 &&
 
-gtxn 0 Receiver
+// asset has the expected id 
+gtxn 1 XferAsset
+int {funds_asset_id}
+==
+&&
+
+// project creator is the receiver
+gtxn 1 AssetReceiver
 addr {project_creator_address}
 ==
 &&

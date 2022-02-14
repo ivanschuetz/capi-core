@@ -1,19 +1,22 @@
 use algonaut::{
-    core::{Address, MicroAlgos},
+    core::Address,
     crypto::HashDigest,
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::hashable::Hashable;
+use crate::{
+    funds::{FundsAmount, FundsAssetId},
+    hashable::Hashable,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreateProjectSpecs {
     pub name: String,
     pub description: String,
     pub shares: CreateSharesSpecs,
-    pub asset_price: MicroAlgos,
+    pub share_price: FundsAmount,
     pub logo_url: String, // TODO limit size (this is stored in note) - maybe use newtype
     pub social_media_url: String, // this can be later in an extension (possibly with more links)
     pub investors_share: u64, // percentage as entered by the user, e.g. 30%. No fractionals.
@@ -86,6 +89,7 @@ pub struct CreateProjectSigned {
     pub specs: CreateProjectSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
+    pub funds_asset_id: FundsAssetId,
     pub invest_escrow: ContractAccount,
     pub staking_escrow: ContractAccount,
     pub central_escrow: ContractAccount,
@@ -99,6 +103,7 @@ pub struct Project {
     pub specs: CreateProjectSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
+    pub funds_asset_id: FundsAssetId,
     pub central_app_id: u64,
     pub invest_escrow: ContractAccount,
     pub staking_escrow: ContractAccount,

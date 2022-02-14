@@ -14,6 +14,7 @@ use crate::{
             staking_escrow::setup_staking_escrow_txs,
         },
     },
+    funds::FundsAssetId,
     network_util::wait_for_pending_transaction,
     teal::{TealSource, TealSourceTemplate},
 };
@@ -27,6 +28,7 @@ pub async fn create_project_txs(
     specs: &CreateProjectSpecs,
     creator: Address,
     shares_asset_id: u64,
+    funds_asset_id: FundsAssetId,
     programs: Programs,
     precision: u64,
 ) -> Result<CreateProjectToSign> {
@@ -39,8 +41,14 @@ pub async fn create_project_txs(
 
     let params = algod.suggested_transaction_params().await?;
 
-    let mut central_to_sign =
-        setup_central_escrow(algod, &creator, &programs.escrows.central_escrow, &params).await?;
+    let mut central_to_sign = setup_central_escrow(
+        algod,
+        &creator,
+        &programs.escrows.central_escrow,
+        &params,
+        funds_asset_id,
+    )
+    .await?;
 
     let mut customer_to_sign = setup_customer_escrow(
         algod,
@@ -48,6 +56,7 @@ pub async fn create_project_txs(
         central_to_sign.escrow.address(),
         &programs.escrows.customer_escrow,
         &params,
+        funds_asset_id,
     )
     .await?;
 
@@ -81,7 +90,8 @@ pub async fn create_project_txs(
         &programs.escrows.invest_escrow,
         shares_asset_id,
         specs.shares.count,
-        specs.asset_price,
+        &specs.share_price,
+        &funds_asset_id,
         &creator,
         setup_staking_escrow_to_sign.escrow.address(),
         &params,
@@ -100,6 +110,9 @@ pub async fn create_project_txs(
         // asset (shares) opt-ins
         &mut setup_staking_escrow_to_sign.escrow_shares_optin_tx,
         &mut setup_invest_escrow_to_sign.escrow_shares_optin_tx,
+        // asset (funds asset) opt-ins
+        &mut central_to_sign.optin_to_funds_asset_tx,
+        &mut customer_to_sign.optin_to_funds_asset_tx,
         // asset (shares) transfer to investing escrow
         &mut setup_invest_escrow_to_sign.escrow_funding_shares_asset_tx,
     ])?;
@@ -111,9 +124,17 @@ pub async fn create_project_txs(
     let invest_escrow = setup_invest_escrow_to_sign.escrow.clone();
     let invest_escrow_shares_optin_tx_signed =
         invest_escrow.sign(&setup_invest_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
+    let central_escrow_optin_to_funds_asset_tx_signed = central_to_sign
+        .escrow
+        .sign(&central_to_sign.optin_to_funds_asset_tx, vec![])?;
+    let customer_escrow_optin_to_funds_asset_tx_signed = customer_to_sign
+        .escrow
+        .sign(&customer_to_sign.optin_to_funds_asset_tx, vec![])?;
     let optin_txs = vec![
         staking_escrow_shares_optin_tx_signed,
         invest_escrow_shares_optin_tx_signed,
+        central_escrow_optin_to_funds_asset_tx_signed,
+        customer_escrow_optin_to_funds_asset_tx_signed,
     ];
 
     Ok(CreateProjectToSign {
@@ -174,6 +195,7 @@ pub async fn submit_create_project(
         project: Project {
             specs: signed.specs,
             shares_asset_id: signed.shares_asset_id,
+            funds_asset_id: signed.funds_asset_id,
             central_app_id,
             invest_escrow: signed.invest_escrow,
             staking_escrow: signed.staking_escrow,

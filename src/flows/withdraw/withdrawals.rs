@@ -1,7 +1,5 @@
 use algonaut::{
-    algod::v2::Algod,
-    core::{Address, MicroAlgos},
-    indexer::v2::Indexer,
+    algod::v2::Algod, core::Address, indexer::v2::Indexer,
     model::indexer::v2::QueryAccountTransaction,
 };
 use chrono::{DateTime, Utc};
@@ -16,6 +14,7 @@ use crate::{
         },
         withdraw::note::base64_withdrawal_note_to_withdrawal_description,
     },
+    funds::FundsAmount,
 };
 use anyhow::{anyhow, Error, Result};
 
@@ -58,7 +57,7 @@ pub async fn withdrawals(
 
     for tx in &txs {
         // withdrawals are payments - ignore other txs
-        if let Some(payment) = tx.payment_transaction.clone() {
+        if let Some(payment) = tx.asset_transfer_transaction.clone() {
             let sender_address = tx.sender.parse::<Address>().map_err(Error::msg)?;
             let receiver_address = payment.receiver.parse::<Address>().map_err(Error::msg)?;
 
@@ -85,7 +84,7 @@ pub async fn withdrawals(
                     .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
                 withdrawals.push(Withdrawal {
-                    amount: payment.amount,
+                    amount: FundsAmount(payment.amount),
                     description: withdrawal_description,
                     date: timestamp_seconds_to_date(round_time)?,
                     tx_id: tx.id.clone().parse()?,
@@ -99,7 +98,7 @@ pub async fn withdrawals(
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Withdrawal {
-    pub amount: MicroAlgos,
+    pub amount: FundsAmount,
     pub description: String,
     pub date: DateTime<Utc>,
     pub tx_id: TxId,

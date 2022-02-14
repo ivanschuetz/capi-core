@@ -1,4 +1,8 @@
 #[cfg(test)]
+use crate::funds::FundsAmount;
+#[cfg(test)]
+use crate::funds::FundsAssetId;
+#[cfg(test)]
 use crate::{
     flows::create_project::model::Project,
     flows::create_project::storage::load_project::TxId,
@@ -22,7 +26,8 @@ pub async fn customer_payment_and_drain_flow(
     algod: &Algod,
     drainer: &Account,
     customer: &Account,
-    customer_payment_amount: MicroAlgos,
+    funds_asset_id: FundsAssetId,
+    customer_payment_amount: FundsAmount,
     project: &Project,
 ) -> Result<CustomerPaymentAndDrainFlowRes> {
     // Customer sends a payment
@@ -30,6 +35,7 @@ pub async fn customer_payment_and_drain_flow(
         &algod,
         &customer,
         project.customer_escrow.address(),
+        funds_asset_id,
         customer_payment_amount,
     )
     .await?;
@@ -66,6 +72,7 @@ pub async fn customer_payment_and_drain_flow(
         &algod,
         &drainer.address(),
         project.central_app_id,
+        project.funds_asset_id,
         &project.customer_escrow,
         &project.central_escrow,
     )
@@ -108,7 +115,7 @@ pub struct CustomerPaymentAndDrainFlowRes {
     pub initial_drainer_balance: MicroAlgos,
     pub pay_fee_tx: Transaction,
     pub app_call_tx: Transaction,
-    pub drained_amount: MicroAlgos,
+    pub drained_amount: FundsAmount,
 }
 
 // Simulate a payment to the "external" project address
@@ -117,11 +124,18 @@ async fn send_payment_to_customer_escrow(
     algod: &Algod,
     customer: &Account,
     customer_escrow: &Address,
-    amount: MicroAlgos,
+    funds_asset_id: FundsAssetId,
+    amount: FundsAmount,
 ) -> Result<TxId> {
-    let tx = pay_project(algod, &customer.address(), customer_escrow, amount)
-        .await?
-        .tx;
+    let tx = pay_project(
+        algod,
+        &customer.address(),
+        customer_escrow,
+        funds_asset_id,
+        amount,
+    )
+    .await?
+    .tx;
     let signed_tx = customer.sign_transaction(&tx)?;
     let tx_id = submit_pay_project(algod, PayProjectSigned { tx: signed_tx }).await?;
     log::debug!("Customer payment tx id: {:?}", tx_id);

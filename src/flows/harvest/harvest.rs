@@ -1,10 +1,14 @@
-use crate::{decimal_util::AsDecimal, flows::create_project::storage::load_project::TxId};
+use crate::{
+    decimal_util::AsDecimal,
+    flows::create_project::storage::load_project::TxId,
+    funds::{FundsAmount, FundsAssetId},
+};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
         builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup, Pay,
-        SignedTransaction, Transaction, TxnBuilder,
+        SignedTransaction, Transaction, TransferAsset, TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -21,21 +25,15 @@ pub async fn harvest(
     algod: &Algod,
     harvester: &Address,
     central_app_id: u64,
-    amount: MicroAlgos,
+    funds_asset_id: FundsAssetId,
+    amount: FundsAmount,
     central_escrow: &ContractAccount,
 ) -> Result<HarvestToSign> {
     log::debug!("Generating harvest txs, harvester: {:?}, central_app_id: {:?}, amount: {:?}, central_escrow: {:?}", harvester, central_app_id, amount, central_escrow);
     let params = algod.suggested_transaction_params().await?;
 
-    // Escrow call to harvest the amount
-    let harvest_tx = &mut TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
-        Pay::new(*central_escrow.address(), *harvester, amount).build(),
-    )
-    .build();
+    // App call to update user's local state with harvested amount
+    let app_call_tx = &mut harvest_app_call_tx(central_app_id, &params, harvester)?;
 
     // The harvester pays the fee of the harvest tx (signed by central escrow)
     let pay_fee_tx = &mut TxnBuilder::with(
@@ -47,10 +45,23 @@ pub async fn harvest(
     )
     .build();
 
-    // App call to update user's local state with harvested amount
-    let app_call_tx = &mut harvest_app_call_tx(central_app_id, &params, harvester)?;
+    // Funds transfer from escrow to creator
+    let harvest_tx = &mut TxnBuilder::with(
+        SuggestedTransactionParams {
+            fee: FIXED_FEE,
+            ..params
+        },
+        TransferAsset::new(
+            *central_escrow.address(),
+            funds_asset_id.0,
+            amount.0,
+            *harvester,
+        )
+        .build(),
+    )
+    .build();
 
-    TxGroup::assign_group_id(vec![app_call_tx, harvest_tx, pay_fee_tx])?;
+    TxGroup::assign_group_id(vec![app_call_tx, pay_fee_tx, harvest_tx])?;
 
     let signed_harvest_tx = central_escrow.sign(harvest_tx, vec![])?;
 
@@ -83,8 +94,8 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxI
 
     let txs = vec![
         signed.app_call_tx_signed.clone(),
-        signed.harvest_tx.clone(),
         signed.pay_fee_tx.clone(),
+        signed.harvest_tx.clone(),
     ];
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
 
@@ -94,12 +105,12 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxI
 }
 
 pub fn calculate_entitled_harvest(
-    central_received_total: MicroAlgos,
+    central_received_total: FundsAmount,
     share_supply: u64,
     share_count: u64,
     precision: u64,
     investors_share: u64,
-) -> MicroAlgos {
+) -> FundsAmount {
     // TODO review possible overflow, type cast, unwrap
     // for easier understanding we use the same arithmetic as in TEAL
     let investors_share_fractional_percentage = investors_share.as_decimal() / 100.as_decimal(); // e.g. 10% -> 0.1
@@ -113,17 +124,17 @@ pub fn calculate_entitled_harvest(
         / (precision.as_decimal() * precision.as_decimal()))
     .floor();
 
-    MicroAlgos(entitled_total.to_u128().unwrap() as u64)
+    FundsAmount(entitled_total.to_u128().unwrap() as u64)
 }
 
 pub fn investor_can_harvest_amount_calc(
-    central_received_total: MicroAlgos,
-    harvested_total: MicroAlgos,
+    central_received_total: FundsAmount,
+    harvested_total: FundsAmount,
     share_count: u64,
     share_supply: u64,
     precision: u64,
     investors_share: u64,
-) -> MicroAlgos {
+) -> FundsAmount {
     // Note that this assumes that investor can't unstake only a part of their shares
     // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with harvested_total, which remains unchanged.
     // the easiest solution is to expect the investor to unstake all their shares

@@ -16,7 +16,7 @@ mod tests {
         },
         testing::{
             flow::create_project_flow::create_project_flow,
-            network_test_util::test_init,
+            network_test_util::{create_and_distribute_funds_asset, test_init},
             test_data::{creator, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -34,12 +34,19 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let indexer = dependencies::indexer_for_tests();
         let creator = creator();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let specs = project_specs();
 
-        let project =
-            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         let inputs = RoadmapItemInputs {
             project_id: project.project_id.clone(),

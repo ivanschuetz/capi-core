@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use crate::flows::create_project::storage::load_project::ProjectId;
+use crate::{flows::create_project::storage::load_project::ProjectId, funds::FundsAmount};
 
 use super::app_state::{
     global_state, local_state, local_state_from_account, AppStateKey, ApplicationLocalStateError,
@@ -8,7 +8,7 @@ use super::app_state::{
 };
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos},
+    core::Address,
     model::algod::v2::{Account, ApplicationLocalState},
 };
 use anyhow::Result;
@@ -20,12 +20,12 @@ const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_PROJECT: AppStateKey = AppStateKey("Project");
 
 pub struct CentralAppGlobalState {
-    pub received: MicroAlgos,
+    pub received: FundsAmount,
 }
 
 pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralAppGlobalState> {
     let global_state = global_state(algod, app_id).await?;
-    let total_received = MicroAlgos(global_state.find_uint(&GLOBAL_TOTAL_RECEIVED).unwrap_or(0));
+    let total_received = FundsAmount(global_state.find_uint(&GLOBAL_TOTAL_RECEIVED).unwrap_or(0));
     Ok(CentralAppGlobalState {
         received: total_received,
     })
@@ -34,7 +34,7 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CentralAppInvestorState {
     pub shares: u64,
-    pub harvested: MicroAlgos,
+    pub harvested: FundsAmount,
     pub project_id: ProjectId,
 }
 
@@ -62,7 +62,7 @@ fn central_investor_state_from_local_state(
     state: &ApplicationLocalState,
 ) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
     let shares = get_uint_value_or_error(state, &LOCAL_SHARES)?;
-    let harvested = MicroAlgos(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
+    let harvested = FundsAmount(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
     let project_id_bytes = get_bytes_value_or_error(state, &LOCAL_PROJECT)?;
 
     let project_id: ProjectId = project_id_bytes
@@ -82,7 +82,7 @@ fn get_uint_value_or_error(
     key: &AppStateKey<'static>,
 ) -> Result<u64, ApplicationLocalStateError<'static>> {
     state
-        .find_uint(&key)
+        .find_uint(key)
         .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
 }
 
@@ -91,7 +91,7 @@ fn get_bytes_value_or_error(
     key: &AppStateKey<'static>,
 ) -> Result<Vec<u8>, ApplicationLocalStateError<'static>> {
     state
-        .find_bytes(&key)
+        .find_bytes(key)
         .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
 }
 

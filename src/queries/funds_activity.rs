@@ -1,15 +1,14 @@
-use crate::flows::{
-    create_project::{
-        create_project::Escrows,
-        storage::load_project::{ProjectId, TxId},
+use crate::{
+    flows::{
+        create_project::{
+            create_project::Escrows,
+            storage::load_project::{ProjectId, TxId},
+        },
+        withdraw::withdrawals::withdrawals,
     },
-    withdraw::withdrawals::withdrawals,
+    funds::FundsAmount,
 };
-use algonaut::{
-    algod::v2::Algod,
-    core::{Address, MicroAlgos},
-    indexer::v2::Indexer,
-};
+use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
@@ -20,7 +19,7 @@ pub struct FundsActivityEntry {
     pub date: DateTime<Utc>,
     pub type_: FundsActivityEntryType,
     pub description: String,
-    pub amount: MicroAlgos,
+    pub amount: FundsAmount,
     pub tx_id: TxId,
 }
 

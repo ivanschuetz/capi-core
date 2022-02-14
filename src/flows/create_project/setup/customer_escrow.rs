@@ -2,7 +2,8 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        contract_account::ContractAccount, Pay, SignedTransaction, Transaction, TxnBuilder,
+        contract_account::ContractAccount, AcceptAsset, Pay, SignedTransaction, Transaction,
+        TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -10,10 +11,14 @@ use serde::Serialize;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
-use crate::teal::{render_template, TealSource, TealSourceTemplate};
+use crate::{
+    funds::FundsAssetId,
+    teal::{render_template, TealSource, TealSourceTemplate},
+};
 
 // TODO no constants
-pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
+ // 1 asset (funds asset)
+pub const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 // TODO confirm this is needed
 // see more notes in old repo
 pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
@@ -24,16 +29,27 @@ pub async fn setup_customer_escrow(
     central_address: &Address,
     source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
+    funds_asset_id: FundsAssetId,
 ) -> Result<SetupCustomerEscrowToSign> {
     let escrow = render_and_compile_customer_escrow(algod, central_address, source).await?;
+
+    let optin_to_funds_asset_tx = TxnBuilder::with(
+        params.to_owned(),
+        AcceptAsset::new(*escrow.address(), funds_asset_id.0).build(),
+    )
+    .build();
+
+    let fund_min_balance_tx = create_payment_tx(
+        project_creator,
+        escrow.address(),
+        MIN_BALANCE + FIXED_FEE,
+        params,
+    )
+    .await?;
+
     Ok(SetupCustomerEscrowToSign {
-        fund_min_balance_tx: create_payment_tx(
-            project_creator,
-            escrow.address(),
-            MIN_BALANCE + FIXED_FEE,
-            params,
-        )
-        .await?,
+        optin_to_funds_asset_tx,
+        fund_min_balance_tx,
         escrow,
     })
 }
@@ -90,6 +106,7 @@ async fn create_payment_tx(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SetupCustomerEscrowToSign {
+    pub optin_to_funds_asset_tx: Transaction,
     pub fund_min_balance_tx: Transaction,
     pub escrow: ContractAccount,
 }

@@ -9,13 +9,10 @@ use crate::{
             staking_escrow::render_and_compile_staking_escrow,
         },
     },
+    funds::{FundsAmount, FundsAssetId},
     hashable::Hashable,
 };
-use algonaut::{
-    algod::v2::Algod,
-    core::{Address, MicroAlgos},
-    crypto::HashDigest,
-};
+use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 use futures::join;
@@ -136,8 +133,12 @@ async fn storable_project_to_project(
     escrows: &Escrows,
 ) -> Result<Project> {
     // Render and compile the escrows
-    let central_escrow_account_fut =
-        render_and_compile_central_escrow(algod, &payload.creator, &escrows.central_escrow);
+    let central_escrow_account_fut = render_and_compile_central_escrow(
+        algod,
+        &payload.creator,
+        &escrows.central_escrow,
+        payload.funds_asset_id,
+    );
     let staking_escrow_account_fut =
         render_and_compile_staking_escrow(algod, payload.shares_asset_id, &escrows.staking_escrow);
 
@@ -155,7 +156,8 @@ async fn storable_project_to_project(
     let investing_escrow_account_fut = render_and_compile_investing_escrow(
         algod,
         payload.shares_asset_id,
-        payload.asset_price,
+        &payload.share_price,
+        &payload.funds_asset_id,
         staking_escrow_account.address(),
         &escrows.invest_escrow,
     );
@@ -173,11 +175,12 @@ async fn storable_project_to_project(
                 token_name: payload.asset_name.clone(),
                 count: payload.asset_supply,
             },
-            asset_price: payload.asset_price,
+            share_price: payload.share_price,
             investors_share: payload.investors_share,
             logo_url: payload.logo_url.clone(),
             social_media_url: payload.social_media_url.clone(),
         },
+        funds_asset_id: payload.funds_asset_id,
         creator: payload.creator,
         shares_asset_id: payload.shares_asset_id,
         central_app_id: payload.central_app_id,
@@ -213,7 +216,8 @@ pub struct ProjectNoteProjectPayload {
     pub asset_name: String,
     pub asset_supply: u64,
 
-    pub asset_price: MicroAlgos,
+    pub share_price: FundsAmount,
+    pub funds_asset_id: FundsAssetId,
     pub investors_share: u64,
     pub logo_url: String,
     pub social_media_url: String,
@@ -237,7 +241,8 @@ impl From<Project> for ProjectNoteProjectPayload {
             asset_id: p.shares_asset_id,
             asset_name: p.specs.shares.token_name,
             asset_supply: p.specs.shares.count,
-            asset_price: p.specs.asset_price,
+            funds_asset_id: p.funds_asset_id,
+            share_price: p.specs.share_price,
             investors_share: p.specs.investors_share,
             logo_url: p.specs.logo_url,
             creator: p.creator,

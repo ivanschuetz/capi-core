@@ -12,6 +12,9 @@ echo $FUNDER
 # MKRBTLNZRS3UZZDS5OWPLP7YPHUDNKXFUFN5PNCJ3P2XRG74HNOGY6XOYQ
 sandbox goal account import -m "clog coral speak since defy siege video lamp polar chronic treat smooth puzzle input payment hobby draft habit race birth ridge correct behave able close"
 
+# fund the "funds asset" source - this is an account dedicated solely to mint the funds asset and distribute it to the test accounts
+sandbox goal clerk send -a 10000000000 -f $FUNDER -t DNQPINWK4K5QZYLCK7DVJFEWRUXPXGW36TEUIHNSNOFYI2RMPG2BZPQ7DE
+
 # fund our test accounts
 # 10_000 algos
 sandbox goal clerk send -a 10000000000 -f $FUNDER -t VKCFMGBTVINZ4EN7253QVTALGYQRVMOLVHF6O44O2X7URQP7BAOAXXPFCA

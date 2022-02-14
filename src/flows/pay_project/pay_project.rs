@@ -1,8 +1,11 @@
-use crate::flows::create_project::storage::load_project::TxId;
+use crate::{
+    flows::create_project::storage::load_project::TxId,
+    funds::{FundsAmount, FundsAssetId},
+};
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos},
-    transaction::{Pay, SignedTransaction, Transaction, TxnBuilder},
+    core::{Address, MicroAlgos, SuggestedTransactionParams},
+    transaction::{SignedTransaction, Transaction, TransferAsset, TxnBuilder},
 };
 use anyhow::Result;
 
@@ -14,13 +17,17 @@ pub async fn pay_project(
     algod: &Algod,
     customer: &Address,
     customer_escrow: &Address,
-    amount: MicroAlgos,
+    funds_asset_id: FundsAssetId,
+    amount: FundsAmount,
 ) -> Result<PayProjectToSign> {
     let params = algod.suggested_transaction_params().await?;
 
     let tx = TxnBuilder::with(
-        params,
-        Pay::new(*customer, *customer_escrow, amount).build(),
+        SuggestedTransactionParams {
+            fee: FIXED_FEE,
+            ..params
+        },
+        TransferAsset::new(*customer, funds_asset_id.0, amount.0, *customer_escrow).build(),
     )
     .build();
 

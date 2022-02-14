@@ -9,7 +9,7 @@ mod tests {
         hashable::Hashable,
         testing::{
             flow::create_project_flow::{create_project_flow, programs},
-            network_test_util::test_init,
+            network_test_util::{create_and_distribute_funds_asset, test_init},
             test_data::{creator, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -27,13 +27,15 @@ mod tests {
         let indexer = indexer_for_tests();
         let creator = creator();
         let programs = programs()?;
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let specs = project_specs();
 
         let precision = TESTS_DEFAULT_PRECISION;
 
-        let create_project_res = create_project_flow(&algod, &creator, &specs, precision).await?;
+        let create_project_res =
+            create_project_flow(&algod, &creator, &specs, funds_asset_id, precision).await?;
 
         let to_sign = save_project(&algod, &creator.address(), &create_project_res.project).await?;
 

@@ -1,10 +1,14 @@
-use crate::flows::create_project::storage::load_project::TxId;
+use crate::{
+    flows::create_project::storage::load_project::TxId,
+    funds::{FundsAmount, FundsAssetId},
+    state::account_state::funds_holdings,
+};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
         builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup, Pay,
-        SignedTransaction, Transaction, TxnBuilder,
+        SignedTransaction, Transaction, TransferAsset, TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -19,30 +23,16 @@ pub async fn drain_customer_escrow(
     algod: &Algod,
     drainer: &Address,
     central_app_id: u64,
+    funds_asset_id: FundsAssetId,
     customer_escrow: &ContractAccount,
     central_escrow: &ContractAccount,
 ) -> Result<DrainCustomerEscrowToSign> {
     let params = algod.suggested_transaction_params().await?;
-    let customer_escrow_balance = algod
-        .account_information(customer_escrow.address())
-        .await?
-        .amount;
+    let customer_escrow_holdings =
+        funds_holdings(algod, customer_escrow.address(), funds_asset_id).await?;
+    let amount_to_drain = customer_escrow_holdings;
 
-    let balance_to_drain = customer_escrow_balance - MIN_BALANCE - FIXED_FEE; // leave min balance and "tmp fee amount"
-
-    let drain_tx = &mut TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
-        Pay::new(
-            *customer_escrow.address(),
-            *central_escrow.address(),
-            balance_to_drain,
-        )
-        .build(),
-    )
-    .build();
+    let app_call_tx = &mut drain_app_call_tx(central_app_id, &params, drainer)?;
 
     let pay_fee_tx = &mut TxnBuilder::with(
         SuggestedTransactionParams {
@@ -53,9 +43,22 @@ pub async fn drain_customer_escrow(
     )
     .build();
 
-    let app_call_tx = &mut drain_app_call_tx(central_app_id, &params, drainer)?;
+    let drain_tx = &mut TxnBuilder::with(
+        SuggestedTransactionParams {
+            fee: FIXED_FEE,
+            ..params.clone()
+        },
+        TransferAsset::new(
+            *customer_escrow.address(),
+            funds_asset_id.0,
+            amount_to_drain.0,
+            *central_escrow.address(),
+        )
+        .build(),
+    )
+    .build();
 
-    TxGroup::assign_group_id(vec![app_call_tx, drain_tx, pay_fee_tx])?;
+    TxGroup::assign_group_id(vec![app_call_tx, pay_fee_tx, drain_tx])?;
 
     let signed_drain_tx = customer_escrow.sign(drain_tx, vec![])?;
 
@@ -63,7 +66,7 @@ pub async fn drain_customer_escrow(
         drain_tx: signed_drain_tx,
         pay_fee_tx: pay_fee_tx.clone(),
         app_call_tx: app_call_tx.clone(),
-        amount_to_drain: balance_to_drain,
+        amount_to_drain,
     })
 }
 
@@ -90,8 +93,8 @@ pub async fn submit_drain_customer_escrow(
     // crate::teal::debug_teal_rendered(
     //     &[
     //         signed.app_call_tx_signed.clone(),
-    //         signed.drain_tx.clone(),
     //         signed.pay_fee_tx.clone(),
+    //         signed.drain_tx.clone(),
     //     ],
     //     "app_central_approval",
     // )
@@ -99,8 +102,8 @@ pub async fn submit_drain_customer_escrow(
     // crate::teal::debug_teal_rendered(
     //     &[
     //         signed.app_call_tx_signed.clone(),
-    //         signed.drain_tx.clone(),
     //         signed.pay_fee_tx.clone(),
+    //         signed.drain_tx.clone(),
     //     ],
     //     "customer_escrow",
     // )
@@ -109,8 +112,8 @@ pub async fn submit_drain_customer_escrow(
     let res = algod
         .broadcast_signed_transactions(&[
             signed.app_call_tx_signed.clone(),
-            signed.drain_tx.clone(),
             signed.pay_fee_tx.clone(),
+            signed.drain_tx.clone(),
         ])
         .await?;
     log::debug!("Drain customer escrow tx id: {:?}", res.tx_id);
@@ -122,7 +125,7 @@ pub struct DrainCustomerEscrowToSign {
     pub drain_tx: SignedTransaction,
     pub pay_fee_tx: Transaction,
     pub app_call_tx: Transaction,
-    pub amount_to_drain: MicroAlgos,
+    pub amount_to_drain: FundsAmount,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -11,6 +11,8 @@ use crate::flows::create_project::{
     setup::create_assets::{create_investor_assets_txs, submit_create_assets},
 };
 #[cfg(test)]
+use crate::funds::FundsAssetId;
+#[cfg(test)]
 use crate::{
     flows::create_project::create_project::{Escrows, Programs},
     network_util::wait_for_pending_transaction,
@@ -33,6 +35,7 @@ pub async fn create_project_flow(
     algod: &Algod,
     creator: &Account,
     specs: &CreateProjectSpecs,
+    funds_asset_id: FundsAssetId,
     precision: u64,
 ) -> Result<CreateProjectFlowRes> {
     // Create asset first: id needed in app template
@@ -52,6 +55,7 @@ pub async fn create_project_flow(
         specs,
         creator.address(),
         create_assets_res.shares_id,
+        funds_asset_id,
         programs,
         precision,
     )
@@ -69,12 +73,14 @@ pub async fn create_project_flow(
 
     // Create the asset (submit signed tx) and generate escrow funding tx
     // Note that the escrow is generated after the asset, because it uses the asset id (in teal, inserted with template)
+
     let create_res = submit_create_project(
         &algod,
         CreateProjectSigned {
             specs: to_sign.specs,
             creator: creator.address(),
             shares_asset_id: create_assets_res.shares_id,
+            funds_asset_id: funds_asset_id.clone(),
             escrow_funding_txs: signed_funding_txs,
             optin_txs: to_sign.optin_txs,
             create_app_tx: signed_create_app_tx,

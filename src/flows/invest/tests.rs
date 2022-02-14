@@ -3,8 +3,12 @@ mod tests {
     use crate::flows::create_project::model::Project;
     use crate::flows::create_project::storage::load_project::ProjectId;
     use crate::flows::harvest::harvest::calculate_entitled_harvest;
+    use crate::funds::{FundsAmount, FundsAssetId};
     use crate::network_util::wait_for_pending_transaction;
     use crate::queries::my_projects::my_current_invested_projects;
+    use crate::state::account_state::{
+        find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
+    };
     use crate::state::central_app_state::{
         central_global_state, central_investor_state, central_investor_state_from_acc,
     };
@@ -13,7 +17,7 @@ mod tests {
     use crate::testing::flow::invest_in_project_flow::{invests_flow, invests_optins_flow};
     use crate::testing::flow::stake_flow::stake_flow;
     use crate::testing::flow::unstake_flow::unstake_flow;
-    use crate::testing::network_test_util::test_init;
+    use crate::testing::network_test_util::{create_and_distribute_funds_asset, test_init};
     use crate::testing::test_data::{customer, investor2};
     use crate::testing::TESTS_DEFAULT_PRECISION;
     use crate::{
@@ -23,11 +27,7 @@ mod tests {
     };
     use algonaut::algod::v2::Algod;
     use algonaut::transaction::account::Account;
-    use algonaut::{
-        core::MicroAlgos,
-        transaction::{Transaction, TransactionType},
-    };
-    use anyhow::{anyhow, Result};
+    use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
 
@@ -40,13 +40,20 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let buy_asset_amount = 10;
         let specs = project_specs();
 
-        let project =
-            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         // precs
 
@@ -58,6 +65,7 @@ mod tests {
             &algod,
             &investor,
             buy_asset_amount,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -87,24 +95,23 @@ mod tests {
         assert_eq!(project.project_id, central_investor_state.project_id);
 
         // check that harvested is 0 (nothing harvested yet)
-        assert_eq!(MicroAlgos(0), central_investor_state.harvested);
+        assert_eq!(FundsAmount(0), central_investor_state.harvested);
 
         // double check: investor didn't receive any shares
-        let investor_assets = investor_infos.assets;
-        assert_eq!(1, investor_assets.len());
-        assert_eq!(0, investor_assets[0].amount);
+
+        let investor_assets = investor_infos.assets.clone();
+        // funds asset + shares asset
+        assert_eq!(2, investor_assets.len());
+        let shares_asset =
+            find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
+        assert_eq!(0, shares_asset.amount);
 
         // investor lost algos and fees
-        let paid_amount = specs.asset_price * buy_asset_amount;
+        let investor_holdings = funds_holdings_from_account(&investor_infos, funds_asset_id)?;
+        let paid_amount = specs.share_price * buy_asset_amount;
         assert_eq!(
-            flow_res.investor_initial_amount
-                - paid_amount
-                - flow_res.invest_res.central_app_investor_setup_tx.transaction.fee
-                - flow_res.invest_res.shares_asset_optin_tx.transaction.fee
-                - flow_res.invest_res.payment_tx.transaction.fee
-                - retrieve_payment_amount_from_tx(&flow_res.invest_res.pay_escrow_fee_tx.transaction)? // paid for the escrow's xfers (shares) fees
-                - flow_res.invest_res.pay_escrow_fee_tx.transaction.fee, // the fee to pay for the escrow's xfer fee
-            investor_infos.amount
+            flow_res.investor_initial_amount - paid_amount,
+            investor_holdings
         );
 
         // invest escrow tests
@@ -126,12 +133,15 @@ mod tests {
         // central escrow tests
 
         // central escrow received paid algos
-        let central_escrow_infos = algod
-            .account_information(project.project.central_escrow.address())
-            .await?;
+        let central_escrow_holdings = funds_holdings(
+            &algod,
+            &project.project.central_escrow.address(),
+            funds_asset_id,
+        )
+        .await?;
         assert_eq!(
             flow_res.central_escrow_initial_amount + paid_amount,
-            central_escrow_infos.amount
+            central_escrow_holdings
         );
 
         Ok(())
@@ -146,14 +156,21 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let buy_asset_amount = 10;
         let buy_asset_amount2 = 20;
         let specs = project_specs();
 
-        let project =
-            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         // precs
 
@@ -165,6 +182,7 @@ mod tests {
             &algod,
             &investor,
             buy_asset_amount,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -180,6 +198,7 @@ mod tests {
             &algod,
             &investor,
             buy_asset_amount2,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -205,14 +224,21 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let stake_amount = 10;
         let invest_amount = 20;
         let specs = project_specs();
 
-        let project =
-            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         // precs
 
@@ -225,6 +251,7 @@ mod tests {
             &project.project,
             stake_amount,
             &project.project_id,
+            funds_asset_id,
         )
         .await?;
 
@@ -236,6 +263,7 @@ mod tests {
             &algod,
             &investor,
             invest_amount,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -277,14 +305,21 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let stake_amount = 10;
         let invest_amount = 20;
         let specs = project_specs();
 
-        let project =
-            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         // precs
 
@@ -297,6 +332,7 @@ mod tests {
             &project.project,
             stake_amount,
             &project.project_id,
+            funds_asset_id,
         )
         .await?;
 
@@ -324,6 +360,7 @@ mod tests {
             &algod,
             &investor,
             invest_amount,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -349,6 +386,7 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let stake_amount1 = 10;
@@ -357,8 +395,14 @@ mod tests {
         let invest_amount_not_stake = 5;
         let specs = project_specs();
 
-        let project =
-            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         // precs
 
@@ -371,6 +415,7 @@ mod tests {
             &project.project,
             stake_amount1 + stake_amount2 + invest_amount_not_stake,
             &project.project_id,
+            funds_asset_id,
         )
         .await?;
 
@@ -425,22 +470,30 @@ mod tests {
         let investor = investor1();
         let drainer = investor2();
         let customer = customer();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let buy_asset_amount = 10;
         let specs = project_specs();
 
-        let project =
-            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         // precs
 
         // add some funds
-        let central_funds = MicroAlgos(10 * 1_000_000);
+        let central_funds = FundsAmount(10 * 1_000_000);
         customer_payment_and_drain_flow(
             &algod,
             &drainer,
             &customer,
+            funds_asset_id,
             central_funds,
             &project.project,
         )
@@ -453,6 +506,7 @@ mod tests {
             &algod,
             &investor,
             buy_asset_amount,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -490,22 +544,30 @@ mod tests {
         let investor = investor1();
         let drainer = investor2();
         let customer = customer();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let buy_asset_amount = 10;
         let specs = project_specs();
 
-        let project =
-            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         // precs
 
         // add some funds
-        let central_funds = MicroAlgos(10 * 1_000_000);
+        let central_funds = FundsAmount(10 * 1_000_000);
         customer_payment_and_drain_flow(
             &algod,
             &drainer,
             &customer,
+            funds_asset_id,
             central_funds,
             &project.project,
         )
@@ -520,6 +582,7 @@ mod tests {
             &project.project,
             buy_asset_amount,
             &project.project_id,
+            funds_asset_id,
         )
         .await?;
 
@@ -566,13 +629,20 @@ mod tests {
         let indexer = dependencies::indexer_for_tests();
         let creator = creator();
         let investor = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let buy_asset_amount = 10;
         let specs = project_specs();
 
-        let project =
-            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         // precs
 
@@ -584,6 +654,7 @@ mod tests {
             &algod,
             &investor,
             buy_asset_amount,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -615,21 +686,19 @@ mod tests {
         project: &Project,
         shares_amount: u64,
         project_id: &ProjectId,
+        funds_asset_id: FundsAssetId,
     ) -> Result<()> {
-        invests_flow(&algod, &investor, shares_amount, &project, project_id).await?;
+        invests_flow(
+            &algod,
+            &investor,
+            shares_amount,
+            funds_asset_id,
+            &project,
+            project_id,
+        )
+        .await?;
         let unstake_tx_id = unstake_flow(&algod, &project, &investor, shares_amount).await?;
         wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
         Ok(())
-    }
-
-    // TODO refactor with fn in other test (same name)
-    fn retrieve_payment_amount_from_tx(tx: &Transaction) -> Result<MicroAlgos> {
-        match &tx.txn_type {
-            TransactionType::Payment(p) => Ok(p.amount),
-            _ => Err(anyhow!(
-                "Invalid state: tx is expected to be a payment tx: {:?}",
-                tx
-            )),
-        }
     }
 }

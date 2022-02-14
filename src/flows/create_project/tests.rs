@@ -2,9 +2,13 @@
 mod tests {
     use crate::{
         dependencies,
-        state::{app_state::ApplicationLocalStateError, central_app_state::central_investor_state},
+        state::{
+            account_state::find_asset_holding_or_err, app_state::ApplicationLocalStateError,
+            central_app_state::central_investor_state,
+        },
         testing::{
-            flow::create_project_flow::create_project_flow, test_data::project_specs,
+            flow::create_project_flow::create_project_flow,
+            network_test_util::create_and_distribute_funds_asset, test_data::project_specs,
             TESTS_DEFAULT_PRECISION,
         },
         testing::{network_test_util::test_init, test_data::creator},
@@ -21,12 +25,14 @@ mod tests {
         // deps
         let algod = dependencies::algod_for_tests();
         let creator = creator();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let specs = project_specs();
 
         let precision = TESTS_DEFAULT_PRECISION;
-        let project = create_project_flow(&algod, &creator, &specs, precision).await?;
+        let project =
+            create_project_flow(&algod, &creator, &specs, funds_asset_id, precision).await?;
 
         // UI
         log::debug!("Submitted create project txs, project: {:?}", project);
@@ -52,9 +58,12 @@ mod tests {
         );
         assert_eq!(specs.shares.count, created_assets[0].params.total);
         let creator_assets = creator_infos.assets;
-        // creator sent all the assets to the escrow (during project creation): has 0
-        assert_eq!(1, creator_assets.len()); // not opted-out (TODO maybe do this, no reason for creator to be opted in in the investor assets) so still there
-        assert_eq!(0, creator_assets[0].amount);
+        // funds asset + not opted-out from shares (TODO maybe do this, no reason for creator to be opted in in the investor assets) so still there
+        assert_eq!(2, creator_assets.len());
+        // creator sent all the shares to the escrow (during project creation): has 0
+        let shares_asset =
+            find_asset_holding_or_err(&creator_assets, project.project.shares_asset_id)?;
+        assert_eq!(0, shares_asset.amount);
 
         // investing escrow funding checks
         let escrow = project.project.invest_escrow;

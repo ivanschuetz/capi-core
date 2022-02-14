@@ -1,9 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use algonaut::{
-        core::MicroAlgos,
-        transaction::{AcceptAsset, TransferAsset, TxnBuilder},
-    };
+    use algonaut::transaction::{AcceptAsset, TransferAsset, TxnBuilder};
     use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
@@ -15,10 +12,13 @@ mod tests {
             invest::app_optins::{
                 invest_or_staking_app_optin_tx, submit_invest_or_staking_app_optin,
             },
-            stake::stake::FIXED_FEE,
         },
+        funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         state::{
+            account_state::{
+                find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
+            },
             app_state::ApplicationLocalStateError,
             central_app_state::{central_investor_state, central_investor_state_from_acc},
         },
@@ -31,7 +31,7 @@ mod tests {
                 stake_flow::stake_flow,
                 unstake_flow::unstake_flow,
             },
-            network_test_util::test_init,
+            network_test_util::{create_and_distribute_funds_asset, test_init},
             test_data::{self, creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -51,6 +51,7 @@ mod tests {
         // repurposing creator as drainer here, as there are only 2 investor test accounts and we prefer them in a clean state for these tests
         let drainer = test_data::creator();
         let customer = customer();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
 
@@ -58,15 +59,21 @@ mod tests {
 
         // precs
 
-        let project =
-            create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
-                .await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         invests_optins_flow(&algod, &investor1, &project.project).await?;
         let _ = invests_flow(
             &algod,
             &investor1,
             buy_asset_amount,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -74,11 +81,12 @@ mod tests {
 
         // drain (to generate dividend). note that investor doesn't reclaim it (doesn't seem relevant for this test)
         // (the draining itself may also not be relevant, just for a more realistic pre-trade scenario)
-        let customer_payment_amount = MicroAlgos(10 * 1_000_000);
+        let customer_payment_amount = FundsAmount(10 * 1_000_000);
         let _ = customer_payment_and_drain_flow(
             &algod,
             &drainer,
             &customer,
+            funds_asset_id,
             customer_payment_amount,
             &project.project,
         )
@@ -149,10 +157,14 @@ mod tests {
         // tests
 
         // investor2 lost staked assets
+
         let investor2_infos = algod.account_information(&investor2.address()).await?;
         let investor2_assets = &investor2_infos.assets;
-        assert_eq!(1, investor2_assets.len()); // opted in to shares
-        assert_eq!(0, investor2_assets[0].amount);
+        // funds asset + shares asset
+        assert_eq!(2, investor2_assets.len());
+        let shares_asset =
+            find_asset_holding_or_err(&investor2_assets, project.project.shares_asset_id)?;
+        assert_eq!(0, shares_asset.amount);
 
         // already harvested local state initialized to entitled algos
 
@@ -186,18 +198,25 @@ mod tests {
 
         // investor2 harvests: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         // the harvest amount is the smallest number possible, to show that we can't retrieve anything
-        let harvest_flow_res =
-            harvest_flow(&algod, &project.project, &investor2, MicroAlgos(1)).await;
+        let harvest_flow_res = harvest_flow(
+            &algod,
+            &project.project,
+            &investor2,
+            funds_asset_id,
+            FundsAmount(1),
+        )
+        .await;
         log::debug!("Expected error harvesting: {:?}", harvest_flow_res);
         // If there's nothing to harvest, the smart contract fails (transfer amount > allowed)
         assert!(harvest_flow_res.is_err());
 
         // drain again to generate dividend and be able to harvest
-        let customer_payment_amount_2 = MicroAlgos(10 * 1_000_000);
+        let customer_payment_amount_2 = FundsAmount(10 * 1_000_000);
         let _ = customer_payment_and_drain_flow(
             &algod,
             &drainer,
             &customer,
+            funds_asset_id,
             customer_payment_amount_2,
             &project.project,
         )
@@ -206,10 +225,13 @@ mod tests {
         // harvest again: this time there's something to harvest and we expect success
 
         // remember state
-        let investor2_amount_before_harvest = algod
-            .account_information(&investor2.address())
-            .await?
-            .amount;
+        let investor2_amount_before_harvest =
+            funds_holdings(&algod, &investor2.address(), funds_asset_id).await?;
+
+        // algod
+        //     .account_information(&investor2.address())
+        //     .await?
+        //     .amount;
 
         // we'll harvest the max possible amount
         let investor2_entitled_amount = calculate_entitled_harvest(
@@ -227,16 +249,20 @@ mod tests {
             &algod,
             &project.project,
             &investor2,
+            funds_asset_id,
             investor2_entitled_amount,
         )
         .await?;
+
         // just a rename to help with clarity a bit
         let expected_harvested_amount = investor2_entitled_amount;
         let investor2_infos = algod.account_information(&investor2.address()).await?;
-        // the balance is increased with the harvest - fees for the harvesting txs (app call + pay for harvest tx fee + fee for this tx)
+        let investor2_amount = funds_holdings_from_account(&investor2_infos, funds_asset_id)?;
+
+        // the balance is increased with the harvest
         assert_eq!(
-            investor2_amount_before_harvest + expected_harvested_amount - FIXED_FEE * 3,
-            investor2_infos.amount
+            investor2_amount_before_harvest + expected_harvested_amount,
+            investor2_amount
         );
 
         // investor's harvested local state was updated:
@@ -264,6 +290,7 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
 
@@ -272,15 +299,21 @@ mod tests {
 
         // precs
 
-        let project =
-            create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
-                .await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         invests_optins_flow(&algod, &investor, &project.project).await?;
         let _ = invests_flow(
             &algod,
             &investor,
             buy_asset_amount,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -304,10 +337,14 @@ mod tests {
         );
 
         // investor has the unstaked shares
+
         let investor_infos = algod.account_information(&investor.address()).await?;
         let investor_assets = &investor_infos.assets;
-        assert_eq!(1, investor_assets.len()); // opted in to shares
-        assert_eq!(buy_asset_amount, investor_assets[0].amount);
+        // funds asset + shares asset
+        assert_eq!(2, investor_assets.len());
+        let shares_asset =
+            find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
+        assert_eq!(buy_asset_amount, shares_asset.amount);
 
         // investor stakes again a part of the shares
 
@@ -340,11 +377,11 @@ mod tests {
         // investor has the remaining free shares
         let investor_infos = algod.account_information(&investor.address()).await?;
         let investor_assets = &investor_infos.assets;
-        assert_eq!(1, investor_assets.len()); // opted in to shares
-        assert_eq!(
-            buy_asset_amount - partial_stake_amount,
-            investor_assets[0].amount
-        );
+        // funds asset + shares asset
+        assert_eq!(2, investor_assets.len());
+        let shares_asset =
+            find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
+        assert_eq!(buy_asset_amount - partial_stake_amount, shares_asset.amount);
 
         Ok(())
     }

@@ -11,13 +11,15 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::drain::drain::{FIXED_FEE, MIN_BALANCE},
+        flows::create_project::setup::customer_escrow,
+        funds::FundsAmount,
+        state::account_state::funds_holdings,
         testing::{
             flow::{
                 create_project_flow::create_project_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
             },
-            network_test_util::test_init,
+            network_test_util::{create_and_distribute_funds_asset, test_init},
             project_general::check_schema,
             test_data::{creator, customer, investor1, project_specs},
             TESTS_DEFAULT_PRECISION,
@@ -35,14 +37,21 @@ mod tests {
         let creator = creator();
         let drainer = investor1();
         let customer = customer();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
         let specs = project_specs();
 
-        let project =
-            create_project_flow(&algod, &creator, &specs, TESTS_DEFAULT_PRECISION).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
-        let customer_payment_amount = MicroAlgos(10 * 1_000_000);
+        let customer_payment_amount = FundsAmount(10 * 1_000_000);
 
         // flow
 
@@ -50,6 +59,7 @@ mod tests {
             &algod,
             &drainer,
             &customer,
+            funds_asset_id,
             customer_payment_amount,
             &project.project,
         )
@@ -59,25 +69,24 @@ mod tests {
             .account_information(drain_res.project.customer_escrow.address())
             .await?
             .amount;
-        let central_escrow_balance = algod
-            .account_information(drain_res.project.central_escrow.address())
-            .await?
-            .amount;
+        let central_escrow_amount = funds_holdings(
+            &algod,
+            drain_res.project.central_escrow.address(),
+            funds_asset_id,
+        )
+        .await?;
         let drainer_balance = algod.account_information(&drainer.address()).await?.amount;
 
         log::debug!(
             "customer_escrow_balance last: {:?}",
             customer_escrow_balance
         );
-        log::debug!("central_escrow_balance last: {:?}", central_escrow_balance);
+        log::debug!("central_escrow_balance last: {:?}", central_escrow_amount);
         log::debug!("drainer_balance last: {:?}", drainer_balance);
-        // check that customer escrow was drained. Account keeps min balance, and fee (to be able to pay for the harvest tx (before it's funded in the same group))
-        assert_eq!(MIN_BALANCE + FIXED_FEE, customer_escrow_balance);
-        // check that central escrow has now the funds from customer escrow (funds at creation: MIN_BALANCE + FIXED_FEE)
-        assert_eq!(
-            MIN_BALANCE + FIXED_FEE + customer_payment_amount,
-            central_escrow_balance
-        );
+        // account keeps min balance
+        assert_eq!(customer_escrow::MIN_BALANCE, customer_escrow_balance);
+        // check that central escrow has now the funds from customer escrow
+        assert_eq!(customer_payment_amount, central_escrow_amount);
         // check that the drainer lost the payment for the draining tx fee, the fee for this payment tx and the app call fee
         assert_eq!(
             drain_res.initial_drainer_balance

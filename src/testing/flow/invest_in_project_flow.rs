@@ -12,9 +12,13 @@ use crate::flows::{
     },
 };
 #[cfg(test)]
+use crate::funds::{FundsAmount, FundsAssetId};
+#[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
 #[cfg(test)]
-use algonaut::{algod::v2::Algod, core::MicroAlgos, transaction::account::Account};
+use crate::state::account_state::funds_holdings;
+#[cfg(test)]
+use algonaut::{algod::v2::Algod, transaction::account::Account};
 #[cfg(test)]
 use anyhow::{anyhow, Result};
 
@@ -44,18 +48,16 @@ pub async fn invests_flow(
     algod: &Algod,
     investor: &Account,
     buy_asset_amount: u64,
+    funds_asset_id: FundsAssetId,
     project: &Project,
     project_id: &ProjectId,
 ) -> Result<InvestInProjectTestFlowRes> {
     // remember initial investor's funds
-    let investor_infos = algod.account_information(&investor.address()).await?;
-    let investor_initial_amount = investor_infos.amount;
-
+    let investor_initial_amount =
+        funds_holdings(algod, &investor.address(), funds_asset_id).await?;
     // remember initial central escrow's funds
-    let central_escrow_infos = algod
-        .account_information(project.central_escrow.address())
-        .await?;
-    let central_escrow_initial_amount = central_escrow_infos.amount;
+    let central_escrow_initial_amount =
+        funds_holdings(algod, project.central_escrow.address(), funds_asset_id).await?;
 
     let to_sign = invest_txs(
         &algod,
@@ -65,7 +67,8 @@ pub async fn invests_flow(
         project.central_app_id,
         project.shares_asset_id,
         buy_asset_amount,
-        project.specs.asset_price,
+        funds_asset_id,
+        project.specs.share_price,
         project_id,
     )
     .await?;
@@ -91,6 +94,7 @@ pub async fn invests_flow(
 
     // wait for tx to go through (so everything is on chain when returning to caller, e.g. to test)
     // TODO (low prio) should be in the tests rather?
+
     let _ = wait_for_pending_transaction(&algod, &invest_res.tx_id)
         .await?
         .ok_or(anyhow!("Couldn't get pending tx"))?;
@@ -107,8 +111,8 @@ pub async fn invests_flow(
 // Any data we want to return from the flow to the tests
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InvestInProjectTestFlowRes {
-    pub investor_initial_amount: MicroAlgos,
-    pub central_escrow_initial_amount: MicroAlgos,
+    pub investor_initial_amount: FundsAmount,
+    pub central_escrow_initial_amount: FundsAmount,
     pub invest_res: InvestResult,
     pub project: Project,
 }

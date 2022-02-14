@@ -8,7 +8,10 @@ use algonaut::{
 };
 use anyhow::Result;
 
-use crate::flows::create_project::{model::Project, storage::load_project::ProjectId};
+use crate::{
+    flows::create_project::{model::Project, storage::load_project::ProjectId},
+    funds::{FundsAmount, FundsAssetId},
+};
 
 use super::model::{InvestResult, InvestSigned, InvestToSign};
 
@@ -26,7 +29,8 @@ pub async fn invest_txs(
     central_app_id: u64,
     shares_asset_id: u64,
     asset_count: u64,
-    asset_price: MicroAlgos,
+    funds_asset_id: FundsAssetId,
+    share_price: FundsAmount,
     project_id: &ProjectId,
 ) -> Result<InvestToSign> {
     log::debug!("Investing in project: {:?}", project);
@@ -41,12 +45,16 @@ pub async fn invest_txs(
         project_id,
     )?;
 
-    let mut send_algos_tx = TxnBuilder::with(
-        params.clone(),
-        Pay::new(
+    let mut pay_price_tx = TxnBuilder::with(
+        SuggestedTransactionParams {
+            fee: FIXED_FEE,
+            ..params.clone()
+        },
+        TransferAsset::new(
             *investor,
+            funds_asset_id.0,
+            share_price.0 * asset_count,
             *project.central_escrow.address(),
-            asset_price * asset_count,
         )
         .build(),
     )
@@ -83,7 +91,7 @@ pub async fn invest_txs(
 
     let txs_for_group = vec![
         &mut central_app_investor_setup_tx,
-        &mut send_algos_tx,
+        &mut pay_price_tx,
         &mut shares_optin_tx,
         &mut receive_shares_asset_tx,
         &mut pay_escrow_fee_tx,
@@ -97,7 +105,7 @@ pub async fn invest_txs(
     Ok(InvestToSign {
         project: project.to_owned(),
         central_app_setup_tx: central_app_investor_setup_tx,
-        payment_tx: send_algos_tx,
+        payment_tx: pay_price_tx,
         shares_asset_optin_tx: shares_optin_tx,
         pay_escrow_fee_tx,
         shares_xfer_tx: receive_shares_asset_signed_tx,

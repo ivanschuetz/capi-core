@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::flows::create_project::model::{CreateProjectSpecs, CreateSharesSpecs};
 #[cfg(test)]
-use algonaut::core::MicroAlgos;
+use crate::funds::FundsAmount;
 #[cfg(test)]
 use algonaut::transaction::account::Account;
 
@@ -38,7 +38,7 @@ pub fn project_specs() -> CreateProjectSpecs {
         name: "Pancakes ltd".to_owned(),
         description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
         shares: shares_specs(),
-        asset_price: MicroAlgos(5_000_000),
+        share_price: FundsAmount(5_000_000),
         investors_share: 40,
         logo_url: "https://placekitten.com/200/300".to_string(),
         social_media_url: "https://twitter.com/capi_fin".to_owned(),

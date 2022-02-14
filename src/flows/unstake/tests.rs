@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use algonaut::core::MicroAlgos;
     use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
@@ -8,15 +7,19 @@ mod tests {
     use crate::{
         dependencies,
         flows::unstake::unstake::FIXED_FEE,
+        funds::FundsAmount,
         network_util::wait_for_pending_transaction,
-        state::central_app_state::central_investor_state_from_acc,
+        state::{
+            account_state::find_asset_holding_or_err,
+            central_app_state::central_investor_state_from_acc,
+        },
         testing::{
             flow::{
                 create_project_flow::create_project_flow,
                 invest_in_project_flow::{invests_flow, invests_optins_flow},
                 unstake_flow::unstake_flow,
             },
-            network_test_util::test_init,
+            network_test_util::{create_and_distribute_funds_asset, test_init},
             test_data::{creator, investor1, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -32,6 +35,7 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
 
@@ -39,15 +43,21 @@ mod tests {
 
         // precs
 
-        let project =
-            create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
-                .await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         invests_optins_flow(&algod, &investor, &project.project).await?;
         let _ = invests_flow(
             &algod,
             &investor,
             buy_asset_amount,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -55,10 +65,15 @@ mod tests {
         // TODO double check tests for state (at least important) tested (e.g. investor has shares, staking doesn't etc.)
 
         // double check investor's assets
+
         let investor_infos = algod.account_information(&investor.address()).await?;
         let investor_assets = &investor_infos.assets;
-        assert_eq!(1, investor_assets.len()); // opted in to shares
-        assert_eq!(0, investor_assets[0].amount); // doesn't have shares (they're sent directly to staking escrow)
+        // funds asset + shares asset
+        assert_eq!(2, investor_assets.len());
+        let shares_asset =
+            find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
+        // doesn't have shares (they're sent directly to staking escrow)
+        assert_eq!(0, shares_asset.amount);
 
         let investor_state =
             central_investor_state_from_acc(&investor_infos, project.project.central_app_id)?;
@@ -66,13 +81,14 @@ mod tests {
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
         //  harvested total is 0 (hasn't harvested yet)
-        assert_eq!(MicroAlgos(0), investor_state.harvested);
+        assert_eq!(FundsAmount(0), investor_state.harvested);
 
         // double check staking escrow's assets
         let staking_escrow_infos = algod
             .account_information(project.project.staking_escrow.address())
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
+
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
         assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
 
@@ -100,8 +116,12 @@ mod tests {
         // investor got shares
         let investor_infos = algod.account_information(&investor.address()).await?;
         let investor_assets = investor_infos.assets;
-        assert_eq!(1, investor_assets.len());
-        assert_eq!(buy_asset_amount, investor_assets[0].amount); // got the shares
+        // funds asset + shares asset
+        assert_eq!(2, investor_assets.len());
+        let shares_asset =
+            find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
+        // got the shares
+        assert_eq!(buy_asset_amount, shares_asset.amount);
 
         // investor local state cleared (opted out)
         assert_eq!(0, investor_infos.apps_local_state.len());
@@ -127,6 +147,7 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
 
@@ -135,15 +156,21 @@ mod tests {
 
         // precs
 
-        let project =
-            create_project_flow(&algod, &creator, &project_specs(), TESTS_DEFAULT_PRECISION)
-                .await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &project_specs(),
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
 
         invests_optins_flow(&algod, &investor, &project.project).await?;
         let _ = invests_flow(
             &algod,
             &investor,
             buy_asset_amount,
+            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -152,8 +179,12 @@ mod tests {
         // double check investor's assets
         let investor_infos = algod.account_information(&investor.address()).await?;
         let investor_assets = &investor_infos.assets;
-        assert_eq!(1, investor_assets.len()); // opted in to shares
-        assert_eq!(0, investor_assets[0].amount); // doesn't have shares (they're sent directly to staking escrow)
+        // funds asset + shares asset
+        assert_eq!(2, investor_assets.len());
+        let shares_asset =
+            find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
+        // doesn't have shares (they're sent directly to staking escrow)
+        assert_eq!(0, shares_asset.amount);
 
         // double check investor's local state
         let investor_state =
@@ -161,7 +192,7 @@ mod tests {
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
         // harvested total is 0 (hasn't harvested yet)
-        assert_eq!(MicroAlgos(0), investor_state.harvested);
+        assert_eq!(FundsAmount(0), investor_state.harvested);
 
         // double check staking escrow's assets
         let staking_escrow_infos = algod
@@ -192,10 +223,15 @@ mod tests {
         assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount); // lost shares
 
         // investor didn't get anything
+
         let investor_infos = algod.account_information(&investor.address()).await?;
         let investor_assets = &investor_infos.assets;
-        assert_eq!(1, investor_assets.len());
-        assert_eq!(0, investor_assets[0].amount); // no shares
+        // funds asset + shares asset
+        assert_eq!(2, investor_assets.len());
+        let shares_asset =
+            find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
+        // no shares
+        assert_eq!(0, shares_asset.amount);
 
         let investor_state =
             central_investor_state_from_acc(&investor_infos, project.project.central_app_id)?;
@@ -203,7 +239,7 @@ mod tests {
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
         // harvested total is 0 (hasn't harvested yet)
-        assert_eq!(MicroAlgos(0), investor_state.harvested);
+        assert_eq!(FundsAmount(0), investor_state.harvested);
 
         // investor didn't pay fees (unstake txs failed)
         assert_eq!(investor_balance_before_unstaking, investor_infos.amount);

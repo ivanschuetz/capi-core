@@ -10,6 +10,7 @@ use crate::{
     flows::create_project::model::{
         SetupInvestEscrowSigned, SetupInvestingEscrowToSign, SubmitSetupEscrowRes,
     },
+    funds::{FundsAmount, FundsAssetId},
     teal::{render_template, TealSource, TealSourceTemplate},
 };
 
@@ -21,14 +22,16 @@ use crate::teal::save_rendered_teal;
 pub async fn create_investing_escrow(
     algod: &Algod,
     shares_asset_id: u64,
-    asset_price: MicroAlgos,
+    share_price: &FundsAmount,
+    funds_asset_id: &FundsAssetId,
     staking_escrow_address: &Address,
     source: &TealSourceTemplate,
 ) -> Result<ContractAccount> {
     render_and_compile_investing_escrow(
         algod,
         shares_asset_id,
-        asset_price,
+        share_price,
+        funds_asset_id,
         staking_escrow_address,
         source,
     )
@@ -38,26 +41,34 @@ pub async fn create_investing_escrow(
 pub async fn render_and_compile_investing_escrow(
     algod: &Algod,
     shares_asset_id: u64,
-    asset_price: MicroAlgos,
+    share_price: &FundsAmount,
+    funds_asset_id: &FundsAssetId,
     staking_escrow_address: &Address,
     source: &TealSourceTemplate,
 ) -> Result<ContractAccount> {
-    let source =
-        render_investing_escrow(source, shares_asset_id, asset_price, staking_escrow_address)?;
+    let source = render_investing_escrow(
+        source,
+        shares_asset_id,
+        share_price,
+        funds_asset_id,
+        staking_escrow_address,
+    )?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
 fn render_investing_escrow(
     source: &TealSourceTemplate,
     shares_asset_id: u64,
-    asset_price: MicroAlgos, // affects the shares
+    share_price: &FundsAmount,
+    funds_asset_id: &FundsAssetId,
     staking_escrow_address: &Address,
 ) -> Result<TealSource> {
     let escrow_source = render_template(
         source,
         EditTemplateContext {
             shares_asset_id: shares_asset_id.to_string(),
-            asset_price: asset_price.to_string(),
+            share_price: share_price.0.to_string(),
+            funds_asset_id: funds_asset_id.0.to_string(),
             staking_escrow_address: staking_escrow_address.to_string(),
         },
     )?;
@@ -71,23 +82,25 @@ pub async fn setup_investing_escrow_txs(
     algod: &Algod,
     source: &TealSourceTemplate,
     shares_asset_id: u64,
-    asset_amount: u64,
-    asset_price: MicroAlgos,
+    transfer_share_amount: u64,
+    share_price: &FundsAmount,
+    funds_asset_id: &FundsAssetId,
     creator: &Address,
     staking_escrow_address: &Address,
     params: &SuggestedTransactionParams,
 ) -> Result<SetupInvestingEscrowToSign> {
     log::debug!(
-        "Setting up escrow with asset id: {}, amount: {}, creator: {:?}",
+        "Setting up investing escrow with asset id: {}, transfer_share_amount: {}, creator: {:?}",
         shares_asset_id,
-        asset_amount,
+        transfer_share_amount,
         creator
     );
 
     let escrow = create_investing_escrow(
         algod,
         shares_asset_id,
-        asset_price,
+        share_price,
+        funds_asset_id,
         staking_escrow_address,
         source,
     )
@@ -107,9 +120,15 @@ pub async fn setup_investing_escrow_txs(
     )
     .build();
 
-    let fund_shares_asset_tx = &mut TxnBuilder::with(
+    let transfer_shares_tx = &mut TxnBuilder::with(
         params.to_owned(),
-        TransferAsset::new(*creator, shares_asset_id, asset_amount, *escrow.address()).build(),
+        TransferAsset::new(
+            *creator,
+            shares_asset_id,
+            transfer_share_amount,
+            *escrow.address(),
+        )
+        .build(),
     )
     .build();
 
@@ -121,7 +140,7 @@ pub async fn setup_investing_escrow_txs(
         escrow,
         escrow_shares_optin_tx: shares_optin_tx.clone(),
         escrow_funding_algos_tx: fund_algos_tx.clone(),
-        escrow_funding_shares_asset_tx: fund_shares_asset_tx.clone(),
+        escrow_funding_shares_asset_tx: transfer_shares_tx.clone(),
     })
 }
 
@@ -143,17 +162,20 @@ pub async fn submit_investing_setup_escrow(
 #[derive(Serialize)]
 struct EditTemplateContext {
     shares_asset_id: String,
-    asset_price: String,
+    share_price: String,
+    funds_asset_id: String,
     staking_escrow_address: String,
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        dependencies, flows::create_project::setup::investing_escrow::render_investing_escrow,
+        dependencies,
+        flows::create_project::setup::investing_escrow::render_investing_escrow,
+        funds::{FundsAmount, FundsAssetId},
         teal::load_teal_template,
     };
-    use algonaut::core::{Address, MicroAlgos};
+    use algonaut::core::Address;
     use anyhow::Result;
     use tokio::test;
 
@@ -165,7 +187,8 @@ mod tests {
         let source = render_investing_escrow(
             &template,
             123,
-            MicroAlgos(1_000_000),
+            &FundsAmount(1_000_000),
+            &FundsAssetId(123), // not used - can be anything
             &Address::new([0; 32]),
         )?;
         let source_str = String::from_utf8(source.0)?;
@@ -180,7 +203,8 @@ mod tests {
         let source = render_investing_escrow(
             &template,
             123,
-            MicroAlgos(1_000_000),
+            &FundsAmount(1_000_000),
+            &FundsAssetId(123), // not used - can be anything
             &Address::new([0; 32]),
         )?;
 

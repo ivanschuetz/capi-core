@@ -1,11 +1,12 @@
 #pragma version 4
+int 1
 
 txn ApplicationID
 int 0
 ==
 
 global GroupSize
-int 8
+int 10
 ==
 &&
 
@@ -32,7 +33,7 @@ bnz branch_investor_setup
 global GroupSize
 int 3
 ==
-gtxn 1 Sender // drain tx
+gtxn 2 Sender // drain tx
 addr {customer_escrow_address}
 ==
 &&
@@ -42,7 +43,7 @@ bnz branch_drain
 global GroupSize
 int 3 
 ==
-gtxn 1 Sender // harvest tx
+gtxn 2 Sender // harvest tx
 addr {central_escrow_address}
 ==
 &&
@@ -117,7 +118,7 @@ gtxn 0 Sender // sender of app call (investor)
 byte "HarvestedTotal"
 
 gtxn 1 AssetAmount // staked xfer (this will become "holdings", if the group passes)
-callsub entitled_harvest_microalgos_for_shares
+callsub entitled_harvest_amount_for_shares
 app_local_put
 
 // save the project id in local state, so we can find projects were a user invested in (with the indexer)  
@@ -157,7 +158,7 @@ byte "HarvestedTotal"
 gtxn 0 Sender
 byte "Shares"
 app_local_get
-callsub entitled_harvest_microalgos_for_shares
+callsub entitled_harvest_amount_for_shares
 app_local_put
 
 // save the project id in local state, so we can find projects were a user invested in (with the indexer)  
@@ -176,13 +177,13 @@ gtxn 0 TypeEnum // app call
 int appl
 ==
 
-gtxn 1 TypeEnum // drain
+gtxn 1 TypeEnum // pay fee
 int pay
 ==
 &&
 
-gtxn 2 TypeEnum // pay fee
-int pay
+gtxn 2 TypeEnum // drain
+int axfer
 ==
 &&
 
@@ -190,7 +191,7 @@ int pay
 byte "CentralReceivedTotal"
 byte "CentralReceivedTotal"
 app_global_get
-gtxn 1 Amount // drain tx amount
+gtxn 2 AssetAmount // drain tx amount
 +
 app_global_put
 
@@ -201,13 +202,13 @@ gtxn 0 TypeEnum // app call
 int appl
 ==
 
-gtxn 1 TypeEnum // harvest
+gtxn 1 TypeEnum // pay fee
 int pay
 ==
 &&
 
-gtxn 2 TypeEnum // pay fee
-int pay
+gtxn 2 TypeEnum // harvest
+int axfer
 ==
 &&
 
@@ -215,7 +216,7 @@ int pay
 gtxn 0 Sender
 byte "Shares"
 app_local_get
-callsub entitled_harvest_microalgos_for_shares
+callsub entitled_harvest_amount_for_shares
 
 // how much user has already harvested
 int 0
@@ -225,7 +226,7 @@ app_local_get // if local state doesn't exist yet, this puts a 0 on the stack
 // how much user is entitled to harvest now
 -
 
-gtxn 1 Amount
+gtxn 2 AssetAmount
 >=
 
 &&
@@ -240,7 +241,7 @@ byte "HarvestedTotal"
 int 0
 byte "HarvestedTotal"
 app_local_get
-gtxn 1 Amount // harvest tx amount
+gtxn 2 AssetAmount // harvest tx amount
 +
 app_local_put
 
@@ -273,10 +274,10 @@ return
 
 // local state (owned shares) is cleared automatically by CloseOut
 
-// How many microalgos (share of total retrieved funds) correspond to investor's share
+// What amount (share of total retrieved funds) correspond to investor's share
 // Does *not* account for already harvested funds.
 // arg: owned shares
-entitled_harvest_microalgos_for_shares:
+entitled_harvest_amount_for_shares:
 
 int {precision}
 *
