@@ -1,3 +1,4 @@
+use crate::dependencies::algod_for_tests;
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
 #[cfg(test)]
@@ -6,6 +7,8 @@ use algonaut::{
     core::SuggestedTransactionParams,
     transaction::{account::Account, CreateAsset, TransferAsset, TxnBuilder},
 };
+#[cfg(test)]
+use tokio::test;
 #[cfg(test)]
 use {
     crate::dependencies::{network, Network},
@@ -188,6 +191,18 @@ fn reset_network(net: &Network) -> Result<()> {
     {
         // log::debug!("{}", _line);
     }
+
+    Ok(())
+}
+
+/// Reset and prepare local network for manual testing.
+/// Basically execute the same code we do when starting all the automated tests.
+#[test]
+#[ignore]
+async fn reset_and_fund_network() -> Result<()> {
+    test_init()?;
+    let algod = algod_for_tests();
+    create_and_distribute_funds_asset(&algod).await?;
 
     Ok(())
 }
