@@ -11,6 +11,7 @@ use crate::{
     },
     flows::pay_project::pay_project::{pay_project, submit_pay_project, PayProjectSigned},
     network_util::wait_for_pending_transaction,
+    state::account_state::funds_holdings,
 };
 #[cfg(test)]
 use algonaut::{
@@ -41,33 +42,23 @@ pub async fn customer_payment_and_drain_flow(
     .await?;
     wait_for_pending_transaction(&algod, &customer_payment_tx_id).await?;
 
-    let customer_escrow_balance = algod
-        .account_information(project.customer_escrow.address())
-        .await?
-        .amount;
-    // let central_escrow_balance = algod
-    //     .account_information(&project.central_escrow.address)
-    //     .await?
-    //     .amount;
-    // remember initial drainer balance
-    let initial_drainer_balance = algod.account_information(&drainer.address()).await?.amount;
-    // TODO check whether these double checks are really necessary and move to tests if needed, flows should not make assumptions about context
-    // for example, when using this in staking tests it fails, because we call it multiple times (with different contexts)
-    // // double check that the payment arrived on the customer escrow
-    // // normally should be part of test but too complicated to split here - it's just a double check anyway
-    // assert_eq!(
-    //     MIN_BALANCE + customer_payment_amount + FIXED_FEE,
-    //     customer_escrow_balance
-    // );
-    // // double check that there's nothing on central yet
-    // // normally should be part of test but too complicated to split here - it's just a double check anyway
-    // // Note + FIXED_FEE, we add FIXED_FEE to min balance when creating project (central_escrow.rs)
-    // // to not fail when withdrawing everything
-    // // TODO clarify: how are the groups evaluated, better way.
-    // assert_eq!(MIN_BALANCE + FIXED_FEE, central_escrow_balance);
+    drain_flow(algod, drainer, project, funds_asset_id).await
+}
 
-    // Someone triggers harvest from customer escrow
-    // UI
+#[cfg(test)]
+pub async fn drain_flow(
+    algod: &Algod,
+    drainer: &Account,
+    project: &Project,
+    funds_asset_id: FundsAssetId,
+) -> Result<CustomerPaymentAndDrainFlowRes> {
+    let initial_drainer_balance = algod.account_information(&drainer.address()).await?.amount;
+
+    // double check precondition: customer escrow has no funds
+    let customer_escrow_holdings =
+        funds_holdings(algod, project.customer_escrow.address(), funds_asset_id).await?;
+    assert_eq!(FundsAmount(0), customer_escrow_holdings);
+
     let drain_to_sign = drain_customer_escrow(
         &algod,
         &drainer.address(),
@@ -80,11 +71,6 @@ pub async fn customer_payment_and_drain_flow(
 
     let pay_fee_tx_signed = drainer.sign_transaction(&drain_to_sign.pay_fee_tx)?;
     let app_call_tx_signed = drainer.sign_transaction(&drain_to_sign.app_call_tx)?;
-
-    log::debug!(
-        "customer_escrow_balance before drain: {:?}",
-        customer_escrow_balance
-    );
 
     let drain_tx_id = submit_drain_customer_escrow(
         &algod,
@@ -103,7 +89,7 @@ pub async fn customer_payment_and_drain_flow(
         initial_drainer_balance,
         pay_fee_tx: drain_to_sign.pay_fee_tx,
         app_call_tx: drain_to_sign.app_call_tx,
-        drained_amount: drain_to_sign.amount_to_drain, // the txs were successful here: already drained
+        drained_amount: drain_to_sign.amount_to_drain, // txs were submitted successfully: already drained
     })
 }
 

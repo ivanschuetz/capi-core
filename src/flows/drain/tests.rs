@@ -17,7 +17,7 @@ mod tests {
         testing::{
             flow::{
                 create_project_flow::create_project_flow,
-                customer_payment_and_drain_flow::customer_payment_and_drain_flow,
+                customer_payment_and_drain_flow::{customer_payment_and_drain_flow, drain_flow},
             },
             network_test_util::{create_and_distribute_funds_asset, test_init},
             project_general::check_schema,
@@ -111,6 +111,41 @@ mod tests {
         assert_eq!(2, key_value.value.value_type);
         // double check (_very_ unlikely to be needed)
         check_schema(&app);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_drain_succeeds_if_theres_nothing_to_drain() -> Result<()> {
+        test_init()?;
+
+        // deps
+        let algod = dependencies::algod_for_tests();
+        // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
+        let creator = creator();
+        let drainer = investor1();
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+
+        // UI
+        let specs = project_specs();
+
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            TESTS_DEFAULT_PRECISION,
+        )
+        .await?;
+
+        // flow
+
+        let drain_res = drain_flow(&algod, &drainer, &project.project, funds_asset_id).await;
+
+        // test
+
+        assert!(drain_res.is_ok());
 
         Ok(())
     }
