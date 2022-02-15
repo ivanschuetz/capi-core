@@ -85,6 +85,8 @@ async fn create_funds_asset(
         .and_then(|t| t.asset_index)
         .ok_or_else(|| anyhow!("Couldn't retrieve asset id from pending tx"))?;
 
+    log::info!("Created funds asset: {}", asset_id);
+
     Ok(FundsAssetId(asset_id))
 }
 

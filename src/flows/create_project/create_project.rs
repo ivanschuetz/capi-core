@@ -171,10 +171,6 @@ pub async fn submit_create_project(
         signed.specs,
         signed.creator
     );
-    log::debug!(
-        "broadcasting escrow funding transactions({:?})",
-        signed.escrow_funding_txs.len()
-    );
 
     let mut signed_txs = vec![signed.create_app_tx];
     for tx in signed.escrow_funding_txs {
@@ -210,8 +206,6 @@ async fn broadcast_txs_and_retrieve_app_id(
     algod: &Algod,
     txs: &[SignedTransaction],
 ) -> Result<u64> {
-    log::debug!("Creating central app..");
-
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "investing_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "staking_escrow").unwrap();
@@ -223,6 +217,8 @@ async fn broadcast_txs_and_retrieve_app_id(
     let central_app_id = p_tx
         .application_index
         .ok_or_else(|| anyhow!("Pending tx didn't have app id"))?;
+
+    log::debug!("Central app created, id: {}", central_app_id);
 
     Ok(central_app_id)
 }

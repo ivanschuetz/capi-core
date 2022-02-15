@@ -101,6 +101,8 @@ async fn stakers_holdings(
         // TODO (low prio) small optimization: read only the shares amount
         // TODO consider using join to parallelize these requests
         let state = central_investor_state(algod, &staker.address, app_id).await?;
+        log::trace!("Share staker state: {:?}", state);
+
         holdings.push(ShareHolding {
             address: staker.address,
             amount: state.shares,
@@ -124,7 +126,7 @@ async fn free_assets_holdings(
         })
         .await?;
 
-    log::debug!("Getting holders distribution: {:?}", accounts);
+    log::debug!("Got free shares holders: {:?}", accounts);
 
     let mut holdings = vec![];
     for holder in accounts.accounts {
