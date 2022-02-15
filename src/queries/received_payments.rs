@@ -25,6 +25,8 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
 
     let mut payments = vec![];
     for tx in &response.transactions {
+        let sender_address = tx.sender.parse::<Address>().map_err(Error::msg)?;
+
         if let Some(payment_tx) = &tx.asset_transfer_transaction {
             let receiver_address = payment_tx.receiver.parse::<Address>().map_err(Error::msg)?;
 
@@ -33,6 +35,11 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
                 return Err(anyhow!(
                     "Invalid state: tx receiver isn't the receiver we sent in the query"
                 ));
+            }
+
+            // Skip asset opt-ins
+            if sender_address == receiver_address && payment_tx.amount == 0 {
+                continue;
             }
 
             // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
