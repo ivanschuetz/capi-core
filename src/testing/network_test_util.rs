@@ -1,3 +1,4 @@
+#[cfg(test)]
 use crate::dependencies::algod_for_tests;
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
