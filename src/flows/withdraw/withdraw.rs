@@ -10,7 +10,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    flows::create_project::storage::load_project::TxId,
+    flows::{create_project::storage::load_project::TxId, withdraw::note::withdrawal_to_note},
     funds::{FundsAmount, FundsAssetId},
 };
 
@@ -55,6 +55,7 @@ pub async fn withdraw(
         )
         .build(),
     )
+    .note(withdrawal_to_note(inputs)?)
     .build();
 
     TxGroup::assign_group_id(vec![&mut pay_withdraw_fee_tx, &mut withdraw_tx])?;
