@@ -63,7 +63,7 @@ pub async fn render_and_compile_customer_escrow(
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
-fn render_customer_escrow(
+pub fn render_customer_escrow(
     central_address: &Address,
     source: &TealSourceTemplate,
 ) -> Result<TealSource> {

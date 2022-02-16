@@ -1,6 +1,7 @@
 use serde::Serialize;
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod tests {
     use anyhow::{Error, Result};
     use tokio::test;
@@ -8,8 +9,13 @@ mod tests {
     use crate::{
         dependencies,
         flows::{
-            create_project::setup::create_app::render_central_app,
+            create_project::setup::{
+                create_app::render_central_app,
+                customer_escrow::{render_and_compile_customer_escrow, render_customer_escrow},
+            },
+            drain::drain::{submit_drain_customer_escrow, DrainCustomerEscrowSigned},
             harvest::harvest::{submit_harvest, HarvestSigned},
+            withdraw::withdraw::{submit_withdraw, WithdrawSigned},
         },
         teal::load_teal_template,
         testing::TESTS_DEFAULT_PRECISION,
@@ -29,16 +35,23 @@ mod tests {
         // use parameters corresponding to current environment
         let _ = render_central_app(
             &approval_template,
-            2,
+            6,
             100,
             TESTS_DEFAULT_PRECISION,
             40,
-            &"3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA"
+            &"MHQSDG3IAGGRQWNNHMXDMAY6K54UAOXGFJUTWNHXK5C4FVC7AGWK66KQPQ"
                 .parse()
                 .map_err(Error::msg)?,
-            &"P7GEWDXXW5IONRW6XRIRVPJCT2XXEQGOBGG65VJPBUOYZEJCBZWTPHS3VQ"
+            &"J7RHJEAARYDZZ6QUKH4KKICZK64PS4UTJPVLEI3WN5SNU47GHWD4PTOOIQ"
                 .parse()
                 .map_err(Error::msg)?,
+        )?;
+        let customer_escrow_template = load_teal_template("customer_escrow")?;
+        let _ = render_customer_escrow(
+            &"MHQSDG3IAGGRQWNNHMXDMAY6K54UAOXGFJUTWNHXK5C4FVC7AGWK66KQPQ"
+                .parse()
+                .map_err(Error::msg)?,
+            &customer_escrow_template,
         )?;
 
         // insert msg pack serialized bytes
@@ -46,8 +59,11 @@ mod tests {
 
         // replace these with correct payload/submit call (if needed)
         // it might be needed to temporarily derive Serialize/Deserialize
-        let signed: HarvestSigned = rmp_serde::from_slice(&bytes).unwrap();
-        submit_harvest(&algod, &signed).await?;
+        // let signed: HarvestSigned = rmp_serde::from_slice(&bytes).unwrap();
+        // let signed: WithdrawSigned = rmp_serde::from_slice(&bytes).unwrap();
+        // submit_withdraw(&algod, &signed).await?;
+        let signed: DrainCustomerEscrowSigned = rmp_serde::from_slice(&bytes).unwrap();
+        submit_drain_customer_escrow(&algod, &signed).await?;
 
         Ok(())
     }

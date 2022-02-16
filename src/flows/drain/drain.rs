@@ -12,6 +12,7 @@ use algonaut::{
     },
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -128,7 +129,7 @@ pub struct DrainCustomerEscrowToSign {
     pub amount_to_drain: FundsAmount,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DrainCustomerEscrowSigned {
     pub drain_tx: SignedTransaction,
     pub pay_fee_tx: SignedTransaction,

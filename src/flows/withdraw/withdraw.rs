@@ -68,6 +68,8 @@ pub async fn withdraw(
 }
 
 pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<TxId> {
+    // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
+
     log::debug!("Submit withdrawal txs..");
 
     let txs = vec![
@@ -89,7 +91,7 @@ pub struct WithdrawToSign {
     pub pay_withdraw_fee_tx: Transaction,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WithdrawSigned {
     pub withdraw_tx: SignedTransaction,
     pub pay_withdraw_fee_tx: SignedTransaction,
