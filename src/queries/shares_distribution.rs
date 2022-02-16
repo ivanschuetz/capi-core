@@ -130,12 +130,7 @@ async fn free_assets_holdings(
 
     let mut holdings = vec![];
     for holder in accounts.accounts {
-        // TODO we probably should modify Algonaut to return an empty vector here, None doesn't seem to make sense semantically.
-        let asset_holding = holder.assets.as_ref().ok_or_else(|| {
-            anyhow!("Invalid state: account has no holdings (we just queried by asset id)")
-        })?;
-
-        let asset_amount = find_amount(asset_id, asset_holding)?;
+        let asset_amount = find_amount(asset_id, &holder.assets)?;
 
         if asset_amount > 0 // if accounts have no assets but are opted in, we get 0 count - filter those out
             // the investing or staking escrow shouldn't show up on the holders list
@@ -143,7 +138,7 @@ async fn free_assets_holdings(
             && &holder.address != staking_escrow
         {
             holdings.push(ShareHolding {
-                amount: find_amount(asset_id, asset_holding)?,
+                amount: find_amount(asset_id, &holder.assets)?,
                 address: holder.address,
             })
         }
