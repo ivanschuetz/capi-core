@@ -141,7 +141,7 @@ mod tests {
 
         // flow
 
-        let drain_res = drain_flow(&algod, &drainer, &project.project, funds_asset_id).await;
+        let drain_res = drain_flow(&algod, &drainer, &project.project).await;
 
         // test
 

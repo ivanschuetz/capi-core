@@ -31,6 +31,11 @@ pub async fn customer_payment_and_drain_flow(
     customer_payment_amount: FundsAmount,
     project: &Project,
 ) -> Result<CustomerPaymentAndDrainFlowRes> {
+    // double check precondition: customer escrow has no funds
+    let customer_escrow_holdings =
+        funds_holdings(algod, project.customer_escrow.address(), funds_asset_id).await?;
+    assert_eq!(FundsAmount(0), customer_escrow_holdings);
+
     // Customer sends a payment
     let customer_payment_tx_id = send_payment_to_customer_escrow(
         &algod,
@@ -42,7 +47,7 @@ pub async fn customer_payment_and_drain_flow(
     .await?;
     wait_for_pending_transaction(&algod, &customer_payment_tx_id).await?;
 
-    drain_flow(algod, drainer, project, funds_asset_id).await
+    drain_flow(algod, drainer, project).await
 }
 
 #[cfg(test)]
@@ -50,14 +55,8 @@ pub async fn drain_flow(
     algod: &Algod,
     drainer: &Account,
     project: &Project,
-    funds_asset_id: FundsAssetId,
 ) -> Result<CustomerPaymentAndDrainFlowRes> {
     let initial_drainer_balance = algod.account_information(&drainer.address()).await?.amount;
-
-    // double check precondition: customer escrow has no funds
-    let customer_escrow_holdings =
-        funds_holdings(algod, project.customer_escrow.address(), funds_asset_id).await?;
-    assert_eq!(FundsAmount(0), customer_escrow_holdings);
 
     let drain_to_sign = drain_customer_escrow(
         &algod,
