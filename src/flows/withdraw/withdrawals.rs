@@ -66,16 +66,11 @@ pub async fn withdrawals(
             if sender_address == *project.project.central_escrow.address()
                 && receiver_address == *creator
             {
-                // This is an error because all transactions central escrow -> creator are withdrawals and are expected to have a note with prefix.
-                // (this is enforced in the central escrow TEAL)
-                let note = tx
-                    .note
-                    .clone()
-                    .ok_or_else(|| anyhow!("Unexpected: withdrawal tx has no note: {:?}", tx))?;
-
                 // for now the only payload is the description
-                let withdrawal_description =
-                    base64_withdrawal_note_to_withdrawal_description(&note)?;
+                let withdrawal_description = match &tx.note {
+                    Some(note) => base64_withdrawal_note_to_withdrawal_description(&note)?,
+                    None => "".to_owned(),
+                };
 
                 // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
                 // Unclear when it's None. For now we just reject it.
