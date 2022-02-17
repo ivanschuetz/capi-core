@@ -524,7 +524,7 @@ mod tests {
             project.project.specs.shares.count,
             buy_asset_amount,
             TESTS_DEFAULT_PRECISION,
-            project.project.specs.investors_share,
+            project.project.specs.investors_part(),
         );
 
         // investing inits the "harvested" amount to entitled amount (to prevent double harvest)
@@ -609,7 +609,7 @@ mod tests {
             project.project.specs.shares.count,
             buy_asset_amount,
             TESTS_DEFAULT_PRECISION,
-            project.project.specs.investors_share,
+            project.project.specs.investors_part(),
         );
 
         // staking inits the "harvested" amount to entitled amount (to prevent double harvest)

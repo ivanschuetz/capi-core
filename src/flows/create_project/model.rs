@@ -6,22 +6,9 @@ use algonaut::{
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    funds::{FundsAmount, FundsAssetId},
-    hashable::Hashable,
-};
+use crate::{funds::FundsAssetId, hashable::Hashable};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CreateProjectSpecs {
-    pub name: String,
-    pub description: String,
-    pub shares: CreateSharesSpecs,
-    pub share_price: FundsAmount,
-    pub logo_url: String, // TODO limit size (this is stored in note) - maybe use newtype
-    pub social_media_url: String, // this can be later in an extension (possibly with more links)
-    pub investors_share: u64, // percentage as entered by the user, e.g. 30%. No fractionals.
-                          // TODO maybe use Decimal, ensure valid range (1..100)
-}
+use super::create_project_specs::CreateProjectSpecs;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubmitSetupEscrowRes {

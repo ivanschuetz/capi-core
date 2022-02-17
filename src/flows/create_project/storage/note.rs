@@ -1,7 +1,8 @@
 use crate::{
     flows::create_project::{
         create_project::Escrows,
-        model::{CreateProjectSpecs, CreateSharesSpecs, Project},
+        create_project_specs::CreateProjectSpecs,
+        model::{CreateSharesSpecs, Project},
         setup::{
             central_escrow::render_and_compile_central_escrow,
             customer_escrow::render_and_compile_customer_escrow,
@@ -168,18 +169,19 @@ async fn storable_project_to_project(
     let investing_escrow_account = investing_escrow_account_res?;
 
     let project = Project {
-        specs: CreateProjectSpecs {
-            name: payload.name.clone(),
-            description: payload.description.clone(),
-            shares: CreateSharesSpecs {
+        specs: CreateProjectSpecs::new(
+            payload.name.clone(),
+            payload.description.clone(),
+            CreateSharesSpecs {
                 token_name: payload.asset_name.clone(),
                 count: payload.asset_supply,
             },
-            share_price: payload.share_price,
-            investors_share: payload.investors_share,
-            logo_url: payload.logo_url.clone(),
-            social_media_url: payload.social_media_url.clone(),
-        },
+            123, // TODO
+            // investors_share: payload.investors_share,
+            payload.share_price,
+            payload.logo_url.clone(),
+            payload.social_media_url.clone(),
+        )?,
         funds_asset_id: payload.funds_asset_id,
         creator: payload.creator,
         shares_asset_id: payload.shares_asset_id,
@@ -239,11 +241,11 @@ impl From<Project> for ProjectNoteProjectPayload {
             description: p.specs.description.clone(),
             social_media_url: p.specs.social_media_url.clone(),
             asset_id: p.shares_asset_id,
-            asset_name: p.specs.shares.token_name,
+            asset_name: p.specs.shares.token_name.clone(),
             asset_supply: p.specs.shares.count,
             funds_asset_id: p.funds_asset_id,
             share_price: p.specs.share_price,
-            investors_share: p.specs.investors_share,
+            investors_share: p.specs.investors_part(),
             logo_url: p.specs.logo_url,
             creator: p.creator,
             shares_asset_id: p.shares_asset_id,

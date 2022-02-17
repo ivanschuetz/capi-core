@@ -7,7 +7,8 @@ use crate::flows::create_project::storage::save_project::{
 #[cfg(test)]
 use crate::flows::create_project::{
     create_project::{create_project_txs, submit_create_project},
-    model::{CreateProjectSigned, CreateProjectSpecs, Project},
+    create_project_specs::CreateProjectSpecs,
+    model::{CreateProjectSigned, Project},
     setup::create_assets::{create_investor_assets_txs, submit_create_assets},
 };
 #[cfg(test)]

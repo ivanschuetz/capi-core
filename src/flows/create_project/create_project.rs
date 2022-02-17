@@ -1,10 +1,7 @@
-use algonaut::{
-    algod::v2::Algod,
-    core::Address,
-    transaction::{tx_group::TxGroup, SignedTransaction},
+use super::{
+    create_project_specs::CreateProjectSpecs,
+    model::{CreateProjectSigned, CreateProjectToSign, SubmitCreateProjectResult},
 };
-use anyhow::{anyhow, Result};
-
 use crate::{
     flows::create_project::{
         model::Project,
@@ -18,10 +15,12 @@ use crate::{
     network_util::wait_for_pending_transaction,
     teal::{TealSource, TealSourceTemplate},
 };
-
-use super::model::{
-    CreateProjectSigned, CreateProjectSpecs, CreateProjectToSign, SubmitCreateProjectResult,
+use algonaut::{
+    algod::v2::Algod,
+    core::Address,
+    transaction::{tx_group::TxGroup, SignedTransaction},
 };
+use anyhow::{anyhow, Result};
 
 pub async fn create_project_txs(
     algod: &Algod,
@@ -68,7 +67,7 @@ pub async fn create_project_txs(
         shares_asset_id,
         specs.shares.count,
         precision,
-        specs.investors_share,
+        specs.investors_part(),
         customer_to_sign.escrow.address(),
         central_to_sign.escrow.address(),
         &params,

@@ -175,7 +175,7 @@ mod tests {
             project.project.specs.shares.count,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
-            project.project.specs.investors_share,
+            project.project.specs.investors_part(),
         );
 
         let investor_state =
@@ -239,7 +239,7 @@ mod tests {
             project.project.specs.shares.count,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
-            project.project.specs.investors_share,
+            project.project.specs.investors_part(),
         );
         log::debug!(
             "Harvesting max possible amount (expected to succeed): {:?}",

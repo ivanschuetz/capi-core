@@ -9,7 +9,7 @@ mod tests {
     use crate::{
         dependencies,
         flows::{
-            create_project::model::{CreateProjectSpecs, CreateSharesSpecs},
+            create_project::{create_project_specs::CreateProjectSpecs, model::CreateSharesSpecs},
             harvest::harvest::investor_can_harvest_amount_calc,
         },
         funds::{FundsAmount, FundsAssetId},
@@ -140,7 +140,7 @@ mod tests {
             buy_asset_amount,
             specs.shares.count,
             precision,
-            specs.investors_share,
+            specs.investors_part(),
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -222,7 +222,7 @@ mod tests {
             buy_asset_amount,
             specs.shares.count,
             precision,
-            specs.investors_share,
+            specs.investors_part(),
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -266,18 +266,18 @@ mod tests {
         let buy_asset_amount = 10;
         let central_funds = FundsAmount(10 * 1_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
-        let specs = CreateProjectSpecs {
-            name: "Pancakes ltd".to_owned(),
-            description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
-            social_media_url: "https://twitter.com/capi_fin".to_owned(),
-            shares: CreateSharesSpecs {
+        let specs = CreateProjectSpecs::new(
+            "Pancakes ltd".to_owned(),
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
+            CreateSharesSpecs {
                 token_name: "PCK".to_owned(),
                 count: 300,
             },
-            share_price: FundsAmount(5_000_000),
-            investors_share: 100,
-            logo_url: "https://placekitten.com/200/300".to_owned(),
-        };
+            120,
+            FundsAmount(5_000_000),
+            "https://placekitten.com/200/300".to_owned(),
+            "https://twitter.com/capi_fin".to_owned(),
+        )?;
         // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
 
         let precs = harvest_precs(
@@ -303,7 +303,7 @@ mod tests {
             buy_asset_amount,
             specs.shares.count,
             precision,
-            specs.investors_share,
+            specs.investors_part(),
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
