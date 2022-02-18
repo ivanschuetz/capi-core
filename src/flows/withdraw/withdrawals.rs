@@ -68,7 +68,7 @@ pub async fn withdrawals(
             {
                 // for now the only payload is the description
                 let withdrawal_description = match &tx.note {
-                    Some(note) => base64_withdrawal_note_to_withdrawal_description(&note)?,
+                    Some(note) => base64_withdrawal_note_to_withdrawal_description(note)?,
                     None => "".to_owned(),
                 };
 
