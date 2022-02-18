@@ -13,6 +13,8 @@ impl Display for FundsAmount {
     }
 }
 
+// TODO use only checked operations!
+
 impl Add for FundsAmount {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {

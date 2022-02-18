@@ -3,7 +3,9 @@ use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
 #[cfg(test)]
 use super::invest_in_project_flow::invests_optins_flow;
 #[cfg(test)]
-use crate::flows::create_project::{create_project_specs::CreateProjectSpecs, model::Project};
+use crate::flows::create_project::{
+    create_project_specs::CreateProjectSpecs, model::Project, share_amount::ShareAmount,
+};
 #[cfg(test)]
 use crate::funds::{FundsAmount, FundsAssetId};
 #[cfg(test)]
@@ -32,7 +34,7 @@ pub async fn harvest_precs(
     harvester: &Account,
     drainer: &Account,
     customer: &Account,
-    buy_asset_amount: u64, // UI
+    share_amount: ShareAmount,
     central_funds: FundsAmount,
     precision: u64,
 ) -> Result<HarvestTestPrecsRes> {
@@ -44,7 +46,7 @@ pub async fn harvest_precs(
     let _ = invests_flow(
         &algod,
         &harvester,
-        buy_asset_amount,
+        share_amount,
         funds_asset_id,
         &project.project,
         &project.project_id,

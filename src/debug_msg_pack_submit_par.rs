@@ -9,10 +9,10 @@ mod tests {
     use crate::{
         dependencies,
         flows::{
-            create_project::setup::{
+            create_project::{setup::{
                 create_app::render_central_app,
                 customer_escrow::{render_and_compile_customer_escrow, render_customer_escrow},
-            },
+            }, share_amount::ShareAmount},
             drain::drain::{submit_drain_customer_escrow, DrainCustomerEscrowSigned},
             harvest::harvest::{submit_harvest, HarvestSigned},
             withdraw::withdraw::{submit_withdraw, WithdrawSigned},
@@ -35,10 +35,9 @@ mod tests {
         // use parameters corresponding to current environment
         let _ = render_central_app(
             &approval_template,
-            6,
-            100,
+            ShareAmount(100),
             TESTS_DEFAULT_PRECISION,
-            40,
+            ShareAmount(40),
             &"MHQSDG3IAGGRQWNNHMXDMAY6K54UAOXGFJUTWNHXK5C4FVC7AGWK66KQPQ"
                 .parse()
                 .map_err(Error::msg)?,

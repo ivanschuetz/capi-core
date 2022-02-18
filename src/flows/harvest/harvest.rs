@@ -1,6 +1,6 @@
 use crate::{
     decimal_util::AsDecimal,
-    flows::create_project::storage::load_project::TxId,
+    flows::create_project::{share_amount::ShareAmount, storage::load_project::TxId},
     funds::{FundsAmount, FundsAssetId},
 };
 use algonaut::{
@@ -106,18 +106,18 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxI
 
 pub fn calculate_entitled_harvest(
     central_received_total: FundsAmount,
-    share_supply: u64,
-    share_count: u64,
+    share_supply: ShareAmount,
+    share_count: ShareAmount,
     precision: u64,
-    investors_share: u64,
+    investors_part: ShareAmount,
 ) -> FundsAmount {
     // TODO review possible overflow, type cast, unwrap
     // for easier understanding we use the same arithmetic as in TEAL
-    let investors_share_fractional_percentage = investors_share.as_decimal() / 100.as_decimal(); // e.g. 10% -> 0.1
+    let investors_share_fractional_percentage = investors_part.0.as_decimal() / 100.as_decimal(); // e.g. 10% -> 0.1
 
-    let entitled_percentage = ((share_count * precision).as_decimal()
+    let entitled_percentage = ((share_count.0 * precision).as_decimal()
         * (investors_share_fractional_percentage * precision.as_decimal())
-        / share_supply.as_decimal())
+        / share_supply.0.as_decimal())
     .floor();
 
     let entitled_total = ((central_received_total.0.as_decimal() * entitled_percentage)
@@ -130,10 +130,10 @@ pub fn calculate_entitled_harvest(
 pub fn investor_can_harvest_amount_calc(
     central_received_total: FundsAmount,
     harvested_total: FundsAmount,
-    share_count: u64,
-    share_supply: u64,
+    share_amount: ShareAmount,
+    share_supply: ShareAmount,
     precision: u64,
-    investors_share: u64,
+    investors_part: ShareAmount,
 ) -> FundsAmount {
     // Note that this assumes that investor can't unstake only a part of their shares
     // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with harvested_total, which remains unchanged.
@@ -143,9 +143,9 @@ pub fn investor_can_harvest_amount_calc(
     let entitled_total = calculate_entitled_harvest(
         central_received_total,
         share_supply,
-        share_count,
+        share_amount,
         precision,
-        investors_share,
+        investors_part,
     );
     entitled_total - harvested_total
 }

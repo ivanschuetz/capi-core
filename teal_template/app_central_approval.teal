@@ -286,7 +286,7 @@ int {investors_share} // already multiplied with precision
 *
 
 // the asset's total supply
-int {asset_supply} 
+int {share_supply} 
 
 // user's holdings % of total received
 /

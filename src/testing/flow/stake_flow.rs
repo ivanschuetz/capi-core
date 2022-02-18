@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::flows::create_project::model::Project;
 #[cfg(test)]
-use crate::flows::create_project::storage::load_project::ProjectId;
+use crate::flows::create_project::{share_amount::ShareAmount, storage::load_project::ProjectId};
 #[cfg(test)]
 use crate::flows::stake::stake::{stake, submit_stake, StakeSigned};
 #[cfg(test)]
@@ -17,7 +17,7 @@ pub async fn stake_flow(
     project: &Project,
     project_id: &ProjectId,
     investor: &Account,
-    shares_to_stake: u64,
+    shares_to_stake: ShareAmount,
 ) -> Result<()> {
     let stake_to_sign = stake(
         &algod,

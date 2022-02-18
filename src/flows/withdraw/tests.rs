@@ -7,7 +7,10 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs},
+        flows::{
+            create_project::share_amount::ShareAmount,
+            withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs},
+        },
         funds::{FundsAmount, FundsAssetId},
         state::account_state::funds_holdings,
         testing::{
@@ -111,9 +114,9 @@ mod tests {
         // precs
 
         let project_specs = project_specs();
-        let investor_shares_count = 10;
+        let investor_share_amount = ShareAmount(10);
 
-        let investment_amount = project_specs.share_price * investor_shares_count;
+        let investment_amount = project_specs.share_price * investor_share_amount.0;
 
         let withdraw_amount = investment_amount + FundsAmount(1); // > investment amount (which is in the funds when withdrawing)
 
@@ -131,7 +134,7 @@ mod tests {
         invests_flow(
             &algod,
             &investor,
-            investor_shares_count,
+            investor_share_amount,
             funds_asset_id,
             &project.project,
             &project.project_id,
@@ -231,12 +234,12 @@ mod tests {
         .await?;
 
         // Investor buys some shares
-        let investor_shares_count = 10;
+        let investor_share_amount = ShareAmount(10);
         invests_optins_flow(&algod, &investor, &project.project).await?;
         invests_flow(
             &algod,
             &investor,
-            investor_shares_count,
+            investor_share_amount,
             funds_asset_id,
             &project.project,
             &project.project_id,

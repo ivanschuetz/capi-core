@@ -8,6 +8,7 @@ mod tests {
     use crate::{
         dependencies,
         flows::{
+            create_project::share_amount::ShareAmount,
             harvest::harvest::calculate_entitled_harvest,
             invest::app_optins::{
                 invest_or_staking_app_optin_tx, submit_invest_or_staking_app_optin,
@@ -55,7 +56,7 @@ mod tests {
 
         // UI
 
-        let buy_asset_amount = 10;
+        let buy_share_amount = ShareAmount(10);
 
         // precs
 
@@ -72,7 +73,7 @@ mod tests {
         let _ = invests_flow(
             &algod,
             &investor1,
-            buy_asset_amount,
+            buy_share_amount,
             funds_asset_id,
             &project.project,
             &project.project_id,
@@ -93,7 +94,7 @@ mod tests {
         .await?;
 
         // investor1 unstakes
-        let traded_shares = buy_asset_amount;
+        let traded_shares = buy_share_amount;
         let unstake_tx_id =
             unstake_flow(&algod, &project.project, &investor1, traded_shares).await?;
         let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
@@ -120,7 +121,7 @@ mod tests {
             TransferAsset::new(
                 investor1.address(),
                 project.project.shares_asset_id,
-                traded_shares,
+                traded_shares.0,
                 investor2.address(),
             )
             .build(),
@@ -172,7 +173,7 @@ mod tests {
         let central_total_received = customer_payment_amount;
         let investor2_entitled_amount = calculate_entitled_harvest(
             central_total_received,
-            project.project.specs.shares.count,
+            project.project.specs.shares.supply,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
             project.project.specs.investors_part(),
@@ -194,7 +195,7 @@ mod tests {
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
-        assert_eq!(traded_shares, staking_escrow_assets[0].amount);
+        assert_eq!(traded_shares.0, staking_escrow_assets[0].amount);
 
         // investor2 harvests: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         // the harvest amount is the smallest number possible, to show that we can't retrieve anything
@@ -236,7 +237,7 @@ mod tests {
         // we'll harvest the max possible amount
         let investor2_entitled_amount = calculate_entitled_harvest(
             customer_payment_amount_2,
-            project.project.specs.shares.count,
+            project.project.specs.shares.supply,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
             project.project.specs.investors_part(),
@@ -294,8 +295,8 @@ mod tests {
 
         // UI
 
-        let partial_stake_amount = 4;
-        let buy_asset_amount = partial_stake_amount + 6;
+        let partial_stake_amount = ShareAmount(4);
+        let buy_share_amount = ShareAmount(partial_stake_amount.0 + 6);
 
         // precs
 
@@ -312,7 +313,7 @@ mod tests {
         let _ = invests_flow(
             &algod,
             &investor,
-            buy_asset_amount,
+            buy_share_amount,
             funds_asset_id,
             &project.project,
             &project.project_id,
@@ -322,7 +323,7 @@ mod tests {
         // investor unstakes - note that partial unstaking isn't possible, only staking
 
         let unstake_tx_id =
-            unstake_flow(&algod, &project.project, &investor, buy_asset_amount).await?;
+            unstake_flow(&algod, &project.project, &investor, buy_share_amount).await?;
         let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
 
         // sanity checks
@@ -344,7 +345,7 @@ mod tests {
         assert_eq!(2, investor_assets.len());
         let shares_asset =
             find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
-        assert_eq!(buy_asset_amount, shares_asset.amount);
+        assert_eq!(buy_share_amount.0, shares_asset.amount);
 
         // investor stakes again a part of the shares
 
@@ -381,7 +382,10 @@ mod tests {
         assert_eq!(2, investor_assets.len());
         let shares_asset =
             find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
-        assert_eq!(buy_asset_amount - partial_stake_amount, shares_asset.amount);
+        assert_eq!(
+            buy_share_amount.0 - partial_stake_amount.0,
+            shares_asset.amount
+        );
 
         Ok(())
     }

@@ -4,7 +4,7 @@ use crate::decimal_util::AsDecimal;
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
-use super::shares_percentage::SharesPercentage;
+use super::{share_amount::ShareAmount, shares_percentage::SharesPercentage};
 
 #[derive(Debug, Clone)]
 pub enum SharesRoundingMode {
@@ -14,37 +14,37 @@ pub enum SharesRoundingMode {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SharesDistributionSpecs {
-    creator: u64,
-    investors: u64,
+    creator: ShareAmount,
+    investors: ShareAmount,
 }
 
 impl SharesDistributionSpecs {
     /// Calculate the creator's and investor's part from the investor's % entered by the creator.
     pub fn from_investors_percentage(
         percentage: &SharesPercentage,
-        shares_supply: u64,
+        shares_supply: ShareAmount,
     ) -> Result<SharesDistributionSpecs> {
         let creator_percentage: SharesPercentage =
             (1.as_decimal() - percentage.value()).try_into()?;
         // Creator's part is floored and investor's ceiled - we resolve fractionals in favor of the investors
         Self::new(
-            creator_percentage.apply_to(shares_supply, SharesRoundingMode::Floor)?,
-            percentage.apply_to(shares_supply, SharesRoundingMode::Ceil)?,
+            ShareAmount(creator_percentage.apply_to(shares_supply, SharesRoundingMode::Floor)?),
+            ShareAmount(percentage.apply_to(shares_supply, SharesRoundingMode::Ceil)?),
         )
     }
 
-    pub fn new(creator: u64, investors: u64) -> Result<SharesDistributionSpecs> {
-        creator.checked_add(investors).ok_or(anyhow!(
+    pub fn new(creator: ShareAmount, investors: ShareAmount) -> Result<SharesDistributionSpecs> {
+        creator.0.checked_add(investors.0).ok_or(anyhow!(
             "Creator shares: {creator} + investors shares: {investors} overflow"
         ))?;
         Ok(SharesDistributionSpecs { creator, investors })
     }
 
-    pub fn investors(&self) -> u64 {
+    pub fn investors(&self) -> ShareAmount {
         self.investors
     }
 
-    pub fn creator(&self) -> u64 {
+    pub fn creator(&self) -> ShareAmount {
         self.creator
     }
 }
@@ -52,7 +52,9 @@ impl SharesDistributionSpecs {
 #[cfg(test)]
 mod tests {
     use super::SharesDistributionSpecs;
-    use crate::flows::create_project::shares_percentage::SharesPercentage;
+    use crate::flows::create_project::{
+        share_amount::ShareAmount, shares_percentage::SharesPercentage,
+    };
     use anyhow::Result;
     use rust_decimal::Decimal;
     use std::convert::TryInto;
@@ -61,15 +63,15 @@ mod tests {
     fn test_shares_distribution_with_only_integers() -> Result<()> {
         let investor_percentage: Decimal = "0.3".parse().unwrap();
         let shares_investor_percentage: SharesPercentage = investor_percentage.try_into().unwrap();
-        let supply = 100;
+        let supply = ShareAmount(100);
 
         let specs = SharesDistributionSpecs::from_investors_percentage(
             &shares_investor_percentage,
             supply,
         )?;
 
-        assert_eq!(30, specs.investors());
-        assert_eq!(70, specs.creator());
+        assert_eq!(ShareAmount(30), specs.investors());
+        assert_eq!(ShareAmount(70), specs.creator());
 
         Ok(())
     }
@@ -78,7 +80,7 @@ mod tests {
     fn test_shares_distribution_with_fractionals() -> Result<()> {
         let investor_percentage: Decimal = "0.33333333333333".parse().unwrap();
         let shares_investor_percentage: SharesPercentage = investor_percentage.try_into().unwrap();
-        let supply = 100;
+        let supply = ShareAmount(100);
 
         let specs = SharesDistributionSpecs::from_investors_percentage(
             &shares_investor_percentage,
@@ -86,9 +88,9 @@ mod tests {
         )?;
 
         // value (33.3333333333) always ceiled for the investors
-        assert_eq!(34, specs.investors());
+        assert_eq!(ShareAmount(34), specs.investors());
         // value (66.6666666666) always floored for the owner
-        assert_eq!(66, specs.creator());
+        assert_eq!(ShareAmount(66), specs.creator());
 
         Ok(())
     }
@@ -97,15 +99,15 @@ mod tests {
     fn test_shares_distribution_largest_number_and_fractionals() -> Result<()> {
         let investor_percentage: Decimal = "0.341".parse().unwrap();
         let shares_investor_percentage: SharesPercentage = investor_percentage.try_into().unwrap();
-        let supply = u64::MAX;
+        let supply = ShareAmount(u64::MAX);
 
         let specs = SharesDistributionSpecs::from_investors_percentage(
             &shares_investor_percentage,
             supply,
         )?;
 
-        assert_eq!(6290339729134957101, specs.investors());
-        assert_eq!(12156404344574594514, specs.creator());
+        assert_eq!(ShareAmount(6290339729134957101), specs.investors());
+        assert_eq!(ShareAmount(12156404344574594514), specs.creator());
 
         Ok(())
     }
@@ -114,15 +116,15 @@ mod tests {
     fn test_shares_distribution_random() -> Result<()> {
         let investor_percentage: Decimal = "0.45".parse().unwrap();
         let shares_investor_percentage: SharesPercentage = investor_percentage.try_into().unwrap();
-        let supply = 12_234_234_234;
+        let supply = ShareAmount(12_234_234_234);
 
         let specs = SharesDistributionSpecs::from_investors_percentage(
             &shares_investor_percentage,
             supply,
         )?;
 
-        assert_eq!(5505405406, specs.investors());
-        assert_eq!(6728828828, specs.creator());
+        assert_eq!(ShareAmount(5505405406), specs.investors());
+        assert_eq!(ShareAmount(6728828828), specs.creator());
 
         Ok(())
     }
@@ -131,15 +133,15 @@ mod tests {
     fn test_shares_distribution_investors_close_to_1() -> Result<()> {
         let investor_percentage: Decimal = "0.999999999999".parse().unwrap();
         let shares_investor_percentage: SharesPercentage = investor_percentage.try_into().unwrap();
-        let supply = 10_000;
+        let supply = ShareAmount(10_000);
 
         let specs = SharesDistributionSpecs::from_investors_percentage(
             &shares_investor_percentage,
             supply,
         )?;
 
-        assert_eq!(10_000, specs.investors());
-        assert_eq!(0, specs.creator());
+        assert_eq!(ShareAmount(10_000), specs.investors());
+        assert_eq!(ShareAmount(0), specs.creator());
 
         Ok(())
     }
@@ -148,15 +150,15 @@ mod tests {
     fn test_shares_distribution_investors_close_to_0() -> Result<()> {
         let investor_percentage: Decimal = "0.0000000001".parse().unwrap();
         let shares_investor_percentage: SharesPercentage = investor_percentage.try_into().unwrap();
-        let supply = 10_000;
+        let supply = ShareAmount(10_000);
 
         let specs = SharesDistributionSpecs::from_investors_percentage(
             &shares_investor_percentage,
             supply,
         )?;
 
-        assert_eq!(1, specs.investors());
-        assert_eq!(9_999, specs.creator());
+        assert_eq!(ShareAmount(1), specs.investors());
+        assert_eq!(ShareAmount(9_999), specs.creator());
 
         Ok(())
     }
@@ -165,15 +167,15 @@ mod tests {
     fn test_shares_distribution_investors_0() -> Result<()> {
         let investor_percentage: Decimal = "0".parse().unwrap();
         let shares_investor_percentage: SharesPercentage = investor_percentage.try_into().unwrap();
-        let supply = 10_000_000;
+        let supply = ShareAmount(10_000_000);
 
         let specs = SharesDistributionSpecs::from_investors_percentage(
             &shares_investor_percentage,
             supply,
         )?;
 
-        assert_eq!(0, specs.investors());
-        assert_eq!(10_000_000, specs.creator());
+        assert_eq!(ShareAmount(0), specs.investors());
+        assert_eq!(ShareAmount(10_000_000), specs.creator());
 
         Ok(())
     }
@@ -182,15 +184,15 @@ mod tests {
     fn test_shares_distribution_investors_1() -> Result<()> {
         let investor_percentage: Decimal = "1".parse().unwrap();
         let shares_investor_percentage: SharesPercentage = investor_percentage.try_into().unwrap();
-        let supply = 10_000_000_000_123;
+        let supply = ShareAmount(10_000_000_000_123);
 
         let specs = SharesDistributionSpecs::from_investors_percentage(
             &shares_investor_percentage,
             supply,
         )?;
 
-        assert_eq!(10_000_000_000_123, specs.investors());
-        assert_eq!(0, specs.creator());
+        assert_eq!(ShareAmount(10_000_000_000_123), specs.investors());
+        assert_eq!(ShareAmount(0), specs.creator());
 
         Ok(())
     }

@@ -6,7 +6,7 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::unstake::unstake::FIXED_FEE,
+        flows::{create_project::share_amount::ShareAmount, unstake::unstake::FIXED_FEE},
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         state::{
@@ -39,7 +39,7 @@ mod tests {
 
         // UI
 
-        let buy_asset_amount = 10;
+        let buy_share_amount = ShareAmount(10);
 
         // precs
 
@@ -56,7 +56,7 @@ mod tests {
         let _ = invests_flow(
             &algod,
             &investor,
-            buy_asset_amount,
+            buy_share_amount,
             funds_asset_id,
             &project.project,
             &project.project_id,
@@ -79,7 +79,7 @@ mod tests {
             central_investor_state_from_acc(&investor_infos, project.project.central_app_id)?;
         // double check investor's local state
         // shares set to bought asset amount
-        assert_eq!(buy_asset_amount, investor_state.shares);
+        assert_eq!(buy_share_amount, investor_state.shares);
         //  harvested total is 0 (hasn't harvested yet)
         assert_eq!(FundsAmount(0), investor_state.harvested);
 
@@ -90,7 +90,7 @@ mod tests {
         let staking_escrow_assets = staking_escrow_infos.assets;
 
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
-        assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
+        assert_eq!(buy_share_amount.0, staking_escrow_assets[0].amount);
 
         // remember state
         let investor_balance_before_unstaking = investor_infos.amount;
@@ -98,7 +98,7 @@ mod tests {
         // flow
 
         // in the real application, unstake_share_amount is retrieved from indexer
-        let unstake_share_amount = buy_asset_amount;
+        let unstake_share_amount = buy_share_amount;
 
         let unstake_tx_id =
             unstake_flow(&algod, &project.project, &investor, unstake_share_amount).await?;
@@ -121,7 +121,7 @@ mod tests {
         let shares_asset =
             find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
         // got the shares
-        assert_eq!(buy_asset_amount, shares_asset.amount);
+        assert_eq!(buy_share_amount.0, shares_asset.amount);
 
         // investor local state cleared (opted out)
         assert_eq!(0, investor_infos.apps_local_state.len());
@@ -151,8 +151,8 @@ mod tests {
 
         // UI
 
-        let partial_amount = 2;
-        let buy_asset_amount = partial_amount + 8;
+        let partial_amount = ShareAmount(2);
+        let buy_asset_amount = ShareAmount(partial_amount.0 + 8);
 
         // precs
 
@@ -200,7 +200,7 @@ mod tests {
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
-        assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
+        assert_eq!(buy_asset_amount.0, staking_escrow_assets[0].amount);
 
         // remember state
         let investor_balance_before_unstaking = investor_infos.amount;
@@ -220,7 +220,7 @@ mod tests {
             .await?;
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
-        assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount); // lost shares
+        assert_eq!(buy_asset_amount.0, staking_escrow_assets[0].amount); // lost shares
 
         // investor didn't get anything
 

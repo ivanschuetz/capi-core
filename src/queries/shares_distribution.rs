@@ -7,7 +7,10 @@ use algonaut::{
 use anyhow::{anyhow, Result};
 use rust_decimal::Decimal;
 
-use crate::state::central_app_state::central_investor_state;
+use crate::{
+    flows::create_project::share_amount::ShareAmount,
+    state::central_app_state::central_investor_state,
+};
 
 /// Returns holders of the asset with their respective amounts and percentages.
 /// See [shares_holders_holdings] doc for more details.
@@ -40,7 +43,7 @@ pub async fn shares_holders_distribution(
 
     let mut holding_percentages = vec![];
     for h in holdings {
-        let amount_decimal: Decimal = h.amount.into();
+        let amount_decimal: Decimal = h.amount.0.into();
         holding_percentages.push(ShareHoldingPercentage {
             address: h.address,
             amount: h.amount,
@@ -138,7 +141,7 @@ async fn free_assets_holdings(
             && &holder.address != staking_escrow
         {
             holdings.push(ShareHolding {
-                amount: find_amount(asset_id, &holder.assets)?,
+                amount: ShareAmount(find_amount(asset_id, &holder.assets)?),
                 address: holder.address,
             })
         }
@@ -186,11 +189,11 @@ fn find_amount(asset_id: u64, asset_holding: &[AssetHolding]) -> Result<u64> {
 
 pub struct ShareHolding {
     pub address: Address,
-    pub amount: u64,
+    pub amount: ShareAmount,
 }
 
 pub struct ShareHoldingPercentage {
     pub address: Address,
-    pub amount: u64,
+    pub amount: ShareAmount,
     pub percentage: Decimal,
 }

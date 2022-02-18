@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::flows::create_project::model::Project;
 #[cfg(test)]
-use crate::flows::create_project::storage::load_project::TxId;
+use crate::flows::create_project::{share_amount::ShareAmount, storage::load_project::TxId};
 #[cfg(test)]
 use crate::flows::unstake::unstake::unstake;
 #[cfg(test)]
@@ -16,7 +16,7 @@ pub async fn unstake_flow(
     algod: &Algod,
     project: &Project,
     investor: &Account,
-    shares_to_unstake: u64,
+    shares_to_unstake: ShareAmount,
 ) -> Result<TxId> {
     let to_sign = unstake(
         &algod,
@@ -29,6 +29,7 @@ pub async fn unstake_flow(
     .await?;
 
     // UI
+
     let signed_central_app_optout = investor.sign_transaction(&to_sign.central_app_optout_tx)?;
     let signed_pay_xfer_fees = investor.sign_transaction(&to_sign.pay_shares_xfer_fee_tx)?;
 

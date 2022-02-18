@@ -2,7 +2,7 @@ use algonaut::{algod::v2::Algod, core::Address};
 use anyhow::{Error, Result};
 
 use crate::{
-    flows::create_project::model::Project,
+    flows::create_project::{model::Project, share_amount::ShareAmount},
     funds::FundsAmount,
     state::{
         account_state::funds_holdings,
@@ -41,7 +41,7 @@ pub async fn harvest_diagnostics(
         already_harvested: central_investor_state.harvested,
         central_balance,
         customer_escrow_balance,
-        investor_share_count: central_investor_state.shares,
+        investor_share_amount: central_investor_state.shares,
     })
 }
 
@@ -51,7 +51,7 @@ pub struct HarvestDiagnostics {
     pub central_balance: FundsAmount,
     pub customer_escrow_balance: FundsAmount,
     // pub investor_balance: Funds,
-    pub investor_share_count: u64,
+    pub investor_share_amount: ShareAmount,
 }
 
 pub async fn log_harvest_diagnostics(
@@ -72,7 +72,7 @@ pub async fn log_harvest_diagnostics(
         "customer_escrow_balance: {:?}",
         diag.customer_escrow_balance
     );
-    log::info!("investor_share_count: {:?}", diag.investor_share_count);
+    log::info!("investor_share_count: {:?}", diag.investor_share_amount);
 
     log::info!("//////////////////////////////////////////////////////////");
     log::info!("//////////////////////////////////////////////////////////");

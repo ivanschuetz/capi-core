@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{funds::FundsAssetId, hashable::Hashable};
 
-use super::create_project_specs::CreateProjectSpecs;
+use super::{create_project_specs::CreateProjectSpecs, share_amount::ShareAmount};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubmitSetupEscrowRes {
@@ -112,7 +112,7 @@ pub struct SubmitCreateProjectResult {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreateSharesSpecs {
     pub token_name: String,
-    pub count: u64,
+    pub supply: ShareAmount,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

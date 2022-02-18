@@ -1,4 +1,7 @@
-use crate::flows::create_project::storage::load_project::{TxId, ProjectId};
+use crate::flows::create_project::{
+    share_amount::ShareAmount,
+    storage::load_project::{ProjectId, TxId},
+};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -18,7 +21,7 @@ pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 pub async fn stake(
     algod: &Algod,
     investor: Address,
-    share_count: u64,
+    share_amount: ShareAmount,
     shares_asset_id: u64,
     central_app_id: u64,
     staking_escrow: &ContractAccount,
@@ -47,7 +50,7 @@ pub async fn stake(
         TransferAsset::new(
             investor,
             shares_asset_id,
-            share_count,
+            share_amount.0,
             *staking_escrow.address(),
         )
         .build(),

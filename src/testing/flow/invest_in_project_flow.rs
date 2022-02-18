@@ -4,7 +4,7 @@ use crate::flows::invest::app_optins::{
 };
 #[cfg(test)]
 use crate::flows::{
-    create_project::{model::Project, storage::load_project::ProjectId},
+    create_project::{model::Project, share_amount::ShareAmount, storage::load_project::ProjectId},
     invest::model::InvestResult,
     invest::{
         invest::{invest_txs, submit_invest},
@@ -47,7 +47,7 @@ pub async fn invests_optins_flow(
 pub async fn invests_flow(
     algod: &Algod,
     investor: &Account,
-    buy_asset_amount: u64,
+    buy_share_amount: ShareAmount,
     funds_asset_id: FundsAssetId,
     project: &Project,
     project_id: &ProjectId,
@@ -66,7 +66,7 @@ pub async fn invests_flow(
         &project.staking_escrow,
         project.central_app_id,
         project.shares_asset_id,
-        buy_asset_amount,
+        buy_share_amount,
         funds_asset_id,
         project.specs.share_price,
         project_id,

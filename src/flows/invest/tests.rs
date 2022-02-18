@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::flows::create_project::model::Project;
+    use crate::flows::create_project::share_amount::ShareAmount;
     use crate::flows::create_project::storage::load_project::ProjectId;
     use crate::flows::harvest::harvest::calculate_entitled_harvest;
     use crate::funds::{FundsAmount, FundsAssetId};
@@ -43,7 +44,7 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let buy_asset_amount = 10;
+        let buy_share_amount = ShareAmount(10);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -64,7 +65,7 @@ mod tests {
         let flow_res = invests_flow(
             &algod,
             &investor,
-            buy_asset_amount,
+            buy_share_amount,
             funds_asset_id,
             &project.project,
             &project.project_id,
@@ -79,7 +80,7 @@ mod tests {
         // staking escrow received the shares
         let staking_escrow_assets = staking_escrow_infos.assets;
         assert_eq!(1, staking_escrow_assets.len());
-        assert_eq!(buy_asset_amount, staking_escrow_assets[0].amount);
+        assert_eq!(buy_share_amount.0, staking_escrow_assets[0].amount);
         // staking escrow doesn't send any transactions so not testing balances (we could "double check" though)
 
         // investor tests
@@ -89,7 +90,7 @@ mod tests {
             central_investor_state_from_acc(&investor_infos, project.project.central_app_id)?;
 
         // investor has shares
-        assert_eq!(buy_asset_amount, central_investor_state.shares);
+        assert_eq!(buy_share_amount, central_investor_state.shares);
 
         // check that the project id was initialized
         assert_eq!(project.project_id, central_investor_state.project_id);
@@ -108,7 +109,7 @@ mod tests {
 
         // investor lost algos and fees
         let investor_holdings = funds_holdings_from_account(&investor_infos, funds_asset_id)?;
-        let paid_amount = specs.share_price * buy_asset_amount;
+        let paid_amount = specs.share_price.0 * buy_share_amount.0;
         assert_eq!(
             flow_res.investor_initial_amount - paid_amount,
             investor_holdings
@@ -127,7 +128,7 @@ mod tests {
         );
         assert_eq!(
             invest_escrow_held_assets[0].amount,
-            flow_res.project.specs.shares.count - buy_asset_amount
+            flow_res.project.specs.shares.supply.0 - buy_share_amount.0
         );
 
         // central escrow tests
@@ -159,8 +160,8 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let buy_asset_amount = 10;
-        let buy_asset_amount2 = 20;
+        let buy_share_amount = ShareAmount(10);
+        let buy_share_amount2 = ShareAmount(20);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -181,7 +182,7 @@ mod tests {
         invests_flow(
             &algod,
             &investor,
-            buy_asset_amount,
+            buy_share_amount,
             funds_asset_id,
             &project.project,
             &project.project_id,
@@ -192,12 +193,12 @@ mod tests {
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(buy_asset_amount, investor_state.shares);
+        assert_eq!(buy_share_amount, investor_state.shares);
 
         invests_flow(
             &algod,
             &investor,
-            buy_asset_amount2,
+            buy_share_amount2,
             funds_asset_id,
             &project.project,
             &project.project_id,
@@ -210,7 +211,10 @@ mod tests {
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(buy_asset_amount + buy_asset_amount2, investor_state.shares);
+        assert_eq!(
+            buy_share_amount.0 + buy_share_amount2.0,
+            investor_state.shares.0
+        );
 
         Ok(())
     }
@@ -227,8 +231,8 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let stake_amount = 10;
-        let invest_amount = 20;
+        let stake_amount = ShareAmount(10);
+        let invest_amount = ShareAmount(20);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -291,7 +295,7 @@ mod tests {
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(stake_amount + invest_amount, investor_state.shares);
+        assert_eq!(stake_amount.0 + invest_amount.0, investor_state.shares.0);
 
         Ok(())
     }
@@ -308,8 +312,8 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let stake_amount = 10;
-        let invest_amount = 20;
+        let stake_amount = ShareAmount(10);
+        let invest_amount = ShareAmount(20);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -372,7 +376,7 @@ mod tests {
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(stake_amount + invest_amount, investor_state.shares);
+        assert_eq!(stake_amount.0 + invest_amount.0, investor_state.shares.0);
 
         Ok(())
     }
@@ -389,10 +393,10 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let stake_amount1 = 10;
-        let stake_amount2 = 20;
+        let stake_amount1 = ShareAmount(10);
+        let stake_amount2 = ShareAmount(20);
         // an amount we unstake and will not stake again, to make the test a little more robust
-        let invest_amount_not_stake = 5;
+        let invest_amount_not_stake = ShareAmount(5);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -413,7 +417,7 @@ mod tests {
             &algod,
             &investor,
             &project.project,
-            stake_amount1 + stake_amount2 + invest_amount_not_stake,
+            ShareAmount(stake_amount1.0 + stake_amount2.0 + invest_amount_not_stake.0),
             &project.project_id,
             funds_asset_id,
         )
@@ -454,7 +458,7 @@ mod tests {
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(stake_amount1 + stake_amount2, investor_state.shares);
+        assert_eq!(stake_amount1.0 + stake_amount2.0, investor_state.shares.0);
 
         Ok(())
     }
@@ -473,7 +477,7 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let buy_asset_amount = 10;
+        let buy_share_amount = ShareAmount(10);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -505,7 +509,7 @@ mod tests {
         invests_flow(
             &algod,
             &investor,
-            buy_asset_amount,
+            buy_share_amount,
             funds_asset_id,
             &project.project,
             &project.project_id,
@@ -521,8 +525,8 @@ mod tests {
 
         let investor_entitled_harvest = calculate_entitled_harvest(
             central_state.received,
-            project.project.specs.shares.count,
-            buy_asset_amount,
+            project.project.specs.shares.supply,
+            buy_share_amount,
             TESTS_DEFAULT_PRECISION,
             project.project.specs.investors_part(),
         );
@@ -547,7 +551,7 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let buy_asset_amount = 10;
+        let buy_share_amount = ShareAmount(10);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -580,7 +584,7 @@ mod tests {
             &algod,
             &investor,
             &project.project,
-            buy_asset_amount,
+            buy_share_amount,
             &project.project_id,
             funds_asset_id,
         )
@@ -593,7 +597,7 @@ mod tests {
             &project.project,
             &project.project_id,
             &investor,
-            buy_asset_amount,
+            buy_share_amount,
         )
         .await?;
 
@@ -606,8 +610,8 @@ mod tests {
 
         let investor_entitled_harvest = calculate_entitled_harvest(
             central_state.received,
-            project.project.specs.shares.count,
-            buy_asset_amount,
+            project.project.specs.shares.supply,
+            buy_share_amount,
             TESTS_DEFAULT_PRECISION,
             project.project.specs.investors_part(),
         );
@@ -632,7 +636,7 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let buy_asset_amount = 10;
+        let buy_share_amount = ShareAmount(10);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -653,7 +657,7 @@ mod tests {
         invests_flow(
             &algod,
             &investor,
-            buy_asset_amount,
+            buy_share_amount,
             funds_asset_id,
             &project.project,
             &project.project_id,
@@ -684,20 +688,20 @@ mod tests {
         algod: &Algod,
         investor: &Account,
         project: &Project,
-        shares_amount: u64,
+        share_amount: ShareAmount,
         project_id: &ProjectId,
         funds_asset_id: FundsAssetId,
     ) -> Result<()> {
         invests_flow(
             &algod,
             &investor,
-            shares_amount,
+            share_amount,
             funds_asset_id,
             &project,
             project_id,
         )
         .await?;
-        let unstake_tx_id = unstake_flow(&algod, &project, &investor, shares_amount).await?;
+        let unstake_tx_id = unstake_flow(&algod, &project, &investor, share_amount).await?;
         wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
         Ok(())
     }

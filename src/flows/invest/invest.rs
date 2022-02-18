@@ -1,3 +1,10 @@
+use super::model::{InvestResult, InvestSigned, InvestToSign};
+use crate::{
+    flows::create_project::{
+        model::Project, share_amount::ShareAmount, storage::load_project::ProjectId,
+    },
+    funds::{FundsAmount, FundsAssetId},
+};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -6,14 +13,7 @@ use algonaut::{
         AcceptAsset, Pay, Transaction, TransferAsset, TxnBuilder,
     },
 };
-use anyhow::Result;
-
-use crate::{
-    flows::create_project::{model::Project, storage::load_project::ProjectId},
-    funds::{FundsAmount, FundsAssetId},
-};
-
-use super::model::{InvestResult, InvestSigned, InvestToSign};
+use anyhow::{anyhow, Result};
 
 // TODO no constant
 pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
@@ -28,7 +28,7 @@ pub async fn invest_txs(
     staking_escrow: &ContractAccount,
     central_app_id: u64,
     shares_asset_id: u64,
-    asset_count: u64,
+    share_amount: ShareAmount,
     funds_asset_id: FundsAssetId,
     share_price: FundsAmount,
     project_id: &ProjectId,
@@ -36,6 +36,10 @@ pub async fn invest_txs(
     log::debug!("Investing in project: {:?}", project);
 
     let params = algod.suggested_transaction_params().await?;
+
+    let total_price = share_price.0.checked_mul(share_amount.0).ok_or(anyhow!(
+        "Share price: {share_price} multiplied by share amount: {share_amount} caused an overflow."
+    ))?;
 
     let mut central_app_investor_setup_tx = central_app_investor_setup_tx(
         &params,
@@ -53,7 +57,7 @@ pub async fn invest_txs(
         TransferAsset::new(
             *investor,
             funds_asset_id.0,
-            share_price.0 * asset_count,
+            total_price,
             *project.central_escrow.address(),
         )
         .build(),
@@ -82,7 +86,7 @@ pub async fn invest_txs(
         TransferAsset::new(
             *project.invest_escrow.address(),
             project.shares_asset_id,
-            asset_count,
+            share_amount.0,
             *staking_escrow.address(),
         )
         .build(),

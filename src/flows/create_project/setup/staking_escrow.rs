@@ -46,14 +46,12 @@ pub async fn setup_staking_escrow_txs(
     algod: &Algod,
     source: &TealSourceTemplate,
     shares_asset_id: u64,
-    asset_amount: u64,
     creator: &Address,
     params: &SuggestedTransactionParams,
 ) -> Result<SetupStakingEscrowToSign> {
     log::debug!(
-        "Setting up escrow with asset id: {}, amount: {}, creator: {:?}",
+        "Setting up escrow with asset id: {}, creator: {:?}",
         shares_asset_id,
-        asset_amount,
         creator
     );
 

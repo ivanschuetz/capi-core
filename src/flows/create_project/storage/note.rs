@@ -9,6 +9,7 @@ use crate::{
             investing_escrow::render_and_compile_investing_escrow,
             staking_escrow::render_and_compile_staking_escrow,
         },
+        share_amount::ShareAmount,
     },
     funds::{FundsAmount, FundsAssetId},
     hashable::Hashable,
@@ -174,10 +175,9 @@ async fn storable_project_to_project(
             payload.description.clone(),
             CreateSharesSpecs {
                 token_name: payload.asset_name.clone(),
-                count: payload.asset_supply,
+                supply: payload.asset_supply,
             },
-            123, // TODO
-            // investors_share: payload.investors_share,
+            ShareAmount(123),
             payload.share_price,
             payload.logo_url.clone(),
             payload.social_media_url.clone(),
@@ -216,11 +216,11 @@ pub struct ProjectNoteProjectPayload {
     // When someone shares their project, people should be able to see it as quickly as possible.
     // Note also that these asset properties are immutable (https://developer.algorand.org/docs/get-details/asa/#modifying-an-asset), so it's safe to save them.
     pub asset_name: String,
-    pub asset_supply: u64,
+    pub asset_supply: ShareAmount,
 
     pub share_price: FundsAmount,
     pub funds_asset_id: FundsAssetId,
-    pub investors_share: u64,
+    pub investors_share: ShareAmount,
     pub logo_url: String,
     pub social_media_url: String,
     pub creator: Address,
@@ -242,7 +242,7 @@ impl From<Project> for ProjectNoteProjectPayload {
             social_media_url: p.specs.social_media_url.clone(),
             asset_id: p.shares_asset_id,
             asset_name: p.specs.shares.token_name.clone(),
-            asset_supply: p.specs.shares.count,
+            asset_supply: p.specs.shares.supply,
             funds_asset_id: p.funds_asset_id,
             share_price: p.specs.share_price,
             investors_share: p.specs.investors_part(),

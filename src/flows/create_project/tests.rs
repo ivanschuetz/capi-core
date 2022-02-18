@@ -56,7 +56,7 @@ mod tests {
             created_assets[0].params.unit_name,
             Some(project.project.specs.shares.token_name.clone())
         );
-        assert_eq!(specs.shares.count, created_assets[0].params.total);
+        assert_eq!(specs.shares.supply.0, created_assets[0].params.total);
         let creator_assets = creator_infos.assets;
         // funds asset + not opted-out from shares (TODO maybe do this, no reason for creator to be opted in in the investor assets) so still there
         assert_eq!(2, creator_assets.len());
@@ -77,7 +77,7 @@ mod tests {
         );
         assert_eq!(
             escrow_held_assets[0].amount,
-            project.project.specs.shares.count
+            project.project.specs.shares.supply.0
         );
 
         // staking escrow funding checks

@@ -1,4 +1,7 @@
-use super::shares_specs::SharesRoundingMode::{self, Ceil, Floor};
+use super::{
+    share_amount::ShareAmount,
+    shares_specs::SharesRoundingMode::{self, Ceil, Floor},
+};
 use crate::decimal_util::AsDecimal;
 use anyhow::{anyhow, Result};
 use rust_decimal::{prelude::ToPrimitive, Decimal};
@@ -28,8 +31,12 @@ impl SharesPercentage {
         self.0
     }
 
-    pub fn apply_to(&self, shares_supply: u64, rounding: SharesRoundingMode) -> Result<u64> {
-        let d = self.0 * shares_supply.as_decimal();
+    pub fn apply_to(
+        &self,
+        shares_supply: ShareAmount,
+        rounding: SharesRoundingMode,
+    ) -> Result<u64> {
+        let d = self.0 * shares_supply.0.as_decimal();
         let res = match rounding {
             Floor => d.floor(),
             Ceil => d.ceil(),

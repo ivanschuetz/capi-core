@@ -10,6 +10,7 @@ use serde::Serialize;
 use crate::teal::save_rendered_teal;
 use crate::{
     decimal_util::AsDecimal,
+    flows::create_project::share_amount::ShareAmount,
     teal::{render_template, TealSource, TealSourceTemplate},
 };
 
@@ -19,23 +20,17 @@ pub async fn create_app_tx(
     approval_source: &TealSourceTemplate,
     clear_source: TealSource,
     creator: &Address,
-    asset_id: u64,
-    asset_supply: u64,
+    share_supply: ShareAmount,
     precision: u64,
-    investors_share: u64,
+    investors_share: ShareAmount,
     customer_escrow: &Address,
     central_escrow: &Address,
     params: &SuggestedTransactionParams,
 ) -> Result<Transaction> {
-    log::debug!(
-        "Creating central app with asset id: {}, supply: {}",
-        asset_id,
-        asset_supply
-    );
+    log::debug!("Creating central app with asset supply: {}", share_supply);
     let approval_source = render_central_app(
         approval_source,
-        asset_id,
-        asset_supply,
+        share_supply,
         precision,
         investors_share,
         customer_escrow,
@@ -69,10 +64,9 @@ pub async fn create_app_tx(
 
 pub fn render_central_app(
     source: &TealSourceTemplate,
-    asset_id: u64,
-    asset_supply: u64,
+    share_supply: ShareAmount,
     precision: u64,
-    investors_share: u64,
+    investors_share: ShareAmount,
     customer_escrow: &Address,
     central_escrow: &Address,
 ) -> Result<TealSource> {
@@ -80,13 +74,12 @@ pub fn render_central_app(
         .checked_pow(2)
         .ok_or_else(|| anyhow!("Precision squared overflow: {}", precision))?;
     let investors_share =
-        ((investors_share.as_decimal() / 100.as_decimal()) * precision.as_decimal()).floor();
+        ((investors_share.0.as_decimal() / 100.as_decimal()) * precision.as_decimal()).floor();
 
     let source = render_template(
         source,
         RenderCentralAppContext {
-            asset_id: asset_id.to_string(),
-            asset_supply: asset_supply.to_string(),
+            share_supply: share_supply.to_string(),
             investors_share: investors_share.to_string(),
             precision: precision.to_string(),
             precision_square: precision_square.to_string(),
@@ -101,8 +94,7 @@ pub fn render_central_app(
 
 #[derive(Serialize)]
 struct RenderCentralAppContext {
-    asset_id: String,
-    asset_supply: String,
+    share_supply: String,
     investors_share: String,
     precision: String,
     precision_square: String,
@@ -114,6 +106,7 @@ struct RenderCentralAppContext {
 mod tests {
     use crate::{
         dependencies,
+        flows::create_project::share_amount::ShareAmount,
         network_util::wait_for_pending_transaction,
         teal::{load_teal, load_teal_template},
         testing::{network_test_util::test_init, test_data::creator, TESTS_DEFAULT_PRECISION},
@@ -142,16 +135,15 @@ mod tests {
 
         let params = algod.suggested_transaction_params().await?;
 
-        // asset id and supply aren't used here so we can pass anything (0 in this case)
+        // asset supply isn't used here so we can pass anything (0 in this case)
         let tx = create_app_tx(
             &algod,
             &approval_template,
             clear_source,
             &creator.address(),
-            0,
-            0,
+            ShareAmount(0),
             TESTS_DEFAULT_PRECISION,
-            40,
+            ShareAmount(40),
             // random: this address doesn't affect this test
             &"3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA"
                 .parse()

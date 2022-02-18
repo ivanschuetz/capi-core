@@ -9,7 +9,10 @@ mod tests {
     use crate::{
         dependencies,
         flows::{
-            create_project::{create_project_specs::CreateProjectSpecs, model::CreateSharesSpecs},
+            create_project::{
+                create_project_specs::CreateProjectSpecs, model::CreateSharesSpecs,
+                share_amount::ShareAmount,
+            },
             harvest::harvest::investor_can_harvest_amount_calc,
         },
         funds::{FundsAmount, FundsAssetId},
@@ -45,7 +48,7 @@ mod tests {
 
         // flow
 
-        let buy_asset_amount = 10;
+        let buy_share_amount = ShareAmount(10);
         let central_funds = FundsAmount(10 * 1_000_000);
         let harvest_amount = FundsAmount(400_000); // calculated manually
         let precision = TESTS_DEFAULT_PRECISION;
@@ -58,7 +61,7 @@ mod tests {
             &harvester,
             &drainer,
             &customer,
-            buy_asset_amount,
+            buy_share_amount,
             central_funds,
             precision,
         )
@@ -86,7 +89,7 @@ mod tests {
             // central lost the amount
             precs.central_escrow_balance_after_drain - res.harvest,
             // double check shares local state
-            buy_asset_amount,
+            buy_share_amount,
             // only one harvest: local state is the harvested amount
             res.harvest,
         )
@@ -114,7 +117,7 @@ mod tests {
 
         // precs
 
-        let buy_asset_amount = 10;
+        let buy_share_amount = ShareAmount(10);
         let central_funds = FundsAmount(10 * 1_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
 
@@ -126,7 +129,7 @@ mod tests {
             &harvester,
             &drainer,
             &customer,
-            buy_asset_amount,
+            buy_share_amount,
             central_funds,
             precision,
         )
@@ -137,8 +140,8 @@ mod tests {
         let harvest_amount = investor_can_harvest_amount_calc(
             central_state.received,
             FundsAmount(0),
-            buy_asset_amount,
-            specs.shares.count,
+            buy_share_amount,
+            specs.shares.supply,
             precision,
             specs.investors_part(),
         );
@@ -169,7 +172,7 @@ mod tests {
             // central lost the amount
             precs.central_escrow_balance_after_drain - res.harvest,
             // double check shares local state
-            buy_asset_amount,
+            buy_share_amount,
             // only one harvest: local state is the harvested amount
             res.harvest,
         )
@@ -197,7 +200,7 @@ mod tests {
 
         // precs
 
-        let buy_asset_amount = 10;
+        let buy_share_amount = ShareAmount(10);
         let central_funds = FundsAmount(10 * 1_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
 
@@ -209,7 +212,7 @@ mod tests {
             &harvester,
             &drainer,
             &customer,
-            buy_asset_amount,
+            buy_share_amount,
             central_funds,
             precision,
         )
@@ -219,8 +222,8 @@ mod tests {
         let harvest_amount = investor_can_harvest_amount_calc(
             central_state.received,
             FundsAmount(0),
-            buy_asset_amount,
-            specs.shares.count,
+            buy_share_amount,
+            specs.shares.supply,
             precision,
             specs.investors_part(),
         );
@@ -263,7 +266,7 @@ mod tests {
 
         // precs
 
-        let buy_asset_amount = 10;
+        let buy_share_amount = ShareAmount(10);
         let central_funds = FundsAmount(10 * 1_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
         let specs = CreateProjectSpecs::new(
@@ -271,9 +274,9 @@ mod tests {
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
             CreateSharesSpecs {
                 token_name: "PCK".to_owned(),
-                count: 300,
+                supply: ShareAmount(300),
             },
-            120,
+            ShareAmount(120),
             FundsAmount(5_000_000),
             "https://placekitten.com/200/300".to_owned(),
             "https://twitter.com/capi_fin".to_owned(),
@@ -288,7 +291,7 @@ mod tests {
             &harvester,
             &drainer,
             &customer,
-            buy_asset_amount,
+            buy_share_amount,
             central_funds,
             precision,
         )
@@ -300,8 +303,8 @@ mod tests {
         let harvest_amount = investor_can_harvest_amount_calc(
             central_state.received,
             FundsAmount(0),
-            buy_asset_amount,
-            specs.shares.count,
+            buy_share_amount,
+            specs.shares.supply,
             precision,
             specs.investors_part(),
         );
@@ -332,7 +335,7 @@ mod tests {
             // central lost the amount
             precs.central_escrow_balance_after_drain - res.harvest,
             // double check shares local state
-            buy_asset_amount,
+            buy_share_amount,
             // only one harvest: local state is the harvested amount
             res.harvest,
         )
@@ -358,7 +361,7 @@ mod tests {
 
         // flow
 
-        let buy_asset_amount = 20;
+        let buy_share_amount = ShareAmount(20);
         let central_funds = FundsAmount(10 * 1_000_000);
         let harvest_amount = FundsAmount(200_000); // just an amount low enough so we can harvest 2x
         let precision = TESTS_DEFAULT_PRECISION;
@@ -374,7 +377,7 @@ mod tests {
             // 20 with 100 supply (TODO pass supply or just create specs here) means that we're entitled to 20% of total drained
             // so 20% of 10 algos (TODO pass draining amount to harvest_precs), which is 2 Algos
             // we harvest 1 Algo 2x -> success
-            buy_asset_amount,
+            buy_share_amount,
             central_funds,
             precision,
         )
@@ -411,7 +414,7 @@ mod tests {
             // central lost the amount
             precs.central_escrow_balance_after_drain - total_expected_harvested_amount,
             // double check shares local state
-            buy_asset_amount,
+            buy_share_amount,
             // 2 harvests: local state is the total harvested amount
             total_expected_harvested_amount,
         )
@@ -437,7 +440,7 @@ mod tests {
         drained_amount: FundsAmount,
         expected_harvester_balance: FundsAmount,
         expected_central_balance: FundsAmount,
-        expected_shares: u64,
+        expected_shares: ShareAmount,
         expected_harvested_total: FundsAmount,
     ) -> Result<()> {
         let harvest_funds_amount =

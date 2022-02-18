@@ -1,4 +1,6 @@
 #[cfg(test)]
+use crate::flows::create_project::share_amount::ShareAmount;
+#[cfg(test)]
 use crate::flows::create_project::{
     create_project_specs::CreateProjectSpecs, model::CreateSharesSpecs,
 };
@@ -40,7 +42,7 @@ pub fn project_specs() -> CreateProjectSpecs {
         "Pancakes ltd".to_owned(),
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
         shares_specs(),
-        40,
+        ShareAmount(40),
         FundsAmount(5_000_000),
         "https://placekitten.com/200/300".to_string(),
         "https://twitter.com/capi_fin".to_owned(),
@@ -52,6 +54,6 @@ pub fn project_specs() -> CreateProjectSpecs {
 pub fn shares_specs() -> CreateSharesSpecs {
     CreateSharesSpecs {
         token_name: "PCK".to_owned(),
-        count: 100,
+        supply: ShareAmount(100),
     }
 }

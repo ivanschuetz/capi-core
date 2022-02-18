@@ -1,4 +1,4 @@
-use crate::flows::create_project::storage::load_project::TxId;
+use crate::flows::create_project::{share_amount::ShareAmount, storage::load_project::TxId};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -20,7 +20,7 @@ pub async fn unstake(
     algod: &Algod,
     investor: Address,
     // required to be === held shares (otherwise central app rejects the tx)
-    share_count: u64,
+    share_amount: ShareAmount,
     shares_asset_id: u64,
     central_app_id: u64,
     staking_escrow: &ContractAccount,
@@ -46,7 +46,7 @@ pub async fn unstake(
         TransferAsset::new(
             *staking_escrow.address(),
             shares_asset_id,
-            share_count,
+            share_amount.0,
             investor,
         )
         .build(),

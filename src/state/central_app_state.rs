@@ -1,6 +1,9 @@
 use std::convert::TryInto;
 
-use crate::{flows::create_project::storage::load_project::ProjectId, funds::FundsAmount};
+use crate::{
+    flows::create_project::{share_amount::ShareAmount, storage::load_project::ProjectId},
+    funds::FundsAmount,
+};
 
 use super::app_state::{
     global_state, local_state, local_state_from_account, AppStateKey, ApplicationLocalStateError,
@@ -33,7 +36,7 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CentralAppInvestorState {
-    pub shares: u64,
+    pub shares: ShareAmount,
     pub harvested: FundsAmount,
     pub project_id: ProjectId,
 }
@@ -71,7 +74,7 @@ fn central_investor_state_from_local_state(
         .map_err(|e: anyhow::Error| ApplicationLocalStateError::Msg(e.to_string()))?;
 
     Ok(CentralAppInvestorState {
-        shares,
+        shares: ShareAmount(shares),
         harvested,
         project_id,
     })

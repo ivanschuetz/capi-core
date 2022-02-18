@@ -7,8 +7,9 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::{
-    flows::create_project::model::{
-        SetupInvestEscrowSigned, SetupInvestingEscrowToSign, SubmitSetupEscrowRes,
+    flows::create_project::{
+        model::{SetupInvestEscrowSigned, SetupInvestingEscrowToSign, SubmitSetupEscrowRes},
+        share_amount::ShareAmount,
     },
     funds::{FundsAmount, FundsAssetId},
     teal::{render_template, TealSource, TealSourceTemplate},
@@ -82,7 +83,7 @@ pub async fn setup_investing_escrow_txs(
     algod: &Algod,
     source: &TealSourceTemplate,
     shares_asset_id: u64,
-    transfer_share_amount: u64,
+    share_supply: ShareAmount,
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
     creator: &Address,
@@ -92,7 +93,7 @@ pub async fn setup_investing_escrow_txs(
     log::debug!(
         "Setting up investing escrow with asset id: {}, transfer_share_amount: {}, creator: {:?}",
         shares_asset_id,
-        transfer_share_amount,
+        share_supply,
         creator
     );
 
@@ -122,13 +123,7 @@ pub async fn setup_investing_escrow_txs(
 
     let transfer_shares_tx = &mut TxnBuilder::with(
         params.to_owned(),
-        TransferAsset::new(
-            *creator,
-            shares_asset_id,
-            transfer_share_amount,
-            *escrow.address(),
-        )
-        .build(),
+        TransferAsset::new(*creator, shares_asset_id, share_supply.0, *escrow.address()).build(),
     )
     .build();
 
