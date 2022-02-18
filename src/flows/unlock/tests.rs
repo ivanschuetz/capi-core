@@ -6,7 +6,7 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::{create_project::share_amount::ShareAmount, unstake::unstake::FIXED_FEE},
+        flows::{create_project::share_amount::ShareAmount, unlock::unlock::FIXED_FEE},
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         state::{
@@ -17,7 +17,7 @@ mod tests {
             flow::{
                 create_project_flow::create_project_flow,
                 invest_in_project_flow::{invests_flow, invests_optins_flow},
-                unstake_flow::unstake_flow,
+                unlock_flow::unlock_flow,
             },
             network_test_util::{create_and_distribute_funds_asset, test_init},
             test_data::{creator, investor1, project_specs},
@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_unstake() -> Result<()> {
+    async fn test_unlock() -> Result<()> {
         test_init()?;
 
         // deps
@@ -62,7 +62,7 @@ mod tests {
             &project.project_id,
         )
         .await?;
-        // TODO double check tests for state (at least important) tested (e.g. investor has shares, staking doesn't etc.)
+        // TODO double check tests for state (at least important) tested (e.g. investor has shares, locking doesn't etc.)
 
         // double check investor's assets
 
@@ -72,7 +72,7 @@ mod tests {
         assert_eq!(2, investor_assets.len());
         let shares_asset =
             find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
-        // doesn't have shares (they're sent directly to staking escrow)
+        // doesn't have shares (they're sent directly to locking escrow)
         assert_eq!(0, shares_asset.amount);
 
         let investor_state =
@@ -83,35 +83,34 @@ mod tests {
         //  harvested total is 0 (hasn't harvested yet)
         assert_eq!(FundsAmount(0), investor_state.harvested);
 
-        // double check staking escrow's assets
-        let staking_escrow_infos = algod
-            .account_information(project.project.staking_escrow.address())
+        // double check locking escrow's assets
+        let locking_escrow_infos = algod
+            .account_information(project.project.locking_escrow.address())
             .await?;
-        let staking_escrow_assets = staking_escrow_infos.assets;
+        let locking_escrow_assets = locking_escrow_infos.assets;
 
-        assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
-        assert_eq!(buy_share_amount.0, staking_escrow_assets[0].amount);
+        assert_eq!(1, locking_escrow_assets.len()); // opted in to shares
+        assert_eq!(buy_share_amount.0, locking_escrow_assets[0].amount);
 
         // remember state
-        let investor_balance_before_unstaking = investor_infos.amount;
+        let investor_balance_before_unlocking = investor_infos.amount;
 
         // flow
 
-        // in the real application, unstake_share_amount is retrieved from indexer
-        let unstake_share_amount = buy_share_amount;
+        // in the real application, unlock_share_amount is retrieved from indexer
+        let unlock_share_amount = buy_share_amount;
 
-        let unstake_tx_id =
-            unstake_flow(&algod, &project.project, &investor, unstake_share_amount).await?;
-        log::debug!("?? unstake tx id: {:?}", unstake_tx_id);
-        let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
+        let unlock_tx_id =
+            unlock_flow(&algod, &project.project, &investor, unlock_share_amount).await?;
+        let _ = wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
 
-        // shares not anymore in staking escrow
-        let staking_escrow_infos = algod
-            .account_information(project.project.staking_escrow.address())
+        // shares not anymore in locking escrow
+        let locking_escrow_infos = algod
+            .account_information(project.project.locking_escrow.address())
             .await?;
-        let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
-        assert_eq!(0, staking_escrow_assets[0].amount); // lost shares
+        let locking_escrow_assets = locking_escrow_infos.assets;
+        assert_eq!(1, locking_escrow_assets.len()); // still opted in to shares
+        assert_eq!(0, locking_escrow_assets[0].amount); // lost shares
 
         // investor got shares
         let investor_infos = algod.account_information(&investor.address()).await?;
@@ -128,18 +127,18 @@ mod tests {
 
         // investor paid the fees (app call + xfer + xfer fee)
         assert_eq!(
-            investor_balance_before_unstaking - FIXED_FEE * 3,
+            investor_balance_before_unlocking - FIXED_FEE * 3,
             investor_infos.amount
         );
 
         Ok(())
     }
 
-    // TODO think how to implement partial unstaking: it should be common that investors want to sell only a part of their shares
+    // TODO think how to implement partial unlocking: it should be common that investors want to sell only a part of their shares
     // currently we require opt-out to prevent double harvest, REVIEW
     #[test]
     #[serial]
-    async fn test_partial_unstake_not_allowed() -> Result<()> {
+    async fn test_partial_unlock_not_allowed() -> Result<()> {
         test_init()?;
 
         // deps
@@ -183,7 +182,7 @@ mod tests {
         assert_eq!(2, investor_assets.len());
         let shares_asset =
             find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
-        // doesn't have shares (they're sent directly to staking escrow)
+        // doesn't have shares (they're sent directly to locking escrow)
         assert_eq!(0, shares_asset.amount);
 
         // double check investor's local state
@@ -194,33 +193,33 @@ mod tests {
         // harvested total is 0 (hasn't harvested yet)
         assert_eq!(FundsAmount(0), investor_state.harvested);
 
-        // double check staking escrow's assets
-        let staking_escrow_infos = algod
-            .account_information(project.project.staking_escrow.address())
+        // double check locking escrow's assets
+        let locking_escrow_infos = algod
+            .account_information(project.project.locking_escrow.address())
             .await?;
-        let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
-        assert_eq!(buy_asset_amount.0, staking_escrow_assets[0].amount);
+        let locking_escrow_assets = locking_escrow_infos.assets;
+        assert_eq!(1, locking_escrow_assets.len()); // opted in to shares
+        assert_eq!(buy_asset_amount.0, locking_escrow_assets[0].amount);
 
         // remember state
-        let investor_balance_before_unstaking = investor_infos.amount;
+        let investor_balance_before_unlocking = investor_infos.amount;
 
         // flow
 
-        let unstake_share_amount = partial_amount;
+        let unlock_share_amount = partial_amount;
 
-        let unstake_result =
-            unstake_flow(&algod, &project.project, &investor, unstake_share_amount).await;
+        let unlock_result =
+            unlock_flow(&algod, &project.project, &investor, unlock_share_amount).await;
 
-        assert!(unstake_result.is_err());
+        assert!(unlock_result.is_err());
 
-        // shares still in staking escrow
-        let staking_escrow_infos = algod
-            .account_information(project.project.staking_escrow.address())
+        // shares still in locking escrow
+        let locking_escrow_infos = algod
+            .account_information(project.project.locking_escrow.address())
             .await?;
-        let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(1, staking_escrow_assets.len()); // still opted in to shares
-        assert_eq!(buy_asset_amount.0, staking_escrow_assets[0].amount); // lost shares
+        let locking_escrow_assets = locking_escrow_infos.assets;
+        assert_eq!(1, locking_escrow_assets.len()); // still opted in to shares
+        assert_eq!(buy_asset_amount.0, locking_escrow_assets[0].amount); // lost shares
 
         // investor didn't get anything
 
@@ -241,8 +240,8 @@ mod tests {
         // harvested total is 0 (hasn't harvested yet)
         assert_eq!(FundsAmount(0), investor_state.harvested);
 
-        // investor didn't pay fees (unstake txs failed)
-        assert_eq!(investor_balance_before_unstaking, investor_infos.amount);
+        // investor didn't pay fees (unlock txs failed)
+        assert_eq!(investor_balance_before_unlocking, investor_infos.amount);
 
         Ok(())
     }

@@ -25,7 +25,7 @@ pub async fn invest_txs(
     algod: &Algod,
     project: &Project,
     investor: &Address,
-    staking_escrow: &ContractAccount,
+    locking_escrow: &ContractAccount,
     central_app_id: u64,
     shares_asset_id: u64,
     share_amount: ShareAmount,
@@ -87,7 +87,7 @@ pub async fn invest_txs(
             *project.invest_escrow.address(),
             project.shares_asset_id,
             share_amount.0,
-            *staking_escrow.address(),
+            *locking_escrow.address(),
         )
         .build(),
     )

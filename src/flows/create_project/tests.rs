@@ -80,19 +80,19 @@ mod tests {
             project.project.specs.shares.supply.0
         );
 
-        // staking escrow funding checks
-        let staking_escrow = project.project.staking_escrow;
-        let staking_escrow_infos = algod.account_information(staking_escrow.address()).await?;
-        let staking_escrow_held_assets = staking_escrow_infos.assets;
+        // locking escrow funding checks
+        let locking_escrow = project.project.locking_escrow;
+        let locking_escrow_infos = algod.account_information(locking_escrow.address()).await?;
+        let locking_escrow_held_assets = locking_escrow_infos.assets;
         // TODO refactor and check min algos balance
-        assert_eq!(staking_escrow_held_assets.len(), 1);
+        assert_eq!(locking_escrow_held_assets.len(), 1);
         assert_eq!(
-            staking_escrow_held_assets[0].asset_id,
+            locking_escrow_held_assets[0].asset_id,
             project.project.shares_asset_id
         );
-        assert_eq!(staking_escrow_held_assets[0].amount, 0); // nothing staked yet
+        assert_eq!(locking_escrow_held_assets[0].amount, 0); // nothing locked yet
 
-        // sanity check: the creator doesn't opt in to the app (doesn't invest or stake)
+        // sanity check: the creator doesn't opt in to the app (doesn't invest or lock)
         let central_state_res =
             central_investor_state(&algod, &creator.address(), project.project.central_app_id)
                 .await;

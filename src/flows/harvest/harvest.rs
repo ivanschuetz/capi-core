@@ -135,9 +135,9 @@ pub fn investor_can_harvest_amount_calc(
     precision: u64,
     investors_part: ShareAmount,
 ) -> FundsAmount {
-    // Note that this assumes that investor can't unstake only a part of their shares
+    // Note that this assumes that investor can't unlock only a part of their shares
     // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with harvested_total, which remains unchanged.
-    // the easiest solution is to expect the investor to unstake all their shares
+    // the easiest solution is to expect the investor to unlock all their shares
     // if they want to sell only a part, they've to opt-in again with the shares they want to keep.
 
     let entitled_total = calculate_entitled_harvest(

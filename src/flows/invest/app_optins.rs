@@ -9,7 +9,7 @@ use algonaut::{
 };
 use anyhow::Result;
 
-pub async fn invest_or_staking_app_optin_tx(
+pub async fn invest_or_locking_app_optin_tx(
     algod: &Algod,
     project: &Project,
     investor: &Address,
@@ -19,7 +19,7 @@ pub async fn invest_or_staking_app_optin_tx(
     Ok(central_optin_tx)
 }
 
-pub async fn submit_invest_or_staking_app_optin(
+pub async fn submit_invest_or_locking_app_optin(
     algod: &Algod,
     signed: SignedTransaction,
 ) -> Result<TxId> {

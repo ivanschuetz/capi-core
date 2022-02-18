@@ -25,7 +25,7 @@ pub async fn create_investing_escrow(
     shares_asset_id: u64,
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
-    staking_escrow_address: &Address,
+    locking_escrow_address: &Address,
     source: &TealSourceTemplate,
 ) -> Result<ContractAccount> {
     render_and_compile_investing_escrow(
@@ -33,7 +33,7 @@ pub async fn create_investing_escrow(
         shares_asset_id,
         share_price,
         funds_asset_id,
-        staking_escrow_address,
+        locking_escrow_address,
         source,
     )
     .await
@@ -44,7 +44,7 @@ pub async fn render_and_compile_investing_escrow(
     shares_asset_id: u64,
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
-    staking_escrow_address: &Address,
+    locking_escrow_address: &Address,
     source: &TealSourceTemplate,
 ) -> Result<ContractAccount> {
     let source = render_investing_escrow(
@@ -52,7 +52,7 @@ pub async fn render_and_compile_investing_escrow(
         shares_asset_id,
         share_price,
         funds_asset_id,
-        staking_escrow_address,
+        locking_escrow_address,
     )?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
@@ -62,7 +62,7 @@ fn render_investing_escrow(
     shares_asset_id: u64,
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
-    staking_escrow_address: &Address,
+    locking_escrow_address: &Address,
 ) -> Result<TealSource> {
     let escrow_source = render_template(
         source,
@@ -70,7 +70,7 @@ fn render_investing_escrow(
             shares_asset_id: shares_asset_id.to_string(),
             share_price: share_price.0.to_string(),
             funds_asset_id: funds_asset_id.0.to_string(),
-            staking_escrow_address: staking_escrow_address.to_string(),
+            locking_escrow_address: locking_escrow_address.to_string(),
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -87,7 +87,7 @@ pub async fn setup_investing_escrow_txs(
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
     creator: &Address,
-    staking_escrow_address: &Address,
+    locking_escrow_address: &Address,
     params: &SuggestedTransactionParams,
 ) -> Result<SetupInvestingEscrowToSign> {
     log::debug!(
@@ -102,7 +102,7 @@ pub async fn setup_investing_escrow_txs(
         shares_asset_id,
         share_price,
         funds_asset_id,
-        staking_escrow_address,
+        locking_escrow_address,
         source,
     )
     .await?;
@@ -159,7 +159,7 @@ struct EditTemplateContext {
     shares_asset_id: String,
     share_price: String,
     funds_asset_id: String,
-    staking_escrow_address: String,
+    locking_escrow_address: String,
 }
 
 #[cfg(test)]

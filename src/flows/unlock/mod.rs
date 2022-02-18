@@ -1,3 +1,3 @@
 mod tests;
 #[allow(clippy::module_inception)]
-pub mod unstake;
+pub mod unlock;

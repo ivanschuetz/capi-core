@@ -7,7 +7,7 @@ use crate::{
             central_escrow::render_and_compile_central_escrow,
             customer_escrow::render_and_compile_customer_escrow,
             investing_escrow::render_and_compile_investing_escrow,
-            staking_escrow::render_and_compile_staking_escrow,
+            locking_escrow::render_and_compile_locking_escrow,
         },
         share_amount::ShareAmount,
     },
@@ -141,13 +141,13 @@ async fn storable_project_to_project(
         &escrows.central_escrow,
         payload.funds_asset_id,
     );
-    let staking_escrow_account_fut =
-        render_and_compile_staking_escrow(algod, payload.shares_asset_id, &escrows.staking_escrow);
+    let locking_escrow_account_fut =
+        render_and_compile_locking_escrow(algod, payload.shares_asset_id, &escrows.locking_escrow);
 
-    let (central_escrow_account_res, staking_escrow_account_res) =
-        join!(central_escrow_account_fut, staking_escrow_account_fut);
+    let (central_escrow_account_res, locking_escrow_account_res) =
+        join!(central_escrow_account_fut, locking_escrow_account_fut);
     let central_escrow_account = central_escrow_account_res?;
-    let staking_escrow_account = staking_escrow_account_res?;
+    let locking_escrow_account = locking_escrow_account_res?;
 
     let customer_escrow_account_fut = render_and_compile_customer_escrow(
         algod,
@@ -160,7 +160,7 @@ async fn storable_project_to_project(
         payload.shares_asset_id,
         &payload.share_price,
         &payload.funds_asset_id,
-        staking_escrow_account.address(),
+        locking_escrow_account.address(),
         &escrows.invest_escrow,
     );
 
@@ -187,7 +187,7 @@ async fn storable_project_to_project(
         shares_asset_id: payload.shares_asset_id,
         central_app_id: payload.central_app_id,
         invest_escrow: investing_escrow_account,
-        staking_escrow: staking_escrow_account,
+        locking_escrow: locking_escrow_account,
         central_escrow: central_escrow_account,
         customer_escrow: customer_escrow_account,
     };

@@ -17,16 +17,16 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 /// Note that this is only for shares that have been bought in the market
-/// The investing flow doesn't use this: there's an xfer from the investing account to the staking escrow in the investing tx group
-pub async fn stake(
+/// The investing flow doesn't use this: there's an xfer from the investing account to the locking escrow in the investing tx group
+pub async fn lock(
     algod: &Algod,
     investor: Address,
     share_amount: ShareAmount,
     shares_asset_id: u64,
     central_app_id: u64,
-    staking_escrow: &ContractAccount,
+    locking_escrow: &ContractAccount,
     project_id: &ProjectId,
-) -> Result<StakeToSign> {
+) -> Result<LockToSign> {
     let params = algod.suggested_transaction_params().await?;
 
     // Central app setup app call (init investor's local state)
@@ -41,7 +41,7 @@ pub async fn stake(
     )
     .build();
 
-    // Send investor's assets to staking escrow
+    // Send investor's assets to lock escrow
     let mut shares_xfer_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
@@ -51,7 +51,7 @@ pub async fn stake(
             investor,
             shares_asset_id,
             share_amount.0,
-            *staking_escrow.address(),
+            *locking_escrow.address(),
         )
         .build(),
     )
@@ -60,31 +60,31 @@ pub async fn stake(
     let txs_for_group = vec![&mut app_call_tx, &mut shares_xfer_tx];
     TxGroup::assign_group_id(txs_for_group)?;
 
-    Ok(StakeToSign {
+    Ok(LockToSign {
         central_app_call_setup_tx: app_call_tx.clone(),
         shares_xfer_tx: shares_xfer_tx.clone(),
     })
 }
 
-pub async fn submit_stake(algod: &Algod, signed: StakeSigned) -> Result<TxId> {
+pub async fn submit_lock(algod: &Algod, signed: LockSigned) -> Result<TxId> {
     let txs = vec![
         signed.central_app_call_setup_tx.clone(),
         signed.shares_xfer_tx_signed.clone(),
     ];
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
     let res = algod.broadcast_signed_transactions(&txs).await?;
-    log::debug!("Stake tx id: {:?}", res.tx_id);
+    log::debug!("Lock tx id: {:?}", res.tx_id);
     Ok(res.tx_id.parse()?)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StakeToSign {
+pub struct LockToSign {
     pub central_app_call_setup_tx: Transaction,
     pub shares_xfer_tx: Transaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StakeSigned {
+pub struct LockSigned {
     pub central_app_call_setup_tx: SignedTransaction,
     pub shares_xfer_tx_signed: SignedTransaction,
 }

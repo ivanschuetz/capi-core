@@ -36,7 +36,7 @@ pub struct MyStoredProject {
     pub project: StoredProject,
     // whether I created this project
     pub created_by_me: bool,
-    // whether I'm currently invested (staking shares) in this project
+    // whether I'm currently invested (locking shares) in this project
     pub invested_by_me: bool,
 }
 
@@ -87,8 +87,8 @@ pub async fn my_projects(
     Ok(projects)
 }
 
-/// Returns projects where the user is invested. Meaning: has currently staked shares (more exactly a local state containing the project id).
-/// (Projects for non-staked shares, where the user opted out, or where the local state was deleted (externally) don't count).
+/// Returns projects where the user is invested. Meaning: has currently locked shares (more exactly a local state containing the project id).
+/// (Projects for non-locked shares, where the user opted out, or where the local state was deleted (externally) don't count).
 pub async fn my_current_invested_projects(
     algod: &Algod,
     indexer: &Indexer,

@@ -22,7 +22,7 @@ pub async fn shares_holders_distribution(
     app_id: u64,
     asset_supply: u64,
     investing_escrow: &Address,
-    staking_escrow: &Address,
+    locking_escrow: &Address,
 ) -> Result<Vec<ShareHoldingPercentage>> {
     let holdings = share_sholders(
         algod,
@@ -30,7 +30,7 @@ pub async fn shares_holders_distribution(
         asset_id,
         app_id,
         investing_escrow,
-        staking_escrow,
+        locking_escrow,
     )
     .await?;
     let asset_supply_decimal: Decimal = asset_supply.into();
@@ -63,26 +63,26 @@ pub async fn shares_holders_distribution(
     Ok(holding_percentages)
 }
 
-/// Addresses holding shares (either the asset directly or local state (staked)). Excluding the investing and staking escrow.
+/// Addresses holding shares (either the asset directly or local state (locked)). Excluding the investing and locking escrow.
 async fn share_sholders(
     algod: &Algod,
     indexer: &Indexer,
     asset_id: u64,
     app_id: u64,
     investing_escrow: &Address,
-    staking_escrow: &Address,
+    locking_escrow: &Address,
 ) -> Result<Vec<ShareHolding>> {
     let mut holdings =
-        free_assets_holdings(indexer, asset_id, investing_escrow, staking_escrow).await?;
-    let stakers = stakers_holdings(algod, indexer, app_id).await?;
-    holdings.extend(stakers);
+        free_assets_holdings(indexer, asset_id, investing_escrow, locking_escrow).await?;
+    let lockers = lockers_holdings(algod, indexer, app_id).await?;
+    holdings.extend(lockers);
     Ok(holdings)
 }
 
 // TODO paginate? but clarify first whether we'll actually use this, it's quite expensive either way
 // we've to fetch the local state for each account to get the share count
-async fn stakers(indexer: &Indexer, app_id: u64) -> Result<Vec<Account>> {
-    // get all the accounts opted in to the app (stakers/investors)
+async fn lockers(indexer: &Indexer, app_id: u64) -> Result<Vec<Account>> {
+    // get all the accounts opted in to the app (lockers/investors)
     let accounts = indexer
         .accounts(&QueryAccount {
             application_id: Some(app_id),
@@ -93,21 +93,21 @@ async fn stakers(indexer: &Indexer, app_id: u64) -> Result<Vec<Account>> {
     Ok(accounts.accounts)
 }
 
-async fn stakers_holdings(
+async fn lockers_holdings(
     algod: &Algod,
     indexer: &Indexer,
     app_id: u64,
 ) -> Result<Vec<ShareHolding>> {
-    let stakers = stakers(indexer, app_id).await?;
+    let lockers = lockers(indexer, app_id).await?;
     let mut holdings = vec![];
-    for staker in stakers {
+    for locker in lockers {
         // TODO (low prio) small optimization: read only the shares amount
         // TODO consider using join to parallelize these requests
-        let state = central_investor_state(algod, &staker.address, app_id).await?;
-        log::trace!("Share staker state: {:?}", state);
+        let state = central_investor_state(algod, &locker.address, app_id).await?;
+        log::trace!("Share locker state: {:?}", state);
 
         holdings.push(ShareHolding {
-            address: staker.address,
+            address: locker.address,
             amount: state.shares,
         })
     }
@@ -120,7 +120,7 @@ async fn free_assets_holdings(
     indexer: &Indexer,
     asset_id: u64,
     investing_escrow: &Address,
-    staking_escrow: &Address,
+    locking_escrow: &Address,
 ) -> Result<Vec<ShareHolding>> {
     let accounts = indexer
         .accounts(&QueryAccount {
@@ -136,9 +136,9 @@ async fn free_assets_holdings(
         let asset_amount = find_amount(asset_id, &holder.assets)?;
 
         if asset_amount > 0 // if accounts have no assets but are opted in, we get 0 count - filter those out
-            // the investing or staking escrow shouldn't show up on the holders list
+            // the investing or locking escrow shouldn't show up on the holders list
             && &holder.address != investing_escrow
-            && &holder.address != staking_escrow
+            && &holder.address != locking_escrow
         {
             holdings.push(ShareHolding {
                 amount: ShareAmount(find_amount(asset_id, &holder.assets)?),
@@ -154,10 +154,10 @@ pub async fn holders_count(
     indexer: &Indexer,
     asset_id: u64,
     investing_escrow: &Address,
-    staking_escrow: &Address,
+    locking_escrow: &Address,
 ) -> Result<usize> {
     let holders_holdings =
-        free_assets_holdings(indexer, asset_id, investing_escrow, staking_escrow).await?;
+        free_assets_holdings(indexer, asset_id, investing_escrow, locking_escrow).await?;
     Ok(holders_holdings.len())
 }
 

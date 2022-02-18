@@ -11,7 +11,7 @@ mod tests {
             create_project::share_amount::ShareAmount,
             harvest::harvest::calculate_entitled_harvest,
             invest::app_optins::{
-                invest_or_staking_app_optin_tx, submit_invest_or_staking_app_optin,
+                invest_or_locking_app_optin_tx, submit_invest_or_locking_app_optin,
             },
         },
         funds::FundsAmount,
@@ -29,8 +29,8 @@ mod tests {
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
                 harvest_flow::harvest_flow,
                 invest_in_project_flow::{invests_flow, invests_optins_flow},
-                stake_flow::stake_flow,
-                unstake_flow::unstake_flow,
+                lock_flow::lock_flow,
+                unlock_flow::unlock_flow,
             },
             network_test_util::{create_and_distribute_funds_asset, test_init},
             test_data::{self, creator, customer, investor1, investor2, project_specs},
@@ -40,7 +40,7 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_stake() -> Result<()> {
+    async fn test_lock() -> Result<()> {
         test_init()?;
 
         // deps
@@ -93,11 +93,10 @@ mod tests {
         )
         .await?;
 
-        // investor1 unstakes
+        // investor1 unlocks
         let traded_shares = buy_share_amount;
-        let unstake_tx_id =
-            unstake_flow(&algod, &project.project, &investor1, traded_shares).await?;
-        let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
+        let unlock_tx_id = unlock_flow(&algod, &project.project, &investor1, traded_shares).await?;
+        let _ = wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
 
         // investor2 gets shares from investor1 externally
         // normally this will be a swap in a dex. could also be a gift or some other service
@@ -136,17 +135,17 @@ mod tests {
         // is there a way to avoid the investor confirming txs 2 times here?
 
         let app_optin_tx =
-            invest_or_staking_app_optin_tx(&algod, &project.project, &investor2.address()).await?;
+            invest_or_locking_app_optin_tx(&algod, &project.project, &investor2.address()).await?;
         // UI
         let app_optin_signed_tx = investor2.sign_transaction(&app_optin_tx)?;
         let app_optin_tx_id =
-            submit_invest_or_staking_app_optin(&algod, app_optin_signed_tx).await?;
+            submit_invest_or_locking_app_optin(&algod, app_optin_signed_tx).await?;
         let _ = wait_for_pending_transaction(&algod, &app_optin_tx_id);
 
         // flow
 
-        // investor2 stakes the acquired shares
-        stake_flow(
+        // investor2 locks the acquired shares
+        lock_flow(
             &algod,
             &project.project,
             &project.project_id,
@@ -157,7 +156,7 @@ mod tests {
 
         // tests
 
-        // investor2 lost staked assets
+        // investor2 lost locked assets
 
         let investor2_infos = algod.account_information(&investor2.address()).await?;
         let investor2_assets = &investor2_infos.assets;
@@ -187,15 +186,15 @@ mod tests {
         assert_eq!(investor2_entitled_amount, investor_state.harvested);
 
         // renaming for clarity
-        let total_withdrawn_after_staking_setup_call = investor2_entitled_amount;
+        let total_withdrawn_after_locking_setup_call = investor2_entitled_amount;
 
-        // staking escrow got assets
-        let staking_escrow_infos = algod
-            .account_information(project.project.staking_escrow.address())
+        // locking escrow got assets
+        let locking_escrow_infos = algod
+            .account_information(project.project.locking_escrow.address())
             .await?;
-        let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(1, staking_escrow_assets.len()); // opted in to shares
-        assert_eq!(traded_shares.0, staking_escrow_assets[0].amount);
+        let locking_escrow_assets = locking_escrow_infos.assets;
+        assert_eq!(1, locking_escrow_assets.len()); // opted in to shares
+        assert_eq!(traded_shares.0, locking_escrow_assets[0].amount);
 
         // investor2 harvests: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         // the harvest amount is the smallest number possible, to show that we can't retrieve anything
@@ -272,9 +271,9 @@ mod tests {
         // the shares haven't changed
         assert_eq!(traded_shares, investor_state.shares);
         // the harvested total was updated:
-        // initial (total_withdrawn_after_staking_setup_call: entitled amount when staking the shares) + just harvested
+        // initial (total_withdrawn_after_locking_setup_call: entitled amount when locking the shares) + just harvested
         assert_eq!(
-            total_withdrawn_after_staking_setup_call + expected_harvested_amount,
+            total_withdrawn_after_locking_setup_call + expected_harvested_amount,
             investor_state.harvested
         );
 
@@ -283,7 +282,7 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_partial_stake() -> Result<()> {
+    async fn test_partial_lock() -> Result<()> {
         test_init()?;
 
         // deps
@@ -295,8 +294,8 @@ mod tests {
 
         // UI
 
-        let partial_stake_amount = ShareAmount(4);
-        let buy_share_amount = ShareAmount(partial_stake_amount.0 + 6);
+        let partial_lock_amount = ShareAmount(4);
+        let buy_share_amount = ShareAmount(partial_lock_amount.0 + 6);
 
         // precs
 
@@ -320,15 +319,15 @@ mod tests {
         )
         .await?;
 
-        // investor unstakes - note that partial unstaking isn't possible, only staking
+        // investor unlocks - note that partial unlocking isn't possible, only locking
 
-        let unstake_tx_id =
-            unstake_flow(&algod, &project.project, &investor, buy_share_amount).await?;
-        let _ = wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
+        let unlock_tx_id =
+            unlock_flow(&algod, &project.project, &investor, buy_share_amount).await?;
+        let _ = wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
 
         // sanity checks
 
-        // investor was opted out (implies: no shares staked)
+        // investor was opted out (implies: no shares locked)
         let investor_state_res =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await;
@@ -337,7 +336,7 @@ mod tests {
             investor_state_res
         );
 
-        // investor has the unstaked shares
+        // investor has the unlocks shares
 
         let investor_infos = algod.account_information(&investor.address()).await?;
         let investor_assets = &investor_infos.assets;
@@ -347,33 +346,33 @@ mod tests {
             find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
         assert_eq!(buy_share_amount.0, shares_asset.amount);
 
-        // investor stakes again a part of the shares
+        // investor locks again a part of the shares
 
         // optin to app
         let app_optins_tx =
-            invest_or_staking_app_optin_tx(&algod, &project.project, &investor.address()).await?;
+            invest_or_locking_app_optin_tx(&algod, &project.project, &investor.address()).await?;
         let app_optin_signed_tx = investor.sign_transaction(&app_optins_tx)?;
         let app_optin_tx_id =
-            submit_invest_or_staking_app_optin(&algod, app_optin_signed_tx).await?;
+            submit_invest_or_locking_app_optin(&algod, app_optin_signed_tx).await?;
         let _ = wait_for_pending_transaction(&algod, &app_optin_tx_id);
 
-        // stake
-        stake_flow(
+        // lock
+        lock_flow(
             &algod,
             &project.project,
             &project.project_id,
             &investor,
-            partial_stake_amount,
+            partial_lock_amount,
         )
         .await?;
 
         // tests
 
-        // investor staked the shares
+        // investor locked the shares
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(partial_stake_amount, investor_state.shares);
+        assert_eq!(partial_lock_amount, investor_state.shares);
 
         // investor has the remaining free shares
         let investor_infos = algod.account_information(&investor.address()).await?;
@@ -383,7 +382,7 @@ mod tests {
         let shares_asset =
             find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
         assert_eq!(
-            buy_share_amount.0 - partial_stake_amount.0,
+            buy_share_amount.0 - partial_lock_amount.0,
             shares_asset.amount
         );
 

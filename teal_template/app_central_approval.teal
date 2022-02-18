@@ -23,7 +23,7 @@ global GroupSize
 int 2
 ==
 // basically also an investor setup, but when asset was acquired externally (instead of buying in the "ico")
-bnz branch_staking_setup
+bnz branch_locking_setup
 
 global GroupSize
 int 5
@@ -52,10 +52,10 @@ bnz branch_harvest
 
 // opt out tx group
 global GroupSize
-int 3 // central optout + unstake shares  + pay fee for unstake shares
+int 3 // central optout + unlock shares  + pay fee for unlock shares
 ==
 bz after_tx_group_access
-gtxn 0 TypeEnum // unstake shares
+gtxn 0 TypeEnum // unlock shares
 int appl
 ==
 int CloseOut 
@@ -63,7 +63,7 @@ gtxn 0 OnCompletion // central opt out (TODO app ids?)
 ==
 &&
 bz after_tx_group_access
-gtxn 1 TypeEnum // unstake shares
+gtxn 1 TypeEnum // unlock shares
 int axfer
 ==
 bnz branch_opt_out
@@ -81,18 +81,18 @@ branch_opt_in:
 int 1 // TODO remove
 return
 
-branch_staking_setup:
+branch_locking_setup:
 
 gtxn 0 TypeEnum // app call
 int appl
 ==
 
-gtxn 1 TypeEnum // stake
+gtxn 1 TypeEnum // lock
 int axfer
 ==
 &&
 
-// don't allow staking 0 assets 
+// don't allow locking 0 assets 
 // no particular reason, just doesn't make sense
 gtxn 1 AssetAmount
 int 0
@@ -117,7 +117,7 @@ app_local_put
 gtxn 0 Sender // sender of app call (investor)
 byte "HarvestedTotal"
 
-gtxn 1 AssetAmount // staked xfer (this will become "holdings", if the group passes)
+gtxn 1 AssetAmount // locked xfer (this will become "holdings", if the group passes)
 callsub entitled_harvest_amount_for_shares
 app_local_put
 
@@ -251,7 +251,7 @@ return
 branch_opt_out:
 
 // check there's shares xfer
-gtxn 1 TypeEnum // unstake
+gtxn 1 TypeEnum // unlock
 int axfer
 ==
 

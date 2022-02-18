@@ -87,7 +87,7 @@ pub async fn create_project_flow(
             create_app_tx: signed_create_app_tx,
             xfer_shares_to_invest_escrow: signed_xfer_shares_to_invest_escrow,
             invest_escrow: to_sign.invest_escrow,
-            staking_escrow: to_sign.staking_escrow,
+            locking_escrow: to_sign.locking_escrow,
             central_escrow: to_sign.central_escrow,
             customer_escrow: to_sign.customer_escrow,
         },
@@ -128,7 +128,7 @@ pub fn programs() -> Result<Programs> {
             central_escrow: load_teal_template("central_escrow")?,
             customer_escrow: load_teal_template("customer_escrow")?,
             invest_escrow: load_teal_template("investing_escrow")?,
-            staking_escrow: load_teal_template("staking_escrow")?,
+            locking_escrow: load_teal_template("locking_escrow")?,
         },
     })
 }

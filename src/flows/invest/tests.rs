@@ -16,8 +16,8 @@ mod tests {
     use crate::testing::flow::create_project_flow::{create_project_flow, programs};
     use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
     use crate::testing::flow::invest_in_project_flow::{invests_flow, invests_optins_flow};
-    use crate::testing::flow::stake_flow::stake_flow;
-    use crate::testing::flow::unstake_flow::unstake_flow;
+    use crate::testing::flow::lock_flow::lock_flow;
+    use crate::testing::flow::unlock_flow::unlock_flow;
     use crate::testing::network_test_util::{create_and_distribute_funds_asset, test_init};
     use crate::testing::test_data::{customer, investor2};
     use crate::testing::TESTS_DEFAULT_PRECISION;
@@ -72,16 +72,16 @@ mod tests {
         )
         .await?;
 
-        // staking escrow tests
+        // locking escrow tests
 
-        let staking_escrow_infos = algod
-            .account_information(project.project.staking_escrow.address())
+        let locking_escrow_infos = algod
+            .account_information(project.project.locking_escrow.address())
             .await?;
-        // staking escrow received the shares
-        let staking_escrow_assets = staking_escrow_infos.assets;
-        assert_eq!(1, staking_escrow_assets.len());
-        assert_eq!(buy_share_amount.0, staking_escrow_assets[0].amount);
-        // staking escrow doesn't send any transactions so not testing balances (we could "double check" though)
+        // locking escrow received the shares
+        let locking_escrow_assets = locking_escrow_infos.assets;
+        assert_eq!(1, locking_escrow_assets.len());
+        assert_eq!(buy_share_amount.0, locking_escrow_assets[0].amount);
+        // locking escrow doesn't send any transactions so not testing balances (we could "double check" though)
 
         // investor tests
 
@@ -221,7 +221,7 @@ mod tests {
 
     #[test]
     #[serial] // reset network (cmd)
-    async fn test_increments_shares_when_investing_and_staking() -> Result<()> {
+    async fn test_increments_shares_when_investing_and_locking() -> Result<()> {
         test_init()?;
 
         // deps
@@ -231,7 +231,7 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let stake_amount = ShareAmount(10);
+        let lock_amount = ShareAmount(10);
         let invest_amount = ShareAmount(20);
         let specs = project_specs();
 
@@ -248,12 +248,12 @@ mod tests {
 
         invests_optins_flow(&algod, &investor, &project.project).await?;
 
-        // for user to have some free shares (assets) to stake
-        buy_and_unstake_shares(
+        // for user to have some free shares (assets) to lock
+        buy_and_unlock_shares(
             &algod,
             &investor,
             &project.project,
-            stake_amount,
+            lock_amount,
             &project.project_id,
             funds_asset_id,
         )
@@ -261,8 +261,8 @@ mod tests {
 
         // flow
 
-        // buy shares: automatically staked
-        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
+        // buy shares: automatically locked
+        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unlocking opts user out
         invests_flow(
             &algod,
             &investor,
@@ -279,30 +279,30 @@ mod tests {
                 .await?;
         assert_eq!(invest_amount, investor_state.shares);
 
-        // stake shares
-        stake_flow(
+        // lock shares
+        lock_flow(
             &algod,
             &project.project,
             &project.project_id,
             &investor,
-            stake_amount,
+            lock_amount,
         )
         .await?;
 
         // tests
 
-        // investor has shares for investment + staking
+        // investor has shares for investment + locking
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(stake_amount.0 + invest_amount.0, investor_state.shares.0);
+        assert_eq!(lock_amount.0 + invest_amount.0, investor_state.shares.0);
 
         Ok(())
     }
 
     #[test]
     #[serial] // reset network (cmd)
-    async fn test_increments_shares_when_staking_and_investing() -> Result<()> {
+    async fn test_increments_shares_when_locking_and_investing() -> Result<()> {
         test_init()?;
 
         // deps
@@ -312,7 +312,7 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let stake_amount = ShareAmount(10);
+        let lock_amount = ShareAmount(10);
         let invest_amount = ShareAmount(20);
         let specs = project_specs();
 
@@ -329,12 +329,12 @@ mod tests {
 
         invests_optins_flow(&algod, &investor, &project.project).await?;
 
-        // for user to have some free shares (assets) to stake
-        buy_and_unstake_shares(
+        // for user to have some free shares (assets) to lock
+        buy_and_unlock_shares(
             &algod,
             &investor,
             &project.project,
-            stake_amount,
+            lock_amount,
             &project.project_id,
             funds_asset_id,
         )
@@ -342,24 +342,24 @@ mod tests {
 
         // flow
 
-        // stake shares
-        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
-        stake_flow(
+        // lock shares
+        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unlocking opts user out
+        lock_flow(
             &algod,
             &project.project,
             &project.project_id,
             &investor,
-            stake_amount,
+            lock_amount,
         )
         .await?;
 
-        // double check: investor has staked shares
+        // double check: investor has locked shares
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(stake_amount, investor_state.shares);
+        assert_eq!(lock_amount, investor_state.shares);
 
-        // buy shares: automatically staked
+        // buy shares: automatically locked
         invests_flow(
             &algod,
             &investor,
@@ -372,18 +372,18 @@ mod tests {
 
         // tests
 
-        // investor has shares for investment + staking
+        // investor has shares for investment + locking
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(stake_amount.0 + invest_amount.0, investor_state.shares.0);
+        assert_eq!(lock_amount.0 + invest_amount.0, investor_state.shares.0);
 
         Ok(())
     }
 
     #[test]
     #[serial] // reset network (cmd)
-    async fn test_increments_shares_when_staking_twice() -> Result<()> {
+    async fn test_increments_shares_when_locking_twice() -> Result<()> {
         test_init()?;
 
         // deps
@@ -393,10 +393,10 @@ mod tests {
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
         // UI
-        let stake_amount1 = ShareAmount(10);
-        let stake_amount2 = ShareAmount(20);
-        // an amount we unstake and will not stake again, to make the test a little more robust
-        let invest_amount_not_stake = ShareAmount(5);
+        let lock_amount1 = ShareAmount(10);
+        let lock_amount2 = ShareAmount(20);
+        // an amount we unlock and will not lock again, to make the test a little more robust
+        let invest_amount_not_lock = ShareAmount(5);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -412,12 +412,12 @@ mod tests {
 
         invests_optins_flow(&algod, &investor, &project.project).await?;
 
-        // for user to have free shares (assets) to stake
-        buy_and_unstake_shares(
+        // for user to have free shares (assets) to lock
+        buy_and_unlock_shares(
             &algod,
             &investor,
             &project.project,
-            ShareAmount(stake_amount1.0 + stake_amount2.0 + invest_amount_not_stake.0),
+            ShareAmount(lock_amount1.0 + lock_amount2.0 + invest_amount_not_lock.0),
             &project.project_id,
             funds_asset_id,
         )
@@ -425,40 +425,40 @@ mod tests {
 
         // flow
 
-        // stake shares
-        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
-        stake_flow(
+        // lock shares
+        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unlocking opts user out
+        lock_flow(
             &algod,
             &project.project,
             &project.project_id,
             &investor,
-            stake_amount1,
+            lock_amount1,
         )
         .await?;
 
-        // double check: investor has staked shares
+        // double check: investor has locked shares
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(stake_amount1, investor_state.shares);
+        assert_eq!(lock_amount1, investor_state.shares);
 
-        // stake more shares
-        stake_flow(
+        // lock more shares
+        lock_flow(
             &algod,
             &project.project,
             &project.project_id,
             &investor,
-            stake_amount2,
+            lock_amount2,
         )
         .await?;
 
         // tests
 
-        // investor has shares for investment + staking
+        // investor has shares for investment + locking
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(stake_amount1.0 + stake_amount2.0, investor_state.shares.0);
+        assert_eq!(lock_amount1.0 + lock_amount2.0, investor_state.shares.0);
 
         Ok(())
     }
@@ -539,7 +539,7 @@ mod tests {
 
     #[test]
     #[serial] // reset network (cmd)
-    async fn test_stake_after_drain_inits_already_harvested_correctly() -> Result<()> {
+    async fn test_lock_after_drain_inits_already_harvested_correctly() -> Result<()> {
         test_init()?;
 
         // deps
@@ -579,8 +579,8 @@ mod tests {
 
         invests_optins_flow(&algod, &investor, &project.project).await?;
 
-        // for user to have some free shares (assets) to stake
-        buy_and_unstake_shares(
+        // for user to have some free shares (assets) to lock
+        buy_and_unlock_shares(
             &algod,
             &investor,
             &project.project,
@@ -591,8 +591,8 @@ mod tests {
         .await?;
 
         // flow
-        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unstaking opts user out
-        stake_flow(
+        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unlocking opts user out
+        lock_flow(
             &algod,
             &project.project,
             &project.project_id,
@@ -616,7 +616,7 @@ mod tests {
             project.project.specs.investors_part(),
         );
 
-        // staking inits the "harvested" amount to entitled amount (to prevent double harvest)
+        // locking inits the "harvested" amount to entitled amount (to prevent double harvest)
         assert_eq!(investor_entitled_harvest, investor_state.harvested);
 
         Ok(())
@@ -684,7 +684,7 @@ mod tests {
         Ok(())
     }
 
-    async fn buy_and_unstake_shares(
+    async fn buy_and_unlock_shares(
         algod: &Algod,
         investor: &Account,
         project: &Project,
@@ -701,8 +701,8 @@ mod tests {
             project_id,
         )
         .await?;
-        let unstake_tx_id = unstake_flow(&algod, &project, &investor, share_amount).await?;
-        wait_for_pending_transaction(&algod, &unstake_tx_id).await?;
+        let unlock_tx_id = unlock_flow(&algod, &project, &investor, share_amount).await?;
+        wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
         Ok(())
     }
 }

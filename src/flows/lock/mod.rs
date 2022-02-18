@@ -1,3 +1,3 @@
 #[allow(clippy::module_inception)]
-pub mod stake;
+pub mod lock;
 mod tests;

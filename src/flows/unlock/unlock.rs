@@ -16,15 +16,15 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 // see more notes in old repo
 pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
-pub async fn unstake(
+pub async fn unlock(
     algod: &Algod,
     investor: Address,
     // required to be === held shares (otherwise central app rejects the tx)
     share_amount: ShareAmount,
     shares_asset_id: u64,
     central_app_id: u64,
-    staking_escrow: &ContractAccount,
-) -> Result<UnstakeToSign> {
+    locking_escrow: &ContractAccount,
+) -> Result<UnlockToSign> {
     let params = algod.suggested_transaction_params().await?;
 
     // App call to validate the retrieved shares count and clear local state
@@ -37,14 +37,14 @@ pub async fn unstake(
     )
     .build();
 
-    // Retrieve investor's assets from staking escrow
+    // Retrieve investor's assets from locking escrow
     let mut shares_xfer_tx = TxnBuilder::with(
         SuggestedTransactionParams {
             fee: FIXED_FEE,
             ..params.clone()
         },
         TransferAsset::new(
-            *staking_escrow.address(),
+            *locking_escrow.address(),
             shares_asset_id,
             share_amount.0,
             investor,
@@ -59,7 +59,7 @@ pub async fn unstake(
             fee: FIXED_FEE,
             ..params
         },
-        Pay::new(investor, *staking_escrow.address(), FIXED_FEE).build(),
+        Pay::new(investor, *locking_escrow.address(), FIXED_FEE).build(),
     )
     .build();
 
@@ -70,16 +70,16 @@ pub async fn unstake(
     ];
     TxGroup::assign_group_id(txs_for_group)?;
 
-    let signed_shares_xfer_tx = staking_escrow.sign(&shares_xfer_tx, vec![])?;
+    let signed_shares_xfer_tx = locking_escrow.sign(&shares_xfer_tx, vec![])?;
 
-    Ok(UnstakeToSign {
+    Ok(UnlockToSign {
         central_app_optout_tx,
         shares_xfer_tx: signed_shares_xfer_tx,
         pay_shares_xfer_fee_tx,
     })
 }
 
-pub async fn submit_unstake(algod: &Algod, signed: UnstakeSigned) -> Result<TxId> {
+pub async fn submit_unlock(algod: &Algod, signed: UnlockSigned) -> Result<TxId> {
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
     let txs = vec![
@@ -88,23 +88,23 @@ pub async fn submit_unstake(algod: &Algod, signed: UnstakeSigned) -> Result<TxId
         signed.pay_shares_xfer_fee_tx,
     ];
 
-    // crate::teal::debug_teal_rendered(&txs, "staking_escrow").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "locking_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
-    log::debug!("Unstake tx id: {:?}", res.tx_id);
+    log::debug!("Unlock tx id: {:?}", res.tx_id);
     Ok(res.tx_id.parse()?)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnstakeToSign {
+pub struct UnlockToSign {
     pub central_app_optout_tx: Transaction,
     pub shares_xfer_tx: SignedTransaction,
     pub pay_shares_xfer_fee_tx: Transaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UnstakeSigned {
+pub struct UnlockSigned {
     pub central_app_optout_tx: SignedTransaction,
     pub shares_xfer_tx_signed: SignedTransaction,
     pub pay_shares_xfer_fee_tx: SignedTransaction,

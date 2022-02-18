@@ -42,7 +42,7 @@ pub struct CreateProjectToSign {
     pub optin_txs: Vec<SignedTransaction>,
 
     pub specs: CreateProjectSpecs,
-    pub staking_escrow: ContractAccount,
+    pub locking_escrow: ContractAccount,
     pub invest_escrow: ContractAccount,
     pub central_escrow: ContractAccount,
     pub customer_escrow: ContractAccount,
@@ -78,7 +78,7 @@ pub struct CreateProjectSigned {
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
     pub invest_escrow: ContractAccount,
-    pub staking_escrow: ContractAccount,
+    pub locking_escrow: ContractAccount,
     pub central_escrow: ContractAccount,
     pub customer_escrow: ContractAccount,
 }
@@ -93,7 +93,7 @@ pub struct Project {
     pub funds_asset_id: FundsAssetId,
     pub central_app_id: u64,
     pub invest_escrow: ContractAccount,
-    pub staking_escrow: ContractAccount,
+    pub locking_escrow: ContractAccount,
     pub central_escrow: ContractAccount,
     pub customer_escrow: ContractAccount,
 }
