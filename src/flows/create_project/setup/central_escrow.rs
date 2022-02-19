@@ -18,9 +18,6 @@ use serde::Serialize;
 // TODO no constants
 // 1 asset (funds asset)
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
-// TODO confirm this is needed
-// see more notes in old repo
-pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 pub async fn setup_central_escrow(
     algod: &Algod,
@@ -41,7 +38,7 @@ pub async fn setup_central_escrow(
     let fund_min_balance_tx = create_payment_tx(
         project_creator,
         escrow.address(),
-        MIN_BALANCE + FIXED_FEE,
+        MIN_BALANCE + params.fee.max(params.min_fee),
         params,
     )
     .await?;

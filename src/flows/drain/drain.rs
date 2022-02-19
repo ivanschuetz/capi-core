@@ -16,9 +16,6 @@ use serde::{Deserialize, Serialize};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
-// TODO confirm this is needed
-// see more notes in old repo
-pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 pub async fn drain_customer_escrow(
     algod: &Algod,
@@ -36,19 +33,18 @@ pub async fn drain_customer_escrow(
     let app_call_tx = &mut drain_app_call_tx(central_app_id, &params, drainer)?;
 
     let pay_fee_tx = &mut TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
-        Pay::new(*drainer, *customer_escrow.address(), FIXED_FEE).build(),
+        params.clone(),
+        Pay::new(
+            *drainer,
+            *customer_escrow.address(),
+            params.fee.max(params.min_fee),
+        )
+        .build(),
     )
     .build();
 
     let drain_tx = &mut TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
+        params,
         TransferAsset::new(
             *customer_escrow.address(),
             funds_asset_id.0,
@@ -77,10 +73,7 @@ pub fn drain_app_call_tx(
     sender: &Address,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
+        params.to_owned(),
         CallApplication::new(*sender, app_id).build(),
     )
     .build();

@@ -1,7 +1,7 @@
 use crate::flows::create_project::{share_amount::ShareAmount, storage::load_project::TxId};
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos, SuggestedTransactionParams},
+    core::{Address, MicroAlgos},
     transaction::{
         builder::CloseApplication, contract_account::ContractAccount, tx_group::TxGroup, Pay,
         SignedTransaction, Transaction, TransferAsset, TxnBuilder,
@@ -12,9 +12,6 @@ use serde::{Deserialize, Serialize};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
-// TODO confirm this is needed
-// see more notes in old repo
-pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 pub async fn unlock(
     algod: &Algod,
@@ -29,20 +26,14 @@ pub async fn unlock(
 
     // App call to validate the retrieved shares count and clear local state
     let mut central_app_optout_tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
+        params.clone(),
         CloseApplication::new(investor, central_app_id).build(),
     )
     .build();
 
     // Retrieve investor's assets from locking escrow
     let mut shares_xfer_tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
+        params.clone(),
         TransferAsset::new(
             *locking_escrow.address(),
             shares_asset_id,
@@ -55,11 +46,13 @@ pub async fn unlock(
 
     // Pay for the shares transfer tx
     let mut pay_shares_xfer_fee_tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params
-        },
-        Pay::new(investor, *locking_escrow.address(), FIXED_FEE).build(),
+        params.clone(),
+        Pay::new(
+            investor,
+            *locking_escrow.address(),
+            params.fee.max(params.min_fee),
+        )
+        .build(),
     )
     .build();
 

@@ -4,14 +4,13 @@ use crate::{
 };
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos, SuggestedTransactionParams},
+    core::{Address, MicroAlgos},
     transaction::{SignedTransaction, Transaction, TransferAsset, TxnBuilder},
 };
 use anyhow::Result;
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
-pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 pub async fn pay_project(
     algod: &Algod,
@@ -23,10 +22,7 @@ pub async fn pay_project(
     let params = algod.suggested_transaction_params().await?;
 
     let tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params
-        },
+        params,
         TransferAsset::new(*customer, funds_asset_id.0, amount.0, *customer_escrow).build(),
     )
     .build();

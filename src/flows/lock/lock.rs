@@ -4,7 +4,7 @@ use crate::flows::create_project::{
 };
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos, SuggestedTransactionParams},
+    core::{Address, MicroAlgos},
     transaction::{
         builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup,
         SignedTransaction, Transaction, TransferAsset, TxnBuilder,
@@ -14,7 +14,6 @@ use anyhow::Result;
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
-pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 /// Note that this is only for shares that have been bought in the market
 /// The investing flow doesn't use this: there's an xfer from the investing account to the locking escrow in the investing tx group
@@ -31,10 +30,7 @@ pub async fn lock(
 
     // Central app setup app call (init investor's local state)
     let mut app_call_tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
+        params.clone(),
         CallApplication::new(investor, central_app_id)
             .app_arguments(vec![project_id.bytes().to_vec()])
             .build(),
@@ -43,10 +39,7 @@ pub async fn lock(
 
     // Send investor's assets to lock escrow
     let mut shares_xfer_tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params
-        },
+        params,
         TransferAsset::new(
             investor,
             shares_asset_id,

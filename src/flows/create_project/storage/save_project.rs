@@ -1,6 +1,6 @@
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos, SuggestedTransactionParams},
+    core::{Address, MicroAlgos},
     transaction::{Pay, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
@@ -8,8 +8,6 @@ use anyhow::Result;
 use crate::{flows::create_project::model::Project, hashable::Hashable};
 
 use super::{load_project::TxId, note::project_to_note};
-
-pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 pub async fn save_project(
     algod: &Algod,
@@ -21,15 +19,9 @@ pub async fn save_project(
     let note = project_to_note(project)?;
     // log::debug!("Note bytes: {:?}", note.len());
 
-    let tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params
-        },
-        Pay::new(*creator, *creator, MicroAlgos(0)).build(),
-    )
-    .note(note)
-    .build();
+    let tx = TxnBuilder::with(params, Pay::new(*creator, *creator, MicroAlgos(0)).build())
+        .note(note)
+        .build();
 
     Ok(SaveProjectToSign {
         tx,

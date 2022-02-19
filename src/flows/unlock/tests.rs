@@ -6,7 +6,7 @@ mod tests {
 
     use crate::{
         dependencies,
-        flows::{create_project::share_amount::ShareAmount, unlock::unlock::FIXED_FEE},
+        flows::create_project::share_amount::ShareAmount,
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         state::{
@@ -92,9 +92,6 @@ mod tests {
         assert_eq!(1, locking_escrow_assets.len()); // opted in to shares
         assert_eq!(buy_share_amount.0, locking_escrow_assets[0].amount);
 
-        // remember state
-        let investor_balance_before_unlocking = investor_infos.amount;
-
         // flow
 
         // in the real application, unlock_share_amount is retrieved from indexer
@@ -124,12 +121,6 @@ mod tests {
 
         // investor local state cleared (opted out)
         assert_eq!(0, investor_infos.apps_local_state.len());
-
-        // investor paid the fees (app call + xfer + xfer fee)
-        assert_eq!(
-            investor_balance_before_unlocking - FIXED_FEE * 3,
-            investor_infos.amount
-        );
 
         Ok(())
     }

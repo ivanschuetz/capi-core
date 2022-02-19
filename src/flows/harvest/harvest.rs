@@ -17,9 +17,6 @@ use serde::{Deserialize, Serialize};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
-// TODO confirm this is needed
-// see more notes in old repo
-pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 pub async fn harvest(
     algod: &Algod,
@@ -37,20 +34,19 @@ pub async fn harvest(
 
     // The harvester pays the fee of the harvest tx (signed by central escrow)
     let pay_fee_tx = &mut TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
-        Pay::new(*harvester, *central_escrow.address(), FIXED_FEE).build(),
+        params.clone(),
+        Pay::new(
+            *harvester,
+            *central_escrow.address(),
+            params.fee.max(params.min_fee),
+        )
+        .build(),
     )
     .build();
 
     // Funds transfer from escrow to creator
     let harvest_tx = &mut TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params
-        },
+        params,
         TransferAsset::new(
             *central_escrow.address(),
             funds_asset_id.0,
@@ -78,10 +74,7 @@ pub fn harvest_app_call_tx(
     sender: &Address,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
+        params.to_owned(),
         CallApplication::new(*sender, app_id).build(),
     )
     .build();

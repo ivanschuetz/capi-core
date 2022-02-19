@@ -7,16 +7,13 @@ use crate::{
 };
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos, SuggestedTransactionParams},
+    core::{Address, SuggestedTransactionParams},
     transaction::{
         builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup,
         AcceptAsset, Pay, Transaction, TransferAsset, TxnBuilder,
     },
 };
 use anyhow::{anyhow, Result};
-
-// TODO no constant
-pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 /// Requires investor to opt in to the app first,
 /// we can't do it here: setting local state errors if during opt-in
@@ -50,10 +47,7 @@ pub async fn invest_txs(
     )?;
 
     let mut pay_price_tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
+        params.clone(),
         TransferAsset::new(
             *investor,
             funds_asset_id.0,
@@ -68,7 +62,12 @@ pub async fn invest_txs(
     // note that a reason to _not_ include it is to show it separately to the user, when signing. It can help with clarity (review).
     let mut pay_escrow_fee_tx = TxnBuilder::with(
         params.clone(),
-        Pay::new(*investor, *project.invest_escrow.address(), FIXED_FEE).build(), // shares xfer
+        Pay::new(
+            *investor,
+            *project.invest_escrow.address(),
+            params.fee.max(params.min_fee),
+        )
+        .build(), // shares xfer
     )
     .build();
 
@@ -79,10 +78,7 @@ pub async fn invest_txs(
     .build();
 
     let mut receive_shares_asset_tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params
-        },
+        params,
         TransferAsset::new(
             *project.invest_escrow.address(),
             project.shares_asset_id,
@@ -124,10 +120,7 @@ pub fn central_app_investor_setup_tx(
     project_id: &ProjectId,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
+        params.to_owned(),
         CallApplication::new(investor, app_id)
             .foreign_assets(vec![shares_asset_id])
             .app_arguments(vec![project_id.bytes().to_vec()])

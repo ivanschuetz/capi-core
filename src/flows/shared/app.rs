@@ -1,13 +1,8 @@
 use algonaut::{
-    core::{Address, MicroAlgos, SuggestedTransactionParams},
+    core::{Address, SuggestedTransactionParams},
     transaction::{builder::OptInApplication, Transaction, TxnBuilder},
 };
 use anyhow::Result;
-
-// TODO no constants
-// TODO confirm this is needed
-// see more notes in old repo
-pub const FIXED_FEE: MicroAlgos = MicroAlgos(1_000);
 
 pub async fn optin_to_app(
     params: &SuggestedTransactionParams,
@@ -15,10 +10,7 @@ pub async fn optin_to_app(
     address: Address,
 ) -> Result<Transaction> {
     Ok(TxnBuilder::with(
-        SuggestedTransactionParams {
-            fee: FIXED_FEE,
-            ..params.clone()
-        },
+        params.to_owned(),
         OptInApplication::new(address, app_id).build(),
     )
     .build())
