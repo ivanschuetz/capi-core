@@ -104,10 +104,10 @@ mod tests {
         // investor2 opts in to the asset (this is done in the external service, e.g. dex)
         let params = algod.suggested_transaction_params().await?;
         let shares_optin_tx = &mut TxnBuilder::with(
-            params.clone(),
+            &params,
             AcceptAsset::new(investor2.address(), project.project.shares_asset_id).build(),
         )
-        .build();
+        .build()?;
         let signed_shares_optin_tx = investor2.sign_transaction(shares_optin_tx)?;
         let res = algod
             .broadcast_signed_transaction(&signed_shares_optin_tx)
@@ -116,7 +116,7 @@ mod tests {
 
         // investor1 sends shares to investor2 (e.g. as part of atomic swap in a dex)
         let trade_tx = &mut TxnBuilder::with(
-            params.clone(),
+            &params,
             TransferAsset::new(
                 investor1.address(),
                 project.project.shares_asset_id,
@@ -125,7 +125,7 @@ mod tests {
             )
             .build(),
         )
-        .build();
+        .build()?;
         let signed_trade_tx = investor1.sign_transaction(trade_tx)?;
         let res = algod.broadcast_signed_transaction(&signed_trade_tx).await?;
         let _ = wait_for_pending_transaction(&algod, &res.tx_id.parse()?);

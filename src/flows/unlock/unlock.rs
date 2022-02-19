@@ -26,14 +26,14 @@ pub async fn unlock(
 
     // App call to validate the retrieved shares count and clear local state
     let mut central_app_optout_tx = TxnBuilder::with(
-        params.clone(),
+        &params,
         CloseApplication::new(investor, central_app_id).build(),
     )
-    .build();
+    .build()?;
 
     // Retrieve investor's assets from locking escrow
     let mut shares_xfer_tx = TxnBuilder::with(
-        params.clone(),
+        &params,
         TransferAsset::new(
             *locking_escrow.address(),
             shares_asset_id,
@@ -42,11 +42,11 @@ pub async fn unlock(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     // Pay for the shares transfer tx
     let mut pay_shares_xfer_fee_tx = TxnBuilder::with(
-        params.clone(),
+        &params,
         Pay::new(
             investor,
             *locking_escrow.address(),
@@ -54,7 +54,7 @@ pub async fn unlock(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     let txs_for_group = vec![
         &mut central_app_optout_tx,

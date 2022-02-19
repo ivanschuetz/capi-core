@@ -22,10 +22,10 @@ pub async fn pay_project(
     let params = algod.suggested_transaction_params().await?;
 
     let tx = TxnBuilder::with(
-        params,
+        &params,
         TransferAsset::new(*customer, funds_asset_id.0, amount.0, *customer_escrow).build(),
     )
-    .build();
+    .build()?;
 
     Ok(PayProjectToSign { tx })
 }

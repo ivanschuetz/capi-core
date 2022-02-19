@@ -60,16 +60,16 @@ pub async fn setup_locking_escrow_txs(
 
     // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
     let fund_algos_tx = &mut TxnBuilder::with(
-        params.to_owned(),
+        params,
         Pay::new(*creator, *escrow.address(), MicroAlgos(1_000_000)).build(),
     )
-    .build();
+    .build()?;
 
     let shares_optin_tx = &mut TxnBuilder::with(
-        params.to_owned(),
+        params,
         AcceptAsset::new(*escrow.address(), shares_asset_id).build(),
     )
-    .build();
+    .build()?;
 
     // TODO is it possible and does it make sense to execute these atomically?,
     // "sc opts in to asset and I send funds to sc"

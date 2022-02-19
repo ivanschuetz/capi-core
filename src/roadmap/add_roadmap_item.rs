@@ -23,11 +23,11 @@ pub async fn add_roadmap_item(
 
     // 0 payment to themselves - we use a minimal tx only to store data.
     let tx = TxnBuilder::with(
-        params,
+        &params,
         Pay::new(*project_creator, *project_creator, MicroAlgos(0)).build(),
     )
     .note(note)
-    .build();
+    .build()?;
 
     Ok(AddRoadmapItemToSign { tx })
 }

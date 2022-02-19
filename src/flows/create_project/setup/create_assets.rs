@@ -51,11 +51,11 @@ async fn create_shares_tx(
 ) -> Result<Transaction> {
     let unit_and_asset_name = shares_specs.token_name.to_owned();
     Ok(TxnBuilder::with(
-        tx_params.clone(),
+        tx_params,
         CreateAsset::new(creator, shares_specs.supply.0, 0, false)
             .unit_name(unit_and_asset_name.clone())
             .asset_name(unit_and_asset_name)
             .build(),
     )
-    .build())
+    .build()?)
 }

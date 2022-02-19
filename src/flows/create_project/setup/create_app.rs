@@ -41,7 +41,7 @@ pub async fn create_app_tx(
     let compiled_clear_program = algod.compile_teal(&clear_source.0).await?;
 
     let tx = TxnBuilder::with(
-        params.to_owned(),
+        params,
         CreateApplication::new(
             *creator,
             compiled_approval_program.clone(),
@@ -57,7 +57,7 @@ pub async fn create_app_tx(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     Ok(tx)
 }

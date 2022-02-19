@@ -34,7 +34,7 @@ pub async fn harvest(
 
     // The harvester pays the fee of the harvest tx (signed by central escrow)
     let pay_fee_tx = &mut TxnBuilder::with(
-        params.clone(),
+        &params,
         Pay::new(
             *harvester,
             *central_escrow.address(),
@@ -42,11 +42,11 @@ pub async fn harvest(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     // Funds transfer from escrow to creator
     let harvest_tx = &mut TxnBuilder::with(
-        params,
+        &params,
         TransferAsset::new(
             *central_escrow.address(),
             funds_asset_id.0,
@@ -55,7 +55,7 @@ pub async fn harvest(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     TxGroup::assign_group_id(vec![app_call_tx, pay_fee_tx, harvest_tx])?;
 
@@ -73,11 +73,7 @@ pub fn harvest_app_call_tx(
     params: &SuggestedTransactionParams,
     sender: &Address,
 ) -> Result<Transaction> {
-    let tx = TxnBuilder::with(
-        params.to_owned(),
-        CallApplication::new(*sender, app_id).build(),
-    )
-    .build();
+    let tx = TxnBuilder::with(params, CallApplication::new(*sender, app_id).build()).build()?;
     Ok(tx)
 }
 

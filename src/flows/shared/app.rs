@@ -9,9 +9,5 @@ pub async fn optin_to_app(
     app_id: u64,
     address: Address,
 ) -> Result<Transaction> {
-    Ok(TxnBuilder::with(
-        params.to_owned(),
-        OptInApplication::new(address, app_id).build(),
-    )
-    .build())
+    Ok(TxnBuilder::with(params, OptInApplication::new(address, app_id).build()).build()?)
 }

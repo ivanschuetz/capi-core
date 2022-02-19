@@ -19,9 +19,9 @@ pub async fn save_project(
     let note = project_to_note(project)?;
     // log::debug!("Note bytes: {:?}", note.len());
 
-    let tx = TxnBuilder::with(params, Pay::new(*creator, *creator, MicroAlgos(0)).build())
+    let tx = TxnBuilder::with(&params, Pay::new(*creator, *creator, MicroAlgos(0)).build())
         .note(note)
-        .build();
+        .build()?;
 
     Ok(SaveProjectToSign {
         tx,

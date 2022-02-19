@@ -33,7 +33,7 @@ pub async fn drain_customer_escrow(
     let app_call_tx = &mut drain_app_call_tx(central_app_id, &params, drainer)?;
 
     let pay_fee_tx = &mut TxnBuilder::with(
-        params.clone(),
+        &params,
         Pay::new(
             *drainer,
             *customer_escrow.address(),
@@ -41,10 +41,10 @@ pub async fn drain_customer_escrow(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     let drain_tx = &mut TxnBuilder::with(
-        params,
+        &params,
         TransferAsset::new(
             *customer_escrow.address(),
             funds_asset_id.0,
@@ -53,7 +53,7 @@ pub async fn drain_customer_escrow(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     TxGroup::assign_group_id(vec![app_call_tx, pay_fee_tx, drain_tx])?;
 
@@ -72,11 +72,7 @@ pub fn drain_app_call_tx(
     params: &SuggestedTransactionParams,
     sender: &Address,
 ) -> Result<Transaction> {
-    let tx = TxnBuilder::with(
-        params.to_owned(),
-        CallApplication::new(*sender, app_id).build(),
-    )
-    .build();
+    let tx = TxnBuilder::with(params, CallApplication::new(*sender, app_id).build()).build()?;
     Ok(tx)
 }
 

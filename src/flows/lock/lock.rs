@@ -30,16 +30,16 @@ pub async fn lock(
 
     // Central app setup app call (init investor's local state)
     let mut app_call_tx = TxnBuilder::with(
-        params.clone(),
+        &params,
         CallApplication::new(investor, central_app_id)
             .app_arguments(vec![project_id.bytes().to_vec()])
             .build(),
     )
-    .build();
+    .build()?;
 
     // Send investor's assets to lock escrow
     let mut shares_xfer_tx = TxnBuilder::with(
-        params,
+        &params,
         TransferAsset::new(
             investor,
             shares_asset_id,
@@ -48,7 +48,7 @@ pub async fn lock(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     let txs_for_group = vec![&mut app_call_tx, &mut shares_xfer_tx];
     TxGroup::assign_group_id(txs_for_group)?;

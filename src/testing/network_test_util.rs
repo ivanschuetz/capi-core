@@ -66,14 +66,14 @@ async fn create_funds_asset(
     creator: &Account,
 ) -> Result<FundsAssetId> {
     let t = TxnBuilder::with(
-        params.to_owned(),
+        params,
         // 10 quintillions
         CreateAsset::new(creator.address(), 10_000_000_000_000_000_000, 6, false)
             .unit_name("TEST".to_owned())
             .asset_name("Local test funds asset".to_owned())
             .build(),
     )
-    .build();
+    .build()?;
 
     // we need to sign the transaction to prove that we own the sender address
     let signed_t = creator.sign_transaction(&t)?;
@@ -129,13 +129,13 @@ async fn fund_account_with_local_funds_asset(
 
     // optin the receiver to the asset
     let optin_tx = &mut TxnBuilder::with(
-        params.to_owned(),
+        params,
         AcceptAsset::new(receiver.address(), funds_asset_id.0).build(),
     )
-    .build();
+    .build()?;
 
     let fund_tx = &mut TxnBuilder::with(
-        params.clone(),
+        params,
         TransferAsset::new(
             sender.address(),
             funds_asset_id.0,
@@ -144,7 +144,7 @@ async fn fund_account_with_local_funds_asset(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     TxGroup::assign_group_id(vec![optin_tx, fund_tx])?;
 

@@ -31,10 +31,10 @@ pub async fn setup_customer_escrow(
     let escrow = render_and_compile_customer_escrow(algod, central_address, source).await?;
 
     let optin_to_funds_asset_tx = TxnBuilder::with(
-        params.to_owned(),
+        &params,
         AcceptAsset::new(*escrow.address(), funds_asset_id.0).build(),
     )
-    .build();
+    .build()?;
 
     let fund_min_balance_tx = create_payment_tx(
         project_creator,
@@ -93,11 +93,7 @@ async fn create_payment_tx(
     amount: MicroAlgos,
     params: &SuggestedTransactionParams,
 ) -> Result<Transaction> {
-    let tx = &mut TxnBuilder::with(
-        params.to_owned(),
-        Pay::new(*sender, *receiver, amount).build(),
-    )
-    .build();
+    let tx = &mut TxnBuilder::with(params, Pay::new(*sender, *receiver, amount).build()).build()?;
     Ok(tx.clone())
 }
 

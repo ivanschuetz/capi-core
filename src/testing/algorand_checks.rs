@@ -31,7 +31,7 @@ pub async fn create_always_approves_app(algod: &Algod, sender: &Address) -> Resu
 
     let params = algod.suggested_transaction_params().await?;
     Ok(TxnBuilder::with(
-        params,
+        &params,
         CreateApplication::new(
             *sender,
             compiled_approval_program.clone(),
@@ -47,7 +47,7 @@ pub async fn create_always_approves_app(algod: &Algod, sender: &Address) -> Resu
         )
         .build(),
     )
-    .build())
+    .build()?)
 }
 
 #[allow(dead_code)]
@@ -56,17 +56,17 @@ pub async fn pay(algod: &Algod, sender: &Address) -> Result<Transaction> {
     let params = algod.suggested_transaction_params().await?;
     // sender sends a payment to themselves - don't need another party right now
     Ok(TxnBuilder::with(
-        params.clone(),
+        &params,
         Pay::new(*sender, *sender, MicroAlgos(10_000)).build(),
     )
-    .build())
+    .build()?)
 }
 
 #[allow(dead_code)]
 #[cfg(test)]
 pub async fn optin_to_asset(algod: &Algod, sender: &Address, asset_id: u64) -> Result<Transaction> {
     let params = algod.suggested_transaction_params().await?;
-    Ok(TxnBuilder::with(params, AcceptAsset::new(*sender, asset_id).build()).build())
+    Ok(TxnBuilder::with(&params, AcceptAsset::new(*sender, asset_id).build()).build()?)
 }
 
 #[allow(dead_code)]
@@ -74,13 +74,13 @@ pub async fn optin_to_asset(algod: &Algod, sender: &Address, asset_id: u64) -> R
 pub async fn create_asset_tx(algod: &Algod, sender: &Address) -> Result<Transaction> {
     let params = algod.suggested_transaction_params().await?;
     Ok(TxnBuilder::with(
-        params.clone(),
+        &params,
         CreateAsset::new(*sender, 1000, 0, false)
             .unit_name("FOO".to_owned())
             .asset_name("foo".to_owned())
             .build(),
     )
-    .build())
+    .build()?)
 }
 
 #[allow(dead_code)]
@@ -94,10 +94,10 @@ pub async fn transfer_asset_tx(
 ) -> Result<Transaction> {
     let params = algod.suggested_transaction_params().await?;
     Ok(TxnBuilder::with(
-        params.clone(),
+        &params,
         TransferAsset::new(*sender, asset_id, amount, *receiver).build(),
     )
-    .build())
+    .build()?)
 }
 
 #[allow(dead_code)]

@@ -47,7 +47,7 @@ pub async fn invest_txs(
     )?;
 
     let mut pay_price_tx = TxnBuilder::with(
-        params.clone(),
+        &params,
         TransferAsset::new(
             *investor,
             funds_asset_id.0,
@@ -56,12 +56,12 @@ pub async fn invest_txs(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     // TODO: review including this payment in send_algos_tx (to not have to pay a new fee? or can the fee here actually be 0, since group?: research)
     // note that a reason to _not_ include it is to show it separately to the user, when signing. It can help with clarity (review).
     let mut pay_escrow_fee_tx = TxnBuilder::with(
-        params.clone(),
+        &params,
         Pay::new(
             *investor,
             *project.invest_escrow.address(),
@@ -69,16 +69,16 @@ pub async fn invest_txs(
         )
         .build(), // shares xfer
     )
-    .build();
+    .build()?;
 
     let mut shares_optin_tx = TxnBuilder::with(
-        params.clone(),
+        &params,
         AcceptAsset::new(*investor, project.shares_asset_id).build(),
     )
-    .build();
+    .build()?;
 
     let mut receive_shares_asset_tx = TxnBuilder::with(
-        params,
+        &params,
         TransferAsset::new(
             *project.invest_escrow.address(),
             project.shares_asset_id,
@@ -87,7 +87,7 @@ pub async fn invest_txs(
         )
         .build(),
     )
-    .build();
+    .build()?;
 
     let txs_for_group = vec![
         &mut central_app_investor_setup_tx,
@@ -120,13 +120,13 @@ pub fn central_app_investor_setup_tx(
     project_id: &ProjectId,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
-        params.to_owned(),
+        &params,
         CallApplication::new(investor, app_id)
             .foreign_assets(vec![shares_asset_id])
             .app_arguments(vec![project_id.bytes().to_vec()])
             .build(),
     )
-    .build();
+    .build()?;
     Ok(tx)
 }
 
