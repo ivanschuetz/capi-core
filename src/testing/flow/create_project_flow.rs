@@ -9,7 +9,7 @@ use crate::flows::create_project::{
     create_project::{create_project_txs, submit_create_project},
     create_project_specs::CreateProjectSpecs,
     model::{CreateProjectSigned, Project},
-    setup::create_assets::{create_investor_assets_txs, submit_create_assets},
+    setup::create_shares::{create_shares, submit_create_shares},
 };
 #[cfg(test)]
 use crate::funds::FundsAssetId;
@@ -41,12 +41,12 @@ pub async fn create_project_flow(
 ) -> Result<CreateProjectFlowRes> {
     // Create asset first: id needed in app template
     let create_assets_txs =
-        create_investor_assets_txs(&algod, &creator.address(), &specs.shares).await?;
+        create_shares(&algod, &creator.address(), &specs.shares).await?;
 
     // UI
     let signed_create_shares_tx = creator.sign_transaction(&create_assets_txs.create_shares_tx)?;
 
-    let create_assets_res = submit_create_assets(algod, &signed_create_shares_tx).await?;
+    let create_assets_res = submit_create_shares(algod, &signed_create_shares_tx).await?;
 
     let programs = programs()?;
 
@@ -55,7 +55,7 @@ pub async fn create_project_flow(
         &algod,
         specs,
         creator.address(),
-        create_assets_res.shares_id,
+        create_assets_res.shares_asset_id,
         funds_asset_id,
         programs,
         precision,
@@ -80,7 +80,7 @@ pub async fn create_project_flow(
         CreateProjectSigned {
             specs: to_sign.specs,
             creator: creator.address(),
-            shares_asset_id: create_assets_res.shares_id,
+            shares_asset_id: create_assets_res.shares_asset_id,
             funds_asset_id: funds_asset_id.clone(),
             escrow_funding_txs: signed_funding_txs,
             optin_txs: to_sign.optin_txs,

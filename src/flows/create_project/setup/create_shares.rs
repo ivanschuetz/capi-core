@@ -10,22 +10,20 @@ use crate::{
     network_util::wait_for_pending_transaction,
 };
 
-pub async fn create_investor_assets_txs(
+pub async fn create_shares(
     algod: &Algod,
     creator: &Address,
     specs: &CreateSharesSpecs,
 ) -> Result<CreateSharesToSign> {
     let params = algod.suggested_transaction_params().await?;
-
     let create_shares_tx = create_shares_tx(&params, specs, *creator).await?;
-
     Ok(CreateSharesToSign { create_shares_tx })
 }
 
-pub async fn submit_create_assets(
+pub async fn submit_create_shares(
     algod: &Algod,
     create_shares: &SignedTransaction,
-) -> Result<CreateAssetsResult> {
+) -> Result<CreateSharesResult> {
     let create_shares_tx_res = algod.broadcast_signed_transaction(create_shares).await?;
 
     let shares_asset_id = wait_for_pending_transaction(algod, &create_shares_tx_res.tx_id.parse()?)
@@ -34,14 +32,12 @@ pub async fn submit_create_assets(
         .asset_index
         .ok_or_else(|| anyhow!("Shares asset id in pending tx not set"))?;
 
-    Ok(CreateAssetsResult {
-        shares_id: shares_asset_id,
-    })
+    Ok(CreateSharesResult { shares_asset_id })
 }
 
 #[derive(Debug)]
-pub struct CreateAssetsResult {
-    pub shares_id: u64,
+pub struct CreateSharesResult {
+    pub shares_asset_id: u64,
 }
 
 async fn create_shares_tx(
