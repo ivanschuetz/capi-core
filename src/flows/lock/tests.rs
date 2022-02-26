@@ -59,7 +59,7 @@ mod tests {
 
         // UI
 
-        let buy_share_amount = ShareAmount(10);
+        let buy_share_amount = ShareAmount::new(10);
 
         // precs
 
@@ -85,7 +85,7 @@ mod tests {
 
         // drain (to generate dividend). note that investor doesn't reclaim it (doesn't seem relevant for this test)
         // (the draining itself may also not be relevant, just for a more realistic pre-trade scenario)
-        let customer_payment_amount = FundsAmount(10 * 1_000_000);
+        let customer_payment_amount = FundsAmount::new(10 * 1_000_000);
         let drain_res = customer_payment_and_drain_flow(
             &algod,
             &drainer,
@@ -124,7 +124,7 @@ mod tests {
             TransferAsset::new(
                 investor1.address(),
                 project.project.shares_asset_id,
-                traded_shares.0,
+                traded_shares.val(),
                 investor2.address(),
             )
             .build(),
@@ -207,7 +207,7 @@ mod tests {
             &project.project,
             &investor2,
             funds_asset_id,
-            FundsAmount(1),
+            FundsAmount::new(1),
         )
         .await;
         log::debug!("Expected error harvesting: {:?}", harvest_flow_res);
@@ -215,7 +215,7 @@ mod tests {
         assert!(harvest_flow_res.is_err());
 
         // drain again to generate dividend and be able to harvest
-        let customer_payment_amount_2 = FundsAmount(10 * 1_000_000);
+        let customer_payment_amount_2 = FundsAmount::new(10 * 1_000_000);
         let drain_res2 = customer_payment_and_drain_flow(
             &algod,
             &drainer,
@@ -295,8 +295,8 @@ mod tests {
 
         // UI
 
-        let partial_lock_amount = ShareAmount(4);
-        let buy_share_amount = ShareAmount(partial_lock_amount.0 + 6);
+        let partial_lock_amount = ShareAmount::new(4);
+        let buy_share_amount = ShareAmount::new(partial_lock_amount.val() + 6);
 
         // precs
 
@@ -383,7 +383,7 @@ mod tests {
         let shares_asset =
             find_asset_holding_or_err(&investor_assets, project.project.shares_asset_id)?;
         assert_eq!(
-            buy_share_amount.0 - partial_lock_amount.0,
+            buy_share_amount.val() - partial_lock_amount.val(),
             shares_asset.amount
         );
 

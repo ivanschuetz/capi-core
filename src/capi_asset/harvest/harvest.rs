@@ -51,7 +51,7 @@ pub async fn harvest(
         TransferAsset::new(
             *capi_escrow.address(),
             funds_asset_id.0,
-            amount.0,
+            amount.val(),
             *harvester,
         )
         .build(),
@@ -109,11 +109,11 @@ pub fn calculate_capi_entitled_harvest(
     // TODO review possible overflow, type cast, unwrap
     // for easier understanding we use the same arithmetic as in TEAL
     let entitled_percentage =
-        ((share_count.0 * precision).as_decimal() / share_supply.0.as_decimal()).floor();
+        ((share_count.val() * precision).as_decimal() / share_supply.as_decimal()).floor();
     let entitled_total =
-        ((received_total.0.as_decimal() * entitled_percentage) / (precision.as_decimal())).floor();
+        ((received_total.as_decimal() * entitled_percentage) / (precision.as_decimal())).floor();
 
-    FundsAmount(entitled_total.to_u64().unwrap())
+    FundsAmount::new(entitled_total.to_u64().unwrap())
 }
 
 pub fn investor_can_harvest_amount_capi_calc(

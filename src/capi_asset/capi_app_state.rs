@@ -25,7 +25,7 @@ pub struct CapiAppGlobalState {
 
 pub async fn capi_app_global_state(algod: &Algod, app_id: CapiAppId) -> Result<CapiAppGlobalState> {
     let global_state = global_state(algod, app_id.0).await?;
-    let total_received = FundsAmount(global_state.find_uint(&TOTAL_RECEIVED).unwrap_or(0));
+    let total_received = FundsAmount::new(global_state.find_uint(&TOTAL_RECEIVED).unwrap_or(0));
     Ok(CapiAppGlobalState {
         received: total_received,
     })
@@ -61,10 +61,10 @@ fn capi_app_investor_state_from_local_state(
     state: &ApplicationLocalState,
 ) -> Result<CapiAppHolderState, ApplicationLocalStateError<'static>> {
     let shares = get_uint_value_or_error(state, &LOCAL_SHARES)?;
-    let harvested = FundsAmount(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
+    let harvested = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
 
     Ok(CapiAppHolderState {
-        shares: CapiAssetAmount(shares),
+        shares: CapiAssetAmount::new(shares),
         harvested,
     })
 }

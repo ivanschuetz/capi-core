@@ -48,8 +48,8 @@ pub fn project_specs() -> CreateProjectSpecs {
         "Pancakes ltd".to_owned(),
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
         shares_specs(),
-        ShareAmount(40),
-        FundsAmount(5_000_000),
+        ShareAmount::new(40),
+        FundsAmount::new(5_000_000),
         "https://placekitten.com/200/300".to_string(),
         "https://twitter.com/capi_fin".to_owned(),
     // unwrap: hardcoded (test) data, we know it's correct
@@ -60,6 +60,6 @@ pub fn project_specs() -> CreateProjectSpecs {
 pub fn shares_specs() -> CreateSharesSpecs {
     CreateSharesSpecs {
         token_name: "PCK".to_owned(),
-        supply: ShareAmount(100),
+        supply: ShareAmount::new(100),
     }
 }

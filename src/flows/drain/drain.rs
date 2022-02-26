@@ -1,6 +1,5 @@
 use crate::{
     capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
-    decimal_util::AsDecimal,
     flows::create_project::{shares_percentage::SharesPercentage, storage::load_project::TxId},
     funds::{FundsAmount, FundsAssetId},
     state::account_state::funds_holdings,
@@ -51,7 +50,7 @@ pub async fn drain_customer_escrow(
         TransferAsset::new(
             *customer_escrow.address(),
             funds_asset_id.0,
-            amounts.dao.0,
+            amounts.dao.val(),
             *central_escrow.address(),
         )
         .build(),
@@ -63,7 +62,7 @@ pub async fn drain_customer_escrow(
         TransferAsset::new(
             *customer_escrow.address(),
             funds_asset_id.0,
-            amounts.capi.0,
+            amounts.capi.val(),
             capi_deps.escrow,
         )
         .build(),
@@ -112,13 +111,13 @@ fn calculate_dao_and_capi_escrow_xfer_amounts(
 ) -> Result<DaoAndCapiDrainAmounts> {
     // Take cut for $capi holders. Note rounding: it will be variably favorable to DAO or Capi investors.
     let amount_for_capi_holders =
-        (amount_to_drain.0.as_decimal() * capi_percentage.value()).round().to_u64().ok_or(anyhow!(
+        (amount_to_drain.as_decimal() * capi_percentage.value()).round().to_u64().ok_or(anyhow!(
             "Invalid state: amount_for_capi_holders was rounded and should be always convertible to u64"
         ))?;
 
     Ok(DaoAndCapiDrainAmounts {
-        dao: FundsAmount(amount_to_drain.0 - amount_for_capi_holders),
-        capi: FundsAmount(amount_for_capi_holders),
+        dao: FundsAmount::new(amount_to_drain.val() - amount_for_capi_holders),
+        capi: FundsAmount::new(amount_for_capi_holders),
     })
 }
 

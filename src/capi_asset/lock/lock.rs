@@ -43,7 +43,7 @@ pub async fn lock_capi_assets(
         TransferAsset::new(
             *investor,
             capi_asset_id.0,
-            asset_amount.0,
+            asset_amount.val(),
             *locking_escrow.address(),
         )
         .build(),

@@ -79,7 +79,7 @@ pub async fn withdrawals(
                     .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
                 withdrawals.push(Withdrawal {
-                    amount: FundsAmount(payment.amount),
+                    amount: FundsAmount::new(payment.amount),
                     description: withdrawal_description,
                     date: timestamp_seconds_to_date(round_time)?,
                     tx_id: tx.id.clone().parse()?,

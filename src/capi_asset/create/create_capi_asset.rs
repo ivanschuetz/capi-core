@@ -17,7 +17,7 @@ pub async fn create_capi_asset(
 ) -> Result<CreateCapiAssetToSign> {
     let tx = TxnBuilder::with(
         &params,
-        CreateAsset::new(*creator, supply.0, 0, false)
+        CreateAsset::new(*creator, supply.val(), 0, false)
             .unit_name("CAPI".to_owned())
             .asset_name("Capi".to_owned())
             .build(),

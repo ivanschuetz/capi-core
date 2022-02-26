@@ -1,4 +1,7 @@
-use crate::funds::{FundsAmount, FundsAssetId};
+use crate::{
+    asset_amount::AssetAmount,
+    funds::{FundsAmount, FundsAssetId},
+};
 use algonaut::{
     algod::v2::Algod,
     core::Address,
@@ -6,19 +9,23 @@ use algonaut::{
 };
 use anyhow::{anyhow, Result};
 
-pub async fn asset_holdings(algod: &Algod, address: &Address, asset_id: u64) -> Result<u64> {
+pub async fn asset_holdings(
+    algod: &Algod,
+    address: &Address,
+    asset_id: u64,
+) -> Result<AssetAmount> {
     asset_holdings_from_account(&algod.account_information(address).await?, asset_id)
 }
 
-pub fn asset_holdings_from_account(account: &Account, asset_id: u64) -> Result<u64> {
+pub fn asset_holdings_from_account(account: &Account, asset_id: u64) -> Result<AssetAmount> {
     Ok(account
         .assets
         .iter()
         .find(|a| a.asset_id == asset_id)
-        .map(|h| h.amount)
+        .map(|h| AssetAmount(h.amount))
         // asset id not found -> user not opted in -> 0 holdings
         // we don't differentiate here between not opted in or opted in with no holdings
-        .unwrap_or(0))
+        .unwrap_or(AssetAmount(0)))
 }
 
 pub async fn funds_holdings(

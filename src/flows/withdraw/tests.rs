@@ -44,7 +44,7 @@ mod tests {
 
         // precs
 
-        let withdraw_amount = FundsAmount(1_000_000); // UI
+        let withdraw_amount = FundsAmount::new(1_000_000); // UI
 
         let project = create_project_flow(
             &algod,
@@ -54,7 +54,7 @@ mod tests {
             TESTS_DEFAULT_PRECISION,
         )
         .await?;
-        let pay_and_drain_amount = FundsAmount(10 * 1_000_000);
+        let pay_and_drain_amount = FundsAmount::new(10 * 1_000_000);
 
         withdraw_precs(
             &algod,
@@ -119,11 +119,11 @@ mod tests {
         // precs
 
         let project_specs = project_specs();
-        let investor_share_amount = ShareAmount(10);
+        let investor_share_amount = ShareAmount::new(10);
 
-        let investment_amount = project_specs.share_price * investor_share_amount.0;
+        let investment_amount = project_specs.share_price * investor_share_amount.val();
 
-        let withdraw_amount = investment_amount + FundsAmount(1); // > investment amount (which is in the funds when withdrawing)
+        let withdraw_amount = investment_amount + FundsAmount::new(1); // > investment amount (which is in the funds when withdrawing)
 
         let project = create_project_flow(
             &algod,
@@ -218,7 +218,7 @@ mod tests {
 
         // precs
 
-        let withdraw_amount = FundsAmount(1_000_000); // UI
+        let withdraw_amount = FundsAmount::new(1_000_000); // UI
 
         let project = create_project_flow(
             &algod,
@@ -228,7 +228,7 @@ mod tests {
             TESTS_DEFAULT_PRECISION,
         )
         .await?;
-        let pay_and_drain_amount = FundsAmount(10 * 1_000_000);
+        let pay_and_drain_amount = FundsAmount::new(10 * 1_000_000);
 
         // customer payment and draining, to have some funds to withdraw
         customer_payment_and_drain_flow(
@@ -243,7 +243,7 @@ mod tests {
         .await?;
 
         // Investor buys some shares
-        let investor_share_amount = ShareAmount(10);
+        let investor_share_amount = ShareAmount::new(10);
         invests_optins_flow(&algod, &investor, &project.project).await?;
         invests_flow(
             &algod,

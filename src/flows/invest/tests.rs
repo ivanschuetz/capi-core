@@ -45,7 +45,7 @@ mod tests {
         let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
-        let buy_share_amount = ShareAmount(10);
+        let buy_share_amount = ShareAmount::new(10);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -97,7 +97,7 @@ mod tests {
         assert_eq!(project.project_id, central_investor_state.project_id);
 
         // check that harvested is 0 (nothing harvested yet)
-        assert_eq!(FundsAmount(0), central_investor_state.harvested);
+        assert_eq!(FundsAmount::new(0), central_investor_state.harvested);
 
         // double check: investor didn't receive any shares
 
@@ -110,7 +110,7 @@ mod tests {
 
         // investor lost algos and fees
         let investor_holdings = funds_holdings_from_account(&investor_infos, funds_asset_id)?;
-        let paid_amount = specs.share_price.0 * buy_share_amount.0;
+        let paid_amount = specs.share_price.val() * buy_share_amount.val();
         assert_eq!(
             flow_res.investor_initial_amount - paid_amount,
             investor_holdings
@@ -129,7 +129,7 @@ mod tests {
         );
         assert_eq!(
             invest_escrow_held_assets[0].amount,
-            flow_res.project.specs.shares.supply.0 - buy_share_amount.0
+            flow_res.project.specs.shares.supply.val() - buy_share_amount.val()
         );
 
         // central escrow tests
@@ -162,8 +162,8 @@ mod tests {
         let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
-        let buy_share_amount = ShareAmount(10);
-        let buy_share_amount2 = ShareAmount(20);
+        let buy_share_amount = ShareAmount::new(10);
+        let buy_share_amount2 = ShareAmount::new(20);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -214,8 +214,8 @@ mod tests {
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
         assert_eq!(
-            buy_share_amount.0 + buy_share_amount2.0,
-            investor_state.shares.0
+            buy_share_amount.val() + buy_share_amount2.val(),
+            investor_state.shares.val()
         );
 
         Ok(())
@@ -234,8 +234,8 @@ mod tests {
         let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
-        let lock_amount = ShareAmount(10);
-        let invest_amount = ShareAmount(20);
+        let lock_amount = ShareAmount::new(10);
+        let invest_amount = ShareAmount::new(20);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -298,7 +298,10 @@ mod tests {
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(lock_amount.0 + invest_amount.0, investor_state.shares.0);
+        assert_eq!(
+            lock_amount.val() + invest_amount.val(),
+            investor_state.shares.val()
+        );
 
         Ok(())
     }
@@ -316,8 +319,8 @@ mod tests {
         let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
-        let lock_amount = ShareAmount(10);
-        let invest_amount = ShareAmount(20);
+        let lock_amount = ShareAmount::new(10);
+        let invest_amount = ShareAmount::new(20);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -380,7 +383,10 @@ mod tests {
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(lock_amount.0 + invest_amount.0, investor_state.shares.0);
+        assert_eq!(
+            lock_amount.val() + invest_amount.val(),
+            investor_state.shares.val()
+        );
 
         Ok(())
     }
@@ -398,10 +404,10 @@ mod tests {
         let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
-        let lock_amount1 = ShareAmount(10);
-        let lock_amount2 = ShareAmount(20);
+        let lock_amount1 = ShareAmount::new(10);
+        let lock_amount2 = ShareAmount::new(20);
         // an amount we unlock and will not lock again, to make the test a little more robust
-        let invest_amount_not_lock = ShareAmount(5);
+        let invest_amount_not_lock = ShareAmount::new(5);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -422,7 +428,9 @@ mod tests {
             &algod,
             &investor,
             &project.project,
-            ShareAmount(lock_amount1.0 + lock_amount2.0 + invest_amount_not_lock.0),
+            ShareAmount::new(
+                lock_amount1.val() + lock_amount2.val() + invest_amount_not_lock.val(),
+            ),
             &project.project_id,
             funds_asset_id,
         )
@@ -463,7 +471,10 @@ mod tests {
         let investor_state =
             central_investor_state(&algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        assert_eq!(lock_amount1.0 + lock_amount2.0, investor_state.shares.0);
+        assert_eq!(
+            lock_amount1.val() + lock_amount2.val(),
+            investor_state.shares.val()
+        );
 
         Ok(())
     }
@@ -485,7 +496,7 @@ mod tests {
         } = setup_on_chain_deps(&algod).await?;
 
         // UI
-        let buy_share_amount = ShareAmount(10);
+        let buy_share_amount = ShareAmount::new(10);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -500,7 +511,7 @@ mod tests {
         // precs
 
         // add some funds
-        let central_funds = FundsAmount(10 * 1_000_000);
+        let central_funds = FundsAmount::new(10 * 1_000_000);
         customer_payment_and_drain_flow(
             &algod,
             &drainer,
@@ -563,7 +574,7 @@ mod tests {
         } = setup_on_chain_deps(&algod).await?;
 
         // UI
-        let buy_share_amount = ShareAmount(10);
+        let buy_share_amount = ShareAmount::new(10);
         let specs = project_specs();
 
         let project = create_project_flow(
@@ -578,7 +589,7 @@ mod tests {
         // precs
 
         // add some funds
-        let central_funds = FundsAmount(10 * 1_000_000);
+        let central_funds = FundsAmount::new(10 * 1_000_000);
         customer_payment_and_drain_flow(
             &algod,
             &drainer,
@@ -649,7 +660,7 @@ mod tests {
         let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
-        let buy_share_amount = ShareAmount(10);
+        let buy_share_amount = ShareAmount::new(10);
         let specs = project_specs();
 
         let project = create_project_flow(

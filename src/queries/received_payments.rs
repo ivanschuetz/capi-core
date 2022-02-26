@@ -50,7 +50,7 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
 
             payments.push(Payment {
                 tx_id: tx.id.parse()?,
-                amount: FundsAmount(payment_tx.amount),
+                amount: FundsAmount::new(payment_tx.amount),
                 sender: tx.sender.parse().map_err(Error::msg)?,
                 date: timestamp_seconds_to_date(round_time)?,
                 note: tx.note.clone(),

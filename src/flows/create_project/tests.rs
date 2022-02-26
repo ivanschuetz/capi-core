@@ -77,7 +77,7 @@ mod tests {
         );
         assert_eq!(
             escrow_held_assets[0].amount,
-            project.project.specs.shares.supply.0
+            project.project.specs.shares.supply.val()
         );
 
         // locking escrow funding checks

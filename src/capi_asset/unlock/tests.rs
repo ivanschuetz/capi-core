@@ -37,14 +37,14 @@ mod tests {
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
-        let capi_supply = CapiAssetAmount(1_000_000_000);
+        let capi_supply = CapiAssetAmount::new(1_000_000_000);
 
         // preconditions
 
         let setup_res =
             setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
 
-        let investor_assets_amount = CapiAssetAmount(1_000);
+        let investor_assets_amount = CapiAssetAmount::new(1_000);
 
         let params = algod.suggested_transaction_params().await?;
         optin_to_asset_submit(&algod, &investor, setup_res.asset_id.0).await?;
@@ -55,7 +55,7 @@ mod tests {
             &creator,
             &investor.address(),
             setup_res.asset_id.0,
-            investor_assets_amount.0,
+            investor_assets_amount.val(),
         )
         .await?;
 
@@ -78,7 +78,7 @@ mod tests {
             setup_res.asset_id,
             setup_res.app_id,
             investor_assets_amount,
-            CapiAssetAmount(0), // the investor locked everything
+            CapiAssetAmount::new(0), // the investor locked everything
             setup_res.escrow.address(),
         )
         .await?;
@@ -105,7 +105,7 @@ mod tests {
         let asset_holding = find_asset_holding_or_err(&investor_assets, setup_res.asset_id.0)?;
         assert_eq!(
             investor_assets_amount,
-            CapiAssetAmount(asset_holding.amount)
+            CapiAssetAmount::new(asset_holding.amount)
         );
 
         // escrow lost the assets
@@ -117,7 +117,7 @@ mod tests {
         assert_eq!(2, locking_escrow_assets.len()); // opted in to shares and capi token
         let capi_asset_holdings =
             asset_holdings(&algod, setup_res.escrow.address(), setup_res.asset_id.0).await?;
-        assert_eq!(0, capi_asset_holdings);
+        assert_eq!(0, capi_asset_holdings.0);
 
         // retrieving local state fails, because the investor is opted out
 
@@ -142,15 +142,15 @@ mod tests {
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
-        let capi_supply = CapiAssetAmount(1_000_000_000);
+        let capi_supply = CapiAssetAmount::new(1_000_000_000);
 
         // preconditions
 
         let setup_res =
             setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
 
-        let partial_lock_amount = CapiAssetAmount(400);
-        let investor_assets_amount = CapiAssetAmount(partial_lock_amount.0 + 600);
+        let partial_lock_amount = CapiAssetAmount::new(400);
+        let investor_assets_amount = CapiAssetAmount::new(partial_lock_amount.val() + 600);
 
         let params = algod.suggested_transaction_params().await?;
         optin_to_asset_submit(&algod, &investor, setup_res.asset_id.0).await?;
@@ -161,7 +161,7 @@ mod tests {
             &creator,
             &investor.address(),
             setup_res.asset_id.0,
-            investor_assets_amount.0,
+            investor_assets_amount.val(),
         )
         .await?;
 
@@ -184,7 +184,7 @@ mod tests {
             setup_res.asset_id,
             setup_res.app_id,
             investor_assets_amount,
-            CapiAssetAmount(0), // the investor locked everything
+            CapiAssetAmount::new(0), // the investor locked everything
             setup_res.escrow.address(),
         )
         .await?;
@@ -211,7 +211,7 @@ mod tests {
             setup_res.asset_id,
             setup_res.app_id,
             investor_assets_amount,
-            CapiAssetAmount(0), // the investor locked everything
+            CapiAssetAmount::new(0), // the investor locked everything
             setup_res.escrow.address(),
         )
         .await?;

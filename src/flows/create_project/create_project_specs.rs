@@ -43,7 +43,7 @@ impl CreateProjectSpecs {
 
     pub fn creator_part(&self) -> ShareAmount {
         // we check in the initializer that count >= investors.count, so this is safe
-        ShareAmount(self.shares.supply.0 - self.investors_part.0)
+        ShareAmount::new(self.shares.supply.val() - self.investors_part.val())
     }
 
     pub fn investors_part(&self) -> ShareAmount {

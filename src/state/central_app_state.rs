@@ -29,7 +29,8 @@ pub struct CentralAppGlobalState {
 
 pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralAppGlobalState> {
     let global_state = global_state(algod, app_id).await?;
-    let total_received = FundsAmount(global_state.find_uint(&GLOBAL_TOTAL_RECEIVED).unwrap_or(0));
+    let total_received =
+        FundsAmount::new(global_state.find_uint(&GLOBAL_TOTAL_RECEIVED).unwrap_or(0));
     Ok(CentralAppGlobalState {
         received: total_received,
     })
@@ -65,7 +66,7 @@ fn central_investor_state_from_local_state(
     state: &ApplicationLocalState,
 ) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
     let shares = get_uint_value_or_error(state, &LOCAL_SHARES)?;
-    let harvested = FundsAmount(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
+    let harvested = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
     let project_id_bytes = get_bytes_value_or_error(state, &LOCAL_PROJECT)?;
 
     let project_id: ProjectId = project_id_bytes
@@ -74,7 +75,7 @@ fn central_investor_state_from_local_state(
         .map_err(|e: anyhow::Error| ApplicationLocalStateError::Msg(e.to_string()))?;
 
     Ok(CentralAppInvestorState {
-        shares: ShareAmount(shares),
+        shares: ShareAmount::new(shares),
         harvested,
         project_id,
     })

@@ -25,7 +25,7 @@ mod tests {
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
-        let capi_supply = CapiAssetAmount(1_000_000_000);
+        let capi_supply = CapiAssetAmount::new(1_000_000_000);
 
         // flow
 
@@ -41,11 +41,14 @@ mod tests {
         // created asset checks
         assert_eq!(created_assets[0].params.creator, creator.address());
         assert_eq!(flow_res.asset_id, CapiAssetId(created_assets[0].index));
-        assert_eq!(capi_supply, CapiAssetAmount(created_assets[0].params.total));
+        assert_eq!(
+            capi_supply,
+            CapiAssetAmount::new(created_assets[0].params.total)
+        );
 
         // The app hasn't received anything yet
         let app_global_state = capi_app_global_state(&algod, flow_res.app_id).await?;
-        assert_eq!(FundsAmount(0), app_global_state.received);
+        assert_eq!(FundsAmount::new(0), app_global_state.received);
 
         // The creator doesn't automatically opt in to the app
         let app_investor_state_res =

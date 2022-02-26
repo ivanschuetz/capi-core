@@ -50,7 +50,7 @@ pub async fn harvest(
         TransferAsset::new(
             *central_escrow.address(),
             funds_asset_id.0,
-            amount.0,
+            amount.val(),
             *harvester,
         )
         .build(),
@@ -106,18 +106,18 @@ pub fn calculate_entitled_harvest(
 ) -> FundsAmount {
     // TODO review possible overflow, type cast, unwrap
     // for easier understanding we use the same arithmetic as in TEAL
-    let investors_share_fractional_percentage = investors_part.0.as_decimal() / 100.as_decimal(); // e.g. 10% -> 0.1
+    let investors_share_fractional_percentage = investors_part.as_decimal() / 100.as_decimal(); // e.g. 10% -> 0.1
 
-    let entitled_percentage = ((share_count.0 * precision).as_decimal()
+    let entitled_percentage = ((share_count.val() * precision).as_decimal()
         * (investors_share_fractional_percentage * precision.as_decimal())
-        / share_supply.0.as_decimal())
+        / share_supply.as_decimal())
     .floor();
 
-    let entitled_total = ((central_received_total.0.as_decimal() * entitled_percentage)
+    let entitled_total = ((central_received_total.as_decimal() * entitled_percentage)
         / (precision.as_decimal() * precision.as_decimal()))
     .floor();
 
-    FundsAmount(entitled_total.to_u128().unwrap() as u64)
+    FundsAmount::new(entitled_total.to_u128().unwrap() as u64)
 }
 
 pub fn investor_can_harvest_amount_calc(

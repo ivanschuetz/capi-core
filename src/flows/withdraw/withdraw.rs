@@ -46,7 +46,7 @@ pub async fn withdraw(
         TransferAsset::new(
             *central_escrow.address(),
             funds_asset_id.0,
-            inputs.amount.0,
+            inputs.amount.val(),
             creator,
         )
         .build(),

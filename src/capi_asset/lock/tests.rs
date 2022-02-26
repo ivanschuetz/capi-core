@@ -34,14 +34,14 @@ mod tests {
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
-        let capi_supply = CapiAssetAmount(1_000_000_000);
+        let capi_supply = CapiAssetAmount::new(1_000_000_000);
 
         // preconditions
 
         let setup_res =
             setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
 
-        let investor_assets_amount = CapiAssetAmount(1_000);
+        let investor_assets_amount = CapiAssetAmount::new(1_000);
 
         let params = algod.suggested_transaction_params().await?;
         optin_to_asset_submit(&algod, &investor, setup_res.asset_id.0).await?;
@@ -53,7 +53,7 @@ mod tests {
             &creator,
             &investor.address(),
             setup_res.asset_id.0,
-            investor_assets_amount.0,
+            investor_assets_amount.val(),
         )
         .await?;
 
@@ -77,7 +77,7 @@ mod tests {
             setup_res.asset_id,
             setup_res.app_id,
             investor_assets_amount,
-            CapiAssetAmount(0), // the investor locked everything
+            CapiAssetAmount::new(0), // the investor locked everything
             setup_res.escrow.address(),
         )
         .await?;
@@ -96,15 +96,15 @@ mod tests {
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
-        let capi_supply = CapiAssetAmount(1_000_000_000);
+        let capi_supply = CapiAssetAmount::new(1_000_000_000);
 
         // preconditions
 
         let setup_res =
             setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
 
-        let partial_lock_amount = CapiAssetAmount(400);
-        let investor_assets_amount = CapiAssetAmount(partial_lock_amount.0 + 600);
+        let partial_lock_amount = CapiAssetAmount::new(400);
+        let investor_assets_amount = CapiAssetAmount::new(partial_lock_amount.val() + 600);
 
         let params = algod.suggested_transaction_params().await?;
         optin_to_asset_submit(&algod, &investor, setup_res.asset_id.0).await?;
@@ -116,7 +116,7 @@ mod tests {
             &creator,
             &investor.address(),
             setup_res.asset_id.0,
-            investor_assets_amount.0,
+            investor_assets_amount.val(),
         )
         .await?;
 
@@ -140,7 +140,7 @@ mod tests {
             setup_res.asset_id,
             setup_res.app_id,
             partial_lock_amount,
-            CapiAssetAmount(investor_assets_amount.0 - partial_lock_amount.0),
+            CapiAssetAmount::new(investor_assets_amount.val() - partial_lock_amount.val()),
             setup_res.escrow.address(),
         )
         .await?;

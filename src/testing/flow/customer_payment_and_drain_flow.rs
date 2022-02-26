@@ -38,7 +38,7 @@ pub async fn customer_payment_and_drain_flow(
     // double check precondition: customer escrow has no funds
     let customer_escrow_holdings =
         funds_holdings(algod, project.customer_escrow.address(), funds_asset_id).await?;
-    assert_eq!(FundsAmount(0), customer_escrow_holdings);
+    assert_eq!(FundsAmount::new(0), customer_escrow_holdings);
 
     // Customer sends a payment
 

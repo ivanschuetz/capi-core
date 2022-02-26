@@ -123,7 +123,13 @@ pub async fn setup_investing_escrow_txs(
 
     let transfer_shares_tx = &mut TxnBuilder::with(
         params,
-        TransferAsset::new(*creator, shares_asset_id, share_supply.0, *escrow.address()).build(),
+        TransferAsset::new(
+            *creator,
+            shares_asset_id,
+            share_supply.val(),
+            *escrow.address(),
+        )
+        .build(),
     )
     .build()?;
 
@@ -182,7 +188,7 @@ mod tests {
         let source = render_investing_escrow(
             &template,
             123,
-            &FundsAmount(1_000_000),
+            &FundsAmount::new(1_000_000),
             &FundsAssetId(123), // not used - can be anything
             &Address::new([0; 32]),
         )?;
@@ -198,7 +204,7 @@ mod tests {
         let source = render_investing_escrow(
             &template,
             123,
-            &FundsAmount(1_000_000),
+            &FundsAmount::new(1_000_000),
             &FundsAssetId(123), // not used - can be anything
             &Address::new([0; 32]),
         )?;

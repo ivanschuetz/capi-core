@@ -23,7 +23,7 @@ pub async fn pay_project(
 
     let tx = TxnBuilder::with(
         &params,
-        TransferAsset::new(*customer, funds_asset_id.0, amount.0, *customer_escrow).build(),
+        TransferAsset::new(*customer, funds_asset_id.0, amount.val(), *customer_escrow).build(),
     )
     .build()?;
 

@@ -37,7 +37,7 @@ pub mod test {
         let locking_escrow_assets = locking_escrow_infos.assets;
         assert_eq!(2, locking_escrow_assets.len()); // opted in to shares and capi token
         let capi_asset_holdings = asset_holdings(&algod, capi_escrow, capi_asset_id.0).await?;
-        assert_eq!(locked_amount, CapiAssetAmount(capi_asset_holdings));
+        assert_eq!(locked_amount, CapiAssetAmount::new(capi_asset_holdings.0));
 
         // local state is correct
 
@@ -45,7 +45,7 @@ pub mod test {
         // shares local state initialized to shares
         assert_eq!(locked_amount, investor_state.shares);
         // harvested total is initialized to entitled amount, which at this point is 0 because the escrow doesn't have any funds
-        assert_eq!(FundsAmount(0), investor_state.harvested);
+        assert_eq!(FundsAmount::new(0), investor_state.harvested);
 
         Ok(())
     }

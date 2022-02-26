@@ -40,7 +40,7 @@ mod tests {
 
         // UI
 
-        let buy_share_amount = ShareAmount(10);
+        let buy_share_amount = ShareAmount::new(10);
 
         // precs
 
@@ -82,7 +82,7 @@ mod tests {
         // shares set to bought asset amount
         assert_eq!(buy_share_amount, investor_state.shares);
         //  harvested total is 0 (hasn't harvested yet)
-        assert_eq!(FundsAmount(0), investor_state.harvested);
+        assert_eq!(FundsAmount::new(0), investor_state.harvested);
 
         // double check locking escrow's assets
         let locking_escrow_infos = algod
@@ -143,8 +143,8 @@ mod tests {
 
         // UI
 
-        let partial_amount = ShareAmount(2);
-        let buy_asset_amount = ShareAmount(partial_amount.0 + 8);
+        let partial_amount = ShareAmount::new(2);
+        let buy_asset_amount = ShareAmount::new(partial_amount.val() + 8);
 
         // precs
 
@@ -184,7 +184,7 @@ mod tests {
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
         // harvested total is 0 (hasn't harvested yet)
-        assert_eq!(FundsAmount(0), investor_state.harvested);
+        assert_eq!(FundsAmount::new(0), investor_state.harvested);
 
         // double check locking escrow's assets
         let locking_escrow_infos = algod
@@ -231,7 +231,7 @@ mod tests {
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
         // harvested total is 0 (hasn't harvested yet)
-        assert_eq!(FundsAmount(0), investor_state.harvested);
+        assert_eq!(FundsAmount::new(0), investor_state.harvested);
 
         // investor didn't pay fees (unlock txs failed)
         assert_eq!(investor_balance_before_unlocking, investor_infos.amount);

@@ -34,7 +34,10 @@ pub async fn invest_txs(
 
     let params = algod.suggested_transaction_params().await?;
 
-    let total_price = share_price.0.checked_mul(share_amount.0).ok_or(anyhow!(
+    let total_price = share_price
+        .val()
+        .checked_mul(share_amount.val())
+        .ok_or(anyhow!(
         "Share price: {share_price} multiplied by share amount: {share_amount} caused an overflow."
     ))?;
 
@@ -82,7 +85,7 @@ pub async fn invest_txs(
         TransferAsset::new(
             *project.invest_escrow.address(),
             project.shares_asset_id,
-            share_amount.0,
+            share_amount.val(),
             *locking_escrow.address(),
         )
         .build(),

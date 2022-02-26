@@ -52,7 +52,7 @@ mod tests {
         )
         .await?;
 
-        let customer_payment_amount = FundsAmount(10 * 1_000_000);
+        let customer_payment_amount = FundsAmount::new(10 * 1_000_000);
 
         // flow
 

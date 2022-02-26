@@ -43,7 +43,7 @@ pub async fn lock(
         TransferAsset::new(
             investor,
             shares_asset_id,
-            share_amount.0,
+            share_amount.val(),
             *locking_escrow.address(),
         )
         .build(),

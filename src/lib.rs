@@ -1,3 +1,4 @@
+mod asset_amount;
 pub mod capi_asset;
 mod constants;
 pub mod date_util;

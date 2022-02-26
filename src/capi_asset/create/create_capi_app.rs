@@ -113,7 +113,7 @@ mod tests {
             &approval_template,
             &clear_source,
             &creator.address(),
-            CapiAssetAmount(0),
+            CapiAssetAmount::new(0),
             TESTS_DEFAULT_PRECISION,
             &params,
         )

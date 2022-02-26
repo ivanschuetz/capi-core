@@ -74,7 +74,7 @@ pub fn render_central_app(
         .checked_pow(2)
         .ok_or_else(|| anyhow!("Precision squared overflow: {}", precision))?;
     let investors_share =
-        ((investors_share.0.as_decimal() / 100.as_decimal()) * precision.as_decimal()).floor();
+        ((investors_share.as_decimal() / 100.as_decimal()) * precision.as_decimal()).floor();
 
     let source = render_template(
         source,
@@ -141,9 +141,9 @@ mod tests {
             &approval_template,
             clear_source,
             &creator.address(),
-            ShareAmount(0),
+            ShareAmount::new(0),
             TESTS_DEFAULT_PRECISION,
-            ShareAmount(40),
+            ShareAmount::new(40),
             // random: this address doesn't affect this test
             &"3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA"
                 .parse()

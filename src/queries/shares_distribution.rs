@@ -8,7 +8,7 @@ use anyhow::{anyhow, Result};
 use rust_decimal::Decimal;
 
 use crate::{
-    flows::create_project::share_amount::ShareAmount,
+    asset_amount::AssetAmount, flows::create_project::share_amount::ShareAmount,
     state::central_app_state::central_investor_state,
 };
 
@@ -43,7 +43,7 @@ pub async fn shares_holders_distribution(
 
     let mut holding_percentages = vec![];
     for h in holdings {
-        let amount_decimal: Decimal = h.amount.0.into();
+        let amount_decimal: Decimal = h.amount.as_decimal();
         holding_percentages.push(ShareHoldingPercentage {
             address: h.address,
             amount: h.amount,
@@ -141,7 +141,7 @@ async fn free_assets_holdings(
             && &holder.address != locking_escrow
         {
             holdings.push(ShareHolding {
-                amount: ShareAmount(find_amount(asset_id, &holder.assets)?),
+                amount: find_amount(asset_id, &holder.assets)?.into(),
                 address: holder.address,
             })
         }
@@ -163,7 +163,7 @@ pub async fn holders_count(
 
 /// Helper to get asset holding amount for asset id
 /// Private: assumes that `asset_holding` is the result of indexer query by asset id
-fn find_amount(asset_id: u64, asset_holding: &[AssetHolding]) -> Result<u64> {
+fn find_amount(asset_id: u64, asset_holding: &[AssetHolding]) -> Result<AssetAmount> {
     let asset_holdings = asset_holding
         .iter()
         .filter(|h| h.asset_id == asset_id)
@@ -177,7 +177,7 @@ fn find_amount(asset_id: u64, asset_holding: &[AssetHolding]) -> Result<u64> {
     }
 
     if let Some(holding) = asset_holdings.first() {
-        Ok(holding.amount)
+        Ok(AssetAmount(holding.amount))
     } else {
         // In context of this file, this is an error, as we are queryng by asset id
         // Note that if the user has no holdings but is opted in, we also get holdings (0 count)

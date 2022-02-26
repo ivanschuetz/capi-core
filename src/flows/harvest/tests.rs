@@ -50,8 +50,8 @@ mod tests {
 
         // flow
 
-        let buy_share_amount = ShareAmount(10);
-        let pay_and_drain_amount = FundsAmount(10_000_000);
+        let buy_share_amount = ShareAmount::new(10);
+        let pay_and_drain_amount = FundsAmount::new(10_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
@@ -71,7 +71,7 @@ mod tests {
 
         let harvest_amount = investor_can_harvest_amount_calc(
             precs.drain_res.drained_amounts.dao,
-            FundsAmount(0),
+            FundsAmount::new(0),
             buy_share_amount,
             specs.shares.supply,
             precision,
@@ -132,8 +132,8 @@ mod tests {
 
         // precs
 
-        let buy_share_amount = ShareAmount(10);
-        let pay_and_drain_amount = FundsAmount(10_000_000);
+        let buy_share_amount = ShareAmount::new(10);
+        let pay_and_drain_amount = FundsAmount::new(10_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
@@ -154,7 +154,7 @@ mod tests {
         let central_state = central_global_state(&algod, precs.project.central_app_id).await?;
         let harvest_amount = investor_can_harvest_amount_calc(
             central_state.received,
-            FundsAmount(0),
+            FundsAmount::new(0),
             buy_share_amount,
             specs.shares.supply,
             precision,
@@ -202,18 +202,18 @@ mod tests {
 
         // precs
 
-        let buy_share_amount = ShareAmount(10);
-        let pay_and_drain_amount = FundsAmount(10_000_000);
+        let buy_share_amount = ShareAmount::new(10);
+        let pay_and_drain_amount = FundsAmount::new(10_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
         let specs = CreateProjectSpecs::new(
             "Pancakes ltd".to_owned(),
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
             CreateSharesSpecs {
                 token_name: "PCK".to_owned(),
-                supply: ShareAmount(300),
+                supply: ShareAmount::new(300),
             },
-            ShareAmount(120),
-            FundsAmount(5_000_000),
+            ShareAmount::new(120),
+            FundsAmount::new(5_000_000),
             "https://placekitten.com/200/300".to_owned(),
             "https://twitter.com/capi_fin".to_owned(),
         )?;
@@ -239,7 +239,7 @@ mod tests {
 
         let harvest_amount = investor_can_harvest_amount_calc(
             central_state.received,
-            FundsAmount(0),
+            FundsAmount::new(0),
             buy_share_amount,
             specs.shares.supply,
             precision,
@@ -301,9 +301,9 @@ mod tests {
 
         // flow
 
-        let buy_share_amount = ShareAmount(20);
-        let pay_and_drain_amount = FundsAmount(10_000_000);
-        let harvest_amount = FundsAmount(200_000); // just an amount low enough so we can harvest 2x
+        let buy_share_amount = ShareAmount::new(20);
+        let pay_and_drain_amount = FundsAmount::new(10_000_000);
+        let harvest_amount = FundsAmount::new(200_000); // just an amount low enough so we can harvest 2x
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(

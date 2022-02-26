@@ -69,7 +69,7 @@ pub async fn create_and_distribute_funds_asset(algod: &Algod) -> Result<FundsAss
         algod,
         &params,
         asset_id,
-        FundsAmount(10_000_000_000),
+        FundsAmount::new(10_000_000_000),
         &asset_creator,
     )
     .await?;
@@ -158,7 +158,7 @@ async fn create_capi_asset_and_deps(
     funds_asset_id: FundsAssetId,
 ) -> Result<CapiAssetDaoDeps> {
     let capi_owner = capi_owner();
-    let capi_supply = CapiAssetAmount(1_000_000_000);
+    let capi_supply = CapiAssetAmount::new(1_000_000_000);
 
     let flow_res = setup_capi_asset_flow(&algod, &capi_owner, capi_supply, funds_asset_id).await?;
 
@@ -196,7 +196,7 @@ async fn fund_account_with_local_funds_asset(
         TransferAsset::new(
             sender.address(),
             funds_asset_id.0,
-            amount.0,
+            amount.val(),
             receiver.address(),
         )
         .build(),

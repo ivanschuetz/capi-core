@@ -31,13 +31,13 @@ mod tests {
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
 
-        let capi_supply = CapiAssetAmount(1_000_000_000);
+        let capi_supply = CapiAssetAmount::new(1_000_000_000);
 
-        let investor_capi_amount = CapiAssetAmount(100_000); // 0.0001 -> 0.01 %
+        let investor_capi_amount = CapiAssetAmount::new(100_000); // 0.0001 -> 0.01 %
 
-        let initial_capi_funds_amount = FundsAmount(200_000);
+        let initial_capi_funds_amount = FundsAmount::new(200_000);
 
-        let harvest_amount = FundsAmount(2); // random amount < entitled harvest
+        let harvest_amount = FundsAmount::new(2); // random amount < entitled harvest
 
         // preconditions
 
@@ -78,16 +78,16 @@ mod tests {
         let harvest_funds_amount =
             funds_holdings(&algod, &investor.address(), funds_asset_id).await?;
         assert_eq!(
-            investor_funds_before_harvesting.0 + harvest_amount.0,
-            harvest_funds_amount.0
+            investor_funds_before_harvesting.val() + harvest_amount.val(),
+            harvest_funds_amount.val()
         );
 
         // Capi lost the harvested funds
         let capi_escrow_funds_amount =
             funds_holdings(&algod, &setup_res.escrow.address(), funds_asset_id).await?;
         assert_eq!(
-            initial_capi_funds_amount.0 - harvest_amount.0,
-            capi_escrow_funds_amount.0
+            initial_capi_funds_amount.val() - harvest_amount.val(),
+            capi_escrow_funds_amount.val()
         );
 
         // Capi app global state: test that the total received global variable didn't change (unaffected by harvesting)
