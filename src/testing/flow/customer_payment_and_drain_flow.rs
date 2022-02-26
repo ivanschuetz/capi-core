@@ -1,4 +1,6 @@
 #[cfg(test)]
+use crate::capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps;
+#[cfg(test)]
 use crate::funds::FundsAmount;
 #[cfg(test)]
 use crate::funds::FundsAssetId;
@@ -7,7 +9,8 @@ use crate::{
     flows::create_project::model::Project,
     flows::create_project::storage::load_project::TxId,
     flows::drain::drain::{
-        drain_customer_escrow, submit_drain_customer_escrow, DrainCustomerEscrowSigned,
+        drain_amounts, drain_customer_escrow, submit_drain_customer_escrow, DaoAndCapiDrainAmounts,
+        DrainCustomerEscrowSigned,
     },
     flows::pay_project::pay_project::{pay_project, submit_pay_project, PayProjectSigned},
     network_util::wait_for_pending_transaction,
@@ -30,6 +33,7 @@ pub async fn customer_payment_and_drain_flow(
     funds_asset_id: FundsAssetId,
     customer_payment_amount: FundsAmount,
     project: &Project,
+    capi_asset_deps: &CapiAssetDaoDeps,
 ) -> Result<CustomerPaymentAndDrainFlowRes> {
     // double check precondition: customer escrow has no funds
     let customer_escrow_holdings =
@@ -37,6 +41,7 @@ pub async fn customer_payment_and_drain_flow(
     assert_eq!(FundsAmount(0), customer_escrow_holdings);
 
     // Customer sends a payment
+
     let customer_payment_tx_id = send_payment_to_customer_escrow(
         &algod,
         &customer,
@@ -47,7 +52,7 @@ pub async fn customer_payment_and_drain_flow(
     .await?;
     wait_for_pending_transaction(&algod, &customer_payment_tx_id).await?;
 
-    drain_flow(algod, drainer, project).await
+    drain_flow(algod, drainer, project, capi_asset_deps).await
 }
 
 #[cfg(test)]
@@ -55,28 +60,42 @@ pub async fn drain_flow(
     algod: &Algod,
     drainer: &Account,
     project: &Project,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<CustomerPaymentAndDrainFlowRes> {
     let initial_drainer_balance = algod.account_information(&drainer.address()).await?.amount;
+
+    let drain_amounts = drain_amounts(
+        algod,
+        capi_deps.escrow_percentage,
+        project.funds_asset_id,
+        &project.customer_escrow.address(),
+    )
+    .await?;
 
     let drain_to_sign = drain_customer_escrow(
         &algod,
         &drainer.address(),
         project.central_app_id,
         project.funds_asset_id,
+        capi_deps,
         &project.customer_escrow,
         &project.central_escrow,
+        &drain_amounts,
     )
     .await?;
 
     let pay_fee_tx_signed = drainer.sign_transaction(&drain_to_sign.pay_fee_tx)?;
     let app_call_tx_signed = drainer.sign_transaction(&drain_to_sign.app_call_tx)?;
+    let capi_app_call_tx_signed = drainer.sign_transaction(&drain_to_sign.capi_app_call_tx)?;
 
     let drain_tx_id = submit_drain_customer_escrow(
         &algod,
         &DrainCustomerEscrowSigned {
             drain_tx: drain_to_sign.drain_tx,
+            capi_share_tx: drain_to_sign.capi_share_tx,
             pay_fee_tx: pay_fee_tx_signed,
             app_call_tx_signed,
+            capi_app_call_tx_signed,
         },
     )
     .await?;
@@ -88,7 +107,8 @@ pub async fn drain_flow(
         initial_drainer_balance,
         pay_fee_tx: drain_to_sign.pay_fee_tx,
         app_call_tx: drain_to_sign.app_call_tx,
-        drained_amount: drain_to_sign.amount_to_drain, // txs were submitted successfully: already drained
+        capi_app_call_tx: drain_to_sign.capi_app_call_tx,
+        drained_amounts: drain_amounts,
     })
 }
 
@@ -100,7 +120,8 @@ pub struct CustomerPaymentAndDrainFlowRes {
     pub initial_drainer_balance: MicroAlgos,
     pub pay_fee_tx: Transaction,
     pub app_call_tx: Transaction,
-    pub drained_amount: FundsAmount,
+    pub capi_app_call_tx: Transaction,
+    pub drained_amounts: DaoAndCapiDrainAmounts,
 }
 
 // Simulate a payment to the "external" project address

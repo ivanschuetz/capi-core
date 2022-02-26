@@ -1,3 +1,4 @@
+pub mod capi_asset;
 mod constants;
 pub mod date_util;
 mod debug_msg_pack_submit_par;

@@ -8,7 +8,7 @@ use rust_decimal::{prelude::ToPrimitive, Decimal};
 use std::convert::TryFrom;
 
 // A percentage in range [0..1]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SharesPercentage(Decimal);
 
 impl TryFrom<Decimal> for SharesPercentage {

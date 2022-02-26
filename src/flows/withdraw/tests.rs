@@ -20,7 +20,7 @@ mod tests {
                 invest_in_project_flow::{invests_flow, invests_optins_flow},
                 withdraw_flow::{withdraw_flow, withdraw_precs},
             },
-            network_test_util::{create_and_distribute_funds_asset, test_init},
+            network_test_util::{setup_on_chain_deps, test_init, OnChainDeps},
             test_data::{creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -37,7 +37,10 @@ mod tests {
         let creator = creator();
         let drainer = investor1();
         let customer = customer();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // precs
 
@@ -60,6 +63,7 @@ mod tests {
             &project.project,
             pay_and_drain_amount,
             funds_asset_id,
+            &capi_deps,
         )
         .await?;
 
@@ -109,7 +113,8 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+
+        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // precs
 
@@ -206,7 +211,10 @@ mod tests {
         let investor = investor2();
         let customer = customer();
         let not_creator = investor2();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // precs
 
@@ -230,6 +238,7 @@ mod tests {
             funds_asset_id,
             pay_and_drain_amount,
             &project.project,
+            &capi_deps,
         )
         .await?;
 

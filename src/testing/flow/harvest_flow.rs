@@ -12,6 +12,7 @@ use crate::funds::{FundsAmount, FundsAssetId};
 use crate::state::account_state::funds_holdings;
 #[cfg(test)]
 use crate::{
+    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::harvest::harvest::{harvest, submit_harvest, HarvestSigned},
     network_util::wait_for_pending_transaction,
     testing::flow::{
@@ -35,8 +36,9 @@ pub async fn harvest_precs(
     drainer: &Account,
     customer: &Account,
     share_amount: ShareAmount,
-    central_funds: FundsAmount,
+    payment_and_drain_amount: FundsAmount,
     precision: u64,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<HarvestTestPrecsRes> {
     let project = create_project_flow(&algod, &creator, &specs, funds_asset_id, precision).await?;
 
@@ -59,8 +61,9 @@ pub async fn harvest_precs(
         &drainer,
         &customer,
         funds_asset_id,
-        central_funds,
+        payment_and_drain_amount,
         &project.project,
+        capi_deps,
     )
     .await?;
 

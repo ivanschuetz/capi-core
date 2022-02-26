@@ -36,6 +36,12 @@ pub fn customer() -> Account {
     Account::from_mnemonic("clog coral speak since defy siege video lamp polar chronic treat smooth puzzle input payment hobby draft habit race birth ridge correct behave able close").unwrap()
 }
 
+#[allow(dead_code)]
+#[cfg(test)]
+pub fn capi_owner() -> Account {
+    Account::from_mnemonic("champion slab oyster plug add neutral gap burger civil gossip hybrid return truth mad light edit invest hybrid mistake allow flip quarter guess abstract ginger").unwrap()
+}
+
 #[cfg(test)]
 pub fn project_specs() -> CreateProjectSpecs {
     CreateProjectSpecs::new(

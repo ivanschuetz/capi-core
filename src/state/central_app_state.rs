@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::app_state::{
-    global_state, local_state, local_state_from_account, AppStateKey, ApplicationLocalStateError,
-    ApplicationStateExt,
+    get_bytes_value_or_error, get_uint_value_or_error, global_state, local_state,
+    local_state_from_account, AppStateKey, ApplicationLocalStateError, ApplicationStateExt,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -22,6 +22,7 @@ const LOCAL_HARVESTED_TOTAL: AppStateKey = AppStateKey("HarvestedTotal");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_PROJECT: AppStateKey = AppStateKey("Project");
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CentralAppGlobalState {
     pub received: FundsAmount,
 }
@@ -59,8 +60,7 @@ pub fn central_investor_state_from_acc(
         .map_err(|e| ApplicationLocalStateError::Msg(e.to_string()))
 }
 
-/// Private: assumes that local state belongs to the central app (thus returns defaults values if local state isn't set)
-/// Expects the user to be invested  (as the name indicates) - returns error otherwise.
+/// Expects the user to be invested (as the name indicates) - returns error otherwise.
 fn central_investor_state_from_local_state(
     state: &ApplicationLocalState,
 ) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
@@ -78,24 +78,6 @@ fn central_investor_state_from_local_state(
         harvested,
         project_id,
     })
-}
-
-fn get_uint_value_or_error(
-    state: &ApplicationLocalState,
-    key: &AppStateKey<'static>,
-) -> Result<u64, ApplicationLocalStateError<'static>> {
-    state
-        .find_uint(key)
-        .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
-}
-
-fn get_bytes_value_or_error(
-    state: &ApplicationLocalState,
-    key: &AppStateKey<'static>,
-) -> Result<Vec<u8>, ApplicationLocalStateError<'static>> {
-    state
-        .find_bytes(key)
-        .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
 }
 
 /// Gets project ids for all the capi apps where the user is opted in

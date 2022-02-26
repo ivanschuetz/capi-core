@@ -6,7 +6,7 @@ use crate::flows::create_project::storage::save_project::{
 };
 #[cfg(test)]
 use crate::flows::create_project::{
-    create_project::{create_project_txs, submit_create_project},
+    create_project::{create_project_txs, submit_create_project, CapiPrograms},
     create_project_specs::CreateProjectSpecs,
     model::{CreateProjectSigned, Project},
     setup::create_shares::{create_shares, submit_create_shares},
@@ -40,8 +40,7 @@ pub async fn create_project_flow(
     precision: u64,
 ) -> Result<CreateProjectFlowRes> {
     // Create asset first: id needed in app template
-    let create_assets_txs =
-        create_shares(&algod, &creator.address(), &specs.shares).await?;
+    let create_assets_txs = create_shares(&algod, &creator.address(), &specs.shares).await?;
 
     // UI
     let signed_create_shares_tx = creator.sign_transaction(&create_assets_txs.create_shares_tx)?;
@@ -130,5 +129,14 @@ pub fn programs() -> Result<Programs> {
             invest_escrow: load_teal_template("investing_escrow")?,
             locking_escrow: load_teal_template("locking_escrow")?,
         },
+    })
+}
+
+#[cfg(test)]
+pub fn capi_programs() -> Result<CapiPrograms> {
+    Ok(CapiPrograms {
+        app_approval: load_teal_template("app_capi_approval")?,
+        app_clear: load_teal("app_capi_clear")?,
+        escrow: load_teal_template("capi_escrow")?,
     })
 }

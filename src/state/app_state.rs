@@ -1,5 +1,3 @@
-use std::fmt::{self, Display, Formatter};
-
 use algonaut::{
     algod::v2::Algod,
     core::Address,
@@ -8,6 +6,7 @@ use algonaut::{
 };
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
+use std::fmt::{self, Display, Formatter};
 
 pub async fn global_state(algod: &Algod, app_id: u64) -> Result<ApplicationGlobalState> {
     let app = algod.application_information(app_id).await?;
@@ -122,4 +121,22 @@ impl From<ApplicationLocalStateError<'static>> for anyhow::Error {
     fn from(err: ApplicationLocalStateError<'static>) -> Self {
         anyhow!("{}", err)
     }
+}
+
+pub fn get_uint_value_or_error(
+    state: &ApplicationLocalState,
+    key: &AppStateKey<'static>,
+) -> Result<u64, ApplicationLocalStateError<'static>> {
+    state
+        .find_uint(key)
+        .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
+}
+
+pub fn get_bytes_value_or_error(
+    state: &ApplicationLocalState,
+    key: &AppStateKey<'static>,
+) -> Result<Vec<u8>, ApplicationLocalStateError<'static>> {
+    state
+        .find_bytes(key)
+        .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
 }

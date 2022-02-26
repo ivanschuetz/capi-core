@@ -232,3 +232,10 @@ pub struct Escrows {
     pub invest_escrow: TealSourceTemplate,
     pub locking_escrow: TealSourceTemplate,
 }
+
+/// TEAL related to the capi token
+pub struct CapiPrograms {
+    pub app_approval: TealSourceTemplate,
+    pub app_clear: TealSource,
+    pub escrow: TealSourceTemplate,
+}

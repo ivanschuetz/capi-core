@@ -1,6 +1,8 @@
 #[cfg(test)]
 use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
 #[cfg(test)]
+use crate::capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps;
+#[cfg(test)]
 use crate::flows::{
     create_project::model::Project,
     withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs},
@@ -26,6 +28,7 @@ pub async fn withdraw_precs(
     project: &Project,
     pay_and_drain_amount: FundsAmount,
     funds_asset_id: FundsAssetId,
+    capi_asset_specs: &CapiAssetDaoDeps,
 ) -> Result<WithdrawTestPrecsRes> {
     // customer payment and draining, to have some funds to withdraw
     let drain_res = customer_payment_and_drain_flow(
@@ -35,6 +38,7 @@ pub async fn withdraw_precs(
         funds_asset_id,
         pay_and_drain_amount,
         &project,
+        capi_asset_specs,
     )
     .await?;
     let central_escrow_balance_after_drain = algod

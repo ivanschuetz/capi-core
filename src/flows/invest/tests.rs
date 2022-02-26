@@ -18,7 +18,7 @@ mod tests {
     use crate::testing::flow::invest_in_project_flow::{invests_flow, invests_optins_flow};
     use crate::testing::flow::lock_flow::lock_flow;
     use crate::testing::flow::unlock_flow::unlock_flow;
-    use crate::testing::network_test_util::{create_and_distribute_funds_asset, test_init};
+    use crate::testing::network_test_util::{setup_on_chain_deps, test_init, OnChainDeps};
     use crate::testing::test_data::{customer, investor2};
     use crate::testing::TESTS_DEFAULT_PRECISION;
     use crate::{
@@ -41,7 +41,8 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+
+        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
         let buy_share_amount = ShareAmount(10);
@@ -157,7 +158,8 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+
+        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
         let buy_share_amount = ShareAmount(10);
@@ -228,7 +230,8 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+
+        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
         let lock_amount = ShareAmount(10);
@@ -309,7 +312,8 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+
+        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
         let lock_amount = ShareAmount(10);
@@ -390,7 +394,8 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+
+        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
         let lock_amount1 = ShareAmount(10);
@@ -474,7 +479,10 @@ mod tests {
         let investor = investor1();
         let drainer = investor2();
         let customer = customer();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let buy_share_amount = ShareAmount(10);
@@ -500,6 +508,7 @@ mod tests {
             funds_asset_id,
             central_funds,
             &project.project,
+            &capi_deps,
         )
         .await?;
 
@@ -548,7 +557,10 @@ mod tests {
         let investor = investor1();
         let drainer = investor2();
         let customer = customer();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let buy_share_amount = ShareAmount(10);
@@ -574,6 +586,7 @@ mod tests {
             funds_asset_id,
             central_funds,
             &project.project,
+            &capi_deps,
         )
         .await?;
 
@@ -633,7 +646,7 @@ mod tests {
         let indexer = dependencies::indexer_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
         let buy_share_amount = ShareAmount(10);

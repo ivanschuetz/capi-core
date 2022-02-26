@@ -1,0 +1,15 @@
+#pragma version 4
+
+global GroupSize
+int 3
+==
+
+bnz branch_harvest
+
+int 0
+return
+
+branch_harvest:
+
+int 1
+return

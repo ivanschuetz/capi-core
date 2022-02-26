@@ -19,7 +19,7 @@ mod tests {
                 invest_in_project_flow::{invests_flow, invests_optins_flow},
                 unlock_flow::unlock_flow,
             },
-            network_test_util::{create_and_distribute_funds_asset, test_init},
+            network_test_util::{setup_on_chain_deps, test_init},
             test_data::{creator, investor1, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -35,7 +35,8 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+
+        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
 
@@ -137,7 +138,8 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+
+        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
 

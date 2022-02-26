@@ -1,11 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use algonaut::{algod::v2::Algod, core::Address, transaction::account::Account};
-    use anyhow::Result;
-    use data_encoding::BASE64;
-    use serial_test::serial;
-    use tokio::test;
-
     use crate::{
         dependencies,
         flows::{
@@ -22,12 +16,17 @@ mod tests {
         },
         testing::{
             flow::harvest_flow::{harvest_flow, harvest_precs},
-            network_test_util::{create_and_distribute_funds_asset, test_init},
+            network_test_util::{setup_on_chain_deps, test_init, OnChainDeps},
             project_general::check_schema,
             test_data::{creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
     };
+    use algonaut::{algod::v2::Algod, core::Address, transaction::account::Account};
+    use anyhow::Result;
+    use data_encoding::BASE64;
+    use serial_test::serial;
+    use tokio::test;
 
     #[test]
     #[serial]
@@ -42,15 +41,17 @@ mod tests {
         let drainer = investor1();
         let harvester = investor2();
         let customer = customer();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         let specs = project_specs();
 
         // flow
 
         let buy_share_amount = ShareAmount(10);
-        let central_funds = FundsAmount(10 * 1_000_000);
-        let harvest_amount = FundsAmount(400_000); // calculated manually
+        let pay_and_drain_amount = FundsAmount(10_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
@@ -62,92 +63,20 @@ mod tests {
             &drainer,
             &customer,
             buy_share_amount,
-            central_funds,
+            pay_and_drain_amount,
             precision,
+            &capi_deps,
         )
         .await?;
-        let res = harvest_flow(
-            &algod,
-            &precs.project,
-            &harvester,
-            funds_asset_id,
-            harvest_amount,
-        )
-        .await?;
-
-        // test
-
-        test_harvest_result(
-            &algod,
-            &harvester,
-            res.project.central_app_id,
-            funds_asset_id,
-            res.project.central_escrow.address(),
-            precs.drain_res.drained_amount,
-            // harvester got the amount
-            res.harvester_balance_before_harvesting + res.harvest,
-            // central lost the amount
-            precs.central_escrow_balance_after_drain - res.harvest,
-            // double check shares local state
-            buy_share_amount,
-            // only one harvest: local state is the harvested amount
-            res.harvest,
-        )
-        .await?;
-
-        Ok(())
-    }
-
-    #[test]
-    #[serial]
-    async fn test_harvest_max() -> Result<()> {
-        test_init()?;
-
-        // deps
-
-        let algod = dependencies::algod_for_tests();
-        // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
-        let creator = creator();
-        let drainer = investor1();
-        let harvester = investor2();
-        let customer = customer();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
-
-        let specs = project_specs();
-
-        // precs
-
-        let buy_share_amount = ShareAmount(10);
-        let central_funds = FundsAmount(10 * 1_000_000);
-        let precision = TESTS_DEFAULT_PRECISION;
-
-        let precs = harvest_precs(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            &harvester,
-            &drainer,
-            &customer,
-            buy_share_amount,
-            central_funds,
-            precision,
-        )
-        .await?;
-
-        let central_state = central_global_state(&algod, precs.project.central_app_id).await?;
 
         let harvest_amount = investor_can_harvest_amount_calc(
-            central_state.received,
+            precs.drain_res.drained_amounts.dao,
             FundsAmount(0),
             buy_share_amount,
             specs.shares.supply,
             precision,
             specs.investors_part(),
         );
-        log::debug!("Harvest amount: {}", harvest_amount);
-
-        // flow
 
         let res = harvest_flow(
             &algod,
@@ -166,7 +95,7 @@ mod tests {
             res.project.central_app_id,
             funds_asset_id,
             res.project.central_escrow.address(),
-            precs.drain_res.drained_amount,
+            precs.drain_res.drained_amounts.dao,
             // harvester got the amount
             res.harvester_balance_before_harvesting + res.harvest,
             // central lost the amount
@@ -194,14 +123,17 @@ mod tests {
         let drainer = investor1();
         let harvester = investor2();
         let customer = customer();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         let specs = project_specs();
 
         // precs
 
         let buy_share_amount = ShareAmount(10);
-        let central_funds = FundsAmount(10 * 1_000_000);
+        let pay_and_drain_amount = FundsAmount(10_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
@@ -213,8 +145,9 @@ mod tests {
             &drainer,
             &customer,
             buy_share_amount,
-            central_funds,
+            pay_and_drain_amount,
             precision,
+            &capi_deps,
         )
         .await?;
 
@@ -262,12 +195,15 @@ mod tests {
         let drainer = investor1();
         let harvester = investor2();
         let customer = customer();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // precs
 
         let buy_share_amount = ShareAmount(10);
-        let central_funds = FundsAmount(10 * 1_000_000);
+        let pay_and_drain_amount = FundsAmount(10_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
         let specs = CreateProjectSpecs::new(
             "Pancakes ltd".to_owned(),
@@ -292,8 +228,9 @@ mod tests {
             &drainer,
             &customer,
             buy_share_amount,
-            central_funds,
+            pay_and_drain_amount,
             precision,
+            &capi_deps,
         )
         .await?;
 
@@ -329,7 +266,7 @@ mod tests {
             res.project.central_app_id,
             funds_asset_id,
             res.project.central_escrow.address(),
-            precs.drain_res.drained_amount,
+            precs.drain_res.drained_amounts.dao,
             // harvester got the amount
             res.harvester_balance_before_harvesting + res.harvest,
             // central lost the amount
@@ -357,12 +294,15 @@ mod tests {
         let drainer = investor1();
         let harvester = investor2();
         let customer = customer();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // flow
 
         let buy_share_amount = ShareAmount(20);
-        let central_funds = FundsAmount(10 * 1_000_000);
+        let pay_and_drain_amount = FundsAmount(10_000_000);
         let harvest_amount = FundsAmount(200_000); // just an amount low enough so we can harvest 2x
         let precision = TESTS_DEFAULT_PRECISION;
 
@@ -374,12 +314,10 @@ mod tests {
             &harvester,
             &drainer,
             &customer,
-            // 20 with 100 supply (TODO pass supply or just create specs here) means that we're entitled to 20% of total drained
-            // so 20% of 10 algos (TODO pass draining amount to harvest_precs), which is 2 Algos
-            // we harvest 1 Algo 2x -> success
             buy_share_amount,
-            central_funds,
+            pay_and_drain_amount,
             precision,
+            &capi_deps,
         )
         .await?;
         let res1 = harvest_flow(
@@ -408,7 +346,7 @@ mod tests {
             res2.project.central_app_id,
             funds_asset_id,
             res2.project.central_escrow.address(),
-            precs.drain_res.drained_amount,
+            precs.drain_res.drained_amounts.dao,
             // 2 harvests: local state is the total harvested amount
             res1.harvester_balance_before_harvesting + total_expected_harvested_amount,
             // central lost the amount
@@ -450,6 +388,8 @@ mod tests {
 
         assert_eq!(expected_harvester_balance, harvest_funds_amount);
         assert_eq!(expected_central_balance, central_escrow_funds_amount);
+
+        // TODO use new high level functions to retrieve global / local state
 
         // Central global state: test that the total received global variable didn't change
         // (i.e. same as expected after draining, harvesting doesn't affect it)

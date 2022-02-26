@@ -32,7 +32,7 @@ mod tests {
                 lock_flow::lock_flow,
                 unlock_flow::unlock_flow,
             },
-            network_test_util::{create_and_distribute_funds_asset, test_init},
+            network_test_util::{setup_on_chain_deps, test_init, OnChainDeps},
             test_data::{self, creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -52,7 +52,10 @@ mod tests {
         // repurposing creator as drainer here, as there are only 2 investor test accounts and we prefer them in a clean state for these tests
         let drainer = test_data::creator();
         let customer = customer();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
 
@@ -83,13 +86,14 @@ mod tests {
         // drain (to generate dividend). note that investor doesn't reclaim it (doesn't seem relevant for this test)
         // (the draining itself may also not be relevant, just for a more realistic pre-trade scenario)
         let customer_payment_amount = FundsAmount(10 * 1_000_000);
-        let _ = customer_payment_and_drain_flow(
+        let drain_res = customer_payment_and_drain_flow(
             &algod,
             &drainer,
             &customer,
             funds_asset_id,
             customer_payment_amount,
             &project.project,
+            &capi_deps,
         )
         .await?;
 
@@ -166,10 +170,10 @@ mod tests {
             find_asset_holding_or_err(&investor2_assets, project.project.shares_asset_id)?;
         assert_eq!(0, shares_asset.amount);
 
-        // already harvested local state initialized to entitled algos
+        // already harvested local state initialized to entitled funds
 
         // the amount drained to the central (all income so far)
-        let central_total_received = customer_payment_amount;
+        let central_total_received = drain_res.drained_amounts.dao;
         let investor2_entitled_amount = calculate_entitled_harvest(
             central_total_received,
             project.project.specs.shares.supply,
@@ -212,13 +216,14 @@ mod tests {
 
         // drain again to generate dividend and be able to harvest
         let customer_payment_amount_2 = FundsAmount(10 * 1_000_000);
-        let _ = customer_payment_and_drain_flow(
+        let drain_res2 = customer_payment_and_drain_flow(
             &algod,
             &drainer,
             &customer,
             funds_asset_id,
             customer_payment_amount_2,
             &project.project,
+            &capi_deps,
         )
         .await?;
 
@@ -228,14 +233,9 @@ mod tests {
         let investor2_amount_before_harvest =
             funds_holdings(&algod, &investor2.address(), funds_asset_id).await?;
 
-        // algod
-        //     .account_information(&investor2.address())
-        //     .await?
-        //     .amount;
-
         // we'll harvest the max possible amount
         let investor2_entitled_amount = calculate_entitled_harvest(
-            customer_payment_amount_2,
+            drain_res2.drained_amounts.dao,
             project.project.specs.shares.supply,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
@@ -290,7 +290,8 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+
+        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
 
         // UI
 

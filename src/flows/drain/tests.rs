@@ -1,30 +1,28 @@
 #[cfg(test)]
 mod tests {
-    use algonaut::{
-        core::MicroAlgos,
-        transaction::{Transaction, TransactionType},
-    };
-    use anyhow::{anyhow, Result};
-    use data_encoding::BASE64;
-    use serial_test::serial;
-    use tokio::test;
-
     use crate::{
+        capi_asset::capi_app_state::capi_app_global_state,
         dependencies,
         flows::create_project::setup::customer_escrow,
         funds::FundsAmount,
-        state::account_state::funds_holdings,
+        state::{account_state::funds_holdings, central_app_state::central_global_state},
         testing::{
             flow::{
                 create_project_flow::create_project_flow,
                 customer_payment_and_drain_flow::{customer_payment_and_drain_flow, drain_flow},
             },
-            network_test_util::{create_and_distribute_funds_asset, test_init},
-            project_general::check_schema,
+            network_test_util::{setup_on_chain_deps, test_init, OnChainDeps},
             test_data::{creator, customer, investor1, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
     };
+    use algonaut::{
+        core::MicroAlgos,
+        transaction::{Transaction, TransactionType},
+    };
+    use anyhow::{anyhow, Result};
+    use serial_test::serial;
+    use tokio::test;
 
     #[test]
     #[serial]
@@ -37,7 +35,10 @@ mod tests {
         let creator = creator();
         let drainer = investor1();
         let customer = customer();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let specs = project_specs();
@@ -62,6 +63,7 @@ mod tests {
             funds_asset_id,
             customer_payment_amount,
             &project.project,
+            &capi_deps,
         )
         .await?;
 
@@ -77,40 +79,30 @@ mod tests {
         .await?;
         let drainer_balance = algod.account_information(&drainer.address()).await?.amount;
 
-        log::debug!(
-            "customer_escrow_balance last: {:?}",
-            customer_escrow_balance
-        );
-        log::debug!("central_escrow_balance last: {:?}", central_escrow_amount);
-        log::debug!("drainer_balance last: {:?}", drainer_balance);
         // account keeps min balance
         assert_eq!(customer_escrow::MIN_BALANCE, customer_escrow_balance);
-        // check that central escrow has now the funds from customer escrow
-        assert_eq!(customer_payment_amount, central_escrow_amount);
-        // check that the drainer lost the payment for the draining tx fee, the fee for this payment tx and the app call fee
+        // dao central escrow has now the funds from customer escrow
+        assert_eq!(drain_res.drained_amounts.dao, central_escrow_amount);
+        // the drainer lost the payment for the draining tx fee, the fee for this payment tx and the app call fee
         assert_eq!(
             drain_res.initial_drainer_balance
                 - retrieve_payment_amount_from_tx(&drain_res.pay_fee_tx)?
                 - drain_res.pay_fee_tx.fee
+                - drain_res.capi_app_call_tx.fee
                 - drain_res.app_call_tx.fee,
             drainer_balance
         );
+        // capi escrow received its part
+        let capi_escrow_amount = funds_holdings(&algod, &capi_deps.escrow, funds_asset_id).await?;
+        assert_eq!(drain_res.drained_amounts.capi, capi_escrow_amount);
 
-        // test the global state after drain
-        let app = algod
-            .application_information(project.project.central_app_id)
-            .await?;
-        assert_eq!(1, app.params.global_state.len());
-        let key_value = &app.params.global_state[0];
-        assert_eq!(BASE64.encode(b"CentralReceivedTotal"), key_value.key);
-        assert_eq!(Vec::<u8>::new(), key_value.value.bytes);
-        // after drain, the central received total gs is the amount that was drained
-        assert_eq!(drain_res.drained_amount.0, key_value.value.uint);
-        // values not documented: 1 is byte slice and 2 uint
-        // https://forum.algorand.org/t/interpreting-goal-app-read-response/2711
-        assert_eq!(2, key_value.value.value_type);
-        // double check (_very_ unlikely to be needed)
-        check_schema(&app);
+        // dao app received global state set to what was drained (to the dao)
+        let dao_state = central_global_state(&algod, project.project.central_app_id).await?;
+        assert_eq!(drain_res.drained_amounts.dao, dao_state.received);
+
+        // capi app received global state set to what was drained (to capi)
+        let capi_state = capi_app_global_state(&algod, capi_deps.app_id).await?;
+        assert_eq!(drain_res.drained_amounts.capi, capi_state.received);
 
         Ok(())
     }
@@ -125,7 +117,10 @@ mod tests {
         // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
         let creator = creator();
         let drainer = investor1();
-        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let specs = project_specs();
@@ -141,7 +136,7 @@ mod tests {
 
         // flow
 
-        let drain_res = drain_flow(&algod, &drainer, &project.project).await;
+        let drain_res = drain_flow(&algod, &drainer, &project.project, &capi_deps).await;
 
         // test
 

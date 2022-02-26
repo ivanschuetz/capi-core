@@ -1,4 +1,9 @@
 #[cfg(test)]
+use crate::capi_asset::{
+    capi_asset_dao_specs::CapiAssetDaoDeps, capi_asset_id::CapiAssetAmount,
+    create::test_flow::test_flow::setup_capi_asset_flow,
+};
+#[cfg(test)]
 use crate::dependencies::algod_for_tests;
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
@@ -6,16 +11,26 @@ use crate::network_util::wait_for_pending_transaction;
 use algonaut::{
     algod::v2::Algod,
     core::SuggestedTransactionParams,
-    transaction::{account::Account, CreateAsset, TransferAsset, TxnBuilder},
+    transaction::{
+        account::Account, tx_group::TxGroup, AcceptAsset, CreateAsset, TransferAsset, TxnBuilder,
+    },
 };
+
+#[cfg(test)]
+use rust_decimal::Decimal;
+#[cfg(test)]
+use std::convert::TryInto;
+#[cfg(test)]
+use std::str::FromStr;
 #[cfg(test)]
 use tokio::test;
 #[cfg(test)]
 use {
     crate::dependencies::{network, Network},
+    crate::flows::create_project::shares_percentage::SharesPercentage,
     crate::funds::{FundsAmount, FundsAssetId},
     crate::logger::init_logger,
-    crate::testing::test_data::{creator, customer, investor1, investor2},
+    crate::testing::test_data::{capi_owner, creator, customer, investor1, investor2},
     anyhow::{anyhow, Result},
     dotenv::dotenv,
     std::env,
@@ -45,9 +60,11 @@ pub fn test_init() -> Result<()> {
 #[cfg(test)]
 pub async fn create_and_distribute_funds_asset(algod: &Algod) -> Result<FundsAssetId> {
     let params = algod.suggested_transaction_params().await?;
+
     // address: DNQPINWK4K5QZYLCK7DVJFEWRUXPXGW36TEUIHNSNOFYI2RMPG2BZPQ7DE
     let asset_creator = Account::from_mnemonic("champion slab oyster plug add neutral gap burger civil gossip hybrid return truth mad light edit invest hybrid mistake allow flip quarter guess abstract ginger")?;
     let asset_id = create_funds_asset(algod, &params, &asset_creator).await?;
+
     fund_accounts_with_local_funds_asset(
         algod,
         &params,
@@ -57,6 +74,25 @@ pub async fn create_and_distribute_funds_asset(algod: &Algod) -> Result<FundsAss
     )
     .await?;
     Ok(asset_id)
+}
+
+/// Creates the funds asset and capi-token related dependencies
+#[cfg(test)]
+pub async fn setup_on_chain_deps(algod: &Algod) -> Result<OnChainDeps> {
+    let funds_asset_id = create_and_distribute_funds_asset(algod).await?;
+    let capi_deps = create_capi_asset_and_deps(algod, funds_asset_id).await?;
+
+    Ok(OnChainDeps {
+        funds_asset_id,
+        capi_deps,
+    })
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OnChainDeps {
+    pub funds_asset_id: FundsAssetId,
+    pub capi_deps: CapiAssetDaoDeps,
 }
 
 #[cfg(test)]
@@ -117,6 +153,29 @@ async fn fund_accounts_with_local_funds_asset(
 }
 
 #[cfg(test)]
+async fn create_capi_asset_and_deps(
+    algod: &Algod,
+    funds_asset_id: FundsAssetId,
+) -> Result<CapiAssetDaoDeps> {
+    let capi_owner = capi_owner();
+    let capi_supply = CapiAssetAmount(1_000_000_000);
+
+    let flow_res = setup_capi_asset_flow(&algod, &capi_owner, capi_supply, funds_asset_id).await?;
+
+    Ok(CapiAssetDaoDeps {
+        escrow: *flow_res.escrow.address(),
+        escrow_percentage: capi_escrow_percentage(),
+        app_id: flow_res.app_id,
+    })
+}
+
+#[cfg(test)]
+fn capi_escrow_percentage() -> SharesPercentage {
+    // unwraps: hardcoded value, which we knows works + this is used only in tests
+    Decimal::from_str("0.1").unwrap().try_into().unwrap()
+}
+
+#[cfg(test)]
 async fn fund_account_with_local_funds_asset(
     algod: &Algod,
     params: &SuggestedTransactionParams,
@@ -125,8 +184,6 @@ async fn fund_account_with_local_funds_asset(
     sender: &Account,
     receiver: &Account,
 ) -> Result<()> {
-    use algonaut::transaction::{tx_group::TxGroup, AcceptAsset};
-
     // optin the receiver to the asset
     let optin_tx = &mut TxnBuilder::with(
         params,
@@ -203,7 +260,7 @@ fn reset_network(net: &Network) -> Result<()> {
 async fn reset_and_fund_network() -> Result<()> {
     test_init()?;
     let algod = algod_for_tests();
-    create_and_distribute_funds_asset(&algod).await?;
+    setup_on_chain_deps(&algod).await?;
 
     Ok(())
 }
