@@ -108,14 +108,12 @@ pub async fn harvest_flow(
     // UI
 
     let app_call_tx_signed = harvester.sign_transaction(&to_sign.app_call_tx)?;
-    let pay_fee_tx_signed = harvester.sign_transaction(&to_sign.pay_fee_tx)?;
 
     let harvest_tx_id = submit_harvest(
         &algod,
         &HarvestSigned {
             app_call_tx_signed,
             harvest_tx: to_sign.harvest_tx,
-            pay_fee_tx: pay_fee_tx_signed,
         },
     )
     .await?;

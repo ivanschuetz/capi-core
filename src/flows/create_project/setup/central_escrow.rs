@@ -1,6 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
 use crate::{
+    algo_helpers::calculate_total_fee,
     funds::FundsAssetId,
     teal::{render_template, TealSource, TealSourceTemplate},
 };
@@ -8,8 +9,8 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        contract_account::ContractAccount, AcceptAsset, Pay, SignedTransaction, Transaction,
-        TxnBuilder,
+        builder::TxnFee, contract_account::ContractAccount, AcceptAsset, Pay, SignedTransaction,
+        Transaction, TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -29,23 +30,22 @@ pub async fn setup_central_escrow(
     let escrow =
         render_and_compile_central_escrow(algod, project_creator, source, funds_asset_id).await?;
 
-    let optin_to_funds_asset_tx = TxnBuilder::with(
+    let optin_to_funds_asset_tx = &mut TxnBuilder::with_fee(
         params,
+        TxnFee::zero(),
         AcceptAsset::new(*escrow.address(), funds_asset_id.0).build(),
     )
     .build()?;
 
-    let fund_min_balance_tx = create_payment_tx(
-        project_creator,
-        escrow.address(),
-        MIN_BALANCE + params.fee.max(params.min_fee),
-        params,
-    )
-    .await?;
+    let fund_min_balance_tx =
+        &mut create_payment_tx(project_creator, escrow.address(), MIN_BALANCE, params).await?;
+
+    fund_min_balance_tx.fee =
+        calculate_total_fee(&params, &[fund_min_balance_tx, optin_to_funds_asset_tx])?;
 
     Ok(SetupCentralEscrowToSign {
-        optin_to_funds_asset_tx,
-        fund_min_balance_tx,
+        optin_to_funds_asset_tx: optin_to_funds_asset_tx.clone(),
+        fund_min_balance_tx: fund_min_balance_tx.clone(),
         escrow,
     })
 }

@@ -7,7 +7,6 @@ pub struct InvestToSign {
     pub central_app_setup_tx: Transaction,
     pub payment_tx: Transaction,
     pub shares_asset_optin_tx: Transaction,
-    pub pay_escrow_fee_tx: Transaction,
     pub shares_xfer_tx: SignedTransaction, // contract account logic sig
 }
 
@@ -17,7 +16,6 @@ pub struct InvestSigned {
     pub central_app_setup_tx: SignedTransaction,
     pub shares_asset_optin_tx: SignedTransaction,
     pub payment_tx: SignedTransaction,
-    pub pay_escrow_fee_tx: SignedTransaction,
     pub shares_xfer_tx: SignedTransaction, // contract account logic sig
 }
 
@@ -30,6 +28,5 @@ pub struct InvestResult {
     pub central_app_investor_setup_tx: SignedTransaction,
     pub payment_tx: SignedTransaction,
     pub shares_asset_optin_tx: SignedTransaction,
-    pub pay_escrow_fee_tx: SignedTransaction,
     pub shares_xfer_tx: SignedTransaction, // contract account logic sig
 }

@@ -34,13 +34,11 @@ mod test {
         )
         .await?;
         let signed_app_opt_out = investor.sign_transaction(&to_sign.capi_app_optout_tx)?;
-        let signed_pay_shares_xfer = investor.sign_transaction(&to_sign.pay_shares_xfer_fee_tx)?;
 
         let submit_lock_tx_id = submit_capi_assets_unlock(
             &algod,
             UnlockSigned {
                 capi_app_optout_tx: signed_app_opt_out,
-                pay_shares_xfer_fee_tx: signed_pay_shares_xfer,
                 shares_xfer_tx_signed: to_sign.shares_xfer_tx,
             },
         )

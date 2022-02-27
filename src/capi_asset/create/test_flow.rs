@@ -27,6 +27,7 @@ pub mod test_flow {
 
         let to_sign = create_capi_asset(capi_supply, &creator.address(), &params).await?;
         let signed = creator.sign_transaction(&to_sign.create_capi_asset_tx)?;
+        log::debug!("Will submit crate capi asset..");
         let res = algod.broadcast_signed_transaction(&signed).await?;
         let p_tx = wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
         assert!(p_tx.is_some());
@@ -48,6 +49,7 @@ pub mod test_flow {
         )
         .await?;
         let signed = creator.sign_transaction(&to_sign_app)?;
+        log::debug!("Will submit crate capi app..");
         let res = algod.broadcast_signed_transaction(&signed).await?;
         let p_tx = wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
         assert!(p_tx.is_some());

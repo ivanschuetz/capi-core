@@ -28,18 +28,6 @@ pub async fn withdraw(
 
     let params = algod.suggested_transaction_params().await?;
 
-    // The creator pays the fee of the withdraw tx (signed by central escrow)
-    let mut pay_withdraw_fee_tx = TxnBuilder::with(
-        &params,
-        Pay::new(
-            creator,
-            *central_escrow.address(),
-            params.fee.max(params.min_fee),
-        )
-        .build(),
-    )
-    .build()?;
-
     // Funds transfer from escrow to creator
     let mut withdraw_tx = TxnBuilder::with(
         &params,
@@ -52,6 +40,19 @@ pub async fn withdraw(
         .build(),
     )
     .note(withdrawal_to_note(inputs)?)
+    .build()?;
+
+    // The creator pays the fee of the withdraw tx (signed by central escrow).
+    // here we need a dedicated tx, because there's no other txs signed by the creator which could be used to pay the fee.
+    let mut pay_withdraw_fee_tx = TxnBuilder::with(
+        &params,
+        Pay::new(
+            creator,
+            *central_escrow.address(),
+            withdraw_tx.estimate_fee_with_params(&params)?,
+        )
+        .build(),
+    )
     .build()?;
 
     TxGroup::assign_group_id(vec![&mut pay_withdraw_fee_tx, &mut withdraw_tx])?;

@@ -3,13 +3,50 @@
 global GroupSize
 int 3
 ==
+bnz branch_setup
 
+global GroupSize
+int 2 // central optout + unlock shares
+==
+bz after_tx_group_access
+gtxn 0 TypeEnum 
+int appl
+==
+gtxn 0 NumAppArgs
+int 1
+==
+&&
+bz after_tx_group_access
+gtxn 0 ApplicationArgs 0
+byte b64 dW5sb2Nr // unlock
+==
+int CloseOut 
+gtxn 0 OnCompletion // central opt out (TODO app ids?)
+==
+&&
+gtxn 1 TypeEnum // unlock shares
+int axfer
+==
+&&
+bnz branch_opt_out
+after_tx_group_access:
+
+global GroupSize
+int 2
+==
 bnz branch_harvest
 
 int 0
 return
 
-branch_harvest:
+branch_setup:
+int 1
+return
 
+branch_harvest:
+int 1
+return
+
+branch_opt_out:
 int 1
 return

@@ -17,7 +17,7 @@ bnz branch_shares_opt_in
 after_tx_group_access:
 
 global GroupSize
-int 5
+int 4
 ==
 bnz branch_invest
 

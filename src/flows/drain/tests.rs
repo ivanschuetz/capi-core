@@ -16,11 +16,7 @@ mod tests {
             TESTS_DEFAULT_PRECISION,
         },
     };
-    use algonaut::{
-        core::MicroAlgos,
-        transaction::{Transaction, TransactionType},
-    };
-    use anyhow::{anyhow, Result};
+    use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
 
@@ -83,13 +79,11 @@ mod tests {
         assert_eq!(customer_escrow::MIN_BALANCE, customer_escrow_balance);
         // dao central escrow has now the funds from customer escrow
         assert_eq!(drain_res.drained_amounts.dao, central_escrow_amount);
-        // the drainer lost the payment for the draining tx fee, the fee for this payment tx and the app call fee
+        // the drainer lost the fees for the app calls and escrows lsig
         assert_eq!(
             drain_res.initial_drainer_balance
-                - retrieve_payment_amount_from_tx(&drain_res.pay_fee_tx)?
-                - drain_res.pay_fee_tx.fee
-                - drain_res.capi_app_call_tx.fee
-                - drain_res.app_call_tx.fee,
+                - drain_res.app_call_tx.fee // the app call pays its own fee and the escrow fees
+                - drain_res.capi_app_call_tx.fee,
             drainer_balance
         );
         // capi escrow received its part
@@ -143,18 +137,5 @@ mod tests {
         assert!(drain_res.is_ok());
 
         Ok(())
-    }
-
-    // TODO (low prio) is there a way to model this in Algonaut so we know what tx type we're dealing with at compile time
-    // generics: Transaction<T: TransactionType>? something else?
-    // TODO refactor with identical fn in invest test
-    fn retrieve_payment_amount_from_tx(tx: &Transaction) -> Result<MicroAlgos> {
-        match &tx.txn_type {
-            TransactionType::Payment(p) => Ok(p.amount),
-            _ => Err(anyhow!(
-                "Invalid state: tx is expected to be a payment tx: {:?}",
-                tx
-            )),
-        }
     }
 }

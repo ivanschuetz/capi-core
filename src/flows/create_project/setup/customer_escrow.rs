@@ -2,8 +2,8 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        contract_account::ContractAccount, AcceptAsset, Pay, SignedTransaction, Transaction,
-        TxnBuilder,
+        builder::TxnFee, contract_account::ContractAccount, AcceptAsset, Pay, SignedTransaction,
+        Transaction, TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -12,6 +12,7 @@ use serde::Serialize;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
 use crate::{
+    algo_helpers::calculate_total_fee,
     funds::FundsAssetId,
     teal::{render_template, TealSource, TealSourceTemplate},
 };
@@ -30,19 +31,20 @@ pub async fn setup_customer_escrow(
 ) -> Result<SetupCustomerEscrowToSign> {
     let escrow = render_and_compile_customer_escrow(algod, central_address, source).await?;
 
-    let optin_to_funds_asset_tx = TxnBuilder::with(
+    let mut optin_to_funds_asset_tx = TxnBuilder::with_fee(
         &params,
+        TxnFee::zero(),
         AcceptAsset::new(*escrow.address(), funds_asset_id.0).build(),
     )
     .build()?;
 
-    let fund_min_balance_tx = create_payment_tx(
-        project_creator,
-        escrow.address(),
-        MIN_BALANCE + params.fee.max(params.min_fee),
-        params,
-    )
-    .await?;
+    let mut fund_min_balance_tx =
+        create_payment_tx(project_creator, escrow.address(), MIN_BALANCE, params).await?;
+
+    fund_min_balance_tx.fee = calculate_total_fee(
+        &params,
+        &[&mut optin_to_funds_asset_tx, &mut fund_min_balance_tx],
+    )?;
 
     Ok(SetupCustomerEscrowToSign {
         optin_to_funds_asset_tx,

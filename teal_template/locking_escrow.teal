@@ -14,9 +14,22 @@ bnz branch_shares_opt_in
 branch_after_group_access:
 
 global GroupSize
-int 3
+int 2
+==
+bz after_tx_group_access
+gtxn 0 TypeEnum // unlock shares
+int appl
+==
+int CloseOut 
+gtxn 0 OnCompletion // central opt out (TODO app ids?)
+==
+&&
+bz after_tx_group_access
+gtxn 1 TypeEnum // unlock shares
+int axfer
 ==
 bnz branch_unlock
+after_tx_group_access:
 
 int 0
 return
@@ -55,9 +68,5 @@ int appl
 ==
 gtxn 1 TypeEnum
 int axfer
-==
-&&
-gtxn 2 TypeEnum
-int pay
 ==
 &&

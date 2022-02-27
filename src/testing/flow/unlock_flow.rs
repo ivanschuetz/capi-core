@@ -31,14 +31,12 @@ pub async fn unlock_flow(
     // UI
 
     let signed_central_app_optout = investor.sign_transaction(&to_sign.central_app_optout_tx)?;
-    let signed_pay_xfer_fees = investor.sign_transaction(&to_sign.pay_shares_xfer_fee_tx)?;
 
     let tx_id = submit_unlock(
         algod,
         UnlockSigned {
             central_app_optout_tx: signed_central_app_optout,
             shares_xfer_tx_signed: to_sign.shares_xfer_tx,
-            pay_shares_xfer_fee_tx: signed_pay_xfer_fees,
         },
     )
     .await?;

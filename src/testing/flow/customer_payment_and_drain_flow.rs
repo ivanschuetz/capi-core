@@ -84,7 +84,6 @@ pub async fn drain_flow(
     )
     .await?;
 
-    let pay_fee_tx_signed = drainer.sign_transaction(&drain_to_sign.pay_fee_tx)?;
     let app_call_tx_signed = drainer.sign_transaction(&drain_to_sign.app_call_tx)?;
     let capi_app_call_tx_signed = drainer.sign_transaction(&drain_to_sign.capi_app_call_tx)?;
 
@@ -93,7 +92,6 @@ pub async fn drain_flow(
         &DrainCustomerEscrowSigned {
             drain_tx: drain_to_sign.drain_tx,
             capi_share_tx: drain_to_sign.capi_share_tx,
-            pay_fee_tx: pay_fee_tx_signed,
             app_call_tx_signed,
             capi_app_call_tx_signed,
         },
@@ -105,7 +103,6 @@ pub async fn drain_flow(
     Ok(CustomerPaymentAndDrainFlowRes {
         project: project.to_owned(),
         initial_drainer_balance,
-        pay_fee_tx: drain_to_sign.pay_fee_tx,
         app_call_tx: drain_to_sign.app_call_tx,
         capi_app_call_tx: drain_to_sign.capi_app_call_tx,
         drained_amounts: drain_amounts,
@@ -118,7 +115,6 @@ pub async fn drain_flow(
 pub struct CustomerPaymentAndDrainFlowRes {
     pub project: Project,
     pub initial_drainer_balance: MicroAlgos,
-    pub pay_fee_tx: Transaction,
     pub app_call_tx: Transaction,
     pub capi_app_call_tx: Transaction,
     pub drained_amounts: DaoAndCapiDrainAmounts,

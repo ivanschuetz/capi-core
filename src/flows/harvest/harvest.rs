@@ -1,4 +1,5 @@
 use crate::{
+    algo_helpers::calculate_total_fee,
     decimal_util::AsDecimal,
     flows::create_project::{share_amount::ShareAmount, storage::load_project::TxId},
     funds::{FundsAmount, FundsAssetId},
@@ -7,7 +8,9 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup, Pay,
+        builder::{CallApplication, TxnFee},
+        contract_account::ContractAccount,
+        tx_group::TxGroup,
         SignedTransaction, Transaction, TransferAsset, TxnBuilder,
     },
 };
@@ -32,21 +35,10 @@ pub async fn harvest(
     // App call to update user's local state with harvested amount
     let app_call_tx = &mut harvest_app_call_tx(central_app_id, &params, harvester)?;
 
-    // The harvester pays the fee of the harvest tx (signed by central escrow)
-    let pay_fee_tx = &mut TxnBuilder::with(
-        &params,
-        Pay::new(
-            *harvester,
-            *central_escrow.address(),
-            params.fee.max(params.min_fee),
-        )
-        .build(),
-    )
-    .build()?;
-
     // Funds transfer from escrow to creator
-    let harvest_tx = &mut TxnBuilder::with(
+    let harvest_tx = &mut TxnBuilder::with_fee(
         &params,
+        TxnFee::zero(),
         TransferAsset::new(
             *central_escrow.address(),
             funds_asset_id.0,
@@ -57,14 +49,14 @@ pub async fn harvest(
     )
     .build()?;
 
-    TxGroup::assign_group_id(vec![app_call_tx, pay_fee_tx, harvest_tx])?;
+    app_call_tx.fee = calculate_total_fee(&params, &[app_call_tx, harvest_tx])?;
+    TxGroup::assign_group_id(vec![app_call_tx, harvest_tx])?;
 
     let signed_harvest_tx = central_escrow.sign(harvest_tx, vec![])?;
 
     Ok(HarvestToSign {
         app_call_tx: app_call_tx.clone(),
         harvest_tx: signed_harvest_tx,
-        pay_fee_tx: pay_fee_tx.clone(),
     })
 }
 
@@ -81,11 +73,7 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxI
     log::debug!("Submit harvest..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
-    let txs = vec![
-        signed.app_call_tx_signed.clone(),
-        signed.pay_fee_tx.clone(),
-        signed.harvest_tx.clone(),
-    ];
+    let txs = vec![signed.app_call_tx_signed.clone(), signed.harvest_tx.clone()];
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
@@ -147,12 +135,10 @@ pub fn investor_can_harvest_amount_calc(
 pub struct HarvestToSign {
     pub app_call_tx: Transaction,
     pub harvest_tx: SignedTransaction,
-    pub pay_fee_tx: Transaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HarvestSigned {
     pub app_call_tx_signed: SignedTransaction,
     pub harvest_tx: SignedTransaction,
-    pub pay_fee_tx: SignedTransaction,
 }

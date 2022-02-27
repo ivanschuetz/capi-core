@@ -12,12 +12,7 @@ int 1 // opt in
 bnz branch_opt_in
 
 global GroupSize
-int 2
-==
-bnz branch_lock
-
-global GroupSize
-int 3 
+int 2 
 ==
 gtxn 0 NumAppArgs
 int 1
@@ -31,36 +26,44 @@ byte b64 aGFydmVzdA==
 bnz branch_harvest
 after_args:
 
-// opt out tx group
 global GroupSize
-int 3 // central optout + unlock shares  + pay fee for unlock shares
+int 2 // central optout + unlock shares
 ==
 bz after_tx_group_access
 gtxn 0 TypeEnum 
 int appl
 ==
+gtxn 0 NumAppArgs
+int 1
+==
+&&
+bz after_tx_group_access
+gtxn 0 ApplicationArgs 0
+byte b64 dW5sb2Nr // unlock
+==
 int CloseOut 
 gtxn 0 OnCompletion // central opt out (TODO app ids?)
 ==
 &&
-gtxn 1 TypeEnum // pay fee
-int pay
-==
-&&
-gtxn 2 TypeEnum // unlock shares
+gtxn 1 TypeEnum // unlock shares
 int axfer
 ==
 &&
 bnz branch_opt_out
-
 after_tx_group_access:
+
+global GroupSize
+int 2
+==
+bnz branch_lock
+
 
 // global GroupSize
 // int 3
 // ==
 // bnz branch_drain
 global GroupSize
-int 5
+int 4
 ==
 bnz branch_drain
 
@@ -122,12 +125,7 @@ gtxn 0 TypeEnum // app call
 int appl
 ==
 
-gtxn 1 TypeEnum // pay fee
-int pay
-==
-&&
-
-gtxn 2 TypeEnum // harvest
+gtxn 1 TypeEnum // harvest
 int axfer
 ==
 &&
@@ -146,7 +144,7 @@ app_local_get // if local state doesn't exist yet, this puts a 0 on the stack
 // how much user is entitled to harvest now
 -
 
-gtxn 2 AssetAmount
+gtxn 1 AssetAmount
 >=
 
 &&
@@ -161,7 +159,7 @@ byte "HarvestedTotal"
 int 0
 byte "HarvestedTotal"
 app_local_get
-gtxn 2 AssetAmount // harvest tx amount
+gtxn 1 AssetAmount // harvest tx amount
 +
 app_local_put
 
@@ -171,19 +169,19 @@ return
 branch_opt_out:
 
 // check there's shares xfer
-gtxn 2 TypeEnum // unlock
+gtxn 1 TypeEnum // unlock
 int axfer
 ==
 
 // check shares xfer goes to the investor (app call tx sender) - review whether this check is really needed
 // we can also check e.g. that all the app calls have the same sender
-gtxn 2 AssetReceiver
+gtxn 1 AssetReceiver
 gtxn 0 Sender
 ==
 &&
 
 // check shares xfer == owned shares count
-gtxn 2 AssetAmount
+gtxn 1 AssetAmount
 int 0
 byte "Shares"
 app_local_get
@@ -202,17 +200,12 @@ int appl
 ==
 &&
 
-gtxn 2 TypeEnum // pay fee
-int pay
-==
-&&
-
-gtxn 3 TypeEnum // drain
+gtxn 2 TypeEnum // drain
 int axfer
 ==
 &&
 
-gtxn 4 TypeEnum // capi share
+gtxn 3 TypeEnum // capi share
 int axfer
 ==
 &&
@@ -221,7 +214,7 @@ int axfer
 byte "ReceivedTotal"
 byte "ReceivedTotal"
 app_global_get
-gtxn 4 AssetAmount // capi share tx amount
+gtxn 3 AssetAmount // capi share tx amount
 +
 app_global_put
 

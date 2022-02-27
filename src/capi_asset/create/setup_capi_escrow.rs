@@ -1,6 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
 use crate::{
+    algo_helpers::calculate_total_fee,
     capi_asset::capi_asset_id::CapiAssetId,
     flows::create_project::storage::load_project::TxId,
     funds::FundsAssetId,
@@ -10,8 +11,8 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        contract_account::ContractAccount, tx_group::TxGroup, AcceptAsset, Pay, SignedTransaction,
-        Transaction, TxnBuilder,
+        builder::TxnFee, contract_account::ContractAccount, tx_group::TxGroup, AcceptAsset, Pay,
+        SignedTransaction, Transaction, TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -31,27 +32,31 @@ pub async fn setup_capi_escrow(
 ) -> Result<SetupCentralEscrowToSign> {
     let escrow = render_and_compile_capi_escrow(algod, source).await?;
 
-    let fund_min_balance_tx = &mut create_payment_tx(
-        min_balance_sender,
-        escrow.address(),
-        // TODO use SDK calculated fee (* 2)
-        MIN_BALANCE + params.fee.max(params.min_fee) * 2, // 2 txs signed by the escrow
-        params,
-    )
-    .await?;
+    let fund_min_balance_tx =
+        &mut create_payment_tx(min_balance_sender, escrow.address(), MIN_BALANCE, params).await?;
 
-    let optin_to_capi_asset_tx = &mut TxnBuilder::with(
+    let optin_to_capi_asset_tx = &mut TxnBuilder::with_fee(
         params,
+        TxnFee::zero(),
         AcceptAsset::new(*escrow.address(), capi_asset_id.0).build(),
     )
     .build()?;
 
-    let optin_to_funds_asset_tx = &mut TxnBuilder::with(
+    let optin_to_funds_asset_tx = &mut TxnBuilder::with_fee(
         params,
+        TxnFee::zero(),
         AcceptAsset::new(*escrow.address(), funds_asset_id.0).build(),
     )
     .build()?;
 
+    fund_min_balance_tx.fee = calculate_total_fee(
+        &params,
+        &[
+            fund_min_balance_tx,
+            optin_to_capi_asset_tx,
+            optin_to_funds_asset_tx,
+        ],
+    )?;
     TxGroup::assign_group_id(vec![
         fund_min_balance_tx,
         optin_to_capi_asset_tx,
@@ -88,13 +93,15 @@ pub async fn submit_setup_capi_escrow(
     algod: &Algod,
     signed: &SetupCentralEscrowSigned,
 ) -> Result<TxId> {
-    let res = algod
-        .broadcast_signed_transactions(&[
-            signed.fund_min_balance_tx.clone(),
-            signed.optin_to_capi_asset_tx.clone(),
-            signed.optin_to_funds_asset_tx.clone(),
-        ])
-        .await?;
+    log::debug!("Will submit setup capi escrow..");
+    let txs = vec![
+        signed.fund_min_balance_tx.clone(),
+        signed.optin_to_capi_asset_tx.clone(),
+        signed.optin_to_funds_asset_tx.clone(),
+    ];
+    // crate::teal::debug_teal_rendered(&txs, "app_capi_approval").unwrap();
+
+    let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Payment tx id: {:?}", res.tx_id);
     Ok(res.tx_id.parse()?)
 }

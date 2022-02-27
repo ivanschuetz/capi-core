@@ -20,6 +20,7 @@ mod test {
     use anyhow::Result;
 
     /// Do an asset transfer and pay the fee for it - usually needed when the asset sender is an escrow
+    /// Note that this is used only in some test txs (where we don't necessarily have a tx that can pay for the fee)
     pub async fn transfer_tokens_and_pay_fee_submit(
         algod: &Algod,
         params: &SuggestedTransactionParams,
@@ -29,19 +30,19 @@ mod test {
         asset_id: u64,
         amount: u64,
     ) -> Result<()> {
+        let mut xfer_tx = TxnBuilder::with(
+            &params,
+            TransferAsset::new(xfer_sender.address(), asset_id, amount, *receiver).build(),
+        )
+        .build()?;
         let mut pay_fee_tx = TxnBuilder::with(
             &params,
             Pay::new(
                 fee_payer.address(),
                 *receiver,
-                params.fee.max(params.min_fee),
+                xfer_tx.estimate_fee_with_params(params)?,
             )
             .build(),
-        )
-        .build()?;
-        let mut xfer_tx = TxnBuilder::with(
-            &params,
-            TransferAsset::new(xfer_sender.address(), asset_id, amount, *receiver).build(),
         )
         .build()?;
         TxGroup::assign_group_id(vec![&mut pay_fee_tx, &mut xfer_tx])?;

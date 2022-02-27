@@ -2,7 +2,7 @@
 // int 1
 
 global GroupSize
-int 5
+int 4
 ==
 bnz branch_drain
 
@@ -23,16 +23,11 @@ int appl
 &&
 
 gtxn 2 TypeEnum
-int pay
-==
-&&
-
-gtxn 3 TypeEnum
 int axfer
 ==
 &&
 
-gtxn 4 TypeEnum
+gtxn 3 TypeEnum
 int axfer
 ==
 &&

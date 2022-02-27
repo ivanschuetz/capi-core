@@ -2,8 +2,8 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
-        contract_account::ContractAccount, AcceptAsset, Pay, SignedTransaction, Transaction,
-        TxnBuilder,
+        builder::TxnFee, contract_account::ContractAccount, AcceptAsset, Pay, SignedTransaction,
+        Transaction, TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -11,7 +11,14 @@ use serde::Serialize;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
-use crate::teal::{render_template, TealSource, TealSourceTemplate};
+use crate::{
+    algo_helpers::calculate_total_fee,
+    teal::{render_template, TealSource, TealSourceTemplate},
+};
+
+// TODO no constant?
+// 1 asset (funds asset)
+const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 
 async fn create_locking_escrow(
     algod: &Algod,
@@ -61,19 +68,18 @@ pub async fn setup_locking_escrow_txs(
     // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
     let fund_algos_tx = &mut TxnBuilder::with(
         params,
-        Pay::new(*creator, *escrow.address(), MicroAlgos(1_000_000)).build(),
+        Pay::new(*creator, *escrow.address(), MIN_BALANCE).build(),
     )
     .build()?;
 
-    let shares_optin_tx = &mut TxnBuilder::with(
+    let shares_optin_tx = &mut TxnBuilder::with_fee(
         params,
+        TxnFee::zero(),
         AcceptAsset::new(*escrow.address(), shares_asset_id).build(),
     )
     .build()?;
 
-    // TODO is it possible and does it make sense to execute these atomically?,
-    // "sc opts in to asset and I send funds to sc"
-    // TxGroup::assign_group_id(vec![optin_tx, fund_tx])?;
+    fund_algos_tx.fee = calculate_total_fee(&params, &[fund_algos_tx, shares_optin_tx])?;
 
     Ok(SetupLockingEscrowToSign {
         escrow,

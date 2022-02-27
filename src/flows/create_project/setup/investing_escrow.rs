@@ -1,12 +1,16 @@
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
-    transaction::{contract_account::ContractAccount, AcceptAsset, Pay, TransferAsset, TxnBuilder},
+    transaction::{
+        builder::TxnFee, contract_account::ContractAccount, AcceptAsset, Pay, TransferAsset,
+        TxnBuilder,
+    },
 };
 use anyhow::Result;
 use serde::Serialize;
 
 use crate::{
+    algo_helpers::calculate_total_fee,
     flows::create_project::{
         model::{SetupInvestEscrowSigned, SetupInvestingEscrowToSign, SubmitSetupEscrowRes},
         share_amount::ShareAmount,
@@ -17,6 +21,10 @@ use crate::{
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
+
+// TODO no constant?
+// 1 asset (funds asset)
+const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 
 /// The investing escrow holds the created project's assets (shares) to be bought by investors
 
@@ -108,18 +116,21 @@ pub async fn setup_investing_escrow_txs(
     .await?;
     log::debug!("Generated investing escrow address: {:?}", escrow.address());
 
-    // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
+    // Send min balance to the escrow
     let fund_algos_tx = &mut TxnBuilder::with(
         params,
-        Pay::new(*creator, *escrow.address(), MicroAlgos(1_000_000)).build(),
+        Pay::new(*creator, *escrow.address(), MIN_BALANCE).build(),
     )
     .build()?;
 
-    let shares_optin_tx = &mut TxnBuilder::with(
+    let shares_optin_tx = &mut TxnBuilder::with_fee(
         params,
+        TxnFee::zero(),
         AcceptAsset::new(*escrow.address(), shares_asset_id).build(),
     )
     .build()?;
+
+    fund_algos_tx.fee = calculate_total_fee(&params, &[fund_algos_tx, shares_optin_tx])?;
 
     let transfer_shares_tx = &mut TxnBuilder::with(
         params,
@@ -132,10 +143,6 @@ pub async fn setup_investing_escrow_txs(
         .build(),
     )
     .build()?;
-
-    // TODO is it possible and does it make sense to execute these atomically?,
-    // "sc opts in to asset and I send funds to sc"
-    // TxGroup::assign_group_id(vec![optin_tx, fund_tx])?;
 
     Ok(SetupInvestingEscrowToSign {
         escrow,

@@ -77,7 +77,6 @@ pub async fn invests_flow(
     let signed_central_app_setup_tx = investor.sign_transaction(&to_sign.central_app_setup_tx)?;
     let signed_shares_optin_tx = investor.sign_transaction(&to_sign.shares_asset_optin_tx)?;
     let signed_payment_tx = investor.sign_transaction(&to_sign.payment_tx)?;
-    let signed_pay_escrow_fee_tx = investor.sign_transaction(&to_sign.pay_escrow_fee_tx)?;
 
     let invest_res = submit_invest(
         &algod,
@@ -86,7 +85,6 @@ pub async fn invests_flow(
             central_app_setup_tx: signed_central_app_setup_tx,
             shares_asset_optin_tx: signed_shares_optin_tx,
             payment_tx: signed_payment_tx,
-            pay_escrow_fee_tx: signed_pay_escrow_fee_tx,
             shares_xfer_tx: to_sign.shares_xfer_tx,
         },
     )

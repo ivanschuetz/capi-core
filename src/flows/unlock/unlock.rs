@@ -1,9 +1,14 @@
-use crate::flows::create_project::{share_amount::ShareAmount, storage::load_project::TxId};
+use crate::{
+    algo_helpers::calculate_total_fee,
+    flows::create_project::{share_amount::ShareAmount, storage::load_project::TxId},
+};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     transaction::{
-        builder::CloseApplication, contract_account::ContractAccount, tx_group::TxGroup, Pay,
+        builder::{CloseApplication, TxnFee},
+        contract_account::ContractAccount,
+        tx_group::TxGroup,
         SignedTransaction, Transaction, TransferAsset, TxnBuilder,
     },
 };
@@ -25,15 +30,16 @@ pub async fn unlock(
     let params = algod.suggested_transaction_params().await?;
 
     // App call to validate the retrieved shares count and clear local state
-    let mut central_app_optout_tx = TxnBuilder::with(
+    let central_app_optout_tx = &mut TxnBuilder::with(
         &params,
         CloseApplication::new(investor, central_app_id).build(),
     )
     .build()?;
 
     // Retrieve investor's assets from locking escrow
-    let mut shares_xfer_tx = TxnBuilder::with(
+    let shares_xfer_tx = &mut TxnBuilder::with_fee(
         &params,
+        TxnFee::zero(),
         TransferAsset::new(
             *locking_escrow.address(),
             shares_asset_id,
@@ -44,42 +50,22 @@ pub async fn unlock(
     )
     .build()?;
 
-    // Pay for the shares transfer tx
-    let mut pay_shares_xfer_fee_tx = TxnBuilder::with(
-        &params,
-        Pay::new(
-            investor,
-            *locking_escrow.address(),
-            params.fee.max(params.min_fee),
-        )
-        .build(),
-    )
-    .build()?;
-
-    let txs_for_group = vec![
-        &mut central_app_optout_tx,
-        &mut shares_xfer_tx,
-        &mut pay_shares_xfer_fee_tx,
-    ];
-    TxGroup::assign_group_id(txs_for_group)?;
+    central_app_optout_tx.fee =
+        calculate_total_fee(&params, &[central_app_optout_tx, shares_xfer_tx])?;
+    TxGroup::assign_group_id(vec![central_app_optout_tx, shares_xfer_tx])?;
 
     let signed_shares_xfer_tx = locking_escrow.sign(&shares_xfer_tx, vec![])?;
 
     Ok(UnlockToSign {
-        central_app_optout_tx,
+        central_app_optout_tx: central_app_optout_tx.clone(),
         shares_xfer_tx: signed_shares_xfer_tx,
-        pay_shares_xfer_fee_tx,
     })
 }
 
 pub async fn submit_unlock(algod: &Algod, signed: UnlockSigned) -> Result<TxId> {
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
-    let txs = vec![
-        signed.central_app_optout_tx,
-        signed.shares_xfer_tx_signed,
-        signed.pay_shares_xfer_fee_tx,
-    ];
+    let txs = vec![signed.central_app_optout_tx, signed.shares_xfer_tx_signed];
 
     // crate::teal::debug_teal_rendered(&txs, "locking_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
@@ -93,12 +79,10 @@ pub async fn submit_unlock(algod: &Algod, signed: UnlockSigned) -> Result<TxId> 
 pub struct UnlockToSign {
     pub central_app_optout_tx: Transaction,
     pub shares_xfer_tx: SignedTransaction,
-    pub pay_shares_xfer_fee_tx: Transaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UnlockSigned {
     pub central_app_optout_tx: SignedTransaction,
     pub shares_xfer_tx_signed: SignedTransaction,
-    pub pay_shares_xfer_fee_tx: SignedTransaction,
 }

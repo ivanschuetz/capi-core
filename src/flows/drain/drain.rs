@@ -1,4 +1,5 @@
 use crate::{
+    algo_helpers::calculate_total_fee,
     capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
     flows::create_project::{shares_percentage::SharesPercentage, storage::load_project::TxId},
     funds::{FundsAmount, FundsAssetId},
@@ -6,18 +7,17 @@ use crate::{
 };
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos, SuggestedTransactionParams},
+    core::{Address, SuggestedTransactionParams},
     transaction::{
-        builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup, Pay,
+        builder::{CallApplication, TxnFee},
+        contract_account::ContractAccount,
+        tx_group::TxGroup,
         SignedTransaction, Transaction, TransferAsset, TxnBuilder,
     },
 };
 use anyhow::{anyhow, Result};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
-
-// TODO no constants
-pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 
 pub async fn drain_customer_escrow(
     algod: &Algod,
@@ -34,19 +34,9 @@ pub async fn drain_customer_escrow(
     let app_call_tx = &mut drain_app_call_tx(central_app_id, &params, drainer)?;
     let capi_app_call_tx = &mut drain_capi_app_call_tx(capi_deps.app_id, &params, drainer)?;
 
-    let pay_fee_tx = &mut TxnBuilder::with(
+    let drain_tx = &mut TxnBuilder::with_fee(
         &params,
-        Pay::new(
-            *drainer,
-            *customer_escrow.address(),
-            params.fee.max(params.min_fee) * 2, // fees for 2 xfers: to the central escrow and to the capi escrow
-        )
-        .build(),
-    )
-    .build()?;
-
-    let drain_tx = &mut TxnBuilder::with(
-        &params,
+        TxnFee::zero(),
         TransferAsset::new(
             *customer_escrow.address(),
             funds_asset_id.0,
@@ -57,8 +47,9 @@ pub async fn drain_customer_escrow(
     )
     .build()?;
 
-    let capi_share_tx = &mut TxnBuilder::with(
+    let capi_share_tx = &mut TxnBuilder::with_fee(
         &params,
+        TxnFee::zero(),
         TransferAsset::new(
             *customer_escrow.address(),
             funds_asset_id.0,
@@ -69,13 +60,8 @@ pub async fn drain_customer_escrow(
     )
     .build()?;
 
-    TxGroup::assign_group_id(vec![
-        app_call_tx,
-        capi_app_call_tx,
-        pay_fee_tx,
-        drain_tx,
-        capi_share_tx,
-    ])?;
+    app_call_tx.fee = calculate_total_fee(&params, &[app_call_tx, drain_tx, capi_share_tx])?;
+    TxGroup::assign_group_id(vec![app_call_tx, capi_app_call_tx, drain_tx, capi_share_tx])?;
 
     let signed_drain_tx = customer_escrow.sign(drain_tx, vec![])?;
     let signed_capi_share_tx = customer_escrow.sign(capi_share_tx, vec![])?;
@@ -83,7 +69,6 @@ pub async fn drain_customer_escrow(
     Ok(DrainCustomerEscrowToSign {
         drain_tx: signed_drain_tx,
         capi_share_tx: signed_capi_share_tx,
-        pay_fee_tx: pay_fee_tx.clone(),
         app_call_tx: app_call_tx.clone(),
         capi_app_call_tx: capi_app_call_tx.clone(),
     })
@@ -149,7 +134,6 @@ pub async fn submit_drain_customer_escrow(
     //     &[
     //         signed.app_call_tx_signed.clone(),
     //         signed.capi_app_call_tx_signed.clone(),
-    //         signed.pay_fee_tx.clone(),
     //         signed.drain_tx.clone(),
     //         signed.capi_share_tx.clone(),
     //     ],
@@ -161,7 +145,6 @@ pub async fn submit_drain_customer_escrow(
     //     &[
     //         signed.app_call_tx_signed.clone(),
     //         signed.capi_app_call_tx_signed.clone(),
-    //         signed.pay_fee_tx.clone(),
     //         signed.drain_tx.clone(),
     //         signed.capi_share_tx.clone(),
     //     ],
@@ -173,7 +156,6 @@ pub async fn submit_drain_customer_escrow(
     //     &[
     //         signed.app_call_tx_signed.clone(),
     //         signed.capi_app_call_tx_signed.clone(),
-    //         signed.pay_fee_tx.clone(),
     //         signed.drain_tx.clone(),
     //         signed.capi_share_tx.clone(),
     //     ],
@@ -185,7 +167,6 @@ pub async fn submit_drain_customer_escrow(
         .broadcast_signed_transactions(&[
             signed.app_call_tx_signed.clone(),
             signed.capi_app_call_tx_signed.clone(),
-            signed.pay_fee_tx.clone(),
             signed.drain_tx.clone(),
             signed.capi_share_tx.clone(),
         ])
@@ -198,7 +179,6 @@ pub async fn submit_drain_customer_escrow(
 pub struct DrainCustomerEscrowToSign {
     pub drain_tx: SignedTransaction,
     pub capi_share_tx: SignedTransaction,
-    pub pay_fee_tx: Transaction,
     pub capi_app_call_tx: Transaction,
     pub app_call_tx: Transaction,
     // pub amount_to_drain: FundsAmount,
@@ -208,7 +188,6 @@ pub struct DrainCustomerEscrowToSign {
 pub struct DrainCustomerEscrowSigned {
     pub drain_tx: SignedTransaction,
     pub capi_share_tx: SignedTransaction,
-    pub pay_fee_tx: SignedTransaction,
     pub capi_app_call_tx_signed: SignedTransaction,
     pub app_call_tx_signed: SignedTransaction,
 }

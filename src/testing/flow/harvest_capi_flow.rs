@@ -52,14 +52,12 @@ mod test {
         )
         .await?;
         let signed_app_call_tx = investor.sign_transaction(&to_sign.app_call_tx)?;
-        let signed_pay_fee_tx = investor.sign_transaction(&to_sign.pay_fee_tx)?;
 
         let submit_lock_tx_id = submit_harvest(
             &algod,
             &HarvestSigned {
                 app_call_tx_signed: signed_app_call_tx,
                 harvest_tx: to_sign.harvest_tx,
-                pay_fee_tx: signed_pay_fee_tx,
             },
         )
         .await?;
