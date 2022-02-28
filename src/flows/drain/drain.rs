@@ -29,6 +29,8 @@ pub async fn drain_customer_escrow(
     central_escrow: &ContractAccount,
     amounts: &DaoAndCapiDrainAmounts,
 ) -> Result<DrainCustomerEscrowToSign> {
+    log::debug!("Will create drain txs, amounts: {amounts:?}");
+
     let params = algod.suggested_transaction_params().await?;
 
     let app_call_tx = &mut drain_app_call_tx(central_app_id, &params, drainer)?;
@@ -88,6 +90,36 @@ pub async fn drain_amounts(
 ) -> Result<DaoAndCapiDrainAmounts> {
     let customer_escrow_holdings = funds_holdings(algod, customer_escrow, funds_asset_id).await?;
     calculate_dao_and_capi_escrow_xfer_amounts(customer_escrow_holdings, capi_percentage.clone())
+}
+
+pub async fn fetch_drain_amount_and_drain(
+    algod: &Algod,
+    drainer: &Address,
+    central_app_id: u64,
+    funds_asset_id: FundsAssetId,
+    capi_deps: &CapiAssetDaoDeps,
+    customer_escrow: &ContractAccount,
+    central_escrow: &ContractAccount,
+) -> Result<DrainCustomerEscrowToSign> {
+    let amounts = drain_amounts(
+        algod,
+        capi_deps.escrow_percentage,
+        funds_asset_id,
+        customer_escrow.address(),
+    )
+    .await?;
+
+    drain_customer_escrow(
+        algod,
+        drainer,
+        central_app_id,
+        funds_asset_id,
+        capi_deps,
+        customer_escrow,
+        central_escrow,
+        &amounts,
+    )
+    .await
 }
 
 fn calculate_dao_and_capi_escrow_xfer_amounts(
@@ -181,7 +213,6 @@ pub struct DrainCustomerEscrowToSign {
     pub capi_share_tx: SignedTransaction,
     pub capi_app_call_tx: Transaction,
     pub app_call_tx: Transaction,
-    // pub amount_to_drain: FundsAmount,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
