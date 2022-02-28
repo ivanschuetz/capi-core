@@ -62,7 +62,7 @@ pub struct RoadmapItemInputs {
 impl RoadmapItemInputs {
     pub fn hash(&self) -> Result<HashDigest> {
         let bytes_to_hash = self.bytes_to_hash()?;
-        let hashed = sha2::Sha512Trunc256::digest(&bytes_to_hash);
+        let hashed = sha2::Sha512_256::digest(&bytes_to_hash);
         Ok(HashDigest(hashed.into()))
     }
 
