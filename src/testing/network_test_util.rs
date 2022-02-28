@@ -260,7 +260,8 @@ fn reset_network(net: &Network) -> Result<()> {
 async fn reset_and_fund_network() -> Result<()> {
     test_init()?;
     let algod = algod_for_tests();
-    setup_on_chain_deps(&algod).await?;
+    let deps = setup_on_chain_deps(&algod).await?;
+    log::info!("Capi deps: {deps:?}");
 
     Ok(())
 }
