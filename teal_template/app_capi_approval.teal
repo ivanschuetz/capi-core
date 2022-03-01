@@ -22,7 +22,6 @@ bz after_args
 gtxn 0 ApplicationArgs 0
 byte b64 aGFydmVzdA==
 ==
-&&
 bnz branch_harvest
 after_args:
 
