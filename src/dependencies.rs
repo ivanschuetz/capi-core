@@ -115,7 +115,7 @@ fn private_network_algod() -> Algod {
 
 #[allow(dead_code)]
 fn testnet_algod() -> Algod {
-    Algod::with_headers("https://testnet.algoexplorerapi.io", vec![])
+    Algod::with_headers("https://node.testnet.algoexplorerapi.io", vec![])
         .expect("Couldn't initialize algod")
 }
 
