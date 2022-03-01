@@ -106,7 +106,7 @@ async fn create_funds_asset(
         // 10 quintillions
         CreateAsset::new(creator.address(), 10_000_000_000_000_000_000, 6, false)
             .unit_name("TEST".to_owned())
-            .asset_name("Local test funds asset".to_owned())
+            .asset_name("Test".to_owned())
             .build(),
     )
     .build()?;
