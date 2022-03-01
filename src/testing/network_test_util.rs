@@ -4,7 +4,7 @@ use crate::capi_asset::{
     create::test_flow::test_flow::setup_capi_asset_flow,
 };
 #[cfg(test)]
-use crate::dependencies::algod_for_tests;
+use crate::dependencies::algod_for_net;
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
 #[cfg(test)]
@@ -257,9 +257,22 @@ fn reset_network(net: &Network) -> Result<()> {
 /// Basically execute the same code we do when starting all the automated tests.
 #[test]
 #[ignore]
-async fn reset_and_fund_network() -> Result<()> {
+async fn reset_and_fund_local_network() -> Result<()> {
     test_init()?;
-    let algod = algod_for_tests();
+    reset_and_fund_network(&Network::SandboxPrivate).await
+}
+
+/// To be executed only once (unless it's required to re-create the dependencies)
+#[test]
+#[ignore]
+async fn reset_and_fund_testnet() -> Result<()> {
+    init_logger()?;
+    reset_and_fund_network(&Network::Test).await
+}
+
+#[cfg(test)]
+async fn reset_and_fund_network(net: &Network) -> Result<()> {
+    let algod = algod_for_net(net);
     let deps = setup_on_chain_deps(&algod).await?;
     log::info!("Capi deps: {deps:?}");
 
