@@ -1,5 +1,5 @@
 #pragma version 4
-int 1
+// int 1
 
 txn ApplicationID
 int 0
