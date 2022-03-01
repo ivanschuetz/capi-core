@@ -61,8 +61,8 @@ pub fn test_init() -> Result<()> {
 pub async fn create_and_distribute_funds_asset(algod: &Algod) -> Result<FundsAssetId> {
     let params = algod.suggested_transaction_params().await?;
 
-    // address: DNQPINWK4K5QZYLCK7DVJFEWRUXPXGW36TEUIHNSNOFYI2RMPG2BZPQ7DE
-    let asset_creator = Account::from_mnemonic("champion slab oyster plug add neutral gap burger civil gossip hybrid return truth mad light edit invest hybrid mistake allow flip quarter guess abstract ginger")?;
+    // address: NIKGABIQLRCPJYCNCFZWR7GUIC3NA66EBVR65JKHKLGLIYQ4KO3YYPV67Q
+    let asset_creator = Account::from_mnemonic("accident inherit artist kid such wheat sure then skirt horse afford penalty grant airport school aim hollow position ask churn extend soft mean absorb achieve")?;
     let asset_id = create_funds_asset(algod, &params, &asset_creator).await?;
 
     fund_accounts_with_local_funds_asset(
