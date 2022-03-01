@@ -1,5 +1,6 @@
 use crate::flows::create_project::{model::Project, storage::load_project::TxId};
 use algonaut::transaction::{SignedTransaction, Transaction};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InvestToSign {
@@ -10,7 +11,7 @@ pub struct InvestToSign {
     pub shares_xfer_tx: SignedTransaction, // contract account logic sig
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvestSigned {
     pub project: Project,
     pub central_app_setup_tx: SignedTransaction,

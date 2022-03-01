@@ -65,7 +65,7 @@ pub async fn render_and_compile_investing_escrow(
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
-fn render_investing_escrow(
+pub fn render_investing_escrow(
     source: &TealSourceTemplate,
     shares_asset_id: u64,
     share_price: &FundsAmount,
@@ -99,10 +99,7 @@ pub async fn setup_investing_escrow_txs(
     params: &SuggestedTransactionParams,
 ) -> Result<SetupInvestingEscrowToSign> {
     log::debug!(
-        "Setting up investing escrow with asset id: {}, transfer_share_amount: {}, creator: {:?}",
-        shares_asset_id,
-        share_supply,
-        creator
+        "Setting up investing escrow with asset id: {shares_asset_id}, transfer_share_amount: {share_supply}, creator: {creator}, locking_escrow_address: {locking_escrow_address}"
     );
 
     let escrow = create_investing_escrow(
