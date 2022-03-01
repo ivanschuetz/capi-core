@@ -115,8 +115,15 @@ fn private_network_algod() -> Algod {
 
 #[allow(dead_code)]
 fn testnet_algod() -> Algod {
-    Algod::with_headers("https://node.testnet.algoexplorerapi.io", vec![])
-        .expect("Couldn't initialize algod")
+    Algod::with_headers(
+        "https://testnet-algorand.api.purestake.io/ps2/",
+        vec![("x-api-key", "QEFRYvRADQ815IV7ThBZY7lr6SZGECN93xOIGWMk")],
+    )
+    .expect("Couldn't initialize algod")
+    // Doesn't work anymore to query accounts / assets / app data - algoexplorer recommends using the indexer instead.
+    // Switching for now to PureStake, which works, to not have to rewrite all the algod queries.
+    // Algod::with_headers("https://node.testnet.algoexplorerapi.io", vec![])
+    //     .expect("Couldn't initialize algod")
 }
 
 #[allow(dead_code)]
