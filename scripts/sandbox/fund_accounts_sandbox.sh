@@ -9,18 +9,19 @@ echo "Funding account:"
 echo $FUNDER
 
 # import additional account
-# MKRBTLNZRS3UZZDS5OWPLP7YPHUDNKXFUFN5PNCJ3P2XRG74HNOGY6XOYQ
-sandbox goal account import -m "clog coral speak since defy siege video lamp polar chronic treat smooth puzzle input payment hobby draft habit race birth ridge correct behave able close"
+# 7ZLNWP5YP5DCCCLHAYYETZQLFH4GTBEKTBFQDHA723I7BBZ2FKCOZCBE4I
+sandbox goal account import -m "group slush snack cram emotion echo cousin viable fan all pupil solar total boss deny under master rely wine help trick mechanic glance abstract clever"
 
 # fund the "funds asset" source - this is an account dedicated solely to mint the funds asset and distribute it to the test accounts
 sandbox goal clerk send -a 10000000000 -f $FUNDER -t DNQPINWK4K5QZYLCK7DVJFEWRUXPXGW36TEUIHNSNOFYI2RMPG2BZPQ7DE
 
 # fund our test accounts
 # 10_000 algos
-sandbox goal clerk send -a 10000000000 -f $FUNDER -t VKCFMGBTVINZ4EN7253QVTALGYQRVMOLVHF6O44O2X7URQP7BAOAXXPFCA
-sandbox goal clerk send -a 10000000000 -f $FUNDER -t WZOKN67NQUMY5ZV7Q2KOBKUY5YP3L5UFFOWBUV6HKXKFMLCUWTNZJRSI4E
-sandbox goal clerk send -a 10000000000 -f $FUNDER -t ZRPA4PEHLXIT4WWEKXFJMWF4FNBCA4P4AYC36H7VGNSINOJXWSQZB2XCP4
-sandbox goal clerk send -a 10000000000 -f $FUNDER -t MKRBTLNZRS3UZZDS5OWPLP7YPHUDNKXFUFN5PNCJ3P2XRG74HNOGY6XOYQ
+sandbox goal clerk send -a 10000000000 -f $FUNDER -t STOUDMINSIPP7JMJMGXVJYVS6HHD3TT5UODCDPYGV6KBGP7UYNTLJVJJME
+sandbox goal clerk send -a 10000000000 -f $FUNDER -t 7XSZQUQ2GJB25W37LVM5R4CMKKVC4VNSMIPCIWJYWM5ORA5VA4JRCNOJ4Y
+sandbox goal clerk send -a 10000000000 -f $FUNDER -t PGCS3D5JL4AIFGTBPDGGMMCT3ODKUUFEFG336MJO25CGBG7ORKVOE3AHSU
+sandbox goal clerk send -a 10000000000 -f $FUNDER -t 7ZLNWP5YP5DCCCLHAYYETZQLFH4GTBEKTBFQDHA723I7BBZ2FKCOZCBE4I
+sandbox goal clerk send -a 10000000000 -f $FUNDER -t NIKGABIQLRCPJYCNCFZWR7GUIC3NA66EBVR65JKHKLGLIYQ4KO3YYPV67Q
 
 # temporary: fund customer payment amount
 # to ease manual testing, to not have to send a customer payment first

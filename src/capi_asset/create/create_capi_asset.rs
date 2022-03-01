@@ -18,8 +18,9 @@ pub async fn create_capi_asset(
     let tx = TxnBuilder::with(
         &params,
         CreateAsset::new(*creator, supply.val(), 0, false)
-            .unit_name("CAPI".to_owned())
-            .asset_name("Capi".to_owned())
+            // Should be called CAPI - for now using a different name to not attract attention on TestNet
+            .unit_name("GLOB".to_owned())
+            .asset_name("glob".to_owned())
             .build(),
     )
     .build()?;

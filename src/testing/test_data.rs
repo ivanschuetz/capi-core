@@ -11,35 +11,46 @@ use algonaut::transaction::account::Account;
 
 #[cfg(test)]
 pub fn creator() -> Account {
-    // VKCFMGBTVINZ4EN7253QVTALGYQRVMOLVHF6O44O2X7URQP7BAOAXXPFCA
-    Account::from_mnemonic("town clutch grain accident sheriff wagon meadow shaft saddle door all town supply indicate deliver about arrange hire kit curve destroy gloom attitude absorb excite").unwrap()
+    // STOUDMINSIPP7JMJMGXVJYVS6HHD3TT5UODCDPYGV6KBGP7UYNTLJVJJME
+    Account::from_mnemonic("frame engage radio switch little scan time column amused spatial dynamic play cruise split coral aisle midnight cave essence midnight mutual dog ostrich absent leopard").unwrap()
 }
 
 #[allow(dead_code)]
 #[cfg(test)]
 pub fn investor1() -> Account {
-    // WZOKN67NQUMY5ZV7Q2KOBKUY5YP3L5UFFOWBUV6HKXKFMLCUWTNZJRSI4E
-    Account::from_mnemonic("phone similar album unusual notable initial evoke party garlic gain west catch bike enforce layer bring suggest shiver script venue couple tooth special abandon ranch").unwrap()
+    // 7XSZQUQ2GJB25W37LVM5R4CMKKVC4VNSMIPCIWJYWM5ORA5VA4JRCNOJ4Y
+    Account::from_mnemonic("wood purse siege pencil silk ladder hedgehog aim bulk enlist crisp abuse patch direct oval cool parent tail debris zoo youth false suit absorb prefer").unwrap()
 }
 
 #[allow(dead_code)]
 #[cfg(test)]
 pub fn investor2() -> Account {
-    // ZRPA4PEHLXIT4WWEKXFJMWF4FNBCA4P4AYC36H7VGNSINOJXWSQZB2XCP4
-    Account::from_mnemonic("abandon include valid approve among begin disorder hint option train palace drink enable enter shallow various bid jacket record left derive memory magnet able phrase").unwrap()
+    // PGCS3D5JL4AIFGTBPDGGMMCT3ODKUUFEFG336MJO25CGBG7ORKVOE3AHSU
+    Account::from_mnemonic("general assist twist drill snake height piano stamp lazy room firm link because link charge flight rail join prosper area oppose license mercy abstract cherry").unwrap()
 }
 
 #[allow(dead_code)]
 #[cfg(test)]
 pub fn customer() -> Account {
+    // 7ZLNWP5YP5DCCCLHAYYETZQLFH4GTBEKTBFQDHA723I7BBZ2FKCOZCBE4I
     // added to sandbox (script)
-    Account::from_mnemonic("clog coral speak since defy siege video lamp polar chronic treat smooth puzzle input payment hobby draft habit race birth ridge correct behave able close").unwrap()
+    Account::from_mnemonic("group slush snack cram emotion echo cousin viable fan all pupil solar total boss deny under master rely wine help trick mechanic glance abstract clever").unwrap()
 }
 
 #[allow(dead_code)]
 #[cfg(test)]
 pub fn capi_owner() -> Account {
-    Account::from_mnemonic("champion slab oyster plug add neutral gap burger civil gossip hybrid return truth mad light edit invest hybrid mistake allow flip quarter guess abstract ginger").unwrap()
+    // NIKGABIQLRCPJYCNCFZWR7GUIC3NA66EBVR65JKHKLGLIYQ4KO3YYPV67Q
+    Account::from_mnemonic("accident inherit artist kid such wheat sure then skirt horse afford penalty grant airport school aim hollow position ask churn extend soft mean absorb achieve").unwrap()
+}
+
+#[test]
+fn print_addresses() {
+    println!("creator: {}", creator().address());
+    println!("investor1: {}", investor1().address());
+    println!("investor2: {}", investor2().address());
+    println!("customer: {}", customer().address());
+    println!("capi_owner: {}", capi_owner().address());
 }
 
 #[cfg(test)]
