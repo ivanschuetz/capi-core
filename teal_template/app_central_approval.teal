@@ -4,13 +4,12 @@
 txn ApplicationID
 int 0
 ==
+bnz success
 
 global GroupSize
 int 10
 ==
-&&
-
-bnz branch_create
+bnz branch_setup
 
 global GroupSize
 int 1 // central opt in - TODO what is this? who's opting in?
@@ -40,7 +39,8 @@ global GroupSize
 int 2 
 ==
 gtxn 1 Sender // harvest tx
-addr {central_escrow_address}
+byte "CentralEscrowAddress"
+app_global_get
 ==
 &&
 bnz branch_harvest
@@ -55,7 +55,8 @@ global GroupSize
 int 4
 ==
 gtxn 2 Sender // drain tx
-addr {customer_escrow_address}
+byte "CustomerEscrowAddress"
+app_global_get
 ==
 &&
 bnz branch_drain
@@ -68,7 +69,20 @@ bnz branch_investor_setup
 int 0
 return
 
-branch_create:
+branch_setup:
+// gtxn 0 ApplicationArgs 0 
+// byte b64 c2V0dXA= // setup
+// ==
+// &&
+// bz after_setup
+byte "CentralEscrowAddress"
+gtxn 0 ApplicationArgs 1 
+app_global_put
+byte "CustomerEscrowAddress"
+gtxn 0 ApplicationArgs 2 
+app_global_put
+// after_setup:
+
 int 1
 return
 
@@ -265,6 +279,10 @@ app_local_get
 ==
 &&
 
+return
+
+success:
+int 1
 return
 
 // local state (owned shares) is cleared automatically by CloseOut

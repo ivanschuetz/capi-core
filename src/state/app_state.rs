@@ -4,9 +4,12 @@ use algonaut::{
     error::AlgonautError,
     model::algod::v2::{Account, ApplicationLocalState, TealKeyValue, TealValue},
 };
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Error, Result};
 use data_encoding::BASE64;
-use std::fmt::{self, Display, Formatter};
+use std::{
+    convert::TryInto,
+    fmt::{self, Display, Formatter},
+};
 
 pub async fn global_state(algod: &Algod, app_id: u64) -> Result<ApplicationGlobalState> {
     let app = algod.application_information(app_id).await?;
@@ -58,6 +61,7 @@ pub trait ApplicationStateExt {
     fn find(&self, key: &AppStateKey) -> Option<TealValue>;
     fn find_uint(&self, key: &AppStateKey) -> Option<u64>;
     fn find_bytes(&self, key: &AppStateKey) -> Option<Vec<u8>>;
+    fn len(&self) -> usize;
 }
 
 impl ApplicationStateExt for ApplicationLocalState {
@@ -72,6 +76,9 @@ impl ApplicationStateExt for ApplicationLocalState {
     fn find_bytes(&self, key: &AppStateKey) -> Option<Vec<u8>> {
         self.find(key).map(|kv| kv.bytes)
     }
+    fn len(&self) -> usize {
+        self.key_value.len()
+    }
 }
 
 impl ApplicationStateExt for ApplicationGlobalState {
@@ -85,6 +92,9 @@ impl ApplicationStateExt for ApplicationGlobalState {
 
     fn find_bytes(&self, key: &AppStateKey) -> Option<Vec<u8>> {
         self.find(key).map(|kv| kv.bytes)
+    }
+    fn len(&self) -> usize {
+        self.0.len()
     }
 }
 
@@ -139,4 +149,20 @@ pub fn get_bytes_value_or_error(
     state
         .find_bytes(key)
         .ok_or_else(|| ApplicationLocalStateError::LocalStateNotFound(key.to_owned()))
+}
+
+pub fn read_address_from_state(
+    state: &dyn ApplicationStateExt,
+    key: AppStateKey,
+    log_identifier: &str,
+) -> Result<Address> {
+    let bytes = state.find_bytes(&key).ok_or(anyhow!(
+        "Unexpected: {log_identifier} address not in global state"
+    ))?;
+
+    Ok(Address(bytes.try_into().map_err(|e| {
+        Error::msg(format!(
+            "Illegal state: couldn't convert {log_identifier} bytes to address: {e:?}"
+        ))
+    })?))
 }

@@ -9,7 +9,7 @@ use crate::flows::create_project::{
     create_project::{create_project_txs, submit_create_project, CapiPrograms},
     create_project_specs::CreateProjectSpecs,
     model::{CreateProjectSigned, Project},
-    setup::create_shares::{create_shares, submit_create_shares},
+    setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
 };
 #[cfg(test)]
 use crate::funds::FundsAssetId;
@@ -39,15 +39,24 @@ pub async fn create_project_flow(
     funds_asset_id: FundsAssetId,
     precision: u64,
 ) -> Result<CreateProjectFlowRes> {
+    let programs = programs()?;
+
     // Create asset first: id needed in app template
-    let create_assets_txs = create_shares(&algod, &creator.address(), &specs.shares).await?;
+    let create_assets_txs =
+        create_assets(&algod, &creator.address(), &specs, &programs, precision).await?;
 
     // UI
     let signed_create_shares_tx = creator.sign_transaction(&create_assets_txs.create_shares_tx)?;
+    let signed_create_app_tx = creator.sign_transaction(&create_assets_txs.create_app_tx)?;
 
-    let create_assets_res = submit_create_shares(algod, &signed_create_shares_tx).await?;
-
-    let programs = programs()?;
+    let create_assets_res = submit_create_assets(
+        algod,
+        &CrateDaoAssetsSigned {
+            create_shares: signed_create_shares_tx,
+            create_app: signed_create_app_tx,
+        },
+    )
+    .await?;
 
     // Rest of create project txs
     let to_sign = create_project_txs(
@@ -58,6 +67,7 @@ pub async fn create_project_flow(
         funds_asset_id,
         programs,
         precision,
+        create_assets_res.app_id,
     )
     .await?;
 
@@ -66,7 +76,7 @@ pub async fn create_project_flow(
     for tx in to_sign.escrow_funding_txs {
         signed_funding_txs.push(creator.sign_transaction(&tx)?);
     }
-    let signed_create_app_tx = creator.sign_transaction(&to_sign.create_app_tx)?;
+    let signed_setup_app_tx = creator.sign_transaction(&to_sign.setup_app_tx)?;
 
     let signed_xfer_shares_to_invest_escrow =
         creator.sign_transaction(&to_sign.xfer_shares_to_invest_escrow)?;
@@ -83,12 +93,13 @@ pub async fn create_project_flow(
             funds_asset_id: funds_asset_id.clone(),
             escrow_funding_txs: signed_funding_txs,
             optin_txs: to_sign.optin_txs,
-            create_app_tx: signed_create_app_tx,
+            setup_app_tx: signed_setup_app_tx,
             xfer_shares_to_invest_escrow: signed_xfer_shares_to_invest_escrow,
             invest_escrow: to_sign.invest_escrow,
             locking_escrow: to_sign.locking_escrow,
             central_escrow: to_sign.central_escrow,
             customer_escrow: to_sign.customer_escrow,
+            central_app_id: create_assets_res.app_id,
         },
     )
     .await?;

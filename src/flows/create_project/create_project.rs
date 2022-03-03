@@ -6,21 +6,16 @@ use crate::{
     flows::create_project::{
         model::Project,
         setup::{
-            central_escrow::setup_central_escrow, create_app::create_app_tx,
-            customer_escrow::setup_customer_escrow, investing_escrow::setup_investing_escrow_txs,
-            locking_escrow::setup_locking_escrow_txs,
+            central_escrow::setup_central_escrow, customer_escrow::setup_customer_escrow,
+            investing_escrow::setup_investing_escrow_txs, locking_escrow::setup_locking_escrow_txs,
+            setup_app::setup_app_tx,
         },
     },
     funds::FundsAssetId,
-    network_util::wait_for_pending_transaction,
     teal::{TealSource, TealSourceTemplate},
 };
-use algonaut::{
-    algod::v2::Algod,
-    core::Address,
-    transaction::{tx_group::TxGroup, SignedTransaction},
-};
-use anyhow::{anyhow, Result};
+use algonaut::{algod::v2::Algod, core::Address, transaction::tx_group::TxGroup};
+use anyhow::Result;
 
 pub async fn create_project_txs(
     algod: &Algod,
@@ -30,6 +25,7 @@ pub async fn create_project_txs(
     funds_asset_id: FundsAssetId,
     programs: Programs,
     precision: u64,
+    central_app_id: u64,
 ) -> Result<CreateProjectToSign> {
     log::debug!(
         "Creating project with specs: {:?}, shares_asset_id: {}, precision: {}",
@@ -46,6 +42,7 @@ pub async fn create_project_txs(
         &programs.escrows.central_escrow,
         &params,
         funds_asset_id,
+        central_app_id,
     )
     .await?;
 
@@ -59,17 +56,12 @@ pub async fn create_project_txs(
     )
     .await?;
 
-    let mut create_app_tx = create_app_tx(
-        algod,
-        &programs.central_app_approval,
-        programs.central_app_clear,
+    let mut setup_app_tx = setup_app_tx(
+        central_app_id,
         &creator,
-        specs.shares.supply,
-        precision,
-        specs.investors_part(),
-        customer_to_sign.escrow.address(),
-        central_to_sign.escrow.address(),
         &params,
+        central_to_sign.escrow.address(),
+        customer_to_sign.escrow.address(),
     )
     .await?;
 
@@ -97,8 +89,8 @@ pub async fn create_project_txs(
 
     // First tx group to submit - everything except the asset (shares) xfer to the escrow (which requires opt-in to be submitted first)
     TxGroup::assign_group_id(vec![
-        // app create (must be first in the group to return the app id, apparently)
-        &mut create_app_tx,
+        // setup app
+        &mut setup_app_tx,
         // funding
         &mut central_to_sign.fund_min_balance_tx,
         &mut customer_to_sign.fund_min_balance_tx,
@@ -138,6 +130,8 @@ pub async fn create_project_txs(
         specs: specs.to_owned(),
         creator,
 
+        setup_app_tx,
+
         locking_escrow: setup_locking_escrow_to_sign.escrow,
         invest_escrow: setup_invest_escrow_to_sign.escrow,
         central_escrow: central_to_sign.escrow,
@@ -151,7 +145,6 @@ pub async fn create_project_txs(
             setup_invest_escrow_to_sign.escrow_funding_algos_tx,
         ],
         optin_txs,
-        create_app_tx,
 
         // xfers to escrows: have to be executed after escrows are opted in
         xfer_shares_to_invest_escrow: setup_invest_escrow_to_sign.escrow_funding_shares_asset_tx,
@@ -169,7 +162,7 @@ pub async fn submit_create_project(
         signed.creator
     );
 
-    let mut signed_txs = vec![signed.create_app_tx];
+    let mut signed_txs = vec![signed.setup_app_tx];
     for tx in signed.escrow_funding_txs {
         signed_txs.push(tx)
     }
@@ -182,14 +175,14 @@ pub async fn submit_create_project(
     // crate::teal::debug_teal_rendered(&signed_txs, "investing_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&signed_txs, "locking_escrow").unwrap();
 
-    let central_app_id = broadcast_txs_and_retrieve_app_id(algod, &signed_txs).await?;
+    algod.broadcast_signed_transactions(&signed_txs).await?;
 
     Ok(SubmitCreateProjectResult {
         project: Project {
             specs: signed.specs,
             shares_asset_id: signed.shares_asset_id,
             funds_asset_id: signed.funds_asset_id,
-            central_app_id,
+            central_app_id: signed.central_app_id,
             invest_escrow: signed.invest_escrow,
             locking_escrow: signed.locking_escrow,
             customer_escrow: signed.customer_escrow,
@@ -197,27 +190,6 @@ pub async fn submit_create_project(
             creator: signed.creator,
         },
     })
-}
-
-async fn broadcast_txs_and_retrieve_app_id(
-    algod: &Algod,
-    txs: &[SignedTransaction],
-) -> Result<u64> {
-    // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
-    // crate::teal::debug_teal_rendered(&txs, "investing_escrow").unwrap();
-    // crate::teal::debug_teal_rendered(&txs, "locking_escrow").unwrap();
-
-    let create_app_res = algod.broadcast_signed_transactions(txs).await?;
-    let p_tx = wait_for_pending_transaction(algod, &create_app_res.tx_id.parse()?)
-        .await?
-        .ok_or_else(|| anyhow!("Couldn't get pending tx"))?;
-    let central_app_id = p_tx
-        .application_index
-        .ok_or_else(|| anyhow!("Pending tx didn't have app id"))?;
-
-    log::debug!("Central app created, id: {}", central_app_id);
-
-    Ok(central_app_id)
 }
 
 pub struct Programs {

@@ -126,6 +126,7 @@ pub fn central_app_investor_setup_tx(
 }
 
 pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<InvestResult> {
+    log::debug!("Submitting investing txs..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
     let txs = vec![

@@ -26,9 +26,16 @@ pub async fn setup_central_escrow(
     source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
     funds_asset_id: FundsAssetId,
+    central_app_id: u64,
 ) -> Result<SetupCentralEscrowToSign> {
-    let escrow =
-        render_and_compile_central_escrow(algod, project_creator, source, funds_asset_id).await?;
+    let escrow = render_and_compile_central_escrow(
+        algod,
+        project_creator,
+        source,
+        funds_asset_id,
+        central_app_id,
+    )
+    .await?;
 
     let optin_to_funds_asset_tx = &mut TxnBuilder::with_fee(
         params,
@@ -55,8 +62,9 @@ pub async fn render_and_compile_central_escrow(
     project_creator: &Address,
     source: &TealSourceTemplate,
     funds_asset_id: FundsAssetId,
+    central_app_id: u64,
 ) -> Result<ContractAccount> {
-    let source = render_central_escrow(source, project_creator, funds_asset_id)?;
+    let source = render_central_escrow(source, project_creator, funds_asset_id, central_app_id)?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
@@ -64,12 +72,14 @@ fn render_central_escrow(
     source: &TealSourceTemplate,
     project_creator: &Address,
     funds_asset_id: FundsAssetId,
+    central_app_id: u64,
 ) -> Result<TealSource> {
     let escrow_source = render_template(
         source,
         CentralEscrowTemplateContext {
             funds_asset_id: funds_asset_id.0.to_string(),
             project_creator_address: project_creator.to_string(),
+            app_id: central_app_id.to_string(),
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -115,6 +125,7 @@ pub struct SetupCentralEscrowSigned {
 struct CentralEscrowTemplateContext {
     funds_asset_id: String,
     project_creator_address: String,
+    app_id: String,
 }
 
 #[derive(Serialize)]

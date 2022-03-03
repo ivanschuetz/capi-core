@@ -34,7 +34,7 @@ pub struct SetupInvestEscrowSigned {
 pub struct CreateProjectToSign {
     // to be signed by creator
     pub escrow_funding_txs: Vec<Transaction>,
-    pub create_app_tx: Transaction,
+    pub setup_app_tx: Transaction,
     pub xfer_shares_to_invest_escrow: Transaction,
 
     // escrow optins (lsig)
@@ -60,9 +60,7 @@ pub struct CreateProjectSigned {
     // fund the investing escrow with assets: dedicated fields, to be executed after the asset opt-in
     pub xfer_shares_to_invest_escrow: SignedTransaction,
 
-    // create the central app: dedicated field to get the app id (when in a group, the pending tx doesn't deliver it - TODO confirm)
-    // see more notes in old repo
-    pub create_app_tx: SignedTransaction,
+    pub setup_app_tx: SignedTransaction,
 
     // escrows opt-in (lsig - signed when created)
     // to be submitted before possible asset transfers
@@ -76,6 +74,7 @@ pub struct CreateProjectSigned {
     pub specs: CreateProjectSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
+    pub central_app_id: u64,
     pub funds_asset_id: FundsAssetId,
     pub invest_escrow: ContractAccount,
     pub locking_escrow: ContractAccount,
@@ -116,6 +115,7 @@ pub struct CreateSharesSpecs {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CreateSharesToSign {
+pub struct CreateAssetsToSign {
     pub create_shares_tx: Transaction,
+    pub create_app_tx: Transaction,
 }

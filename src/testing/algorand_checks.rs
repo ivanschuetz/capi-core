@@ -6,7 +6,9 @@ use super::test_data::{creator, investor1};
 #[cfg(test)]
 use crate::{
     dependencies::algod_for_tests, network_util::wait_for_pending_transaction, teal::load_teal,
+    testing::network_test_util::test_init,
 };
+
 #[cfg(test)]
 use algonaut::{
     algod::v2::Algod,
@@ -162,6 +164,44 @@ async fn create_app_has_to_be_first_in_group_to_retrieve_app_id() -> Result<()> 
 
     let app_id = p_tx.application_index;
     log::debug!("app_id: {:?}", app_id);
+
+    Ok(())
+}
+
+#[cfg(test)]
+#[test]
+#[ignore]
+async fn cannot_create_asset_and_app_in_same_group() -> Result<()> {
+    test_init()?;
+
+    let algod = algod_for_tests();
+    let creator = creator();
+
+    let create_app_tx = &mut create_always_approves_app(&algod, &creator.address()).await?;
+    let create_asset_tx = &mut create_asset_tx(&algod, &creator.address()).await?;
+
+    TxGroup::assign_group_id(vec![create_app_tx, create_asset_tx])?;
+
+    let create_app_signed_tx_signed = creator.sign_transaction(create_app_tx)?;
+    let create_asset_signed_tx_signed = creator.sign_transaction(create_asset_tx)?;
+
+    let res = algod
+        .broadcast_signed_transactions(&[
+            create_app_signed_tx_signed,
+            create_asset_signed_tx_signed,
+        ])
+        .await
+        .unwrap();
+
+    let p_tx = wait_for_pending_transaction(&algod, &res.tx_id.parse()?)
+        .await
+        .unwrap()
+        .unwrap();
+    println!("{p_tx:?}");
+
+    // Only the asset/app id for the first tx in the group is set
+    assert!(p_tx.application_index.is_some());
+    assert!(p_tx.asset_index.is_none());
 
     Ok(())
 }

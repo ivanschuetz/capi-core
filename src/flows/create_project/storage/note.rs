@@ -140,6 +140,7 @@ async fn storable_project_to_project(
         &payload.creator,
         &escrows.central_escrow,
         payload.funds_asset_id,
+        payload.central_app_id,
     );
     let locking_escrow_account_fut =
         render_and_compile_locking_escrow(algod, payload.shares_asset_id, &escrows.locking_escrow);

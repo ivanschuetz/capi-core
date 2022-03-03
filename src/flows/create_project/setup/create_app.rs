@@ -18,24 +18,16 @@ use crate::{
 pub async fn create_app_tx(
     algod: &Algod,
     approval_source: &TealSourceTemplate,
-    clear_source: TealSource,
+    clear_source: &TealSource,
     creator: &Address,
     share_supply: ShareAmount,
     precision: u64,
     investors_share: ShareAmount,
-    customer_escrow: &Address,
-    central_escrow: &Address,
     params: &SuggestedTransactionParams,
 ) -> Result<Transaction> {
     log::debug!("Creating central app with asset supply: {}", share_supply);
-    let approval_source = render_central_app(
-        approval_source,
-        share_supply,
-        precision,
-        investors_share,
-        customer_escrow,
-        central_escrow,
-    )?;
+    let approval_source =
+        render_central_app(approval_source, share_supply, precision, investors_share)?;
 
     let compiled_approval_program = algod.compile_teal(&approval_source.0).await?;
     let compiled_clear_program = algod.compile_teal(&clear_source.0).await?;
@@ -47,8 +39,8 @@ pub async fn create_app_tx(
             compiled_approval_program.clone(),
             compiled_clear_program,
             StateSchema {
-                number_ints: 1, // "total received"
-                number_byteslices: 0,
+                number_ints: 1,       // "total received"
+                number_byteslices: 2, // central escrow address, customer escrow address
             },
             StateSchema {
                 number_ints: 2,       // for investors: "shares", "already retrieved"
@@ -67,8 +59,6 @@ pub fn render_central_app(
     share_supply: ShareAmount,
     precision: u64,
     investors_share: ShareAmount,
-    customer_escrow: &Address,
-    central_escrow: &Address,
 ) -> Result<TealSource> {
     let precision_square = precision
         .checked_pow(2)
@@ -83,8 +73,6 @@ pub fn render_central_app(
             investors_share: investors_share.to_string(),
             precision: precision.to_string(),
             precision_square: precision_square.to_string(),
-            customer_escrow_address: customer_escrow.to_string(),
-            central_escrow_address: central_escrow.to_string(),
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -98,8 +86,6 @@ struct RenderCentralAppContext {
     investors_share: String,
     precision: String,
     precision_square: String,
-    customer_escrow_address: String,
-    central_escrow_address: String,
 }
 
 #[cfg(test)]
@@ -115,7 +101,7 @@ mod tests {
         model::algod::v2::TealKeyValue,
         transaction::{transaction::StateSchema, Transaction, TransactionType},
     };
-    use anyhow::{anyhow, Error, Result};
+    use anyhow::{anyhow, Result};
     use serial_test::serial;
     use tokio::test;
 
@@ -139,19 +125,11 @@ mod tests {
         let tx = create_app_tx(
             &algod,
             &approval_template,
-            clear_source,
+            &clear_source,
             &creator.address(),
             ShareAmount::new(0),
             TESTS_DEFAULT_PRECISION,
             ShareAmount::new(40),
-            // random: this address doesn't affect this test
-            &"3BW2V2NE7AIFGSARHF7ULZFWJPCOYOJTP3NL6ZQ3TWMSK673HTWTPPKEBA"
-                .parse()
-                .map_err(Error::msg)?,
-            // random: this address doesn't affect this test
-            &"P7GEWDXXW5IONRW6XRIRVPJCT2XXEQGOBGG65VJPBUOYZEJCBZWTPHS3VQ"
-                .parse()
-                .map_err(Error::msg)?,
             &params,
         )
         .await?;

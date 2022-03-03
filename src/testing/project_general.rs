@@ -1,6 +1,8 @@
 #[cfg(test)]
 use algonaut::model::algod::v2::Application;
 
+// Leaving this there - might make sense to test this, when testing is more detailed.
+#[allow(dead_code)]
 #[cfg(test)]
 pub fn check_schema(app: &Application) {
     assert!(app.params.global_state_schema.is_some());

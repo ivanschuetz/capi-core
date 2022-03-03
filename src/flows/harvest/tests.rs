@@ -17,14 +17,12 @@ mod tests {
         testing::{
             flow::harvest_flow::{harvest_flow, harvest_precs},
             network_test_util::{setup_on_chain_deps, test_init, OnChainDeps},
-            project_general::check_schema,
             test_data::{creator, customer, investor1, investor2, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
     };
     use algonaut::{algod::v2::Algod, core::Address, transaction::account::Account};
     use anyhow::Result;
-    use data_encoding::BASE64;
     use serial_test::serial;
     use tokio::test;
 
@@ -95,6 +93,7 @@ mod tests {
             res.project.central_app_id,
             funds_asset_id,
             res.project.central_escrow.address(),
+            res.project.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
             // harvester got the amount
             res.harvester_balance_before_harvesting + res.harvest,
@@ -266,6 +265,7 @@ mod tests {
             res.project.central_app_id,
             funds_asset_id,
             res.project.central_escrow.address(),
+            res.project.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
             // harvester got the amount
             res.harvester_balance_before_harvesting + res.harvest,
@@ -346,6 +346,7 @@ mod tests {
             res2.project.central_app_id,
             funds_asset_id,
             res2.project.central_escrow.address(),
+            res2.project.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
             // 2 harvests: local state is the total harvested amount
             res1.harvester_balance_before_harvesting + total_expected_harvested_amount,
@@ -371,6 +372,7 @@ mod tests {
         central_app_id: u64,
         funds_asset_id: FundsAssetId,
         central_escrow_address: &Address,
+        customer_escrow_address: &Address,
         // this parameter isn't ideal: it assumes that we did a (one) drain before harvesting
         // for now letting it there as it's a quick refactoring
         // arguably needed, it tests basically that the total received global state isn't affected by harvests
@@ -389,26 +391,20 @@ mod tests {
         assert_eq!(expected_harvester_balance, harvest_funds_amount);
         assert_eq!(expected_central_balance, central_escrow_funds_amount);
 
-        // TODO use new high level functions to retrieve global / local state
-
-        // Central global state: test that the total received global variable didn't change
+        // the total received didn't change
         // (i.e. same as expected after draining, harvesting doesn't affect it)
-        let app = algod.application_information(central_app_id).await?;
-        assert_eq!(1, app.params.global_state.len());
-        let global_key_value = &app.params.global_state[0];
-        assert_eq!(BASE64.encode(b"CentralReceivedTotal"), global_key_value.key);
-        assert_eq!(Vec::<u8>::new(), global_key_value.value.bytes);
-        // after drain, the central received total gs is the amount that was drained
-        // (note that this is not affected by harvests)
-        assert_eq!(drained_amount.0, global_key_value.value.uint);
-        // values not documented: 1 is byte slice and 2 uint
-        // https://forum.algorand.org/t/interpreting-goal-app-read-response/2711
-        assert_eq!(2, global_key_value.value.value_type);
+        let global_state = central_global_state(algod, central_app_id).await?;
+        assert_eq!(global_state.received, drained_amount);
+
+        // sanity check: global state addresses are set
+        assert_eq!(&global_state.central_escrow, central_escrow_address);
+        assert_eq!(&global_state.customer_escrow, customer_escrow_address);
 
         // harvester local state: test that it was incremented by amount harvested
         // Only one local variable used
         let harvester_account = algod.account_information(&harvester.address()).await?;
         assert_eq!(1, harvester_account.apps_local_state.len());
+
         // check local state
 
         let investor_state = central_investor_state_from_acc(&harvester_account, central_app_id)?;
@@ -417,9 +413,6 @@ mod tests {
         assert_eq!(expected_shares, investor_state.shares);
         // check harvested total local state
         assert_eq!(expected_harvested_total, investor_state.harvested);
-
-        // double check (_very_ unlikely to be needed)
-        check_schema(&app);
 
         Ok(())
     }

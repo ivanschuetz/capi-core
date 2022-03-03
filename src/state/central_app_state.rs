@@ -1,22 +1,23 @@
-use std::convert::TryInto;
-
+use super::app_state::{
+    get_bytes_value_or_error, get_uint_value_or_error, global_state, local_state,
+    local_state_from_account, read_address_from_state, AppStateKey, ApplicationLocalStateError,
+    ApplicationStateExt,
+};
 use crate::{
     flows::create_project::{share_amount::ShareAmount, storage::load_project::ProjectId},
     funds::FundsAmount,
-};
-
-use super::app_state::{
-    get_bytes_value_or_error, get_uint_value_or_error, global_state, local_state,
-    local_state_from_account, AppStateKey, ApplicationLocalStateError, ApplicationStateExt,
 };
 use algonaut::{
     algod::v2::Algod,
     core::Address,
     model::algod::v2::{Account, ApplicationLocalState},
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use std::convert::TryInto;
 
 const GLOBAL_TOTAL_RECEIVED: AppStateKey = AppStateKey("CentralReceivedTotal");
+const GLOBAL_CENTRAL_ESCROW_ADDRESS: AppStateKey = AppStateKey("CentralEscrowAddress");
+const GLOBAL_CUSTOMER_ESCROW_ADDRESS: AppStateKey = AppStateKey("CustomerEscrowAddress");
 
 const LOCAL_HARVESTED_TOTAL: AppStateKey = AppStateKey("HarvestedTotal");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
@@ -25,14 +26,37 @@ const LOCAL_PROJECT: AppStateKey = AppStateKey("Project");
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CentralAppGlobalState {
     pub received: FundsAmount,
+    pub central_escrow: Address,
+    pub customer_escrow: Address,
 }
 
 pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralAppGlobalState> {
     let global_state = global_state(algod, app_id).await?;
+    if global_state.len() != 3 {
+        return Err(anyhow!(
+            "Unexpected global state length: {}",
+            global_state.len()
+        ));
+    }
     let total_received =
         FundsAmount::new(global_state.find_uint(&GLOBAL_TOTAL_RECEIVED).unwrap_or(0));
+
+    let central_escrow = read_address_from_state(
+        &global_state,
+        GLOBAL_CENTRAL_ESCROW_ADDRESS,
+        "central escrow",
+    )?;
+
+    let customer_escrow = read_address_from_state(
+        &global_state,
+        GLOBAL_CUSTOMER_ESCROW_ADDRESS,
+        "customer escrow",
+    )?;
+
     Ok(CentralAppGlobalState {
         received: total_received,
+        central_escrow,
+        customer_escrow,
     })
 }
 
@@ -65,6 +89,13 @@ pub fn central_investor_state_from_acc(
 fn central_investor_state_from_local_state(
     state: &ApplicationLocalState,
 ) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
+    if state.len() != 3 {
+        return Err(ApplicationLocalStateError::Msg(format!(
+            "Unexpected investor local state length: {}",
+            state.len(),
+        )));
+    }
+
     let shares = get_uint_value_or_error(state, &LOCAL_SHARES)?;
     let harvested = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
     let project_id_bytes = get_bytes_value_or_error(state, &LOCAL_PROJECT)?;

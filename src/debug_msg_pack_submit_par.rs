@@ -3,6 +3,7 @@ use serde::Serialize;
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use algonaut::core::Address;
     use anyhow::{Error, Result};
     use tokio::test;
 
@@ -14,6 +15,7 @@ mod tests {
                     create_app::render_central_app,
                     customer_escrow::{render_and_compile_customer_escrow, render_customer_escrow},
                     investing_escrow::render_investing_escrow,
+                    setup_app,
                 },
                 share_amount::ShareAmount,
             },
@@ -46,10 +48,7 @@ mod tests {
         let central_escrow = "J7RHJEAARYDZZ6QUKH4KKICZK64PS4UTJPVLEI3WN5SNU47GHWD4PTOOIQ"
             .parse()
             .map_err(Error::msg)?;
-        let customer_escrow = "MHQSDG3IAGGRQWNNHMXDMAY6K54UAOXGFJUTWNHXK5C4FVC7AGWK66KQPQ"
-            .parse()
-            .map_err(Error::msg)?;
-        let locking_escrow = "XAU2GR4AJTOAESPTO77NIKC72TTIXDNCIP3LI67PFRCWQTN35JD26ENO74"
+        let locking_escrow: Address = "XAU2GR4AJTOAESPTO77NIKC72TTIXDNCIP3LI67PFRCWQTN35JD26ENO74"
             .parse()
             .map_err(Error::msg)?;
 
@@ -62,8 +61,6 @@ mod tests {
             share_supply,
             TESTS_DEFAULT_PRECISION,
             investors_share,
-            &customer_escrow,
-            &central_escrow,
         )?;
 
         let customer_escrow_template = load_teal_template("customer_escrow")?;
