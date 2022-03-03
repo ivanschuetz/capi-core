@@ -10,6 +10,10 @@ gtxn 0 TypeEnum
 int appl
 ==
 &&
+gtxn 0 ApplicationID 
+int {app_id}
+==
+&&
 gtxn 1 TypeEnum
 int axfer
 ==
