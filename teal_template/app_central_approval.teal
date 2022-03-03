@@ -70,18 +70,12 @@ int 0
 return
 
 branch_setup:
-// gtxn 0 ApplicationArgs 0 
-// byte b64 c2V0dXA= // setup
-// ==
-// &&
-// bz after_setup
 byte "CentralEscrowAddress"
-gtxn 0 ApplicationArgs 1 
+gtxn 0 ApplicationArgs 0 
 app_global_put
 byte "CustomerEscrowAddress"
-gtxn 0 ApplicationArgs 2 
+gtxn 0 ApplicationArgs 1 
 app_global_put
-// after_setup:
 
 int 1
 return

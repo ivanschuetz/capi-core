@@ -15,11 +15,7 @@ pub async fn setup_app_tx(
     let tx = TxnBuilder::with(
         params,
         CallApplication::new(*creator, app_id)
-            .app_arguments(vec![
-                "setup".as_bytes().to_vec(),
-                central_escrow.0.to_vec(),
-                customer_escrow.0.to_vec(),
-            ])
+            .app_arguments(vec![central_escrow.0.to_vec(), customer_escrow.0.to_vec()])
             .build(),
     )
     .build()?;
