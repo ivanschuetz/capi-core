@@ -70,6 +70,12 @@ int 0
 return
 
 branch_setup:
+// setup can be done only once
+// if one of the global variables is set already, exit with failure
+byte "CentralEscrowAddress"
+app_global_get
+bnz failure
+
 byte "CentralEscrowAddress"
 gtxn 0 ApplicationArgs 0 
 app_global_put
@@ -277,6 +283,10 @@ return
 
 success:
 int 1
+return
+
+failure:
+int 0
 return
 
 // local state (owned shares) is cleared automatically by CloseOut
