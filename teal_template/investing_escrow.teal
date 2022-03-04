@@ -22,8 +22,7 @@ int 4
 bnz branch_invest
 
 // otherwise exit
-int 0
-return
+b failure
 
 // verifies that it's an opt-in to your asset + few security checks
 // see more notes in old repo
@@ -53,7 +52,7 @@ global ZeroAddress
 ==
 &&
 
-b end_contract
+return
 
 branch_invest:
 gtxn 0 TypeEnum
@@ -97,4 +96,8 @@ int {share_price} // price (in funds asset) per asset
 ==
 &&
 
-end_contract:
+return
+
+failure:
+int 0
+return

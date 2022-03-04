@@ -66,8 +66,7 @@ int 4
 ==
 bnz branch_investor_setup
 
-int 0
-return
+b failure
 
 branch_setup:
 // setup can be done only once
@@ -83,12 +82,10 @@ byte "CustomerEscrowAddress"
 gtxn 0 ApplicationArgs 1 
 app_global_put
 
-int 1
-return
+b success
 
 branch_opt_in:
-int 1 // TODO remove
-return
+b success
 
 branch_locking_setup:
 
@@ -178,8 +175,7 @@ byte "Project"
 gtxn 0 ApplicationArgs 0 // first/only arg of the application call (first in the group)
 app_local_put
 
-int 1
-return
+b success
 
 branch_drain:
 gtxn 0 TypeEnum // app call
@@ -254,8 +250,7 @@ gtxn 1 AssetAmount // harvest tx amount
 +
 app_local_put
 
-int 1
-return
+b success
 
 branch_opt_out:
 
@@ -279,14 +274,6 @@ app_local_get
 ==
 &&
 
-return
-
-success:
-int 1
-return
-
-failure:
-int 0
 return
 
 // local state (owned shares) is cleared automatically by CloseOut
@@ -319,3 +306,11 @@ int {precision_square} // revert mult
 /
 
 retsub
+
+success:
+int 1
+return
+
+failure:
+int 0
+return

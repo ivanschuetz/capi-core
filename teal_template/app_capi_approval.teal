@@ -66,16 +66,13 @@ int 4
 ==
 bnz branch_drain
 
-int 0
-return
+b failure
 
 branch_create:
-int 1
-return
+b success
 
 branch_opt_in:
-int 1 
-return
+b success
 
 branch_lock:
 
@@ -148,8 +145,7 @@ gtxn 1 AssetAmount
 
 &&
 bnz branch_update_local_state
-int 0
-return
+b failure
 
 branch_update_local_state:
 // Increase harvested amount
@@ -162,8 +158,7 @@ gtxn 1 AssetAmount // harvest tx amount
 +
 app_local_put
 
-int 1
-return
+b success
 
 branch_opt_out:
 
@@ -246,3 +241,11 @@ int {precision} // revert mult
 /
 
 retsub
+
+success:
+int 1
+return
+
+failure:
+int 0
+return

@@ -37,17 +37,21 @@ int 2
 ==
 bnz branch_harvest
 
-int 0
-return
+b failure
 
 branch_setup:
-int 1
-return
+b success
 
 branch_harvest:
+b success
+
+branch_opt_out:
+b success
+
+success:
 int 1
 return
 
-branch_opt_out:
-int 1
+failure:
+int 0
 return

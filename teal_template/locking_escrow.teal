@@ -31,8 +31,7 @@ int axfer
 bnz branch_unlock
 after_tx_group_access:
 
-int 0
-return
+b failure
 
 branch_shares_opt_in:
 gtxn 5 XferAsset
@@ -70,3 +69,9 @@ gtxn 1 TypeEnum
 int axfer
 ==
 &&
+
+return
+
+failure:
+int 0
+return
