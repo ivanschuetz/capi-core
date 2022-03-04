@@ -74,6 +74,7 @@ b success
 branch_opt_in:
 b success
 
+// duplicated in: app_central_approval, app_capi_approval
 branch_lock:
 gtxn 0 TypeEnum // app call
 int appl
@@ -82,31 +83,8 @@ gtxn 1 TypeEnum // lock
 int axfer
 ==
 &&
-// don't allow locking 0 assets 
-// no particular reason, just doesn't make sense
-gtxn 1 AssetAmount
-int 0
-!=
-&&
-// initialize / increment shares
-gtxn 0 Sender
-byte "Shares"
-gtxn 0 Sender
-byte "Shares"
-app_local_get
-gtxn 1 AssetAmount // shares bought
-+
-app_local_put
-
-// initialize HarvestedTotal local state to what the shares are entitled to
-// see more notes in old repo
-gtxn 0 Sender // sender of app call (investor)
-byte "HarvestedTotal"
-gtxn 1 AssetAmount // locked xfer (this will become "holdings", if the group passes)
-callsub entitled_harvest_amount_for_shares
-app_local_put
-
-return
+callsub lock_shares
+b success
 
 branch_harvest:
 gtxn 0 TypeEnum // app call
@@ -190,6 +168,37 @@ app_global_get
 gtxn 3 AssetAmount // capi share tx amount
 +
 app_global_put
+
+return
+
+// expects the 2 first txs of invest / lock to be the app call and lock (shares transfer to locking escrow)
+// duplicated in: app_central_approval, app_capi_approval
+lock_shares:
+// sanity: don't allow locking 0 shares 
+gtxn 1 AssetAmount
+int 0
+!=
+
+// initialize / increment shares
+gtxn 0 Sender
+byte "Shares"
+gtxn 0 Sender
+byte "Shares"
+app_local_get
+gtxn 1 AssetAmount // shares bought
++
+app_local_put
+
+// initialize already retrieved (ends with app_local_put at the end of /////// block)
+gtxn 0 Sender // sender of app call (investor)
+byte "HarvestedTotal"
+// NOTE that this sets HarvestedTotal to the entitled amount each time that the investor buys/locks shares
+// meaning that investors may lose pending dividend by buying or locking new shares (as everything will be practically marked as "already harvested")
+// TODO improve? - a non TEAL way could be to just automatically retrieve pending dividend in the same group 
+// see more notes in old repo
+gtxn 1 AssetAmount // shares bought
+callsub entitled_harvest_amount_for_shares
+app_local_put
 
 return
 
