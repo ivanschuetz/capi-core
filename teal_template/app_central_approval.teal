@@ -1,39 +1,45 @@
 #pragma version 4
 // int 1
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Identification
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// app create
 txn ApplicationID
 int 0
 ==
 bnz success
 
+// app setup (executed by the creator after creation)
 global GroupSize
 int 10
 ==
 bnz branch_setup
 
+// opt in (only investors opt in)
 global GroupSize
-int 1 // central opt in - TODO what is this? who's opting in?
+int 1
 ==
-bnz branch_opt_in
+bnz success
 
-// opt out tx group
 global GroupSize
-int 2 // central optout + unlock shares
+int 2
 ==
-bz after_tx_group_access
+bz not_group_size_2
+
 gtxn 0 TypeEnum // unlock shares
 int appl
 ==
-int CloseOut 
+int CloseOut
 gtxn 0 OnCompletion // central opt out (TODO app ids?)
 ==
 &&
-bz after_tx_group_access
 gtxn 1 TypeEnum // unlock shares
 int axfer
 ==
+&&
 bnz branch_opt_out
-after_tx_group_access:
 
 global GroupSize
 int 2 
@@ -45,11 +51,9 @@ app_global_get
 &&
 bnz branch_harvest
 
-global GroupSize
-int 2
-==
-// basically also an investor setup, but when asset was acquired externally (instead of buying in the "ico")
-bnz branch_locking_setup
+b branch_lock
+
+not_group_size_2:
 
 global GroupSize
 int 4
@@ -64,9 +68,13 @@ bnz branch_drain
 global GroupSize
 int 4
 ==
-bnz branch_investor_setup
+bnz branch_invest
 
 b failure
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Handling
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 branch_setup:
 // setup can be done only once
@@ -74,30 +82,23 @@ branch_setup:
 byte "CentralEscrowAddress"
 app_global_get
 bnz failure
-
+// Store escrow addresses
 byte "CentralEscrowAddress"
 gtxn 0 ApplicationArgs 0 
 app_global_put
 byte "CustomerEscrowAddress"
 gtxn 0 ApplicationArgs 1 
 app_global_put
-
 b success
 
-branch_opt_in:
-b success
-
-branch_locking_setup:
-
+branch_lock:
 gtxn 0 TypeEnum // app call
 int appl
 ==
-
 gtxn 1 TypeEnum // lock
 int axfer
 ==
 &&
-
 // don't allow locking 0 assets 
 // no particular reason, just doesn't make sense
 gtxn 1 AssetAmount
@@ -108,13 +109,10 @@ int 0
 // initialize / increment shares
 gtxn 0 Sender
 byte "Shares"
-
 gtxn 0 Sender
 byte "Shares"
 app_local_get
-
 gtxn 1 AssetAmount // shares bought
-
 +
 app_local_put
 
@@ -122,7 +120,6 @@ app_local_put
 // see more notes in old repo
 gtxn 0 Sender // sender of app call (investor)
 byte "HarvestedTotal"
-
 gtxn 1 AssetAmount // locked xfer (this will become "holdings", if the group passes)
 callsub entitled_harvest_amount_for_shares
 app_local_put
@@ -137,19 +134,16 @@ app_local_put
 
 return
 
-branch_investor_setup:
+branch_invest:
 // initialize investor's local state
 
 // initialize / increment shares
 gtxn 0 Sender
 byte "Shares"
-
 gtxn 0 Sender
 byte "Shares"
 app_local_get
-
 gtxn 3 AssetAmount // shares bought
-
 +
 app_local_put
 
@@ -181,17 +175,14 @@ branch_drain:
 gtxn 0 TypeEnum // app call
 int appl
 ==
-
 gtxn 1 TypeEnum // capi app call
 int appl
 ==
 &&
-
 gtxn 2 TypeEnum // drain
 int axfer
 ==
 &&
-
 gtxn 3 TypeEnum // capi share
 int axfer
 ==
@@ -211,61 +202,51 @@ branch_harvest:
 gtxn 0 TypeEnum // app call
 int appl
 ==
-
 gtxn 1 TypeEnum // harvest
 int axfer
 ==
 &&
 
-// get the asset holdings of caller
+// calculate entitled harvest amount
 gtxn 0 Sender
 byte "Shares"
 app_local_get
 callsub entitled_harvest_amount_for_shares
-
-// how much user has already harvested
+// subtract already harvested amount
 int 0
 byte "HarvestedTotal"
 app_local_get // if local state doesn't exist yet, this puts a 0 on the stack
-
-// how much user is entitled to harvest now
 -
 
+// is the xfer less or equal to entitled amount?
 gtxn 1 AssetAmount
 >=
-
 &&
-bnz branch_update_local_state
-int 0
-return
+bz failure // trying to harvest more than entitled amount -> fail
 
-branch_update_local_state:
-// Increase harvested amount
+// update harvested amount
 int 0
 byte "HarvestedTotal"
 int 0
 byte "HarvestedTotal"
 app_local_get
-gtxn 1 AssetAmount // harvest tx amount
+gtxn 1 AssetAmount
 +
 app_local_put
 
 b success
 
 branch_opt_out:
-
 // check there's shares xfer
 gtxn 1 TypeEnum // unlock
 int axfer
 ==
-
 // check shares xfer goes to the investor (app call tx sender) - review whether this check is really needed
 // we can also check e.g. that all the app calls have the same sender
 gtxn 1 AssetReceiver
 gtxn 0 Sender
 ==
 &&
-
 // check shares xfer == owned shares count
 gtxn 1 AssetAmount
 int 0
@@ -273,7 +254,6 @@ byte "Shares"
 app_local_get
 ==
 &&
-
 return
 
 // local state (owned shares) is cleared automatically by CloseOut
@@ -282,29 +262,21 @@ return
 // Does *not* account for already harvested funds.
 // arg: owned shares
 entitled_harvest_amount_for_shares:
-
 int {precision}
 *
-
 int {investors_share} // already multiplied with precision
 *
-
 // the asset's total supply
 int {share_supply} 
-
 // user's holdings % of total received
 /
-
 // how much has been transferred (total) to the central
 byte "CentralReceivedTotal"
 app_global_get
-
 // percentage user is entitled to from received total
 *
-
 int {precision_square} // revert mult
 /
-
 retsub
 
 success:

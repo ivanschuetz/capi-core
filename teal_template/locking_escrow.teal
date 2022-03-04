@@ -1,22 +1,19 @@
 #pragma version 4
 // int 1
 
-// asset opt-ins on project creation
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Identification
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 global GroupSize
 int 10
 ==
-bz branch_after_group_access
-gtxn 5 XferAsset
-int {shares_asset_id}
-==
-bnz branch_shares_opt_in
-
-branch_after_group_access:
+bnz branch_project_setup
 
 global GroupSize
 int 2
 ==
-bz after_tx_group_access
+bz not_group_size_2
 gtxn 0 TypeEnum // unlock shares
 int appl
 ==
@@ -24,16 +21,20 @@ int CloseOut
 gtxn 0 OnCompletion // central opt out (TODO app ids?)
 ==
 &&
-bz after_tx_group_access
 gtxn 1 TypeEnum // unlock shares
 int axfer
 ==
+&&
 bnz branch_unlock
-after_tx_group_access:
+not_group_size_2:
 
 b failure
 
-branch_shares_opt_in:
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Handling
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+branch_project_setup:
 gtxn 5 XferAsset
 int {shares_asset_id}
 ==
@@ -45,7 +46,6 @@ gtxn 5 AssetAmount
 int 0
 ==
 &&
-
 gtxn 5 Fee
 int 1000
 <=
@@ -58,7 +58,6 @@ gtxn 5 AssetCloseTo
 global ZeroAddress
 ==
 &&
-
 return
 
 branch_unlock:
@@ -69,7 +68,6 @@ gtxn 1 TypeEnum
 int axfer
 ==
 &&
-
 return
 
 failure:

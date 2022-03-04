@@ -75,6 +75,7 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxI
 
     let txs = vec![signed.app_call_tx_signed.clone(), signed.harvest_tx.clone()];
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "central_escrow").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Harvest tx id: {:?}", res.tx_id);
