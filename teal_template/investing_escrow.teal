@@ -51,34 +51,34 @@ branch_invest:
 gtxn 0 TypeEnum
 int appl
 ==
-gtxn 3 XferAsset
+gtxn 1 XferAsset
 int {shares_asset_id}
 ==
 &&
-gtxn 3 AssetReceiver
+gtxn 1 AssetReceiver
 addr {locking_escrow_address}
 ==
 &&
-gtxn 3 Fee
+gtxn 1 Fee
 int 1000 // TODO we get the fee from tx params: ensure that this condition is always met (or change condition)
 <=
 &&
-gtxn 3 AssetCloseTo
+gtxn 1 AssetCloseTo
 global ZeroAddress
 ==
 &&
-gtxn 3 RekeyTo
+gtxn 1 RekeyTo
 global ZeroAddress
 ==
 &&
 // check that asset sent has the expected id 
-gtxn 1 XferAsset
+gtxn 2 XferAsset
 int {funds_asset_id}
 ==
 &&
 // check that asset sent matches asset receive * share price
-gtxn 1 AssetAmount // asset (send)
-gtxn 3 AssetAmount // asset (receive)
+gtxn 2 AssetAmount // asset (send)
+gtxn 1 AssetAmount // asset (receive)
 int {share_price} // price (in funds asset) per asset
 * 
 ==
