@@ -150,14 +150,9 @@ app_local_put
 // initialize already retrieved (ends with app_local_put at the end of /////// block)
 gtxn 0 Sender // sender of app call (investor)
 byte "HarvestedTotal"
-
 // TODO: important: this will reset "already harvested" to "entitled amount" *each time the investor buys shares*
 // see more notes in old repo
-
-// get the asset holdings of caller
-gtxn 0 Sender
-byte "Shares"
-app_local_get
+gtxn 3 AssetAmount // shares bought
 callsub entitled_harvest_amount_for_shares
 app_local_put
 
