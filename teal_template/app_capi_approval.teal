@@ -200,7 +200,7 @@ gtxn 1 AssetAmount // shares bought
 callsub entitled_harvest_amount_for_shares
 app_local_put
 
-return
+retsub
 
 // local state (owned shares) is cleared automatically by CloseOut
 
