@@ -1,19 +1,21 @@
-use super::create_app::create_app_tx;
 use crate::{
-    algo_helpers::{send_and_retrieve_app_id, send_and_retrieve_asset_id},
     flows::create_project::{
         create_project::Programs,
         create_project_specs::CreateProjectSpecs,
         model::{CreateAssetsToSign, CreateSharesSpecs},
     },
+    network_util::wait_for_pending_transaction,
 };
 use algonaut::{
     algod::v2::Algod,
     core::{Address, SuggestedTransactionParams},
+    model::algod::v2::PendingTransaction,
     transaction::{CreateAsset, SignedTransaction, Transaction, TxnBuilder},
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use futures::join;
+
+use super::create_app::create_app_tx;
 
 pub async fn create_assets(
     algod: &Algod,
@@ -66,6 +68,28 @@ pub async fn submit_create_assets(
         shares_asset_id,
         app_id,
     })
+}
+
+async fn send_and_retrieve_asset_id(algod: &Algod, tx: &SignedTransaction) -> Result<u64> {
+    let p_tx = send_and_wait_for_pending_tx(algod, tx).await?;
+    p_tx.asset_index
+        .ok_or_else(|| anyhow!("Shares asset id in pending tx not set"))
+}
+
+async fn send_and_retrieve_app_id(algod: &Algod, tx: &SignedTransaction) -> Result<u64> {
+    let p_tx = send_and_wait_for_pending_tx(algod, tx).await?;
+    p_tx.application_index
+        .ok_or_else(|| anyhow!("App id in pending tx not set"))
+}
+
+async fn send_and_wait_for_pending_tx(
+    algod: &Algod,
+    tx: &SignedTransaction,
+) -> Result<PendingTransaction> {
+    let res = algod.broadcast_signed_transaction(tx).await?;
+    wait_for_pending_transaction(algod, &res.tx_id.parse()?)
+        .await?
+        .ok_or_else(|| anyhow!("No pending tx to retrieve asset_od"))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
