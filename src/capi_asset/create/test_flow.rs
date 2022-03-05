@@ -2,8 +2,10 @@
 pub mod test_flow {
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId};
-    use crate::capi_asset::create::create_capi_app::create_app;
-    use crate::capi_asset::create::create_capi_asset::create_capi_asset;
+    use crate::capi_asset::create::create_capi_assets::{
+        create_capi_assets, submit_create_capi_assets, CreateCapiAssetResult,
+        CreateCapiAssetsSigned,
+    };
     use crate::capi_asset::create::setup_capi_escrow::{
         setup_capi_escrow, submit_setup_capi_escrow, SetupCentralEscrowSigned,
     };
@@ -24,38 +26,29 @@ pub mod test_flow {
     ) -> Result<CapiAssetFlowRes> {
         // create asset
         let params = algod.suggested_transaction_params().await?;
-
-        let to_sign = create_capi_asset(capi_supply, &creator.address(), &params).await?;
-        let signed = creator.sign_transaction(&to_sign.create_capi_asset_tx)?;
-        log::debug!("Will submit crate capi asset..");
-        let res = algod.broadcast_signed_transaction(&signed).await?;
-        let p_tx = wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
-        assert!(p_tx.is_some());
-        let asset_id_opt = p_tx.unwrap().asset_index;
-        assert!(asset_id_opt.is_some());
-        let asset_id = CapiAssetId(asset_id_opt.unwrap());
-
-        // create app
-
         let programs = capi_programs()?;
-        let to_sign_app = create_app(
-            &algod,
-            &programs.app_approval,
-            &programs.app_clear,
-            &creator.address(),
+
+        let to_sign = create_capi_assets(
+            algod,
             capi_supply,
-            TESTS_DEFAULT_PRECISION,
+            &creator.address(),
             &params,
+            &programs,
+            TESTS_DEFAULT_PRECISION,
         )
         .await?;
-        let signed = creator.sign_transaction(&to_sign_app)?;
-        log::debug!("Will submit crate capi app..");
-        let res = algod.broadcast_signed_transaction(&signed).await?;
-        let p_tx = wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
-        assert!(p_tx.is_some());
-        let app_id_opt = p_tx.unwrap().application_index;
-        assert!(app_id_opt.is_some());
-        let app_id = CapiAppId(app_id_opt.unwrap());
+
+        let signed_create_asset = creator.sign_transaction(&to_sign.create_asset)?;
+        let signed_create_app = creator.sign_transaction(&to_sign.create_app)?;
+        log::debug!("Will submit crate capi asset and app..");
+        let CreateCapiAssetResult { asset_id, app_id } = submit_create_capi_assets(
+            algod,
+            &CreateCapiAssetsSigned {
+                create_asset: signed_create_asset,
+                create_app: signed_create_app,
+            },
+        )
+        .await?;
 
         // setup capi escrow
 
