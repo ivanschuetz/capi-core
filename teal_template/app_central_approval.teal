@@ -360,8 +360,6 @@ gtxn 3 AssetReceiver
 addr {capi_escrow_address}
 ==
 assert
-// TODO check capi share and drain amount, based on customer escrow's holdings (gtxn 2 sender)
-
 ////////////////////////////////////////
 // check that capi fee is correct
 ////////////////////////////////////////
