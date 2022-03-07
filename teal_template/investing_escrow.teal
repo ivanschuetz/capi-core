@@ -27,6 +27,7 @@ branch_setup_dao:
 gtxn 0 TypeEnum // setup app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -113,7 +114,7 @@ gtxn 0 ApplicationArgs 2
 btoi
 ==
 assert
-return
+b success
 
 // duplicated in: app_central_approval, investing_escrow
 // differences: state access, app id check
@@ -121,6 +122,7 @@ branch_invest:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -194,6 +196,10 @@ int {share_price}
 ==
 assert
 
+b success
+
+success:
+int 1
 return
 
 failure:

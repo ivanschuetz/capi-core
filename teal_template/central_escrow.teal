@@ -44,6 +44,7 @@ branch_setup_dao:
 gtxn 0 TypeEnum // setup app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -130,7 +131,7 @@ gtxn 0 ApplicationArgs 2
 btoi
 ==
 assert
-return
+b success
 
 // duplicated: app_central_approval, central_escrow
 // except here + check for app id
@@ -138,6 +139,7 @@ branch_harvest:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -155,13 +157,14 @@ gtxn 1 AssetReceiver
 gtxn 0 Sender
 ==
 assert
-return
+b success
 
 branch_withdraw:
 // pay fee
 gtxn 0 TypeEnum
 int pay
 ==
+assert
 // the project creator sends the pay fee tx
 gtxn 0 Sender
 addr {project_creator_address}
@@ -182,6 +185,10 @@ gtxn 1 AssetReceiver
 addr {project_creator_address}
 ==
 assert
+b success
+
+success:
+int 1
 return
 
 failure:

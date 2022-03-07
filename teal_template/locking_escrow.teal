@@ -40,6 +40,7 @@ branch_setup_dao:
 gtxn 0 TypeEnum // setup app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -126,12 +127,13 @@ gtxn 0 ApplicationArgs 2
 btoi
 ==
 assert
-return
+b success
 
 branch_unlock:
 gtxn 0 ApplicationID 
 int {app_id}
 ==
+assert
 gtxn 1 XferAsset
 int {shares_asset_id}
 ==
@@ -147,6 +149,10 @@ gtxn 1 AssetReceiver
 gtxn 0 Sender
 ==
 assert
+b success
+
+success:
+int 1
 return
 
 failure:

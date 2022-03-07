@@ -27,6 +27,7 @@ branch_setup_dao:
 gtxn 0 TypeEnum // setup app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -113,12 +114,13 @@ gtxn 0 ApplicationArgs 2
 btoi
 ==
 assert
-return
+b success
 
 branch_drain:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 gtxn 1 TypeEnum // capi app call
 int appl
 ==
@@ -146,7 +148,7 @@ gtxn 3 AssetReceiver
 addr {capi_escrow_address}
 ==
 assert
-return
+b success
 
 success:
 int 1

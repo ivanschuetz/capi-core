@@ -72,22 +72,25 @@ branch_create:
 gtxn 0 ApplicationID
 int 0
 ==
-return
+assert
+b success
 
 branch_opt_in:
 gtxn 0 TypeEnum 
 int appl
 ==
+assert
 int OptIn 
 gtxn 0 OnCompletion
 ==
 assert
-return
+b success
 
 branch_lock:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 int NoOp 
 gtxn 0 OnCompletion
 ==
@@ -113,6 +116,7 @@ branch_harvest:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 int NoOp 
 gtxn 0 OnCompletion
 ==
@@ -143,7 +147,6 @@ callsub get_harvested_total
 // is the xfer less or equal to entitled amount?
 gtxn 1 AssetAmount
 >=
-assert
 bz failure
 
 // update harvested amount
@@ -160,6 +163,7 @@ branch_unlock:
 gtxn 0 OnCompletion // app opt out
 int CloseOut 
 ==
+assert
 gtxn 1 TypeEnum // unlock
 int axfer
 ==
@@ -179,12 +183,13 @@ int 0
 callsub get_locked_shares
 ==
 assert
-return
+b success
 
 branch_drain:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -226,7 +231,7 @@ gtxn 3 AssetAmount // capi share tx amount
 +
 callsub set_received_total
 
-return
+b success
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Subroutines
@@ -281,6 +286,7 @@ lock_shares:
 gtxn 1 AssetAmount
 int 0
 !=
+assert
 
 // initialize / increment shares
 gtxn 0 Sender

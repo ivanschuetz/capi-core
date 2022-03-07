@@ -82,11 +82,12 @@ branch_create_app:
 global GroupSize
 int 1
 ==
+assert
 gtxn 0 TypeEnum
 int appl
 ==
 assert
-return
+b success
 
 // duplicated: app_central_approval, central_escrow, customer escrow, investing_escrow, locking escrow
 // difference: app_central_approval no app_id check, state access at the end 
@@ -94,6 +95,7 @@ branch_setup_dao:
 gtxn 0 TypeEnum // setup app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -196,19 +198,20 @@ byte "FundsAssetId"
 gtxn 0 ApplicationArgs 3 
 app_global_put
 
-return
+b success
 
 branch_optin:
 int OptIn
 gtxn 0 OnCompletion
 ==
-return
+b success
 
 // duplicated in: app_central_approval, app_capi_approval
 branch_lock:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -223,7 +226,7 @@ int axfer
 assert
 callsub lock_shares
 callsub save_project_id
-return
+b success
 
 // duplicated in: app_central_approval, investing_escrow
 // differences: state access, app id check
@@ -231,6 +234,7 @@ branch_invest:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -308,12 +312,13 @@ assert
 
 callsub lock_shares
 callsub save_project_id
-return
+b success
 
 branch_drain:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -407,7 +412,7 @@ gtxn 2 AssetAmount // drain tx amount
 +
 app_global_put
 
-return
+b success
 
 // duplicated: app_central_approval, central_escrow
 // except here no check for app id
@@ -415,6 +420,7 @@ branch_harvest:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 int NoOp
 gtxn 0 OnCompletion
 ==
@@ -454,7 +460,6 @@ app_local_get // if local state doesn't exist yet, this puts a 0 on the stack
 gtxn 1 AssetAmount
 >=
 assert
-bz failure // trying to harvest more than entitled amount -> fail
 
 // update harvested amount
 int 0
@@ -476,6 +481,7 @@ branch_unlock:
 gtxn 1 AssetAmount
 int 0
 >
+assert
 // shares receiver is the app caller
 // we can also check e.g. that all the app calls have the same sender
 gtxn 1 AssetReceiver
@@ -496,7 +502,7 @@ app_global_get
 btoi
 ==
 assert
-return
+b success
 // check xfer sender is locking escrow omitted,
 // if user sends a wrong xfer sender and it happens to have the DAO asset and it passes, it's a security problem of that sender, not of this app - TODO review
 
@@ -511,6 +517,7 @@ lock_shares:
 gtxn 1 AssetAmount
 int 0
 !=
+assert
 
 // initialize / increment shares
 gtxn 0 Sender

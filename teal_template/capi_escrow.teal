@@ -48,6 +48,7 @@ branch_setup:
 gtxn 0 TypeEnum
 int pay
 ==
+assert
 // escrow optin to capi asset 
 gtxn 1 TypeEnum
 int axfer
@@ -68,12 +69,13 @@ int {funds_asset_id}
 assert
 // TODO is it needed / possible to check that txs are sent/received by "this escrow"?
 
-return
+b success
 
 branch_harvest:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+assert
 int NoOp 
 gtxn 0 OnCompletion
 ==
@@ -96,12 +98,13 @@ gtxn 1 AssetReceiver
 ==
 assert
 
-return
+b success
 
 branch_unlock:
 gtxn 0 OnCompletion // app opt out
 int CloseOut 
 ==
+assert
 gtxn 0 ApplicationID
 int {app_id}
 ==
@@ -120,6 +123,10 @@ gtxn 1 AssetReceiver
 gtxn 0 Sender
 ==
 assert
+b success
+
+success:
+int 1
 return
 
 failure:

@@ -52,6 +52,7 @@ pub mod test_flow {
         .await?;
         let signed = creator.sign_transaction(&to_sign_app)?;
         log::debug!("Will submit crate capi app..");
+        // crate::teal::debug_teal_rendered(&[signed.clone()], "app_capi_approval").unwrap();
         let res = algod.broadcast_signed_transaction(&signed).await?;
         let p_tx = wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
         assert!(p_tx.is_some());
