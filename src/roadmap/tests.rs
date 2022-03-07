@@ -16,7 +16,7 @@ mod tests {
         },
         testing::{
             flow::create_project_flow::create_project_flow,
-            network_test_util::{setup_on_chain_deps, test_init},
+            network_test_util::{setup_on_chain_deps, test_init, OnChainDeps},
             test_data::{creator, project_specs},
             TESTS_DEFAULT_PRECISION,
         },
@@ -35,7 +35,10 @@ mod tests {
         let indexer = dependencies::indexer_for_tests();
         let creator = creator();
 
-        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let specs = project_specs();
@@ -46,6 +49,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 

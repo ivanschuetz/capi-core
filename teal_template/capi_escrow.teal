@@ -26,10 +26,6 @@ bz not_unlock
 gtxn 0 ApplicationArgs 0
 byte b64 dW5sb2Nr // unlock
 ==
-int CloseOut 
-gtxn 0 OnCompletion // central opt out (TODO app ids?)
-==
-&&
 gtxn 1 TypeEnum // unlock shares
 int axfer
 ==
@@ -48,16 +44,82 @@ b failure
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 branch_setup:
-b success
+// min balance funding
+gtxn 0 TypeEnum
+int pay
+==
+// escrow optin to capi asset 
+gtxn 1 TypeEnum
+int axfer
+==
+&&
+gtxn 1 XferAsset
+int {capi_asset_id}
+==
+&&
+// escrow optin to funds asset
+gtxn 2 TypeEnum
+int axfer
+==
+&&
+gtxn 2 XferAsset
+int {funds_asset_id}
+==
+&&
+// TODO is it needed / possible to check that txs are sent/received by "this escrow"?
+
+return
 
 branch_harvest:
-b success
+gtxn 0 TypeEnum // app call
+int appl
+==
+int NoOp 
+gtxn 0 OnCompletion
+==
+&&
+gtxn 0 ApplicationID
+int {app_id}
+==
+&&
+gtxn 1 TypeEnum // harvest
+int axfer
+==
+&&
+gtxn 1 XferAsset
+int {funds_asset_id}
+==
+&&
+// the app caller is the dividend receiver
+gtxn 0 Sender
+gtxn 1 AssetReceiver
+==
+&&
+
+return
 
 branch_unlock:
-b success
-
-success:
-int 1
+gtxn 0 OnCompletion // app opt out
+int CloseOut 
+==
+gtxn 0 ApplicationID
+int {app_id}
+==
+&&
+gtxn 1 TypeEnum // unlock
+int axfer
+==
+&&
+gtxn 1 XferAsset
+int {capi_asset_id}
+==
+&&
+// the app caller is the dividend receiver
+// TODO do we need checks duplicated with the app if we're checking that we're calling the app too
+gtxn 1 AssetReceiver
+gtxn 0 Sender
+==
+&&
 return
 
 failure:

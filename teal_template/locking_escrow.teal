@@ -8,7 +8,7 @@
 global GroupSize
 int 10
 ==
-bnz branch_project_setup
+bnz branch_setup_dao
 
 global GroupSize
 int 2
@@ -34,38 +34,117 @@ b failure
 // Handling
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-branch_project_setup:
-gtxn 5 XferAsset
-int {shares_asset_id}
+// duplicated: app_central_approval, central_escrow, customer escrow, investing_escrow, locking escrow
+// difference: app_central_approval no app_id check, escrows no state access
+branch_setup_dao:
+gtxn 0 TypeEnum // setup app call
+int appl
 ==
-gtxn 5 TypeEnum
+int NoOp
+gtxn 0 OnCompletion
+==
+&&
+gtxn 0 ApplicationID 
+int {app_id}
+==
+&&
+gtxn 0 NumAppArgs
+int 4
+==
+&&
+// min balance creator -> central escrow
+gtxn 1 TypeEnum
+int pay
+==
+&&
+gtxn 1 Receiver
+gtxn 0 ApplicationArgs 0 
+==
+&&
+// min balance creator -> customer escrow
+gtxn 2 TypeEnum
+int pay
+==
+&&
+gtxn 2 Receiver
+gtxn 0 ApplicationArgs 1
+==
+&&
+// min balance creator -> locking escrow
+gtxn 3 TypeEnum
+int pay
+==
+&&
+// min balance creator -> invest escrow
+gtxn 4 TypeEnum
+int pay
+==
+&&
+// optin locking escrow to shares
+gtxn 5 TypeEnum 
 int axfer
 ==
 &&
-gtxn 5 AssetAmount
+gtxn 5 AssetAmount 
 int 0
 ==
 &&
-gtxn 5 Fee
-int 1000
-<=
-&&
-gtxn 5 RekeyTo
-global ZeroAddress
+// optin invest escrow to shares
+gtxn 6 TypeEnum
+int axfer
 ==
 &&
-gtxn 5 AssetCloseTo
-global ZeroAddress
+gtxn 6 AssetAmount 
+int 0
+==
+&&
+// optin central escrow to funds asset
+gtxn 7 TypeEnum
+int axfer
+==
+&&
+gtxn 7 AssetAmount 
+int 0
+==
+&&
+// optin customer escrow to funds asset
+gtxn 8 TypeEnum
+int axfer
+==
+&&
+gtxn 8 AssetAmount 
+int 0
+==
+&&
+// shares transfer creator -> investor escrow
+gtxn 9 TypeEnum
+int axfer
+==
+&&
+gtxn 9 XferAsset
+gtxn 0 ApplicationArgs 2
+btoi
 ==
 &&
 return
 
 branch_unlock:
-gtxn 0 TypeEnum
-int appl
+gtxn 0 ApplicationID 
+int {app_id}
 ==
-gtxn 1 TypeEnum
-int axfer
+gtxn 1 XferAsset
+int {shares_asset_id}
+==
+&&
+// unlocking > 0 shares
+// TODO similar checks in other contracts
+gtxn 1 AssetAmount
+int 0
+>
+&&
+// the shares receiver is the app caller 
+gtxn 1 AssetReceiver
+gtxn 0 Sender
 ==
 &&
 return

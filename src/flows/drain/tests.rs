@@ -45,6 +45,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -125,6 +126,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 

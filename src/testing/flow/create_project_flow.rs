@@ -1,4 +1,6 @@
 #[cfg(test)]
+use crate::capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps;
+#[cfg(test)]
 use crate::flows::create_project::storage::load_project::ProjectId;
 #[cfg(test)]
 use crate::flows::create_project::storage::save_project::{
@@ -38,12 +40,20 @@ pub async fn create_project_flow(
     specs: &CreateProjectSpecs,
     funds_asset_id: FundsAssetId,
     precision: u64,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<CreateProjectFlowRes> {
     let programs = programs()?;
 
     // Create asset first: id needed in app template
-    let create_assets_txs =
-        create_assets(&algod, &creator.address(), &specs, &programs, precision).await?;
+    let create_assets_txs = create_assets(
+        &algod,
+        &creator.address(),
+        &specs,
+        &programs,
+        precision,
+        capi_deps,
+    )
+    .await?;
 
     // UI
     let signed_create_shares_tx = creator.sign_transaction(&create_assets_txs.create_shares_tx)?;
@@ -68,6 +78,7 @@ pub async fn create_project_flow(
         programs,
         precision,
         create_assets_res.app_id,
+        capi_deps,
     )
     .await?;
 

@@ -8,7 +8,7 @@
 global GroupSize
 int 10
 ==
-bnz branch_project_setup 
+bnz branch_setup_dao 
 
 global GroupSize
 int 4
@@ -21,36 +21,123 @@ b failure
 // Handling
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-branch_project_setup:
-gtxn 6 XferAsset
-int {shares_asset_id}
+// duplicated: app_central_approval, central_escrow, customer escrow, investing_escrow, locking escrow
+// difference: app_central_approval no app_id check, escrows no state access
+branch_setup_dao:
+gtxn 0 TypeEnum // setup app call
+int appl
 ==
+int NoOp
+gtxn 0 OnCompletion
+==
+&&
+gtxn 0 ApplicationID 
+int {app_id}
+==
+&&
+gtxn 0 NumAppArgs
+int 4
+==
+&&
+// min balance creator -> central escrow
+gtxn 1 TypeEnum
+int pay
+==
+&&
+gtxn 1 Receiver
+gtxn 0 ApplicationArgs 0 
+==
+&&
+// min balance creator -> customer escrow
+gtxn 2 TypeEnum
+int pay
+==
+&&
+gtxn 2 Receiver
+gtxn 0 ApplicationArgs 1
+==
+&&
+// min balance creator -> locking escrow
+gtxn 3 TypeEnum
+int pay
+==
+&&
+// min balance creator -> invest escrow
+gtxn 4 TypeEnum
+int pay
+==
+&&
+// optin locking escrow to shares
+gtxn 5 TypeEnum 
+int axfer
+==
+&&
+gtxn 5 AssetAmount 
+int 0
+==
+&&
+// optin invest escrow to shares
 gtxn 6 TypeEnum
 int axfer
 ==
 &&
-gtxn 6 AssetAmount
+gtxn 6 AssetAmount 
 int 0
 ==
 &&
-gtxn 6 Fee
-int 1000
-<=
-&&
-gtxn 6 RekeyTo
-global ZeroAddress
+// optin central escrow to funds asset
+gtxn 7 TypeEnum
+int axfer
 ==
 &&
-gtxn 6 AssetCloseTo
-global ZeroAddress
+gtxn 7 AssetAmount 
+int 0
+==
+&&
+// optin customer escrow to funds asset
+gtxn 8 TypeEnum
+int axfer
+==
+&&
+gtxn 8 AssetAmount 
+int 0
+==
+&&
+// shares transfer creator -> investor escrow
+gtxn 9 TypeEnum
+int axfer
+==
+&&
+gtxn 9 XferAsset
+gtxn 0 ApplicationArgs 2
+btoi
 ==
 &&
 return
 
+// duplicated in: app_central_approval, investing_escrow
+// differences: state access, app id check
 branch_invest:
-gtxn 0 TypeEnum
+gtxn 0 TypeEnum // app call
 int appl
 ==
+int NoOp
+gtxn 0 OnCompletion
+==
+&&
+gtxn 0 ApplicationID 
+int {app_id}
+==
+&&
+gtxn 0 NumAppArgs
+int 1
+==
+&&
+gtxn 1 TypeEnum // receive shares
+int axfer
+==
+&&
+// Receiving the shares asset
 gtxn 1 XferAsset
 int {shares_asset_id}
 ==
@@ -59,30 +146,54 @@ gtxn 1 AssetReceiver
 addr {locking_escrow_address}
 ==
 &&
-gtxn 1 Fee
-int 1000 // TODO we get the fee from tx params: ensure that this condition is always met (or change condition)
-<=
-&&
-gtxn 1 AssetCloseTo
-global ZeroAddress
+
+gtxn 2 TypeEnum // pay share price (with funds asset)
+int axfer
 ==
 &&
-gtxn 1 RekeyTo
-global ZeroAddress
-==
-&&
-// check that asset sent has the expected id 
+// Paying with the funds asset
 gtxn 2 XferAsset
 int {funds_asset_id}
 ==
 &&
-// check that asset sent matches asset receive * share price
-gtxn 2 AssetAmount // asset (send)
-gtxn 1 AssetAmount // asset (receive)
-int {share_price} // price (in funds asset) per asset
-* 
+gtxn 2 AssetReceiver
+addr {central_escrow_address}
 ==
 &&
+gtxn 3 TypeEnum // shares optin
+int axfer
+==
+&&
+gtxn 3 AssetAmount
+int 0
+==
+&&
+// TODO is this optin check needed - if yes add it to other optins
+gtxn 3 AssetReceiver
+gtxn 3 Sender
+==
+&&
+
+// the investor sends 3 txs (app call, pay for shares, shares optin)
+gtxn 0 Sender
+gtxn 2 Sender
+==
+&&
+gtxn 2 Sender
+gtxn 3 Sender
+==
+&&
+
+// TODO check that gtxn 1 sender is invest escrow and receiver locking escrow? (add both to state)
+
+// Paying the correct price for the bought shares
+gtxn 2 AssetAmount // paid price
+gtxn 1 AssetAmount // shares received
+int {share_price}
+*
+==
+&&
+
 return
 
 failure:

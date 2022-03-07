@@ -46,6 +46,8 @@ pub mod test_flow {
             capi_supply,
             TESTS_DEFAULT_PRECISION,
             &params,
+            asset_id,
+            funds_asset_id,
         )
         .await?;
         let signed = creator.sign_transaction(&to_sign_app)?;
@@ -70,6 +72,7 @@ pub mod test_flow {
             &params,
             asset_id,
             funds_asset_id,
+            app_id,
         )
         .await?;
         let signed_fund_min_balance = creator.sign_transaction(&to_sign.fund_min_balance_tx)?;

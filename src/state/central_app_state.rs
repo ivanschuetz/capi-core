@@ -5,7 +5,7 @@ use super::app_state::{
 };
 use crate::{
     flows::create_project::{share_amount::ShareAmount, storage::load_project::ProjectId},
-    funds::FundsAmount,
+    funds::{FundsAmount, FundsAssetId},
 };
 use algonaut::{
     algod::v2::Algod,
@@ -18,21 +18,31 @@ use std::convert::TryInto;
 const GLOBAL_TOTAL_RECEIVED: AppStateKey = AppStateKey("CentralReceivedTotal");
 const GLOBAL_CENTRAL_ESCROW_ADDRESS: AppStateKey = AppStateKey("CentralEscrowAddress");
 const GLOBAL_CUSTOMER_ESCROW_ADDRESS: AppStateKey = AppStateKey("CustomerEscrowAddress");
+const GLOBAL_FUNDS_ASSET_ID: AppStateKey = AppStateKey("FundsAssetId");
+const GLOBAL_SHARES_ASSET_ID: AppStateKey = AppStateKey("SharesAssetId");
 
 const LOCAL_HARVESTED_TOTAL: AppStateKey = AppStateKey("HarvestedTotal");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_PROJECT: AppStateKey = AppStateKey("Project");
+
+pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 4; // central escrow address, customer escrow address, shares asset id, funds asset id
+pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 1; // "total received"
+
+pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 1; // for investors: "project"
+pub const LOCAL_SCHEMA_NUM_INTS: u64 = 2; // for investors: "shares", "already retrieved"
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CentralAppGlobalState {
     pub received: FundsAmount,
     pub central_escrow: Address,
     pub customer_escrow: Address,
+    pub funds_asset_id: FundsAssetId,
+    pub shares_asset_id: u64,
 }
 
 pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralAppGlobalState> {
     let global_state = global_state(algod, app_id).await?;
-    if global_state.len() != 3 {
+    if global_state.len() != ((GLOBAL_SCHEMA_NUM_BYTE_SLICES + GLOBAL_SCHEMA_NUM_INTS) as usize) {
         return Err(anyhow!(
             "Unexpected global state length: {}",
             global_state.len()
@@ -53,10 +63,25 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
         "customer escrow",
     )?;
 
+    let funds_asset_id = FundsAssetId(global_state.find_uint(&GLOBAL_FUNDS_ASSET_ID).ok_or(
+        anyhow!(
+            "Funds asset id not found in global state: {}",
+            global_state.len()
+        ),
+    )?);
+    let shares_asset_id = global_state
+        .find_uint(&GLOBAL_SHARES_ASSET_ID)
+        .ok_or(anyhow!(
+            "Shares asset id not found in global state: {}",
+            global_state.len()
+        ))?;
+
     Ok(CentralAppGlobalState {
         received: total_received,
         central_escrow,
         customer_escrow,
+        funds_asset_id,
+        shares_asset_id,
     })
 }
 
@@ -89,7 +114,7 @@ pub fn central_investor_state_from_acc(
 fn central_investor_state_from_local_state(
     state: &ApplicationLocalState,
 ) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
-    if state.len() != 3 {
+    if state.len() != ((LOCAL_SCHEMA_NUM_BYTE_SLICES + LOCAL_SCHEMA_NUM_INTS) as usize) {
         return Err(ApplicationLocalStateError::Msg(format!(
             "Unexpected investor local state length: {}",
             state.len(),

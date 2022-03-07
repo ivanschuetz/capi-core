@@ -9,19 +9,19 @@
 gtxn 0 ApplicationID
 int 0
 ==
-bnz success
+bnz branch_create_app
 
 // app setup (executed by the creator after creation)
 global GroupSize
 int 10
 ==
-bnz branch_setup
+bnz branch_setup_dao
 
 // opt in (only investors opt in)
 global GroupSize
 int 1
 ==
-bnz success
+bnz branch_optin
 
 global GroupSize
 int 2
@@ -39,11 +39,12 @@ gtxn 1 TypeEnum // unlock shares
 int axfer
 ==
 &&
-bnz branch_opt_out
+bnz branch_unlock
 
 global GroupSize
 int 2 
 ==
+// the harvest sender is the central escrow
 gtxn 1 Sender // harvest tx
 byte "CentralEscrowAddress"
 app_global_get
@@ -58,6 +59,7 @@ not_group_size_2:
 global GroupSize
 int 4
 ==
+// draining customer escrow 
 gtxn 2 Sender // drain tx
 byte "CustomerEscrowAddress"
 app_global_get
@@ -76,7 +78,105 @@ b failure
 // Handling
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-branch_setup:
+branch_create_app:
+global GroupSize
+int 1
+==
+gtxn 0 TypeEnum
+int appl
+==
+&&
+return
+
+// duplicated: app_central_approval, central_escrow, customer escrow, investing_escrow, locking escrow
+// difference: app_central_approval no app_id check, state access at the end 
+branch_setup_dao:
+gtxn 0 TypeEnum // setup app call
+int appl
+==
+int NoOp
+gtxn 0 OnCompletion
+==
+&&
+gtxn 0 NumAppArgs
+int 4
+==
+&&
+// min balance creator -> central escrow
+gtxn 1 TypeEnum
+int pay
+==
+&&
+gtxn 1 Receiver
+gtxn 0 ApplicationArgs 0 
+==
+&&
+// min balance creator -> customer escrow
+gtxn 2 TypeEnum
+int pay
+==
+&&
+gtxn 2 Receiver
+gtxn 0 ApplicationArgs 1
+==
+&&
+// min balance creator -> locking escrow
+gtxn 3 TypeEnum
+int pay
+==
+&&
+// min balance creator -> invest escrow
+gtxn 4 TypeEnum
+int pay
+==
+&&
+// optin locking escrow to shares
+gtxn 5 TypeEnum 
+int axfer
+==
+&&
+gtxn 5 AssetAmount 
+int 0
+==
+&&
+// optin invest escrow to shares
+gtxn 6 TypeEnum
+int axfer
+==
+&&
+gtxn 6 AssetAmount 
+int 0
+==
+&&
+// optin central escrow to funds asset
+gtxn 7 TypeEnum
+int axfer
+==
+&&
+gtxn 7 AssetAmount 
+int 0
+==
+&&
+// optin customer escrow to funds asset
+gtxn 8 TypeEnum
+int axfer
+==
+&&
+gtxn 8 AssetAmount 
+int 0
+==
+&&
+// shares transfer creator -> investor escrow
+gtxn 9 TypeEnum
+int axfer
+==
+&&
+gtxn 9 XferAsset
+gtxn 0 ApplicationArgs 2
+btoi
+==
+&&
+
 // setup can be done only once
 // if one of the global variables is set already, exit with failure
 byte "CentralEscrowAddress"
@@ -89,32 +189,145 @@ app_global_put
 byte "CustomerEscrowAddress"
 gtxn 0 ApplicationArgs 1 
 app_global_put
-b success
+byte "SharesAssetId"
+gtxn 0 ApplicationArgs 2 
+app_global_put
+byte "FundsAssetId"
+gtxn 0 ApplicationArgs 3 
+app_global_put
+
+return
+
+branch_optin:
+int OptIn
+gtxn 0 OnCompletion
+==
+return
 
 // duplicated in: app_central_approval, app_capi_approval
 branch_lock:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+int NoOp
+gtxn 0 OnCompletion
+==
+&&
+gtxn 0 NumAppArgs
+int 1
+==
+&&
 gtxn 1 TypeEnum // lock
 int axfer
 ==
 &&
 callsub lock_shares
 callsub save_project_id
-b success
+return
 
+// duplicated in: app_central_approval, investing_escrow
+// differences: state access, app id check
 branch_invest:
+gtxn 0 TypeEnum // app call
+int appl
+==
+int NoOp
+gtxn 0 OnCompletion
+==
+&&
+gtxn 0 NumAppArgs
+int 1
+==
+&&
+gtxn 1 TypeEnum // receive shares
+int axfer
+==
+&&
+// Receiving the shares asset
+gtxn 1 XferAsset
+byte "SharesAssetId"
+app_global_get
+btoi
+==
+&&
+// TODO set on state
+// gtxn 1 AssetReceiver
+// addr /locking_escrow_address/
+// ==
+// &&
+
+gtxn 2 TypeEnum // pay share price (with funds asset)
+int axfer
+==
+&&
+// Paying with the funds asset
+gtxn 2 XferAsset
+byte "FundsAssetId"
+app_global_get
+btoi
+==
+&&
+gtxn 2 AssetReceiver
+byte "CentralEscrowAddress"
+app_global_get
+==
+&&
+gtxn 3 TypeEnum // shares optin
+int axfer
+==
+&&
+gtxn 3 AssetAmount
+int 0
+==
+&&
+// TODO is this optin check needed - if yes add it to other optins
+gtxn 3 AssetReceiver
+gtxn 3 Sender
+==
+&&
+
+// the investor sends 3 txs (app call, pay for shares, shares optin)
+gtxn 0 Sender
+gtxn 2 Sender
+==
+&&
+gtxn 2 Sender
+gtxn 3 Sender
+==
+&&
+
+// TODO check that gtxn 1 sender is invest escrow and receiver locking escrow? (add both to state)
+
+// Paying the correct price for the bought shares
+gtxn 2 AssetAmount // paid price
+gtxn 1 AssetAmount // shares received
+int {share_price}
+*
+==
+&&
+
 callsub lock_shares
 callsub save_project_id
-b success
+return
 
 branch_drain:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+int NoOp
+gtxn 0 OnCompletion
+==
+&&
 gtxn 1 TypeEnum // capi app call
 int appl
+==
+&&
+gtxn 1 ApplicationID
+int {capi_app_id}
+==
+&&
+int NoOp
+gtxn 1 OnCompletion
 ==
 &&
 gtxn 2 TypeEnum // drain
@@ -125,6 +338,25 @@ gtxn 3 TypeEnum // capi share
 int axfer
 ==
 &&
+// the same user is sending both app calls
+gtxn 1 Sender
+gtxn 0 Sender
+==
+&&
+// the funds are being drained to the central escrow
+gtxn 2 AssetReceiver
+byte "CentralEscrowAddress"
+app_global_get
+==
+&&
+// the capi fee is being sent to the capi escrow
+gtxn 3 AssetReceiver
+addr {capi_escrow_address}
+==
+&&
+// TODO check capi share and drain amount, based on customer escrow's holdings (gtxn 2 sender)
+// TODO allow only to drain everything at once? - no particular reason but there's no reason to drain only a part 
+// other than concurrent issues - e.g. receiving a payment after fetching the balance on the frontend, which should be not so frequent, and the tx can be repeated
 
 // Increase total received amount
 byte "CentralReceivedTotal"
@@ -136,15 +368,36 @@ app_global_put
 
 return
 
+// duplicated: app_central_approval, central_escrow
+// except here no check for app id
 branch_harvest:
 gtxn 0 TypeEnum // app call
 int appl
 ==
+int NoOp
+gtxn 0 OnCompletion
+==
+&&
 gtxn 1 TypeEnum // harvest
 int axfer
 ==
 &&
+// the dividend receiver is the app call sender 
+gtxn 1 AssetReceiver
+gtxn 0 Sender
+==
+&&
+// the harvested asset is the funds asset 
+gtxn 1 XferAsset
+byte "FundsAssetId"
+app_global_get
+btoi
+==
+&&
 
+////////////////////////////////////////
+// update already harvested local state
+////////////////////////////////////////
 // calculate entitled harvest amount
 gtxn 0 Sender
 byte "Shares"
@@ -171,15 +424,18 @@ app_local_get
 gtxn 1 AssetAmount
 +
 app_local_put
+////////////////////////////////////////
+////////////////////////////////////////
 
 b success
 
-branch_opt_out:
-// check there's shares xfer
-gtxn 1 TypeEnum // unlock
-int axfer
-==
-// check shares xfer goes to the investor (app call tx sender) - review whether this check is really needed
+branch_unlock:
+// unlocking > 0 shares
+// TODO similar checks in other contracts
+gtxn 1 AssetAmount
+int 0
+>
+// shares receiver is the app caller
 // we can also check e.g. that all the app calls have the same sender
 gtxn 1 AssetReceiver
 gtxn 0 Sender
@@ -192,7 +448,20 @@ byte "Shares"
 app_local_get
 ==
 &&
+// check that shares is the DAO shares asset
+gtxn 1 XferAsset
+byte "SharesAssetId"
+app_global_get
+btoi
+==
+&&
 return
+// check xfer sender is locking escrow omitted,
+// if user sends a wrong xfer sender and it happens to have the DAO asset and it passes, it's a security problem of that sender, not of this app - TODO review
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Subroutines
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // expects the 2 first txs of invest / lock to be the app call and lock (shares transfer to locking escrow)
 // duplicated in: app_central_approval, app_capi_approval
@@ -236,28 +505,30 @@ app_local_put
 
 retsub
 
-// local state (owned shares) is cleared automatically by CloseOut
-
 // What amount (share of total retrieved funds) correspond to investor's share
 // Does *not* account for already harvested funds.
 // arg: owned shares
 entitled_harvest_amount_for_shares:
+// entitled % based on owned shares
 int {precision}
 *
 int {investors_share} // already multiplied with precision
 *
-// the asset's total supply
 int {share_supply} 
-// user's holdings % of total received
 /
-// how much has been transferred (total) to the central
+
+// apply % to central total received
 byte "CentralReceivedTotal"
 app_global_get
-// percentage user is entitled to from received total
 *
-int {precision_square} // revert mult
+int {precision_square} // revert mult by precision
 /
+
 retsub
+
+harvested_total:
+byte "HarvestedTotal"
+app_local_get
 
 success:
 int 1

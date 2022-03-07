@@ -11,10 +11,7 @@ mod test {
         },
         network_util::wait_for_pending_transaction,
     };
-    use algonaut::{
-        algod::v2::Algod,
-        transaction::{account::Account, contract_account::ContractAccount},
-    };
+    use algonaut::{algod::v2::Algod, core::Address, transaction::account::Account};
     use anyhow::Result;
 
     pub async fn lock_capi_asset_flow(
@@ -23,7 +20,7 @@ mod test {
         amount: CapiAssetAmount,
         asset_id: CapiAssetId,
         app_id: CapiAppId,
-        capi_escrow: &ContractAccount,
+        capi_escrow: &Address,
     ) -> Result<()> {
         let to_sign = lock_capi_assets(
             &algod,

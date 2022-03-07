@@ -9,7 +9,8 @@ use serde::Serialize;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
 use crate::{
-    capi_asset::capi_asset_id::CapiAssetAmount,
+    capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId},
+    funds::FundsAssetId,
     teal::{render_template, TealSource, TealSourceTemplate},
 };
 
@@ -23,10 +24,18 @@ pub async fn create_app(
     asset_supply: CapiAssetAmount,
     precision: u64,
     params: &SuggestedTransactionParams,
+    asset_id: CapiAssetId,
+    funds_asset_id: FundsAssetId,
 ) -> Result<Transaction> {
     log::debug!("Creating capi app");
 
-    let approval_rendered = render_app(approval_source, asset_supply, precision)?;
+    let approval_rendered = render_app(
+        approval_source,
+        asset_supply,
+        precision,
+        asset_id,
+        funds_asset_id,
+    )?;
 
     let compiled_approval_program = algod.compile_teal(&approval_rendered.0).await?;
     let compiled_clear_program = algod.compile_teal(&clear_source.0).await?;
@@ -57,12 +66,16 @@ pub fn render_app(
     source: &TealSourceTemplate,
     asset_supply: CapiAssetAmount,
     precision: u64,
+    asset_id: CapiAssetId,
+    funds_asset_id: FundsAssetId,
 ) -> Result<TealSource> {
     let source = render_template(
         source,
         RenderCapiAppContext {
             asset_supply: asset_supply.0.to_string(),
             precision: precision.to_string(),
+            capi_asset_id: asset_id.0.to_string(),
+            funds_asset_id: funds_asset_id.0.to_string(),
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -74,13 +87,19 @@ pub fn render_app(
 struct RenderCapiAppContext {
     asset_supply: String,
     precision: String,
+    capi_asset_id: String,
+    funds_asset_id: String,
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        capi_asset::{capi_asset_id::CapiAssetAmount, create::create_capi_app::create_app},
+        capi_asset::{
+            capi_asset_id::{CapiAssetAmount, CapiAssetId},
+            create::create_capi_app::create_app,
+        },
         dependencies,
+        funds::FundsAssetId,
         network_util::wait_for_pending_transaction,
         teal::{load_teal, load_teal_template},
         testing::{network_test_util::test_init, test_data::creator, TESTS_DEFAULT_PRECISION},
@@ -107,7 +126,7 @@ mod tests {
 
         let params = algod.suggested_transaction_params().await?;
 
-        // asset supply isn't used here so we can pass anything (0 in this case)
+        // asset supply, capi and funds asset id aren't used here so we can pass anything (0 in this case)
         let tx = create_app(
             &algod,
             &approval_template,
@@ -116,6 +135,8 @@ mod tests {
             CapiAssetAmount::new(0),
             TESTS_DEFAULT_PRECISION,
             &params,
+            CapiAssetId(0),
+            FundsAssetId(0),
         )
         .await?;
 

@@ -34,7 +34,9 @@ pub async fn create_investing_escrow(
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
     locking_escrow_address: &Address,
+    central_escrow_address: &Address,
     source: &TealSourceTemplate,
+    central_app_id: u64,
 ) -> Result<ContractAccount> {
     render_and_compile_investing_escrow(
         algod,
@@ -42,7 +44,9 @@ pub async fn create_investing_escrow(
         share_price,
         funds_asset_id,
         locking_escrow_address,
+        central_escrow_address,
         source,
+        central_app_id,
     )
     .await
 }
@@ -53,7 +57,9 @@ pub async fn render_and_compile_investing_escrow(
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
     locking_escrow_address: &Address,
+    central_escrow_address: &Address,
     source: &TealSourceTemplate,
+    central_app_id: u64,
 ) -> Result<ContractAccount> {
     let source = render_investing_escrow(
         source,
@@ -61,6 +67,8 @@ pub async fn render_and_compile_investing_escrow(
         share_price,
         funds_asset_id,
         locking_escrow_address,
+        central_escrow_address,
+        central_app_id,
     )?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
@@ -71,6 +79,8 @@ pub fn render_investing_escrow(
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
     locking_escrow_address: &Address,
+    central_escrow_address: &Address,
+    central_app_id: u64,
 ) -> Result<TealSource> {
     let escrow_source = render_template(
         source,
@@ -79,6 +89,8 @@ pub fn render_investing_escrow(
             share_price: share_price.0.to_string(),
             funds_asset_id: funds_asset_id.0.to_string(),
             locking_escrow_address: locking_escrow_address.to_string(),
+            central_escrow_address: central_escrow_address.to_string(),
+            app_id: central_app_id.to_string(),
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -96,7 +108,9 @@ pub async fn setup_investing_escrow_txs(
     funds_asset_id: &FundsAssetId,
     creator: &Address,
     locking_escrow_address: &Address,
+    central_escrow_address: &Address,
     params: &SuggestedTransactionParams,
+    central_app_id: u64,
 ) -> Result<SetupInvestingEscrowToSign> {
     log::debug!(
         "Setting up investing escrow with asset id: {shares_asset_id}, transfer_share_amount: {share_supply}, creator: {creator}, locking_escrow_address: {locking_escrow_address}"
@@ -108,7 +122,9 @@ pub async fn setup_investing_escrow_txs(
         share_price,
         funds_asset_id,
         locking_escrow_address,
+        central_escrow_address,
         source,
+        central_app_id,
     )
     .await?;
     log::debug!("Generated investing escrow address: {:?}", escrow.address());
@@ -170,6 +186,8 @@ struct EditTemplateContext {
     share_price: String,
     funds_asset_id: String,
     locking_escrow_address: String,
+    central_escrow_address: String,
+    app_id: String,
 }
 
 #[cfg(test)]
@@ -193,8 +211,10 @@ mod tests {
             &template,
             123,
             &FundsAmount::new(1_000_000),
-            &FundsAssetId(123), // not used - can be anything
+            &FundsAssetId(123),
             &Address::new([0; 32]),
+            &Address::new([0; 32]),
+            123,
         )?;
         let source_str = String::from_utf8(source.0)?;
         log::debug!("source: {}", source_str);
@@ -209,8 +229,10 @@ mod tests {
             &template,
             123,
             &FundsAmount::new(1_000_000),
-            &FundsAssetId(123), // not used - can be anything
+            &FundsAssetId(123),
             &Address::new([0; 32]),
+            &Address::new([0; 32]),
+            123,
         )?;
 
         // deps

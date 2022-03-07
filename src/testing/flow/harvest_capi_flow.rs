@@ -8,7 +8,7 @@ mod test {
             capi_app_id::CapiAppId,
             capi_asset_dao_specs::CapiAssetDaoDeps,
             capi_asset_id::CapiAssetAmount,
-            create::test_flow::test_flow::{setup_capi_asset_flow, CapiAssetFlowRes},
+            create::test_flow::test_flow::CapiAssetFlowRes,
             harvest::harvest::{harvest, submit_harvest, HarvestSigned},
         },
         funds::{FundsAmount, FundsAssetId},
@@ -70,22 +70,19 @@ mod test {
     pub async fn harvest_capi_precs(
         algod: &Algod,
         capi_creator: &Account,
-        capi_supply: CapiAssetAmount,
         funds_asset_id: FundsAssetId,
         harvester: &Account,
         asset_amount: CapiAssetAmount,
         // Fee sent to the capi escrow after the investor locks their shares. This is the amount we harvest from.
         send_to_escrow_after_investor_locked: FundsAmount,
-    ) -> Result<CapiAssetFlowRes> {
-        let setup_res =
-            setup_capi_asset_flow(&algod, &capi_creator, capi_supply, funds_asset_id).await?;
-
+        capi_deps: &CapiAssetFlowRes,
+    ) -> Result<()> {
         let params = algod.suggested_transaction_params().await?;
 
         // opt ins
 
-        optin_to_asset_submit(&algod, &harvester, setup_res.asset_id.0).await?;
-        optin_to_app_submit(&algod, &params, &harvester, setup_res.app_id.0).await?;
+        optin_to_asset_submit(&algod, &harvester, capi_deps.asset_id.0).await?;
+        optin_to_app_submit(&algod, &params, &harvester, capi_deps.app_id.0).await?;
 
         // send capi assets to investor
 
@@ -95,7 +92,7 @@ mod test {
             &capi_creator,
             &capi_creator,
             &harvester.address(),
-            setup_res.asset_id.0,
+            capi_deps.asset_id.0,
             asset_amount.val(),
         )
         .await?;
@@ -106,9 +103,9 @@ mod test {
             &algod,
             &harvester,
             asset_amount,
-            setup_res.asset_id,
-            setup_res.app_id,
-            &setup_res.escrow,
+            capi_deps.asset_id,
+            capi_deps.app_id,
+            &capi_deps.escrow.address(),
         )
         .await?;
 
@@ -117,24 +114,27 @@ mod test {
         let drainer = investor2();
         let customer = customer();
 
+        let capi_dao_deps = CapiAssetDaoDeps {
+            escrow: *capi_deps.escrow.address(),
+            // value here has to ensure that we always get an integer result when diving an integer by it
+            escrow_percentage: Decimal::from_str("0.1").unwrap().try_into().unwrap(),
+            app_id: capi_deps.app_id,
+            asset_id: capi_deps.asset_id,
+        };
+
         let project = create_project_flow(
             &algod,
             &creator(),
             &project_specs(),
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_dao_deps,
         )
         .await?;
 
-        let capi_deps = CapiAssetDaoDeps {
-            escrow: *setup_res.escrow.address(),
-            // value here has to ensure that we always get an integer result when diving an integer by it
-            escrow_percentage: Decimal::from_str("0.1").unwrap().try_into().unwrap(),
-            app_id: setup_res.app_id,
-        };
         // calculate a to-be-drained amount, such that we get exactly the expected funds amount in the capi escrow
-        let central_funds_decimal =
-            send_to_escrow_after_investor_locked.as_decimal() / capi_deps.escrow_percentage.value();
+        let central_funds_decimal = send_to_escrow_after_investor_locked.as_decimal()
+            / capi_dao_deps.escrow_percentage.value();
         // unwrap: we ensured with parameters above that central_funds_decimal is an integer
         let central_funds = FundsAmount::new(central_funds_decimal.to_u64().unwrap());
         log::debug!("Harvest precs: Will pay and drain funds: {central_funds}");
@@ -148,10 +148,10 @@ mod test {
             funds_asset_id,
             central_funds,
             &project.project,
-            &capi_deps,
+            &capi_dao_deps,
         )
         .await?;
 
-        Ok(setup_res)
+        Ok(())
     }
 }

@@ -9,8 +9,14 @@ use serde::Serialize;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
 use crate::{
+    capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
     decimal_util::AsDecimal,
     flows::create_project::share_amount::ShareAmount,
+    funds::FundsAmount,
+    state::central_app_state::{
+        GLOBAL_SCHEMA_NUM_BYTE_SLICES, GLOBAL_SCHEMA_NUM_INTS, LOCAL_SCHEMA_NUM_BYTE_SLICES,
+        LOCAL_SCHEMA_NUM_INTS,
+    },
     teal::{render_template, TealSource, TealSourceTemplate},
 };
 
@@ -24,10 +30,19 @@ pub async fn create_app_tx(
     precision: u64,
     investors_share: ShareAmount,
     params: &SuggestedTransactionParams,
+    capi_deps: &CapiAssetDaoDeps,
+    share_price: FundsAmount,
 ) -> Result<Transaction> {
     log::debug!("Creating central app with asset supply: {}", share_supply);
-    let approval_source =
-        render_central_app(approval_source, share_supply, precision, investors_share)?;
+    let approval_source = render_central_app(
+        approval_source,
+        share_supply,
+        precision,
+        investors_share,
+        &capi_deps.escrow,
+        capi_deps.app_id,
+        share_price,
+    )?;
 
     let compiled_approval_program = algod.compile_teal(&approval_source.0).await?;
     let compiled_clear_program = algod.compile_teal(&clear_source.0).await?;
@@ -39,12 +54,12 @@ pub async fn create_app_tx(
             compiled_approval_program.clone(),
             compiled_clear_program,
             StateSchema {
-                number_ints: 1,       // "total received"
-                number_byteslices: 2, // central escrow address, customer escrow address
+                number_ints: GLOBAL_SCHEMA_NUM_INTS,
+                number_byteslices: GLOBAL_SCHEMA_NUM_BYTE_SLICES,
             },
             StateSchema {
-                number_ints: 2,       // for investors: "shares", "already retrieved"
-                number_byteslices: 1, // for investors: "project"
+                number_ints: LOCAL_SCHEMA_NUM_INTS,
+                number_byteslices: LOCAL_SCHEMA_NUM_BYTE_SLICES,
             },
         )
         .build(),
@@ -59,6 +74,9 @@ pub fn render_central_app(
     share_supply: ShareAmount,
     precision: u64,
     investors_share: ShareAmount,
+    capi_escrow_address: &Address,
+    capi_app_id: CapiAppId,
+    share_price: FundsAmount,
 ) -> Result<TealSource> {
     let precision_square = precision
         .checked_pow(2)
@@ -73,6 +91,9 @@ pub fn render_central_app(
             investors_share: investors_share.to_string(),
             precision: precision.to_string(),
             precision_square: precision_square.to_string(),
+            capi_escrow_address: capi_escrow_address.to_string(),
+            capi_app_id: capi_app_id.0.to_string(),
+            share_price: share_price.val().to_string(),
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -86,16 +107,31 @@ struct RenderCentralAppContext {
     investors_share: String,
     precision: String,
     precision_square: String,
+    capi_escrow_address: String,
+    capi_app_id: String,
+    share_price: String,
 }
 
 #[cfg(test)]
 mod tests {
+    use std::convert::TryInto;
+
     use crate::{
+        capi_asset::{
+            capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
+            capi_asset_id::CapiAssetId,
+        },
+        decimal_util::AsDecimal,
         dependencies,
         flows::create_project::share_amount::ShareAmount,
+        funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         teal::{load_teal, load_teal_template},
-        testing::{network_test_util::test_init, test_data::creator, TESTS_DEFAULT_PRECISION},
+        testing::{
+            network_test_util::test_init,
+            test_data::{creator, investor1},
+            TESTS_DEFAULT_PRECISION,
+        },
     };
     use algonaut::{
         model::algod::v2::TealKeyValue,
@@ -131,6 +167,15 @@ mod tests {
             TESTS_DEFAULT_PRECISION,
             ShareAmount::new(40),
             &params,
+            // Arbitrary - not used
+            &CapiAssetDaoDeps {
+                escrow: investor1().address(),
+                escrow_percentage: 0_u64.as_decimal().try_into()?,
+                app_id: CapiAppId(0),
+                asset_id: CapiAssetId(0),
+            },
+            // Arbitrary - not used
+            FundsAmount::new(10),
         )
         .await?;
 

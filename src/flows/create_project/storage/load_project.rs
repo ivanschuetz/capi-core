@@ -1,4 +1,5 @@
 use crate::{
+    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     date_util::timestamp_seconds_to_date,
     flows::create_project::{create_project::Escrows, storage::note::base64_note_to_project},
     queries::my_projects::StoredProject,
@@ -18,6 +19,7 @@ pub async fn load_project(
     indexer: &Indexer,
     project_id: &ProjectId,
     escrows: &Escrows,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<StoredProject> {
     log::debug!("Fetching project with tx id: {:?}", project_id);
 
@@ -32,7 +34,7 @@ pub async fn load_project(
             .clone()
             .ok_or_else(|| anyhow!("Unexpected: project storage tx has no note: {:?}", tx))?;
 
-        let project = base64_note_to_project(algod, escrows, &note).await?;
+        let project = base64_note_to_project(algod, escrows, &note, capi_deps).await?;
 
         let round_time = tx
             .round_time

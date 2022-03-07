@@ -1,4 +1,5 @@
 use crate::{
+    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_project::{
         create_project::Programs,
         create_project_specs::CreateProjectSpecs,
@@ -23,6 +24,7 @@ pub async fn create_assets(
     specs: &CreateProjectSpecs,
     programs: &Programs,
     precision: u64,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<CreateAssetsToSign> {
     let params = algod.suggested_transaction_params().await?;
     let create_shares_tx = &mut create_shares_tx(&params, &specs.shares, *creator).await?;
@@ -36,6 +38,8 @@ pub async fn create_assets(
         precision,
         specs.investors_part(),
         &params,
+        capi_deps,
+        specs.share_price,
     )
     .await?;
 

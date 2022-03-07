@@ -4,6 +4,7 @@ mod tests {
         capi_asset::{
             capi_app_state::{capi_app_global_state, capi_app_investor_state},
             capi_asset_id::CapiAssetAmount,
+            create::test_flow::test_flow::setup_capi_asset_flow,
         },
         dependencies,
         funds::FundsAmount,
@@ -30,8 +31,9 @@ mod tests {
         let investor = investor1();
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
-
         let capi_supply = CapiAssetAmount::new(1_000_000_000);
+        let capi_deps =
+            setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
 
         let investor_capi_amount = CapiAssetAmount::new(100_000); // 0.0001 -> 0.01 %
 
@@ -41,14 +43,14 @@ mod tests {
 
         // preconditions
 
-        let setup_res = harvest_capi_precs(
+        harvest_capi_precs(
             &algod,
             &creator,
-            capi_supply,
             funds_asset_id,
             &investor,
             investor_capi_amount,
             initial_capi_funds_amount,
+            &capi_deps,
         )
         .await?;
 
@@ -58,7 +60,7 @@ mod tests {
             funds_holdings(&algod, &investor.address(), funds_asset_id).await?;
 
         let capi_app_total_received_before_harvesting =
-            capi_app_global_state(&algod, setup_res.app_id)
+            capi_app_global_state(&algod, capi_deps.app_id)
                 .await?
                 .received;
 
@@ -67,8 +69,8 @@ mod tests {
             &investor,
             harvest_amount,
             funds_asset_id,
-            setup_res.app_id,
-            &setup_res.escrow,
+            capi_deps.app_id,
+            &capi_deps.escrow,
         )
         .await?;
 
@@ -84,14 +86,14 @@ mod tests {
 
         // Capi lost the harvested funds
         let capi_escrow_funds_amount =
-            funds_holdings(&algod, &setup_res.escrow.address(), funds_asset_id).await?;
+            funds_holdings(&algod, &capi_deps.escrow.address(), funds_asset_id).await?;
         assert_eq!(
             initial_capi_funds_amount.val() - harvest_amount.val(),
             capi_escrow_funds_amount.val()
         );
 
         // Capi app global state: test that the total received global variable didn't change (unaffected by harvesting)
-        let capi_app_global_state = capi_app_global_state(&algod, setup_res.app_id).await?;
+        let capi_app_global_state = capi_app_global_state(&algod, capi_deps.app_id).await?;
         assert_eq!(
             capi_app_total_received_before_harvesting,
             capi_app_global_state.received
@@ -99,7 +101,7 @@ mod tests {
 
         // Investor local state: test that it was incremented by amount harvested
         let investor_local_state =
-            capi_app_investor_state(&algod, &investor.address(), setup_res.app_id).await?;
+            capi_app_investor_state(&algod, &investor.address(), capi_deps.app_id).await?;
         // harvested local state is just what they just harvested (there wasn't anything on the escrow when the investor invested)
         assert_eq!(harvest_amount.0, investor_local_state.harvested.0);
         // sanity check: the shares local state is set to the locked shares

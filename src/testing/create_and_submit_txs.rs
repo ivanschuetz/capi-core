@@ -99,6 +99,7 @@ mod test {
         let tx = optin_to_app(params, app_id, sender.address()).await?;
         let signed = sender.sign_transaction(&tx)?;
         log::debug!("Submitting app opt in: {app_id}");
+        // crate::teal::debug_teal_rendered(&[signed.clone()], "app_capi_approval").unwrap();
         let res = algod.broadcast_signed_transaction(&signed).await?;
         wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
         Ok(())

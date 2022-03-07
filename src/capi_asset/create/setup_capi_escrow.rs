@@ -2,7 +2,7 @@
 use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
-    capi_asset::capi_asset_id::CapiAssetId,
+    capi_asset::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetId},
     flows::create_project::storage::load_project::TxId,
     funds::FundsAssetId,
     teal::{render_template, TealSource, TealSourceTemplate},
@@ -29,8 +29,11 @@ pub async fn setup_capi_escrow(
     params: &SuggestedTransactionParams,
     capi_asset_id: CapiAssetId,
     funds_asset_id: FundsAssetId,
+    app_id: CapiAppId,
 ) -> Result<SetupCentralEscrowToSign> {
-    let escrow = render_and_compile_capi_escrow(algod, source).await?;
+    let escrow =
+        render_and_compile_capi_escrow(algod, source, capi_asset_id, funds_asset_id, app_id)
+            .await?;
 
     let fund_min_balance_tx =
         &mut create_payment_tx(min_balance_sender, escrow.address(), MIN_BALANCE, params).await?;
@@ -77,13 +80,28 @@ pub async fn setup_capi_escrow(
 pub async fn render_and_compile_capi_escrow(
     algod: &Algod,
     source: &TealSourceTemplate,
+    capi_asset_id: CapiAssetId,
+    funds_asset_id: FundsAssetId,
+    app_id: CapiAppId,
 ) -> Result<ContractAccount> {
-    let source = render_capi_escrow(source)?;
+    let source = render_capi_escrow(source, capi_asset_id, funds_asset_id, app_id)?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
-fn render_capi_escrow(source: &TealSourceTemplate) -> Result<TealSource> {
-    let escrow_source = render_template(source, CapiEscrowTemplateContext {})?;
+fn render_capi_escrow(
+    source: &TealSourceTemplate,
+    capi_asset_id: CapiAssetId,
+    funds_asset_id: FundsAssetId,
+    app_id: CapiAppId,
+) -> Result<TealSource> {
+    let escrow_source = render_template(
+        source,
+        CapiEscrowTemplateContext {
+            capi_asset_id: capi_asset_id.0.to_string(),
+            funds_asset_id: funds_asset_id.0.to_string(),
+            app_id: app_id.0.to_string(),
+        },
+    )?;
     #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("capi_escrow", escrow_source.clone())?; // debugging
     Ok(escrow_source)
@@ -132,7 +150,11 @@ pub struct SetupCentralEscrowSigned {
 }
 
 #[derive(Serialize)]
-struct CapiEscrowTemplateContext {}
+struct CapiEscrowTemplateContext {
+    capi_asset_id: String,
+    funds_asset_id: String,
+    app_id: String,
+}
 
 #[derive(Serialize)]
 struct SomeContext {
