@@ -60,6 +60,8 @@ pub async fn lock(
 }
 
 pub async fn submit_lock(algod: &Algod, signed: LockSigned) -> Result<TxId> {
+    log::debug!("calling submit lock..");
+
     let txs = vec![
         signed.central_app_call_setup_tx.clone(),
         signed.shares_xfer_tx_signed.clone(),

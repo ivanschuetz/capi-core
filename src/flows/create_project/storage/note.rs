@@ -1,4 +1,5 @@
 use crate::{
+    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_project::{
         create_project::Escrows,
         create_project_specs::CreateProjectSpecs,
@@ -45,12 +46,18 @@ pub async fn base64_note_to_project(
     algod: &Algod,
     escrows: &Escrows,
     note: &str,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Project> {
     let bytes = BASE64.decode(note.as_bytes())?;
-    note_to_project(algod, escrows, &bytes).await
+    note_to_project(algod, escrows, &bytes, capi_deps).await
 }
 
-async fn note_to_project(algod: &Algod, escrows: &Escrows, note: &[u8]) -> Result<Project> {
+async fn note_to_project(
+    algod: &Algod,
+    escrows: &Escrows,
+    note: &[u8],
+    capi_deps: &CapiAssetDaoDeps,
+) -> Result<Project> {
     let payload = note_to_project_payload(note)?;
     if payload.version != 1 {
         return Err(anyhow!(
@@ -67,9 +74,14 @@ async fn note_to_project(algod: &Algod, escrows: &Escrows, note: &[u8]) -> Resul
     let stored_project = hashed_stored_project.obj;
     let stored_project_digest = hashed_stored_project.hash;
 
-    let project =
-        storable_project_to_project(algod, &stored_project, &stored_project_digest, escrows)
-            .await?;
+    let project = storable_project_to_project(
+        algod,
+        &stored_project,
+        &stored_project_digest,
+        escrows,
+        capi_deps,
+    )
+    .await?;
 
     Ok(project)
 }
@@ -133,6 +145,7 @@ async fn storable_project_to_project(
     payload: &ProjectNoteProjectPayload,
     prefix_hash: &HashDigest,
     escrows: &Escrows,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Project> {
     // Render and compile the escrows
     let central_escrow_account_fut = render_and_compile_central_escrow(
@@ -142,8 +155,12 @@ async fn storable_project_to_project(
         payload.funds_asset_id,
         payload.central_app_id,
     );
-    let locking_escrow_account_fut =
-        render_and_compile_locking_escrow(algod, payload.shares_asset_id, &escrows.locking_escrow);
+    let locking_escrow_account_fut = render_and_compile_locking_escrow(
+        algod,
+        payload.shares_asset_id,
+        &escrows.locking_escrow,
+        payload.central_app_id,
+    );
 
     let (central_escrow_account_res, locking_escrow_account_res) =
         join!(central_escrow_account_fut, locking_escrow_account_fut);
@@ -154,6 +171,8 @@ async fn storable_project_to_project(
         algod,
         central_escrow_account.address(),
         &escrows.customer_escrow,
+        &capi_deps.escrow,
+        payload.central_app_id,
     );
 
     let investing_escrow_account_fut = render_and_compile_investing_escrow(
@@ -162,7 +181,9 @@ async fn storable_project_to_project(
         &payload.share_price,
         &payload.funds_asset_id,
         locking_escrow_account.address(),
+        central_escrow_account.address(),
         &escrows.invest_escrow,
+        payload.central_app_id,
     );
 
     let (customer_escrow_account_res, investing_escrow_account_res) =

@@ -63,6 +63,7 @@ pub async fn unlock(
 }
 
 pub async fn submit_unlock(algod: &Algod, signed: UnlockSigned) -> Result<TxId> {
+    log::debug!("calling submit unlock..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
     let txs = vec![signed.central_app_optout_tx, signed.shares_xfer_tx_signed];

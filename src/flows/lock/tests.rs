@@ -69,6 +69,7 @@ mod tests {
             &project_specs(),
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -290,8 +291,10 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-
-        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
 
@@ -306,6 +309,7 @@ mod tests {
             &project_specs(),
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 

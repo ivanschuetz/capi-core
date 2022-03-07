@@ -81,6 +81,7 @@ pub async fn create_and_distribute_funds_asset(algod: &Algod) -> Result<FundsAss
 pub async fn setup_on_chain_deps(algod: &Algod) -> Result<OnChainDeps> {
     let funds_asset_id = create_and_distribute_funds_asset(algod).await?;
     let capi_deps = create_capi_asset_and_deps(algod, funds_asset_id).await?;
+    log::info!("capi_deps: {capi_deps:?}, funds_asset_id: {funds_asset_id:?}");
 
     Ok(OnChainDeps {
         funds_asset_id,
@@ -166,6 +167,7 @@ async fn create_capi_asset_and_deps(
         escrow: *flow_res.escrow.address(),
         escrow_percentage: capi_escrow_percentage(),
         app_id: flow_res.app_id,
+        asset_id: flow_res.asset_id,
     })
 }
 

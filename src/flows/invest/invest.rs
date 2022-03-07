@@ -89,9 +89,9 @@ pub async fn invest_txs(
     )?;
     TxGroup::assign_group_id(vec![
         central_app_investor_setup_tx,
+        receive_shares_asset_tx,
         pay_price_tx,
         shares_optin_tx,
-        receive_shares_asset_tx,
     ])?;
 
     let receive_shares_asset_signed_tx = project
@@ -131,9 +131,9 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
 
     let txs = vec![
         signed.central_app_setup_tx.clone(),
+        signed.shares_xfer_tx.clone(),
         signed.payment_tx.clone(),
         signed.shares_asset_optin_tx.clone(),
-        signed.shares_xfer_tx.clone(),
     ];
 
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();

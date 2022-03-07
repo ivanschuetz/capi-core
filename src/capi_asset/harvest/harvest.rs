@@ -33,7 +33,7 @@ pub async fn harvest(
     log::debug!("Generating capi harvest txs, harvester: {:?}, capi_app_id: {:?}, amount: {:?}, central_escrow: {:?}", harvester, capi_app_id, amount, capi_escrow);
     let params = algod.suggested_transaction_params().await?;
 
-    // Funds transfer from escrow to creator
+    // Funds transfer from escrow to harvester
     let harvest_tx = &mut TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),

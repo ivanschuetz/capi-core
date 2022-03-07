@@ -3,6 +3,7 @@ use super::{
     model::{CreateProjectSigned, CreateProjectToSign, SubmitCreateProjectResult},
 };
 use crate::{
+    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_project::{
         model::Project,
         setup::{
@@ -26,6 +27,7 @@ pub async fn create_project_txs(
     programs: Programs,
     precision: u64,
     central_app_id: u64,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<CreateProjectToSign> {
     log::debug!(
         "Creating project with specs: {:?}, shares_asset_id: {}, precision: {}",
@@ -53,6 +55,8 @@ pub async fn create_project_txs(
         &programs.escrows.customer_escrow,
         &params,
         funds_asset_id,
+        &capi_deps.escrow,
+        central_app_id,
     )
     .await?;
 
@@ -62,6 +66,8 @@ pub async fn create_project_txs(
         &params,
         central_to_sign.escrow.address(),
         customer_to_sign.escrow.address(),
+        shares_asset_id,
+        funds_asset_id,
     )
     .await?;
 
@@ -72,6 +78,7 @@ pub async fn create_project_txs(
         shares_asset_id,
         &creator,
         &params,
+        central_app_id,
     )
     .await?;
     let mut setup_invest_escrow_to_sign = setup_investing_escrow_txs(
@@ -83,7 +90,9 @@ pub async fn create_project_txs(
         &funds_asset_id,
         &creator,
         setup_locking_escrow_to_sign.escrow.address(),
+        central_to_sign.escrow.address(),
         &params,
+        central_app_id,
     )
     .await?;
 
@@ -173,6 +182,7 @@ pub async fn submit_create_project(
 
     // crate::teal::debug_teal_rendered(&signed_txs, "app_central_approval").unwrap();
     // crate::teal::debug_teal_rendered(&signed_txs, "investing_escrow").unwrap();
+    // crate::teal::debug_teal_rendered(&signed_txs, "central_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&signed_txs, "locking_escrow").unwrap();
 
     algod.broadcast_signed_transactions(&signed_txs).await?;

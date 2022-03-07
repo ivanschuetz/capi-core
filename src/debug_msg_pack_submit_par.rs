@@ -3,11 +3,19 @@ use serde::Serialize;
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use std::{convert::TryInto, str::FromStr};
+
     use algonaut::core::Address;
     use anyhow::{Error, Result};
+    use rust_decimal::Decimal;
     use tokio::test;
 
     use crate::{
+        capi_asset::{
+            capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
+            capi_asset_id::CapiAssetId,
+        },
+        decimal_util::AsDecimal,
         dependencies,
         flows::{
             create_project::{
@@ -18,6 +26,7 @@ mod tests {
                     setup_app,
                 },
                 share_amount::ShareAmount,
+                shares_percentage::SharesPercentage,
             },
             drain::drain::{submit_drain_customer_escrow, DrainCustomerEscrowSigned},
             harvest::harvest::{submit_harvest, HarvestSigned},
@@ -44,6 +53,9 @@ mod tests {
         let funds_asset_id = FundsAssetId(6);
         let share_supply = ShareAmount::new(100);
         let investors_share = ShareAmount::new(40);
+        let central_app_id = 123;
+        let capi_app_id = CapiAppId(123);
+        let capi_share = 123u64.as_decimal().try_into()?;
 
         let central_escrow = "J7RHJEAARYDZZ6QUKH4KKICZK64PS4UTJPVLEI3WN5SNU47GHWD4PTOOIQ"
             .parse()
@@ -51,6 +63,16 @@ mod tests {
         let locking_escrow: Address = "XAU2GR4AJTOAESPTO77NIKC72TTIXDNCIP3LI67PFRCWQTN35JD26ENO74"
             .parse()
             .map_err(Error::msg)?;
+        let capi_escrow_address: Address =
+            "AAU2GR4AJTOAESPTO77NIKC72TTIXDNCIP3LI67PFRCWQTN35JD26ENO75"
+                .parse()
+                .map_err(Error::msg)?;
+        // let capi_deps = &CapiAssetDaoDeps {
+        //     escrow: capi_escrow_address,
+        //     escrow_percentage: Decimal::from_str("0.1").unwrap().try_into()?,
+        //     app_id: CapiAppId(123),
+        //     asset_id: CapiAssetId(123),
+        // };
 
         // update rendered teal if needed - since teal was rendered with WASM,
         // it's possible that the saved teal used here is outdated
@@ -61,10 +83,19 @@ mod tests {
             share_supply,
             TESTS_DEFAULT_PRECISION,
             investors_share,
+            &capi_escrow_address,
+            capi_app_id,
+            capi_share,
+            shares_price,
         )?;
 
         let customer_escrow_template = load_teal_template("customer_escrow")?;
-        render_customer_escrow(&central_escrow, &customer_escrow_template)?;
+        render_customer_escrow(
+            &central_escrow,
+            &customer_escrow_template,
+            &capi_escrow_address,
+            central_app_id,
+        )?;
 
         let investing_escrow_template = load_teal_template("investing_escrow")?;
         render_investing_escrow(
@@ -73,6 +104,8 @@ mod tests {
             &shares_price,
             &funds_asset_id,
             &locking_escrow,
+            &central_escrow,
+            central_app_id,
         )?;
 
         // insert msg pack serialized bytes

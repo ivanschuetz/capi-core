@@ -1,6 +1,10 @@
 #pragma version 4
 // int 1
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Identification
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 global GroupSize
 int 3
 ==
@@ -9,7 +13,8 @@ bnz branch_setup
 global GroupSize
 int 2 // central optout + unlock shares
 ==
-bz after_tx_group_access
+bz not_group_size_2
+
 gtxn 0 TypeEnum 
 int appl
 ==
@@ -17,37 +22,106 @@ gtxn 0 NumAppArgs
 int 1
 ==
 &&
-bz after_tx_group_access
+bz not_unlock
 gtxn 0 ApplicationArgs 0
 byte b64 dW5sb2Nr // unlock
 ==
-int CloseOut 
-gtxn 0 OnCompletion // central opt out (TODO app ids?)
-==
-&&
 gtxn 1 TypeEnum // unlock shares
 int axfer
 ==
 &&
-bnz branch_opt_out
-after_tx_group_access:
+bnz branch_unlock
+not_unlock:
 
-global GroupSize
-int 2
-==
-bnz branch_harvest
+b branch_harvest
 
-int 0
-return
+not_group_size_2:
+
+b failure
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Handling
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 branch_setup:
-int 1
+// min balance funding
+gtxn 0 TypeEnum
+int pay
+==
+// escrow optin to capi asset 
+gtxn 1 TypeEnum
+int axfer
+==
+assert
+gtxn 1 XferAsset
+int {capi_asset_id}
+==
+assert
+// escrow optin to funds asset
+gtxn 2 TypeEnum
+int axfer
+==
+assert
+gtxn 2 XferAsset
+int {funds_asset_id}
+==
+assert
+// TODO is it needed / possible to check that txs are sent/received by "this escrow"?
+
 return
 
 branch_harvest:
-int 1
+gtxn 0 TypeEnum // app call
+int appl
+==
+int NoOp 
+gtxn 0 OnCompletion
+==
+assert
+gtxn 0 ApplicationID
+int {app_id}
+==
+assert
+gtxn 1 TypeEnum // harvest
+int axfer
+==
+assert
+gtxn 1 XferAsset
+int {funds_asset_id}
+==
+assert
+// the app caller is the dividend receiver
+gtxn 0 Sender
+gtxn 1 AssetReceiver
+==
+assert
+
 return
 
-branch_opt_out:
-int 1
+branch_unlock:
+gtxn 0 OnCompletion // app opt out
+int CloseOut 
+==
+gtxn 0 ApplicationID
+int {app_id}
+==
+assert
+gtxn 1 TypeEnum // unlock
+int axfer
+==
+assert
+gtxn 1 XferAsset
+int {capi_asset_id}
+==
+assert
+// the app caller is the dividend receiver
+// TODO do we need checks duplicated with the app if we're checking that we're calling the app too
+gtxn 1 AssetReceiver
+gtxn 0 Sender
+==
+assert
+return
+
+failure:
+int 0
 return

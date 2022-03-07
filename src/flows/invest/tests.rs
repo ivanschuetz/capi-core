@@ -41,8 +41,10 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-
-        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let buy_share_amount = ShareAmount::new(10);
@@ -54,6 +56,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -159,7 +162,10 @@ mod tests {
         let creator = creator();
         let investor = investor1();
 
-        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let buy_share_amount = ShareAmount::new(10);
@@ -172,6 +178,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -231,7 +238,10 @@ mod tests {
         let creator = creator();
         let investor = investor1();
 
-        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let lock_amount = ShareAmount::new(10);
@@ -244,6 +254,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -316,7 +327,10 @@ mod tests {
         let creator = creator();
         let investor = investor1();
 
-        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let lock_amount = ShareAmount::new(10);
@@ -329,6 +343,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -401,7 +416,10 @@ mod tests {
         let creator = creator();
         let investor = investor1();
 
-        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let lock_amount1 = ShareAmount::new(10);
@@ -416,6 +434,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -505,6 +524,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -583,6 +603,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -657,7 +678,10 @@ mod tests {
         let indexer = dependencies::indexer_for_tests();
         let creator = creator();
         let investor = investor1();
-        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let buy_share_amount = ShareAmount::new(10);
@@ -669,6 +693,7 @@ mod tests {
             &specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -698,6 +723,7 @@ mod tests {
             &indexer,
             &investor.address(),
             &programs()?.escrows,
+            &capi_deps,
         )
         .await?;
 

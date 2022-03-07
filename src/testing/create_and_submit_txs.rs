@@ -49,6 +49,7 @@ mod test {
 
         let signed_payment = fee_payer.sign_transaction(&pay_fee_tx)?;
         let signed_xfer = xfer_sender.sign_transaction(&xfer_tx)?;
+        log::debug!("Submitting xfer and pay for fee");
         let res = algod
             .broadcast_signed_transactions(&[signed_payment, signed_xfer])
             .await?;
@@ -70,6 +71,7 @@ mod test {
         )
         .build()?;
         let signed = sender.sign_transaction(&tx)?;
+        log::debug!("Submitting xfer");
         let res = algod.broadcast_signed_transaction(&signed).await?;
         wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
         Ok(())
@@ -82,6 +84,7 @@ mod test {
     ) -> Result<()> {
         let tx = optin_to_asset(&algod, &sender.address(), asset_id).await?;
         let signed = sender.sign_transaction(&tx)?;
+        log::debug!("Submitting asset opt in: {asset_id}");
         let res = algod.broadcast_signed_transaction(&signed).await?;
         wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
         Ok(())
@@ -95,6 +98,8 @@ mod test {
     ) -> Result<()> {
         let tx = optin_to_app(params, app_id, sender.address()).await?;
         let signed = sender.sign_transaction(&tx)?;
+        log::debug!("Submitting app opt in: {app_id}");
+        // crate::teal::debug_teal_rendered(&[signed.clone()], "app_capi_approval").unwrap();
         let res = algod.broadcast_signed_transaction(&signed).await?;
         wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
         Ok(())

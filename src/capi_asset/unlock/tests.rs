@@ -36,25 +36,23 @@ mod tests {
         let investor = investor1();
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
-
         let capi_supply = CapiAssetAmount::new(1_000_000_000);
+        let capi_deps =
+            setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
 
         // preconditions
-
-        let setup_res =
-            setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
 
         let investor_assets_amount = CapiAssetAmount::new(1_000);
 
         let params = algod.suggested_transaction_params().await?;
-        optin_to_asset_submit(&algod, &investor, setup_res.asset_id.0).await?;
-        optin_to_app_submit(&algod, &params, &investor, setup_res.app_id.0).await?;
+        optin_to_asset_submit(&algod, &investor, capi_deps.asset_id.0).await?;
+        optin_to_app_submit(&algod, &params, &investor, capi_deps.app_id.0).await?;
         transfer_tokens_submit(
             &algod,
             &params,
             &creator,
             &investor.address(),
-            setup_res.asset_id.0,
+            capi_deps.asset_id.0,
             investor_assets_amount.val(),
         )
         .await?;
@@ -65,9 +63,9 @@ mod tests {
             &algod,
             &investor,
             investor_assets_amount,
-            setup_res.asset_id,
-            setup_res.app_id,
-            &setup_res.escrow,
+            capi_deps.asset_id,
+            capi_deps.app_id,
+            &capi_deps.escrow.address(),
         )
         .await?;
 
@@ -75,11 +73,11 @@ mod tests {
         test_shares_locked(
             &algod,
             &investor.address(),
-            setup_res.asset_id,
-            setup_res.app_id,
+            capi_deps.asset_id,
+            capi_deps.app_id,
             investor_assets_amount,
             CapiAssetAmount::new(0), // the investor locked everything
-            setup_res.escrow.address(),
+            &capi_deps.escrow.address(),
         )
         .await?;
 
@@ -88,9 +86,9 @@ mod tests {
             &algod,
             &investor,
             investor_assets_amount,
-            setup_res.asset_id,
-            setup_res.app_id,
-            &setup_res.escrow,
+            capi_deps.asset_id,
+            capi_deps.app_id,
+            &capi_deps.escrow,
         )
         .await?;
 
@@ -102,7 +100,7 @@ mod tests {
         let investor_assets = &investor_infos.assets;
         // funds asset + shares asset
         assert_eq!(2, investor_assets.len());
-        let asset_holding = find_asset_holding_or_err(&investor_assets, setup_res.asset_id.0)?;
+        let asset_holding = find_asset_holding_or_err(&investor_assets, capi_deps.asset_id.0)?;
         assert_eq!(
             investor_assets_amount,
             CapiAssetAmount::new(asset_holding.amount)
@@ -111,17 +109,17 @@ mod tests {
         // escrow lost the assets
 
         let locking_escrow_infos = algod
-            .account_information(setup_res.escrow.address())
+            .account_information(capi_deps.escrow.address())
             .await?;
         let locking_escrow_assets = locking_escrow_infos.assets;
         assert_eq!(2, locking_escrow_assets.len()); // opted in to shares and capi token
         let capi_asset_holdings =
-            asset_holdings(&algod, setup_res.escrow.address(), setup_res.asset_id.0).await?;
+            asset_holdings(&algod, capi_deps.escrow.address(), capi_deps.asset_id.0).await?;
         assert_eq!(0, capi_asset_holdings.0);
 
         // retrieving local state fails, because the investor is opted out
 
-        let local_state_res = capi_app_investor_state_from_acc(&investor_infos, setup_res.app_id);
+        let local_state_res = capi_app_investor_state_from_acc(&investor_infos, capi_deps.app_id);
         assert!(local_state_res.is_err());
 
         Ok(())
@@ -173,7 +171,7 @@ mod tests {
             investor_assets_amount,
             setup_res.asset_id,
             setup_res.app_id,
-            &setup_res.escrow,
+            &setup_res.escrow.address(),
         )
         .await?;
 

@@ -40,7 +40,15 @@ pub async fn harvest_precs(
     precision: u64,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<HarvestTestPrecsRes> {
-    let project = create_project_flow(&algod, &creator, &specs, funds_asset_id, precision).await?;
+    let project = create_project_flow(
+        &algod,
+        &creator,
+        &specs,
+        funds_asset_id,
+        precision,
+        capi_deps,
+    )
+    .await?;
 
     // investor buys shares: this can be called after draining as well (without affecting test results)
     // the only order required for this is draining->harvesting, obviously harvesting has to be executed after draining (if it's to harvest the drained funds)

@@ -33,8 +33,20 @@ pub async fn drain_customer_escrow(
 
     let params = algod.suggested_transaction_params().await?;
 
-    let app_call_tx = &mut drain_app_call_tx(central_app_id, &params, drainer)?;
-    let capi_app_call_tx = &mut drain_capi_app_call_tx(capi_deps.app_id, &params, drainer)?;
+    let app_call_tx = &mut drain_app_call_tx(
+        central_app_id,
+        &params,
+        drainer,
+        &customer_escrow.address(),
+        funds_asset_id,
+    )?;
+    let capi_app_call_tx = &mut drain_capi_app_call_tx(
+        capi_deps.app_id,
+        &params,
+        drainer,
+        &customer_escrow.address(),
+        funds_asset_id,
+    )?;
 
     let drain_tx = &mut TxnBuilder::with_fee(
         &params,
@@ -64,6 +76,7 @@ pub async fn drain_customer_escrow(
 
     app_call_tx.fee = calculate_total_fee(&params, &[app_call_tx, drain_tx, capi_share_tx])?;
     TxGroup::assign_group_id(vec![app_call_tx, capi_app_call_tx, drain_tx, capi_share_tx])?;
+    // TxGroup::assign_group_id(vec![capi_app_call_tx, app_call_tx, drain_tx, capi_share_tx])?;
 
     let signed_drain_tx = customer_escrow.sign(drain_tx, vec![])?;
     let signed_capi_share_tx = customer_escrow.sign(capi_share_tx, vec![])?;
@@ -126,10 +139,10 @@ fn calculate_dao_and_capi_escrow_xfer_amounts(
     amount_to_drain: FundsAmount,
     capi_percentage: SharesPercentage,
 ) -> Result<DaoAndCapiDrainAmounts> {
-    // Take cut for $capi holders. Note rounding: it will be variably favorable to DAO or Capi investors.
+    // Take cut for $capi holders. Note floor: to match TEAL truncated division https://developer.algorand.org/docs/get-details/dapps/avm/teal/opcodes/#_2
     let amount_for_capi_holders =
-        (amount_to_drain.as_decimal() * capi_percentage.value()).round().to_u64().ok_or(anyhow!(
-            "Invalid state: amount_for_capi_holders was rounded and should be always convertible to u64"
+        (amount_to_drain.as_decimal() * capi_percentage.value()).floor().to_u64().ok_or(anyhow!(
+            "Invalid state: amount_for_capi_holders was floored and should be always convertible to u64"
         ))?;
 
     Ok(DaoAndCapiDrainAmounts {
@@ -142,8 +155,17 @@ pub fn drain_app_call_tx(
     app_id: u64,
     params: &SuggestedTransactionParams,
     sender: &Address,
+    customer_escrow: &Address,
+    funds_asset_id: FundsAssetId,
 ) -> Result<Transaction> {
-    let tx = TxnBuilder::with(params, CallApplication::new(*sender, app_id).build()).build()?;
+    let tx = TxnBuilder::with(
+        params,
+        CallApplication::new(*sender, app_id)
+            .foreign_assets(vec![funds_asset_id.0])
+            .accounts(vec![*customer_escrow])
+            .build(),
+    )
+    .build()?;
     Ok(tx)
 }
 
@@ -151,8 +173,20 @@ pub fn drain_capi_app_call_tx(
     app_id: CapiAppId,
     params: &SuggestedTransactionParams,
     sender: &Address,
+    customer_escrow: &Address,
+    funds_asset_id: FundsAssetId,
 ) -> Result<Transaction> {
-    let tx = TxnBuilder::with(params, CallApplication::new(*sender, app_id.0).build()).build()?;
+    // NOTE that to debug this, the capi transaction has to be moved first in the group - otherwise we get invalid asset id.
+    // (TEAL has to be adjusted accordingly)
+    // Doesn't make sense to move it permanently, because we get then the same problem with the DAO app call.
+    let tx = TxnBuilder::with(
+        params,
+        CallApplication::new(*sender, app_id.0)
+            .foreign_assets(vec![funds_asset_id.0])
+            .accounts(vec![*customer_escrow])
+            .build(),
+    )
+    .build()?;
     Ok(tx)
 }
 
@@ -175,8 +209,9 @@ pub async fn submit_drain_customer_escrow(
 
     // crate::teal::debug_teal_rendered(
     //     &[
-    //         signed.app_call_tx_signed.clone(),
+    //         // NOTE: the tx order in the group has to be inverted, so capi app is first (to debug)
     //         signed.capi_app_call_tx_signed.clone(),
+    //         signed.app_call_tx_signed.clone(),
     //         signed.drain_tx.clone(),
     //         signed.capi_share_tx.clone(),
     //     ],
@@ -199,6 +234,8 @@ pub async fn submit_drain_customer_escrow(
         .broadcast_signed_transactions(&[
             signed.app_call_tx_signed.clone(),
             signed.capi_app_call_tx_signed.clone(),
+            // signed.capi_app_call_tx_signed.clone(),
+            // signed.app_call_tx_signed.clone(),
             signed.drain_tx.clone(),
             signed.capi_share_tx.clone(),
         ])

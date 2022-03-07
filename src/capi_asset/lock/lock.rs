@@ -9,8 +9,8 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     transaction::{
-        builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup,
-        SignedTransaction, Transaction, TransferAsset, TxnBuilder,
+        builder::CallApplication, tx_group::TxGroup, SignedTransaction, Transaction, TransferAsset,
+        TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -26,7 +26,7 @@ pub async fn lock_capi_assets(
     asset_amount: CapiAssetAmount,
     capi_asset_id: CapiAssetId,
     capi_app_id: CapiAppId,
-    locking_escrow: &ContractAccount,
+    locking_escrow: &Address,
 ) -> Result<LockToSign> {
     let params = algod.suggested_transaction_params().await?;
 
@@ -44,7 +44,7 @@ pub async fn lock_capi_assets(
             *investor,
             capi_asset_id.0,
             asset_amount.val(),
-            *locking_escrow.address(),
+            *locking_escrow,
         )
         .build(),
     )
@@ -60,11 +60,13 @@ pub async fn lock_capi_assets(
 }
 
 pub async fn submit_capi_assets_lock(algod: &Algod, signed: LockSigned) -> Result<TxId> {
+    log::debug!("Submit capi asset lock..");
     let txs = vec![
         signed.capi_app_call_setup_tx.clone(),
         signed.shares_xfer_tx_signed.clone(),
     ];
     // crate::teal::debug_teal_rendered(&txs, "app_capi_approval").unwrap();
+
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Lock tx id: {:?}", res.tx_id);
     Ok(res.tx_id.parse()?)

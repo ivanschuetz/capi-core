@@ -14,7 +14,7 @@ use crate::{
         },
         withdraw::note::base64_withdrawal_note_to_withdrawal_description,
     },
-    funds::FundsAmount,
+    funds::FundsAmount, capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
 };
 use anyhow::{anyhow, Error, Result};
 
@@ -24,10 +24,11 @@ pub async fn withdrawals(
     creator: &Address,
     project_id: &ProjectId,
     escrows: &Escrows,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Withdrawal>> {
     log::debug!("Querying withdrawals by: {:?}", creator);
 
-    let project = load_project(algod, indexer, project_id, escrows).await?;
+    let project = load_project(algod, indexer, project_id, escrows, capi_deps).await?;
 
     let query = QueryAccountTransaction {
         // For now no prefix filtering

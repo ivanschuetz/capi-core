@@ -7,8 +7,10 @@ mod tests {
             central_app_state::central_investor_state,
         },
         testing::{
-            flow::create_project_flow::create_project_flow, network_test_util::setup_on_chain_deps,
-            test_data::project_specs, TESTS_DEFAULT_PRECISION,
+            flow::create_project_flow::create_project_flow,
+            network_test_util::{setup_on_chain_deps, OnChainDeps},
+            test_data::project_specs,
+            TESTS_DEFAULT_PRECISION,
         },
         testing::{network_test_util::test_init, test_data::creator},
     };
@@ -25,14 +27,24 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
 
-        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // UI
         let specs = project_specs();
 
         let precision = TESTS_DEFAULT_PRECISION;
-        let project =
-            create_project_flow(&algod, &creator, &specs, funds_asset_id, precision).await?;
+        let project = create_project_flow(
+            &algod,
+            &creator,
+            &specs,
+            funds_asset_id,
+            precision,
+            &capi_deps,
+        )
+        .await?;
 
         // UI
         log::debug!("Submitted create project txs, project: {:?}", project);

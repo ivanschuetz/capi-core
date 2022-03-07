@@ -24,24 +24,31 @@ async fn create_locking_escrow(
     algod: &Algod,
     shares_asset_id: u64,
     source: &TealSourceTemplate,
+    central_app_id: u64,
 ) -> Result<ContractAccount> {
-    render_and_compile_locking_escrow(algod, shares_asset_id, source).await
+    render_and_compile_locking_escrow(algod, shares_asset_id, source, central_app_id).await
 }
 
 pub async fn render_and_compile_locking_escrow(
     algod: &Algod,
     shares_asset_id: u64,
     source: &TealSourceTemplate,
+    central_app_id: u64,
 ) -> Result<ContractAccount> {
-    let source = render_locking_escrow(shares_asset_id, source)?;
+    let source = render_locking_escrow(shares_asset_id, source, central_app_id)?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
-fn render_locking_escrow(shares_asset_id: u64, source: &TealSourceTemplate) -> Result<TealSource> {
+fn render_locking_escrow(
+    shares_asset_id: u64,
+    source: &TealSourceTemplate,
+    central_app_id: u64,
+) -> Result<TealSource> {
     let escrow_source = render_template(
         source,
         EditTemplateContext {
             shares_asset_id: shares_asset_id.to_string(),
+            app_id: central_app_id.to_string(),
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -55,6 +62,7 @@ pub async fn setup_locking_escrow_txs(
     shares_asset_id: u64,
     creator: &Address,
     params: &SuggestedTransactionParams,
+    central_app_id: u64,
 ) -> Result<SetupLockingEscrowToSign> {
     log::debug!(
         "Setting up escrow with asset id: {}, creator: {:?}",
@@ -62,7 +70,7 @@ pub async fn setup_locking_escrow_txs(
         creator
     );
 
-    let escrow = create_locking_escrow(algod, shares_asset_id, source).await?;
+    let escrow = create_locking_escrow(algod, shares_asset_id, source, central_app_id).await?;
     log::debug!("Generated locking escrow address: {:?}", *escrow.address());
 
     // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
@@ -124,4 +132,5 @@ pub struct SubmitSetupLockingEscrowRes {
 #[derive(Serialize)]
 struct EditTemplateContext {
     shares_asset_id: String,
+    app_id: String,
 }

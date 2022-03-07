@@ -52,6 +52,7 @@ mod tests {
             &project_specs(),
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
         let pay_and_drain_amount = FundsAmount::new(10 * 1_000_000);
@@ -113,8 +114,10 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
         let investor = investor1();
-
-        let funds_asset_id = setup_on_chain_deps(&algod).await?.funds_asset_id;
+        let OnChainDeps {
+            funds_asset_id,
+            capi_deps,
+        } = setup_on_chain_deps(&algod).await?;
 
         // precs
 
@@ -131,6 +134,7 @@ mod tests {
             &project_specs,
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
 
@@ -226,6 +230,7 @@ mod tests {
             &project_specs(),
             funds_asset_id,
             TESTS_DEFAULT_PRECISION,
+            &capi_deps,
         )
         .await?;
         let pay_and_drain_amount = FundsAmount::new(10 * 1_000_000);

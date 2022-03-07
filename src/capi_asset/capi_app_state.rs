@@ -52,6 +52,7 @@ pub fn capi_app_investor_state_from_acc(
     app_id: CapiAppId,
 ) -> Result<CapiAppHolderState, ApplicationLocalStateError<'static>> {
     let local_state = local_state_from_account(account, app_id.0)?;
+    log::debug!("Capi investor local state: {local_state:?}");
     capi_app_investor_state_from_local_state(&local_state)
         .map_err(|e| ApplicationLocalStateError::Msg(e.to_string()))
 }

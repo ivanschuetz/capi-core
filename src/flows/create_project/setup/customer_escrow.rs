@@ -28,8 +28,17 @@ pub async fn setup_customer_escrow(
     source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
     funds_asset_id: FundsAssetId,
+    capi_escrow_address: &Address,
+    central_app_id: u64,
 ) -> Result<SetupCustomerEscrowToSign> {
-    let escrow = render_and_compile_customer_escrow(algod, central_address, source).await?;
+    let escrow = render_and_compile_customer_escrow(
+        algod,
+        central_address,
+        source,
+        capi_escrow_address,
+        central_app_id,
+    )
+    .await?;
 
     let mut optin_to_funds_asset_tx = TxnBuilder::with_fee(
         &params,
@@ -57,19 +66,26 @@ pub async fn render_and_compile_customer_escrow(
     algod: &Algod,
     central_address: &Address,
     source: &TealSourceTemplate,
+    capi_escrow_address: &Address,
+    central_app_id: u64,
 ) -> Result<ContractAccount> {
-    let source = render_customer_escrow(central_address, source)?;
+    let source =
+        render_customer_escrow(central_address, source, capi_escrow_address, central_app_id)?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
 pub fn render_customer_escrow(
     central_address: &Address,
     source: &TealSourceTemplate,
+    capi_escrow_address: &Address,
+    central_app_id: u64,
 ) -> Result<TealSource> {
     let escrow_source = render_template(
         source,
         CustomerEscrowTemplateContext {
             central_address: central_address.to_string(),
+            capi_escrow_address: capi_escrow_address.to_string(),
+            app_id: central_app_id.to_string(),
         },
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -114,4 +130,6 @@ pub struct SetupCustomerEscrowSigned {
 #[derive(Serialize)]
 struct CustomerEscrowTemplateContext {
     central_address: String,
+    capi_escrow_address: String,
+    app_id: String,
 }

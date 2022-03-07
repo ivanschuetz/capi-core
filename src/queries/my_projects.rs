@@ -10,6 +10,7 @@ use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 
 use crate::{
+    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     date_util::timestamp_seconds_to_date,
     flows::create_project::{
         create_project::Escrows,
@@ -45,9 +46,11 @@ pub async fn my_projects(
     indexer: &Indexer,
     address: &Address,
     escrows: &Escrows,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<MyStoredProject>> {
-    let created = my_created_projects(algod, indexer, address, escrows).await?;
-    let invested = my_current_invested_projects(algod, indexer, address, escrows).await?;
+    let created = my_created_projects(algod, indexer, address, escrows, capi_deps).await?;
+    let invested =
+        my_current_invested_projects(algod, indexer, address, escrows, capi_deps).await?;
 
     let created_map: HashMap<ProjectId, StoredProject> = created
         .iter()
@@ -94,6 +97,7 @@ pub async fn my_current_invested_projects(
     indexer: &Indexer,
     address: &Address,
     escrows: &Escrows,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<StoredProject>> {
     log::debug!("Retrieving my project from: {:?}", address);
 
@@ -113,7 +117,7 @@ pub async fn my_current_invested_projects(
     for project_id in my_project_ids {
         // If there's a project id and there are no bugs, there should *always* be a project - as the ids are on-chain tx ids
         // and these tx should have the properly formatted project data in the note field
-        let project = load_project(algod, indexer, &project_id, escrows).await?;
+        let project = load_project(algod, indexer, &project_id, escrows, capi_deps).await?;
         my_projects.push(project);
     }
 
@@ -131,6 +135,7 @@ pub async fn my_created_projects(
     indexer: &Indexer,
     address: &Address,
     escrows: &Escrows,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<StoredProject>> {
     log::debug!("Retrieving my project from: {:?}", address);
 
@@ -149,7 +154,7 @@ pub async fn my_created_projects(
         if tx.payment_transaction.is_some() {
             if let Some(note) = &tx.note {
                 if !note.is_empty() {
-                    match base64_note_to_project(algod, escrows, note).await {
+                    match base64_note_to_project(algod, escrows, note, capi_deps).await {
                         Ok(project) => {
                             // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
                             // Unclear when it's None. For now we just reject it.
