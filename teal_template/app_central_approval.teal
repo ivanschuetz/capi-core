@@ -334,6 +334,12 @@ gtxn 2 TypeEnum // drain
 int axfer
 ==
 assert
+gtxn 2 XferAsset
+byte "FundsAssetId"
+app_global_get
+btoi
+==
+assert
 gtxn 3 TypeEnum // capi share
 int axfer
 ==
@@ -355,6 +361,43 @@ addr {capi_escrow_address}
 ==
 assert
 // TODO check capi share and drain amount, based on customer escrow's holdings (gtxn 2 sender)
+
+////////////////////////////////////////
+// check that capi fee is correct
+////////////////////////////////////////
+// get customer escrow funds
+// NOTE that the account and asset have to be passed as account / foreign assets to the app call for this to work.
+// we don't need to access the tx Accounts / Assets here - it's implied.
+gtxn 2 Sender
+gtxn 2 XferAsset
+asset_holding_get AssetBalance
+pop // ignore "did (asset) exist" flag - we expect the customer escrow to always know the funds asset (TODO double check)
+dup // leave one (customer escrow balance) on the stack for sanity check after
+
+// calculate capi share
+int {precision}
+*
+int {capi_share} // already multiplied with precision
+*
+int {precision_square} // revert mult
+/
+dup // leave one (capi share) on the stack for sanity check after
+
+// compare calculated share with xfer
+gtxn 3 AssetAmount
+==
+////////////////////////////////////////
+assert
+
+////////////////////////////////////////
+// sanity check: amount sent to central = customer escrow balance - capi fee
+////////////////////////////////////////
+- // customer escrow balance - share
+gtxn 2 AssetAmount // amount sent to central
+==
+////////////////////////////////////////
+assert
+
 // TODO allow only to drain everything at once? - no particular reason but there's no reason to drain only a part 
 // other than concurrent issues - e.g. receiving a payment after fetching the balance on the frontend, which should be not so frequent, and the tx can be repeated
 

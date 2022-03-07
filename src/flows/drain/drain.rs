@@ -33,7 +33,13 @@ pub async fn drain_customer_escrow(
 
     let params = algod.suggested_transaction_params().await?;
 
-    let app_call_tx = &mut drain_app_call_tx(central_app_id, &params, drainer)?;
+    let app_call_tx = &mut drain_app_call_tx(
+        central_app_id,
+        &params,
+        drainer,
+        &customer_escrow.address(),
+        funds_asset_id,
+    )?;
     let capi_app_call_tx = &mut drain_capi_app_call_tx(
         capi_deps.app_id,
         &params,
@@ -133,10 +139,10 @@ fn calculate_dao_and_capi_escrow_xfer_amounts(
     amount_to_drain: FundsAmount,
     capi_percentage: SharesPercentage,
 ) -> Result<DaoAndCapiDrainAmounts> {
-    // Take cut for $capi holders. Note rounding: it will be variably favorable to DAO or Capi investors.
+    // Take cut for $capi holders. Note floor: to match TEAL truncated division https://developer.algorand.org/docs/get-details/dapps/avm/teal/opcodes/#_2
     let amount_for_capi_holders =
-        (amount_to_drain.as_decimal() * capi_percentage.value()).round().to_u64().ok_or(anyhow!(
-            "Invalid state: amount_for_capi_holders was rounded and should be always convertible to u64"
+        (amount_to_drain.as_decimal() * capi_percentage.value()).floor().to_u64().ok_or(anyhow!(
+            "Invalid state: amount_for_capi_holders was floored and should be always convertible to u64"
         ))?;
 
     Ok(DaoAndCapiDrainAmounts {
@@ -149,8 +155,17 @@ pub fn drain_app_call_tx(
     app_id: u64,
     params: &SuggestedTransactionParams,
     sender: &Address,
+    customer_escrow: &Address,
+    funds_asset_id: FundsAssetId,
 ) -> Result<Transaction> {
-    let tx = TxnBuilder::with(params, CallApplication::new(*sender, app_id).build()).build()?;
+    let tx = TxnBuilder::with(
+        params,
+        CallApplication::new(*sender, app_id)
+            .foreign_assets(vec![funds_asset_id.0])
+            .accounts(vec![*customer_escrow])
+            .build(),
+    )
+    .build()?;
     Ok(tx)
 }
 

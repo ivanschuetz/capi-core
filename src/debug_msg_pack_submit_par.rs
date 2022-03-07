@@ -15,6 +15,7 @@ mod tests {
             capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
             capi_asset_id::CapiAssetId,
         },
+        decimal_util::AsDecimal,
         dependencies,
         flows::{
             create_project::{
@@ -25,6 +26,7 @@ mod tests {
                     setup_app,
                 },
                 share_amount::ShareAmount,
+                shares_percentage::SharesPercentage,
             },
             drain::drain::{submit_drain_customer_escrow, DrainCustomerEscrowSigned},
             harvest::harvest::{submit_harvest, HarvestSigned},
@@ -53,6 +55,7 @@ mod tests {
         let investors_share = ShareAmount::new(40);
         let central_app_id = 123;
         let capi_app_id = CapiAppId(123);
+        let capi_share = 123u64.as_decimal().try_into()?;
 
         let central_escrow = "J7RHJEAARYDZZ6QUKH4KKICZK64PS4UTJPVLEI3WN5SNU47GHWD4PTOOIQ"
             .parse()
@@ -82,6 +85,7 @@ mod tests {
             investors_share,
             &capi_escrow_address,
             capi_app_id,
+            capi_share,
             shares_price,
         )?;
 
