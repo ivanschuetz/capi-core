@@ -12,11 +12,13 @@ use crate::flows::{
     },
 };
 #[cfg(test)]
-use crate::funds::{FundsAmount, FundsAssetId};
+use crate::funds::FundsAmount;
 #[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
 #[cfg(test)]
 use crate::state::account_state::funds_holdings;
+#[cfg(test)]
+use crate::testing::network_test_util::TestDeps;
 #[cfg(test)]
 use algonaut::{algod::v2::Algod, transaction::account::Account};
 #[cfg(test)]
@@ -31,7 +33,6 @@ pub async fn invests_optins_flow(
     // app optins (have to happen before invest_txs, which initializes investor's local state)
     let app_optin_tx = invest_or_locking_app_optin_tx(algod, project, &investor.address()).await?;
 
-    // UI
     let app_optin_signed_tx = investor.sign_transaction(&app_optin_tx)?;
 
     let app_optin_tx_id =
@@ -45,19 +46,20 @@ pub async fn invests_optins_flow(
 // Resets the network
 #[cfg(test)]
 pub async fn invests_flow(
-    algod: &Algod,
+    td: &TestDeps,
     investor: &Account,
     buy_share_amount: ShareAmount,
-    funds_asset_id: FundsAssetId,
     project: &Project,
     project_id: &ProjectId,
 ) -> Result<InvestInProjectTestFlowRes> {
+    let algod = &td.algod;
+
     // remember initial investor's funds
     let investor_initial_amount =
-        funds_holdings(algod, &investor.address(), funds_asset_id).await?;
+        funds_holdings(algod, &investor.address(), td.funds_asset_id).await?;
     // remember initial central escrow's funds
     let central_escrow_initial_amount =
-        funds_holdings(algod, project.central_escrow.address(), funds_asset_id).await?;
+        funds_holdings(algod, project.central_escrow.address(), td.funds_asset_id).await?;
 
     let to_sign = invest_txs(
         &algod,
@@ -67,13 +69,12 @@ pub async fn invests_flow(
         project.central_app_id,
         project.shares_asset_id,
         buy_share_amount,
-        funds_asset_id,
+        td.funds_asset_id,
         project.specs.share_price,
         project_id,
     )
     .await?;
 
-    // UI
     let signed_central_app_setup_tx = investor.sign_transaction(&to_sign.central_app_setup_tx)?;
     let signed_shares_optin_tx = investor.sign_transaction(&to_sign.shares_asset_optin_tx)?;
     let signed_payment_tx = investor.sign_transaction(&to_sign.payment_tx)?;

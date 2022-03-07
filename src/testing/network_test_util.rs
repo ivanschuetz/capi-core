@@ -1,4 +1,10 @@
 #[cfg(test)]
+use crate::capi_asset::capi_app_id::CapiAppId;
+#[cfg(test)]
+use crate::capi_asset::capi_asset_id::CapiAssetId;
+#[cfg(test)]
+use crate::capi_asset::create::test_flow::test_flow::CapiAssetFlowRes;
+#[cfg(test)]
 use crate::capi_asset::{
     capi_asset_dao_specs::CapiAssetDaoDeps, capi_asset_id::CapiAssetAmount,
     create::test_flow::test_flow::setup_capi_asset_flow,
@@ -6,11 +12,18 @@ use crate::capi_asset::{
 #[cfg(test)]
 use crate::dependencies::algod_for_net;
 #[cfg(test)]
+use crate::flows::create_project::create_project::Programs;
+#[cfg(test)]
+use crate::flows::create_project::create_project_specs::CreateProjectSpecs;
+#[cfg(test)]
 use crate::network_util::wait_for_pending_transaction;
+#[cfg(test)]
+use algonaut::transaction::contract_account::ContractAccount;
 #[cfg(test)]
 use algonaut::{
     algod::v2::Algod,
     core::SuggestedTransactionParams,
+    indexer::v2::Indexer,
     transaction::{
         account::Account, tx_group::TxGroup, AcceptAsset, CreateAsset, TransferAsset, TxnBuilder,
     },
@@ -26,11 +39,14 @@ use std::str::FromStr;
 use tokio::test;
 #[cfg(test)]
 use {
-    crate::dependencies::{network, Network},
+    super::flow::create_project_flow::programs,
+    super::test_data::project_specs,
+    crate::dependencies::{self, network, Network},
     crate::flows::create_project::shares_percentage::SharesPercentage,
     crate::funds::{FundsAmount, FundsAssetId},
     crate::logger::init_logger,
     crate::testing::test_data::{capi_owner, creator, customer, investor1, investor2},
+    crate::testing::TESTS_DEFAULT_PRECISION,
     anyhow::{anyhow, Result},
     dotenv::dotenv,
     std::env,
@@ -41,7 +57,78 @@ use {
     },
 };
 
+#[cfg(test)]
+#[derive(Debug)]
+pub struct TestDeps {
+    // pub algod: &'a Algod,
+    // pub indexer: &'a Indexer,
+    pub algod: Algod,
+    pub indexer: Indexer,
+
+    pub creator: Account,
+    pub investor1: Account,
+    pub investor2: Account,
+    pub customer: Account,
+    pub specs: CreateProjectSpecs,
+
+    pub funds_asset_id: FundsAssetId,
+
+    pub capi_owner: Account,
+    pub capi_escrow: ContractAccount,
+    pub capi_escrow_percentage: SharesPercentage,
+    pub capi_app_id: CapiAppId,
+    pub capi_asset_id: CapiAssetId,
+
+    pub precision: u64,
+
+    pub programs: Programs,
+}
+
+#[cfg(test)]
+impl TestDeps {
+    pub fn dao_deps(&self) -> CapiAssetDaoDeps {
+        CapiAssetDaoDeps {
+            escrow: *self.capi_escrow.address(),
+            escrow_percentage: self.capi_escrow_percentage,
+            app_id: self.capi_app_id,
+            asset_id: self.capi_asset_id,
+        }
+    }
+}
+
 /// Common tests initialization
+#[cfg(test)]
+pub async fn test_dao_init() -> Result<TestDeps> {
+    test_init()?;
+
+    let algod = dependencies::algod_for_tests();
+    let capi_owner = capi_owner();
+
+    let OnChainDeps {
+        funds_asset_id,
+        capi_flow_res,
+    } = setup_on_chain_deps(&algod, &capi_owner).await?;
+
+    Ok(TestDeps {
+        algod,
+        indexer: dependencies::indexer_for_tests(),
+        creator: creator(),
+        investor1: investor1(),
+        investor2: investor2(),
+        customer: customer(),
+        specs: project_specs(),
+        funds_asset_id,
+        capi_owner,
+        precision: TESTS_DEFAULT_PRECISION,
+        // unwrap: safe + tests-only
+        programs: programs().unwrap(),
+        capi_escrow: capi_flow_res.escrow,
+        capi_escrow_percentage: capi_escrow_percentage(),
+        capi_app_id: capi_flow_res.app_id,
+        capi_asset_id: capi_flow_res.asset_id,
+    })
+}
+
 #[cfg(test)]
 pub fn test_init() -> Result<()> {
     // load vars in .env file
@@ -78,14 +165,14 @@ pub async fn create_and_distribute_funds_asset(algod: &Algod) -> Result<FundsAss
 
 /// Creates the funds asset and capi-token related dependencies
 #[cfg(test)]
-pub async fn setup_on_chain_deps(algod: &Algod) -> Result<OnChainDeps> {
+pub async fn setup_on_chain_deps(algod: &Algod, capi_owner: &Account) -> Result<OnChainDeps> {
     let funds_asset_id = create_and_distribute_funds_asset(algod).await?;
-    let capi_deps = create_capi_asset_and_deps(algod, funds_asset_id).await?;
-    log::info!("capi_deps: {capi_deps:?}, funds_asset_id: {funds_asset_id:?}");
+    let capi_flow_res = create_capi_asset_and_deps(algod, capi_owner, funds_asset_id).await?;
+    log::info!("capi_deps: {capi_flow_res:?}, funds_asset_id: {funds_asset_id:?}");
 
     Ok(OnChainDeps {
         funds_asset_id,
-        capi_deps,
+        capi_flow_res,
     })
 }
 
@@ -93,7 +180,7 @@ pub async fn setup_on_chain_deps(algod: &Algod) -> Result<OnChainDeps> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OnChainDeps {
     pub funds_asset_id: FundsAssetId,
-    pub capi_deps: CapiAssetDaoDeps,
+    pub capi_flow_res: CapiAssetFlowRes,
 }
 
 #[cfg(test)]
@@ -156,19 +243,11 @@ async fn fund_accounts_with_local_funds_asset(
 #[cfg(test)]
 async fn create_capi_asset_and_deps(
     algod: &Algod,
+    capi_owner: &Account,
     funds_asset_id: FundsAssetId,
-) -> Result<CapiAssetDaoDeps> {
-    let capi_owner = capi_owner();
+) -> Result<CapiAssetFlowRes> {
     let capi_supply = CapiAssetAmount::new(1_000_000_000);
-
-    let flow_res = setup_capi_asset_flow(&algod, &capi_owner, capi_supply, funds_asset_id).await?;
-
-    Ok(CapiAssetDaoDeps {
-        escrow: *flow_res.escrow.address(),
-        escrow_percentage: capi_escrow_percentage(),
-        app_id: flow_res.app_id,
-        asset_id: flow_res.asset_id,
-    })
+    Ok(setup_capi_asset_flow(&algod, &capi_owner, capi_supply, funds_asset_id).await?)
 }
 
 #[cfg(test)]
@@ -275,7 +354,9 @@ async fn reset_and_fund_testnet() -> Result<()> {
 #[cfg(test)]
 async fn reset_and_fund_network(net: &Network) -> Result<()> {
     let algod = algod_for_net(net);
-    let deps = setup_on_chain_deps(&algod).await?;
+    let capi_owner = capi_owner();
+
+    let deps = setup_on_chain_deps(&algod, &capi_owner).await?;
     log::info!("Capi deps: {deps:?}");
 
     Ok(())

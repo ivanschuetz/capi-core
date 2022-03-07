@@ -1,6 +1,4 @@
 #[cfg(test)]
-use crate::capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps;
-#[cfg(test)]
 use crate::flows::create_project::storage::load_project::ProjectId;
 #[cfg(test)]
 use crate::flows::create_project::storage::save_project::{
@@ -9,20 +7,16 @@ use crate::flows::create_project::storage::save_project::{
 #[cfg(test)]
 use crate::flows::create_project::{
     create_project::{create_project_txs, submit_create_project, CapiPrograms},
-    create_project_specs::CreateProjectSpecs,
     model::{CreateProjectSigned, Project},
     setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
 };
-#[cfg(test)]
-use crate::funds::FundsAssetId;
 #[cfg(test)]
 use crate::{
     flows::create_project::create_project::{Escrows, Programs},
     network_util::wait_for_pending_transaction,
     teal::{load_teal, load_teal_template},
+    testing::network_test_util::TestDeps,
 };
-#[cfg(test)]
-use algonaut::{algod::v2::Algod, transaction::account::Account};
 #[cfg(test)]
 use anyhow::{anyhow, Result};
 
@@ -34,30 +28,26 @@ pub struct CreateProjectFlowRes {
 }
 
 #[cfg(test)]
-pub async fn create_project_flow(
-    algod: &Algod,
-    creator: &Account,
-    specs: &CreateProjectSpecs,
-    funds_asset_id: FundsAssetId,
-    precision: u64,
-    capi_deps: &CapiAssetDaoDeps,
-) -> Result<CreateProjectFlowRes> {
-    let programs = programs()?;
+pub async fn create_project_flow(td: &TestDeps) -> Result<CreateProjectFlowRes> {
+    let algod = &td.algod;
 
     // Create asset first: id needed in app template
     let create_assets_txs = create_assets(
         &algod,
-        &creator.address(),
-        &specs,
-        &programs,
-        precision,
-        capi_deps,
+        &td.creator.address(),
+        &td.specs,
+        &td.programs,
+        td.precision,
+        &td.dao_deps(),
     )
     .await?;
 
-    // UI
-    let signed_create_shares_tx = creator.sign_transaction(&create_assets_txs.create_shares_tx)?;
-    let signed_create_app_tx = creator.sign_transaction(&create_assets_txs.create_app_tx)?;
+    let signed_create_shares_tx = td
+        .creator
+        .sign_transaction(&create_assets_txs.create_shares_tx)?;
+    let signed_create_app_tx = td
+        .creator
+        .sign_transaction(&create_assets_txs.create_app_tx)?;
 
     let create_assets_res = submit_create_assets(
         algod,
@@ -70,27 +60,27 @@ pub async fn create_project_flow(
 
     // Rest of create project txs
     let to_sign = create_project_txs(
-        &algod,
-        specs,
-        creator.address(),
+        algod,
+        &td.specs,
+        td.creator.address(),
         create_assets_res.shares_asset_id,
-        funds_asset_id,
-        programs,
-        precision,
+        td.funds_asset_id,
+        &td.programs,
+        td.precision,
         create_assets_res.app_id,
-        capi_deps,
+        &td.dao_deps(),
     )
     .await?;
 
-    // UI
     let mut signed_funding_txs = vec![];
     for tx in to_sign.escrow_funding_txs {
-        signed_funding_txs.push(creator.sign_transaction(&tx)?);
+        signed_funding_txs.push(td.creator.sign_transaction(&tx)?);
     }
-    let signed_setup_app_tx = creator.sign_transaction(&to_sign.setup_app_tx)?;
+    let signed_setup_app_tx = td.creator.sign_transaction(&to_sign.setup_app_tx)?;
 
-    let signed_xfer_shares_to_invest_escrow =
-        creator.sign_transaction(&to_sign.xfer_shares_to_invest_escrow)?;
+    let signed_xfer_shares_to_invest_escrow = td
+        .creator
+        .sign_transaction(&to_sign.xfer_shares_to_invest_escrow)?;
 
     // Create the asset (submit signed tx) and generate escrow funding tx
     // Note that the escrow is generated after the asset, because it uses the asset id (in teal, inserted with template)
@@ -99,9 +89,9 @@ pub async fn create_project_flow(
         &algod,
         CreateProjectSigned {
             specs: to_sign.specs,
-            creator: creator.address(),
+            creator: td.creator.address(),
             shares_asset_id: create_assets_res.shares_asset_id,
-            funds_asset_id: funds_asset_id.clone(),
+            funds_asset_id: td.funds_asset_id.clone(),
             escrow_funding_txs: signed_funding_txs,
             optin_txs: to_sign.optin_txs,
             setup_app_tx: signed_setup_app_tx,
@@ -117,8 +107,8 @@ pub async fn create_project_flow(
 
     log::debug!("Created project: {:?}", create_res.project);
 
-    let save_res = save_project(algod, &creator.address(), &create_res.project).await?;
-    let signed_save_project = creator.sign_transaction(&save_res.tx)?;
+    let save_res = save_project(algod, &td.creator.address(), &create_res.project).await?;
+    let signed_save_project = td.creator.sign_transaction(&save_res.tx)?;
 
     let submit_save_project_tx_id = submit_save_project(
         &algod,

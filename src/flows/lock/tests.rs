@@ -6,7 +6,6 @@ mod tests {
     use tokio::test;
 
     use crate::{
-        dependencies,
         flows::{
             create_project::share_amount::ShareAmount,
             harvest::harvest::calculate_entitled_harvest,
@@ -32,8 +31,7 @@ mod tests {
                 lock_flow::lock_flow,
                 unlock_flow::unlock_flow,
             },
-            network_test_util::{setup_on_chain_deps, test_init, OnChainDeps},
-            test_data::{self, creator, customer, investor1, investor2, project_specs},
+            network_test_util::test_dao_init,
             TESTS_DEFAULT_PRECISION,
         },
     };
@@ -41,44 +39,21 @@ mod tests {
     #[test]
     #[serial]
     async fn test_lock() -> Result<()> {
-        test_init()?;
-
-        // deps
-
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor1 = investor1();
-        let investor2 = investor2();
-        // repurposing creator as drainer here, as there are only 2 investor test accounts and we prefer them in a clean state for these tests
-        let drainer = test_data::creator();
-        let customer = customer();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let drainer = &td.creator;
 
         let buy_share_amount = ShareAmount::new(10);
 
         // precs
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &project_specs(),
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(td).await?;
 
-        invests_optins_flow(&algod, &investor1, &project.project).await?;
+        invests_optins_flow(&algod, &td.investor1, &project.project).await?;
         let _ = invests_flow(
-            &algod,
-            &investor1,
+            td,
+            &td.investor1,
             buy_share_amount,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -87,21 +62,15 @@ mod tests {
         // drain (to generate dividend). note that investor doesn't reclaim it (doesn't seem relevant for this test)
         // (the draining itself may also not be relevant, just for a more realistic pre-trade scenario)
         let customer_payment_amount = FundsAmount::new(10 * 1_000_000);
-        let drain_res = customer_payment_and_drain_flow(
-            &algod,
-            &drainer,
-            &customer,
-            funds_asset_id,
-            customer_payment_amount,
-            &project.project,
-            &capi_deps,
-        )
-        .await?;
+        let drain_res =
+            customer_payment_and_drain_flow(td, &project.project, customer_payment_amount, drainer)
+                .await?;
 
         // investor1 unlocks
         let traded_shares = buy_share_amount;
-        let unlock_tx_id = unlock_flow(&algod, &project.project, &investor1, traded_shares).await?;
-        let _ = wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
+        let unlock_tx_id =
+            unlock_flow(algod, &project.project, &td.investor1, traded_shares).await?;
+        let _ = wait_for_pending_transaction(algod, &unlock_tx_id).await?;
 
         // investor2 gets shares from investor1 externally
         // normally this will be a swap in a dex. could also be a gift or some other service
@@ -110,10 +79,10 @@ mod tests {
         let params = algod.suggested_transaction_params().await?;
         let shares_optin_tx = &mut TxnBuilder::with(
             &params,
-            AcceptAsset::new(investor2.address(), project.project.shares_asset_id).build(),
+            AcceptAsset::new(td.investor2.address(), project.project.shares_asset_id).build(),
         )
         .build()?;
-        let signed_shares_optin_tx = investor2.sign_transaction(shares_optin_tx)?;
+        let signed_shares_optin_tx = td.investor2.sign_transaction(shares_optin_tx)?;
         let res = algod
             .broadcast_signed_transaction(&signed_shares_optin_tx)
             .await?;
@@ -123,15 +92,15 @@ mod tests {
         let trade_tx = &mut TxnBuilder::with(
             &params,
             TransferAsset::new(
-                investor1.address(),
+                td.investor1.address(),
                 project.project.shares_asset_id,
                 traded_shares.val(),
-                investor2.address(),
+                td.investor2.address(),
             )
             .build(),
         )
         .build()?;
-        let signed_trade_tx = investor1.sign_transaction(trade_tx)?;
+        let signed_trade_tx = td.investor1.sign_transaction(trade_tx)?;
         let res = algod.broadcast_signed_transaction(&signed_trade_tx).await?;
         let _ = wait_for_pending_transaction(&algod, &res.tx_id.parse()?);
 
@@ -140,9 +109,10 @@ mod tests {
         // is there a way to avoid the investor confirming txs 2 times here?
 
         let app_optin_tx =
-            invest_or_locking_app_optin_tx(&algod, &project.project, &investor2.address()).await?;
-        // UI
-        let app_optin_signed_tx = investor2.sign_transaction(&app_optin_tx)?;
+            invest_or_locking_app_optin_tx(&algod, &project.project, &td.investor2.address())
+                .await?;
+
+        let app_optin_signed_tx = td.investor2.sign_transaction(&app_optin_tx)?;
         let app_optin_tx_id =
             submit_invest_or_locking_app_optin(&algod, app_optin_signed_tx).await?;
         let _ = wait_for_pending_transaction(&algod, &app_optin_tx_id);
@@ -151,10 +121,10 @@ mod tests {
 
         // investor2 locks the acquired shares
         lock_flow(
-            &algod,
+            algod,
             &project.project,
             &project.project_id,
-            &investor2,
+            &td.investor2,
             traded_shares,
         )
         .await?;
@@ -163,7 +133,7 @@ mod tests {
 
         // investor2 lost locked assets
 
-        let investor2_infos = algod.account_information(&investor2.address()).await?;
+        let investor2_infos = algod.account_information(&td.investor2.address()).await?;
         let investor2_assets = &investor2_infos.assets;
         // funds asset + shares asset
         assert_eq!(2, investor2_assets.len());
@@ -203,14 +173,8 @@ mod tests {
 
         // investor2 harvests: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         // the harvest amount is the smallest number possible, to show that we can't retrieve anything
-        let harvest_flow_res = harvest_flow(
-            &algod,
-            &project.project,
-            &investor2,
-            funds_asset_id,
-            FundsAmount::new(1),
-        )
-        .await;
+        let harvest_flow_res =
+            harvest_flow(td, &project.project, &td.investor2, FundsAmount::new(1)).await;
         log::debug!("Expected error harvesting: {:?}", harvest_flow_res);
         // If there's nothing to harvest, the smart contract fails (transfer amount > allowed)
         assert!(harvest_flow_res.is_err());
@@ -218,13 +182,10 @@ mod tests {
         // drain again to generate dividend and be able to harvest
         let customer_payment_amount_2 = FundsAmount::new(10 * 1_000_000);
         let drain_res2 = customer_payment_and_drain_flow(
-            &algod,
-            &drainer,
-            &customer,
-            funds_asset_id,
-            customer_payment_amount_2,
+            td,
             &project.project,
-            &capi_deps,
+            customer_payment_amount_2,
+            drainer,
         )
         .await?;
 
@@ -232,7 +193,7 @@ mod tests {
 
         // remember state
         let investor2_amount_before_harvest =
-            funds_holdings(&algod, &investor2.address(), funds_asset_id).await?;
+            funds_holdings(algod, &td.investor2.address(), td.funds_asset_id).await?;
 
         // we'll harvest the max possible amount
         let investor2_entitled_amount = calculate_entitled_harvest(
@@ -247,18 +208,17 @@ mod tests {
             investor2_entitled_amount
         );
         let _ = harvest_flow(
-            &algod,
+            td,
             &project.project,
-            &investor2,
-            funds_asset_id,
+            &td.investor2,
             investor2_entitled_amount,
         )
         .await?;
 
         // just a rename to help with clarity a bit
         let expected_harvested_amount = investor2_entitled_amount;
-        let investor2_infos = algod.account_information(&investor2.address()).await?;
-        let investor2_amount = funds_holdings_from_account(&investor2_infos, funds_asset_id)?;
+        let investor2_infos = algod.account_information(&td.investor2.address()).await?;
+        let investor2_amount = funds_holdings_from_account(&investor2_infos, td.funds_asset_id)?;
 
         // the balance is increased with the harvest
         assert_eq!(
@@ -284,41 +244,22 @@ mod tests {
     #[test]
     #[serial]
     async fn test_partial_lock() -> Result<()> {
-        test_init()?;
-
-        // deps
-
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor = investor1();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
 
         let partial_lock_amount = ShareAmount::new(4);
         let buy_share_amount = ShareAmount::new(partial_lock_amount.val() + 6);
 
         // precs
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &project_specs(),
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(td).await?;
 
-        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_optins_flow(algod, investor, &project.project).await?;
         let _ = invests_flow(
-            &algod,
-            &investor,
+            td,
+            investor,
             buy_share_amount,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -327,14 +268,14 @@ mod tests {
         // investor unlocks - note that partial unlocking isn't possible, only locking
 
         let unlock_tx_id =
-            unlock_flow(&algod, &project.project, &investor, buy_share_amount).await?;
+            unlock_flow(algod, &project.project, &investor, buy_share_amount).await?;
         let _ = wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
 
         // sanity checks
 
         // investor was opted out (implies: no shares locked)
         let investor_state_res =
-            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+            central_investor_state(algod, &investor.address(), project.project.central_app_id)
                 .await;
         assert_eq!(
             Err(ApplicationLocalStateError::NotOptedIn),
@@ -355,18 +296,18 @@ mod tests {
 
         // optin to app
         let app_optins_tx =
-            invest_or_locking_app_optin_tx(&algod, &project.project, &investor.address()).await?;
+            invest_or_locking_app_optin_tx(algod, &project.project, &investor.address()).await?;
         let app_optin_signed_tx = investor.sign_transaction(&app_optins_tx)?;
         let app_optin_tx_id =
-            submit_invest_or_locking_app_optin(&algod, app_optin_signed_tx).await?;
-        let _ = wait_for_pending_transaction(&algod, &app_optin_tx_id);
+            submit_invest_or_locking_app_optin(algod, app_optin_signed_tx).await?;
+        let _ = wait_for_pending_transaction(algod, &app_optin_tx_id);
 
         // lock
         lock_flow(
-            &algod,
+            algod,
             &project.project,
             &project.project_id,
-            &investor,
+            investor,
             partial_lock_amount,
         )
         .await?;

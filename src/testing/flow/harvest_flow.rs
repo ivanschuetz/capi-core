@@ -3,16 +3,13 @@ use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
 #[cfg(test)]
 use super::invest_in_project_flow::invests_optins_flow;
 #[cfg(test)]
-use crate::flows::create_project::{
-    create_project_specs::CreateProjectSpecs, model::Project, share_amount::ShareAmount,
-};
+use crate::flows::create_project::{model::Project, share_amount::ShareAmount};
 #[cfg(test)]
-use crate::funds::{FundsAmount, FundsAssetId};
+use crate::funds::FundsAmount;
 #[cfg(test)]
 use crate::state::account_state::funds_holdings;
 #[cfg(test)]
 use crate::{
-    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::harvest::harvest::{harvest, submit_harvest, HarvestSigned},
     network_util::wait_for_pending_transaction,
     testing::flow::{
@@ -20,65 +17,46 @@ use crate::{
         customer_payment_and_drain_flow::customer_payment_and_drain_flow,
         invest_in_project_flow::invests_flow,
     },
+    testing::network_test_util::TestDeps,
 };
 #[cfg(test)]
-use algonaut::{algod::v2::Algod, transaction::account::Account};
+use algonaut::transaction::account::Account;
 #[cfg(test)]
 use anyhow::Result;
 
 #[cfg(test)]
 pub async fn harvest_precs(
-    algod: &Algod,
-    creator: &Account,
-    specs: &CreateProjectSpecs,
-    funds_asset_id: FundsAssetId,
-    harvester: &Account,
-    drainer: &Account,
-    customer: &Account,
+    td: &TestDeps,
     share_amount: ShareAmount,
     payment_and_drain_amount: FundsAmount,
-    precision: u64,
-    capi_deps: &CapiAssetDaoDeps,
+    drainer: &Account,
+    harvester: &Account,
 ) -> Result<HarvestTestPrecsRes> {
-    let project = create_project_flow(
-        &algod,
-        &creator,
-        &specs,
-        funds_asset_id,
-        precision,
-        capi_deps,
-    )
-    .await?;
+    let algod = &td.algod;
+
+    let project = create_project_flow(&td).await?;
 
     // investor buys shares: this can be called after draining as well (without affecting test results)
     // the only order required for this is draining->harvesting, obviously harvesting has to be executed after draining (if it's to harvest the drained funds)
-    invests_optins_flow(&algod, &harvester, &project.project).await?;
+    invests_optins_flow(algod, &harvester, &project.project).await?;
     let _ = invests_flow(
-        &algod,
+        &td,
         &harvester,
         share_amount,
-        funds_asset_id,
         &project.project,
         &project.project_id,
     )
     .await?;
 
     // payment and draining
-    let drain_res = customer_payment_and_drain_flow(
-        &algod,
-        &drainer,
-        &customer,
-        funds_asset_id,
-        payment_and_drain_amount,
-        &project.project,
-        capi_deps,
-    )
-    .await?;
+    let drain_res =
+        customer_payment_and_drain_flow(td, &project.project, payment_and_drain_amount, &drainer)
+            .await?;
 
     let central_escrow_balance_after_drain = funds_holdings(
         algod,
         drain_res.project.central_escrow.address(),
-        funds_asset_id,
+        td.funds_asset_id,
     )
     .await?;
 
@@ -93,27 +71,26 @@ pub async fn harvest_precs(
 
 #[cfg(test)]
 pub async fn harvest_flow(
-    algod: &Algod,
+    td: &TestDeps,
     project: &Project,
     harvester: &Account,
-    funds_asset_id: FundsAssetId,
     amount: FundsAmount,
 ) -> Result<HarvestTestFlowRes> {
+    let algod = &td.algod;
+
     // remember state
     let harvester_balance_before_harvesting =
-        funds_holdings(algod, &harvester.address(), funds_asset_id).await?;
+        funds_holdings(algod, &harvester.address(), td.funds_asset_id).await?;
 
     let to_sign = harvest(
         &algod,
         &harvester.address(),
         project.central_app_id,
-        funds_asset_id,
+        td.funds_asset_id,
         amount,
         &project.central_escrow,
     )
     .await?;
-
-    // UI
 
     let app_call_tx_signed = harvester.sign_transaction(&to_sign.app_call_tx)?;
 

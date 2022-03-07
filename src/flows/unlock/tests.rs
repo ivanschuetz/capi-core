@@ -5,7 +5,6 @@ mod tests {
     use tokio::test;
 
     use crate::{
-        dependencies,
         flows::create_project::share_amount::ShareAmount,
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,
@@ -19,49 +18,28 @@ mod tests {
                 invest_in_project_flow::{invests_flow, invests_optins_flow},
                 unlock_flow::unlock_flow,
             },
-            network_test_util::{setup_on_chain_deps, test_init, OnChainDeps},
-            test_data::{creator, investor1, project_specs},
-            TESTS_DEFAULT_PRECISION,
+            network_test_util::test_dao_init,
         },
     };
 
     #[test]
     #[serial]
     async fn test_unlock() -> Result<()> {
-        test_init()?;
-
-        // deps
-
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor = investor1();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
 
         let buy_share_amount = ShareAmount::new(10);
 
         // precs
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &project_specs(),
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(td).await?;
 
         invests_optins_flow(&algod, &investor, &project.project).await?;
         let _ = invests_flow(
-            &algod,
-            &investor,
+            td,
+            investor,
             buy_share_amount,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -102,8 +80,8 @@ mod tests {
         let unlock_share_amount = buy_share_amount;
 
         let unlock_tx_id =
-            unlock_flow(&algod, &project.project, &investor, unlock_share_amount).await?;
-        let _ = wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
+            unlock_flow(algod, &project.project, investor, unlock_share_amount).await?;
+        let _ = wait_for_pending_transaction(algod, &unlock_tx_id).await?;
 
         // shares not anymore in locking escrow
         let locking_escrow_infos = algod
@@ -134,42 +112,22 @@ mod tests {
     #[test]
     #[serial]
     async fn test_partial_unlock_not_allowed() -> Result<()> {
-        test_init()?;
-
-        // deps
-
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor = investor1();
-
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
 
         let partial_amount = ShareAmount::new(2);
         let buy_asset_amount = ShareAmount::new(partial_amount.val() + 8);
 
         // precs
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &project_specs(),
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(&td).await?;
 
-        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_optins_flow(algod, investor, &project.project).await?;
         let _ = invests_flow(
-            &algod,
-            &investor,
+            td,
+            investor,
             buy_asset_amount,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -209,7 +167,7 @@ mod tests {
         let unlock_share_amount = partial_amount;
 
         let unlock_result =
-            unlock_flow(&algod, &project.project, &investor, unlock_share_amount).await;
+            unlock_flow(algod, &project.project, investor, unlock_share_amount).await;
 
         assert!(unlock_result.is_err());
 

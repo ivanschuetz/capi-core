@@ -6,7 +6,6 @@ mod tests {
     use tokio::test;
 
     use crate::{
-        dependencies,
         roadmap::{
             add_roadmap_item::{
                 add_roadmap_item, submit_add_roadmap_item, AddRoadmapItemToSigned,
@@ -15,10 +14,7 @@ mod tests {
             get_roadmap::{get_roadmap, SavedRoadmapItem},
         },
         testing::{
-            flow::create_project_flow::create_project_flow,
-            network_test_util::{setup_on_chain_deps, test_init, OnChainDeps},
-            test_data::{creator, project_specs},
-            TESTS_DEFAULT_PRECISION,
+            flow::create_project_flow::create_project_flow, network_test_util::test_dao_init,
         },
     };
 
@@ -28,30 +24,10 @@ mod tests {
     // TODO: can we trigger indexing manually?
     #[ignore]
     async fn test_add_roadmap_item() -> Result<()> {
-        test_init()?;
+        let td = test_dao_init().await?;
+        let algod = &td.algod;
 
-        // deps
-        let algod = dependencies::algod_for_tests();
-        let indexer = dependencies::indexer_for_tests();
-        let creator = creator();
-
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
-        let specs = project_specs();
-
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(&td).await?;
 
         let inputs = RoadmapItemInputs {
             project_id: project.project_id.clone(),
@@ -60,10 +36,9 @@ mod tests {
             date: Utc::now(),
         };
 
-        let to_sign = add_roadmap_item(&algod, &creator.address(), &inputs).await?;
+        let to_sign = add_roadmap_item(&algod, &td.creator.address(), &inputs).await?;
 
-        // UI
-        let signed_tx = creator.sign_transaction(&to_sign.tx)?;
+        let signed_tx = td.creator.sign_transaction(&to_sign.tx)?;
 
         let tx_id =
             submit_add_roadmap_item(&algod, &AddRoadmapItemToSigned { tx: signed_tx }).await?;
@@ -74,7 +49,8 @@ mod tests {
 
         // check that the item was added correctly
 
-        let saved_roadmap = get_roadmap(&indexer, &creator.address(), &project.project_id).await?;
+        let saved_roadmap =
+            get_roadmap(&td.indexer, &td.creator.address(), &project.project_id).await?;
 
         assert_eq!(1, saved_roadmap.items.len());
 

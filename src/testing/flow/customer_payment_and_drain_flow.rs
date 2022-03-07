@@ -1,6 +1,4 @@
 #[cfg(test)]
-use crate::capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps;
-#[cfg(test)]
 use crate::funds::FundsAmount;
 #[cfg(test)]
 use crate::funds::FundsAssetId;
@@ -15,6 +13,7 @@ use crate::{
     flows::pay_project::pay_project::{pay_project, submit_pay_project, PayProjectSigned},
     network_util::wait_for_pending_transaction,
     state::account_state::funds_holdings,
+    testing::network_test_util::TestDeps,
 };
 #[cfg(test)]
 use algonaut::{
@@ -27,46 +26,45 @@ use anyhow::Result;
 
 #[cfg(test)]
 pub async fn customer_payment_and_drain_flow(
-    algod: &Algod,
-    drainer: &Account,
-    customer: &Account,
-    funds_asset_id: FundsAssetId,
-    customer_payment_amount: FundsAmount,
+    td: &TestDeps,
     project: &Project,
-    capi_asset_deps: &CapiAssetDaoDeps,
+    customer_payment_amount: FundsAmount,
+    drainer: &Account,
 ) -> Result<CustomerPaymentAndDrainFlowRes> {
+    let algod = &td.algod;
+
     // double check precondition: customer escrow has no funds
     let customer_escrow_holdings =
-        funds_holdings(algod, project.customer_escrow.address(), funds_asset_id).await?;
+        funds_holdings(algod, project.customer_escrow.address(), td.funds_asset_id).await?;
     assert_eq!(FundsAmount::new(0), customer_escrow_holdings);
 
     // Customer sends a payment
-
     let customer_payment_tx_id = send_payment_to_customer_escrow(
-        &algod,
-        &customer,
+        algod,
+        &td.customer,
         project.customer_escrow.address(),
-        funds_asset_id,
+        td.funds_asset_id,
         customer_payment_amount,
     )
     .await?;
     wait_for_pending_transaction(&algod, &customer_payment_tx_id).await?;
 
-    drain_flow(algod, drainer, project, capi_asset_deps).await
+    drain_flow(td, &drainer, project).await
 }
 
 #[cfg(test)]
 pub async fn drain_flow(
-    algod: &Algod,
+    td: &TestDeps,
     drainer: &Account,
     project: &Project,
-    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<CustomerPaymentAndDrainFlowRes> {
+    let algod = &td.algod;
+
     let initial_drainer_balance = algod.account_information(&drainer.address()).await?.amount;
 
     let drain_amounts = drain_amounts(
         algod,
-        capi_deps.escrow_percentage,
+        td.dao_deps().escrow_percentage,
         project.funds_asset_id,
         &project.customer_escrow.address(),
     )
@@ -77,7 +75,7 @@ pub async fn drain_flow(
         &drainer.address(),
         project.central_app_id,
         project.funds_asset_id,
-        capi_deps,
+        &td.dao_deps(),
         &project.customer_escrow,
         &project.central_escrow,
         &drain_amounts,

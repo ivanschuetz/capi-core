@@ -24,7 +24,7 @@ pub async fn create_project_txs(
     creator: Address,
     shares_asset_id: u64,
     funds_asset_id: FundsAssetId,
-    programs: Programs,
+    programs: &Programs,
     precision: u64,
     central_app_id: u64,
     capi_deps: &CapiAssetDaoDeps,
@@ -202,12 +202,14 @@ pub async fn submit_create_project(
     })
 }
 
+#[derive(Debug)]
 pub struct Programs {
     pub central_app_approval: TealSourceTemplate,
     pub central_app_clear: TealSource,
     pub escrows: Escrows,
 }
 
+#[derive(Debug)]
 pub struct Escrows {
     pub central_escrow: TealSourceTemplate,
     pub customer_escrow: TealSourceTemplate,
@@ -216,6 +218,7 @@ pub struct Escrows {
 }
 
 /// TEAL related to the capi token
+#[derive(Debug)]
 pub struct CapiPrograms {
     pub app_approval: TealSourceTemplate,
     pub app_clear: TealSource,

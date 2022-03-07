@@ -8,7 +8,6 @@ mod test {
             capi_app_id::CapiAppId,
             capi_asset_dao_specs::CapiAssetDaoDeps,
             capi_asset_id::CapiAssetAmount,
-            create::test_flow::test_flow::CapiAssetFlowRes,
             harvest::harvest::{harvest, submit_harvest, HarvestSigned},
         },
         funds::{FundsAmount, FundsAssetId},
@@ -22,8 +21,8 @@ mod test {
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
                 lock_capi_asset_flow::lock_capi_asset_flow,
             },
-            test_data::{creator, customer, investor2, project_specs},
-            TESTS_DEFAULT_PRECISION,
+            network_test_util::TestDeps,
+            test_data::investor2,
         },
     };
     use algonaut::{
@@ -68,21 +67,21 @@ mod test {
 
     #[cfg(test)]
     pub async fn harvest_capi_precs(
-        algod: &Algod,
+        td: &TestDeps,
         capi_creator: &Account,
-        funds_asset_id: FundsAssetId,
         harvester: &Account,
         asset_amount: CapiAssetAmount,
         // Fee sent to the capi escrow after the investor locks their shares. This is the amount we harvest from.
         send_to_escrow_after_investor_locked: FundsAmount,
-        capi_deps: &CapiAssetFlowRes,
     ) -> Result<()> {
+        let algod = &td.algod;
+
         let params = algod.suggested_transaction_params().await?;
 
         // opt ins
 
-        optin_to_asset_submit(&algod, &harvester, capi_deps.asset_id.0).await?;
-        optin_to_app_submit(&algod, &params, &harvester, capi_deps.app_id.0).await?;
+        optin_to_asset_submit(&algod, &harvester, td.capi_asset_id.0).await?;
+        optin_to_app_submit(&algod, &params, &harvester, td.capi_app_id.0).await?;
 
         // send capi assets to investor
 
@@ -92,7 +91,7 @@ mod test {
             &capi_creator,
             &capi_creator,
             &harvester.address(),
-            capi_deps.asset_id.0,
+            td.capi_asset_id.0,
             asset_amount.val(),
         )
         .await?;
@@ -103,34 +102,25 @@ mod test {
             &algod,
             &harvester,
             asset_amount,
-            capi_deps.asset_id,
-            capi_deps.app_id,
-            &capi_deps.escrow.address(),
+            td.capi_asset_id,
+            td.capi_app_id,
+            &td.capi_escrow.address(),
         )
         .await?;
 
         // These can be created locally, as the DAO flow is contained here and irrelevant for the capi token testing.
         // We'll assume for now that investor2 isn't used outside.
         let drainer = investor2();
-        let customer = customer();
 
         let capi_dao_deps = CapiAssetDaoDeps {
-            escrow: *capi_deps.escrow.address(),
+            escrow: *td.capi_escrow.address(),
             // value here has to ensure that we always get an integer result when diving an integer by it
             escrow_percentage: Decimal::from_str("0.1").unwrap().try_into().unwrap(),
-            app_id: capi_deps.app_id,
-            asset_id: capi_deps.asset_id,
+            app_id: td.capi_app_id,
+            asset_id: td.capi_asset_id,
         };
 
-        let project = create_project_flow(
-            &algod,
-            &creator(),
-            &project_specs(),
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_dao_deps,
-        )
-        .await?;
+        let project = create_project_flow(&td).await?;
 
         // calculate a to-be-drained amount, such that we get exactly the expected funds amount in the capi escrow
         let central_funds_decimal = send_to_escrow_after_investor_locked.as_decimal()
@@ -141,16 +131,7 @@ mod test {
 
         // let central_funds = FundsAmount(10 * 1_000_000);
 
-        customer_payment_and_drain_flow(
-            &algod,
-            &drainer,
-            &customer,
-            funds_asset_id,
-            central_funds,
-            &project.project,
-            &capi_dao_deps,
-        )
-        .await?;
+        customer_payment_and_drain_flow(&td, &project.project, central_funds, &drainer).await?;
 
         Ok(())
     }

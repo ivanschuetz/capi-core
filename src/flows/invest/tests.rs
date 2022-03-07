@@ -4,7 +4,7 @@ mod tests {
     use crate::flows::create_project::share_amount::ShareAmount;
     use crate::flows::create_project::storage::load_project::ProjectId;
     use crate::flows::harvest::harvest::calculate_entitled_harvest;
-    use crate::funds::{FundsAmount, FundsAssetId};
+    use crate::funds::FundsAmount;
     use crate::network_util::wait_for_pending_transaction;
     use crate::queries::my_projects::my_current_invested_projects;
     use crate::state::account_state::{
@@ -13,20 +13,15 @@ mod tests {
     use crate::state::central_app_state::{
         central_global_state, central_investor_state, central_investor_state_from_acc,
     };
-    use crate::testing::flow::create_project_flow::{create_project_flow, programs};
+    use crate::testing::flow::create_project_flow::create_project_flow;
     use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
     use crate::testing::flow::invest_in_project_flow::{invests_flow, invests_optins_flow};
     use crate::testing::flow::lock_flow::lock_flow;
     use crate::testing::flow::unlock_flow::unlock_flow;
-    use crate::testing::network_test_util::{setup_on_chain_deps, test_init, OnChainDeps};
-    use crate::testing::test_data::{customer, investor2};
+    use crate::testing::network_test_util::{test_dao_init, TestDeps};
+    use crate::testing::test_data::investor2;
+    use crate::testing::test_data::project_specs;
     use crate::testing::TESTS_DEFAULT_PRECISION;
-    use crate::{
-        dependencies,
-        testing::test_data::creator,
-        testing::test_data::{investor1, project_specs},
-    };
-    use algonaut::algod::v2::Algod;
     use algonaut::transaction::account::Account;
     use anyhow::Result;
     use serial_test::serial;
@@ -35,42 +30,25 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_invests_flow() -> Result<()> {
-        test_init()?;
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
 
-        // deps
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor = investor1();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
         let buy_share_amount = ShareAmount::new(10);
         let specs = project_specs();
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(td).await?;
 
         // precs
 
-        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_optins_flow(algod, &investor, &project.project).await?;
 
         // flow
 
         let flow_res = invests_flow(
-            &algod,
+            &td,
             &investor,
             buy_share_amount,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -112,7 +90,7 @@ mod tests {
         assert_eq!(0, shares_asset.amount);
 
         // investor lost algos and fees
-        let investor_holdings = funds_holdings_from_account(&investor_infos, funds_asset_id)?;
+        let investor_holdings = funds_holdings_from_account(&investor_infos, td.funds_asset_id)?;
         let paid_amount = specs.share_price.val() * buy_share_amount.val();
         assert_eq!(
             flow_res.investor_initial_amount - paid_amount,
@@ -141,7 +119,7 @@ mod tests {
         let central_escrow_holdings = funds_holdings(
             &algod,
             &project.project.central_escrow.address(),
-            funds_asset_id,
+            td.funds_asset_id,
         )
         .await?;
         assert_eq!(
@@ -155,32 +133,14 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_increments_shares_when_investing_twice() -> Result<()> {
-        test_init()?;
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
 
-        // deps
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor = investor1();
-
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
         let buy_share_amount = ShareAmount::new(10);
         let buy_share_amount2 = ShareAmount::new(20);
-        let specs = project_specs();
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(td).await?;
 
         // precs
 
@@ -189,10 +149,9 @@ mod tests {
         // flow
 
         invests_flow(
-            &algod,
-            &investor,
+            td,
+            investor,
             buy_share_amount,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -200,15 +159,14 @@ mod tests {
 
         // double check: investor has shares for first investment
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+            central_investor_state(algod, &investor.address(), project.project.central_app_id)
                 .await?;
         assert_eq!(buy_share_amount, investor_state.shares);
 
         invests_flow(
-            &algod,
-            &investor,
+            td,
+            investor,
             buy_share_amount2,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -231,57 +189,37 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_increments_shares_when_investing_and_locking() -> Result<()> {
-        test_init()?;
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
 
-        // deps
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor = investor1();
-
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
         let lock_amount = ShareAmount::new(10);
         let invest_amount = ShareAmount::new(20);
-        let specs = project_specs();
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(td).await?;
 
         // precs
 
-        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_optins_flow(algod, investor, &project.project).await?;
 
         // for user to have some free shares (assets) to lock
         buy_and_unlock_shares(
-            &algod,
-            &investor,
+            td,
+            investor,
             &project.project,
             lock_amount,
             &project.project_id,
-            funds_asset_id,
         )
         .await?;
 
         // flow
 
         // buy shares: automatically locked
-        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unlocking opts user out
+        invests_optins_flow(algod, investor, &project.project).await?; // optin again: unlocking opts user out
         invests_flow(
-            &algod,
-            &investor,
+            td,
+            investor,
             invest_amount,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -289,16 +227,16 @@ mod tests {
 
         // double check: investor has shares for first investment
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+            central_investor_state(algod, &investor.address(), project.project.central_app_id)
                 .await?;
         assert_eq!(invest_amount, investor_state.shares);
 
         // lock shares
         lock_flow(
-            &algod,
+            algod,
             &project.project,
             &project.project_id,
-            &investor,
+            investor,
             lock_amount,
         )
         .await?;
@@ -307,7 +245,7 @@ mod tests {
 
         // investor has shares for investment + locking
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+            central_investor_state(algod, &investor.address(), project.project.central_app_id)
                 .await?;
         assert_eq!(
             lock_amount.val() + invest_amount.val(),
@@ -320,52 +258,33 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_increments_shares_when_locking_and_investing() -> Result<()> {
-        test_init()?;
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
 
-        // deps
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor = investor1();
-
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
         let lock_amount = ShareAmount::new(10);
         let invest_amount = ShareAmount::new(20);
-        let specs = project_specs();
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(td).await?;
 
         // precs
 
-        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_optins_flow(algod, &investor, &project.project).await?;
 
         // for user to have some free shares (assets) to lock
         buy_and_unlock_shares(
-            &algod,
-            &investor,
+            td,
+            investor,
             &project.project,
             lock_amount,
             &project.project_id,
-            funds_asset_id,
         )
         .await?;
 
         // flow
 
         // lock shares
-        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unlocking opts user out
+        invests_optins_flow(algod, investor, &project.project).await?; // optin again: unlocking opts user out
         lock_flow(
             &algod,
             &project.project,
@@ -377,16 +296,15 @@ mod tests {
 
         // double check: investor has locked shares
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+            central_investor_state(algod, &investor.address(), project.project.central_app_id)
                 .await?;
         assert_eq!(lock_amount, investor_state.shares);
 
         // buy shares: automatically locked
         invests_flow(
-            &algod,
-            &investor,
+            td,
+            investor,
             invest_amount,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -396,7 +314,7 @@ mod tests {
 
         // investor has shares for investment + locking
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+            central_investor_state(algod, &investor.address(), project.project.central_app_id)
                 .await?;
         assert_eq!(
             lock_amount.val() + invest_amount.val(),
@@ -409,58 +327,39 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_increments_shares_when_locking_twice() -> Result<()> {
-        test_init()?;
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
 
-        // deps
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor = investor1();
-
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
         let lock_amount1 = ShareAmount::new(10);
         let lock_amount2 = ShareAmount::new(20);
         // an amount we unlock and will not lock again, to make the test a little more robust
         let invest_amount_not_lock = ShareAmount::new(5);
-        let specs = project_specs();
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(&td).await?;
 
         // precs
 
-        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_optins_flow(algod, investor, &project.project).await?;
 
         // for user to have free shares (assets) to lock
         buy_and_unlock_shares(
-            &algod,
-            &investor,
+            td,
+            investor,
             &project.project,
             ShareAmount::new(
                 lock_amount1.val() + lock_amount2.val() + invest_amount_not_lock.val(),
             ),
             &project.project_id,
-            funds_asset_id,
         )
         .await?;
 
         // flow
 
         // lock shares
-        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unlocking opts user out
+        invests_optins_flow(algod, investor, &project.project).await?; // optin again: unlocking opts user out
         lock_flow(
-            &algod,
+            algod,
             &project.project,
             &project.project_id,
             &investor,
@@ -470,16 +369,16 @@ mod tests {
 
         // double check: investor has locked shares
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+            central_investor_state(algod, &investor.address(), project.project.central_app_id)
                 .await?;
         assert_eq!(lock_amount1, investor_state.shares);
 
         // lock more shares
         lock_flow(
-            &algod,
+            algod,
             &project.project,
             &project.project_id,
-            &investor,
+            investor,
             lock_amount2,
         )
         .await?;
@@ -488,7 +387,7 @@ mod tests {
 
         // investor has shares for investment + locking
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+            central_investor_state(algod, &investor.address(), project.project.central_app_id)
                 .await?;
         assert_eq!(
             lock_amount1.val() + lock_amount2.val(),
@@ -501,56 +400,28 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_invest_after_drain_inits_already_harvested_correctly() -> Result<()> {
-        test_init()?;
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
+        let drainer = &investor2();
 
-        // deps
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor = investor1();
-        let drainer = investor2();
-        let customer = customer();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
         let buy_share_amount = ShareAmount::new(10);
-        let specs = project_specs();
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(&td).await?;
 
         // precs
 
         // add some funds
         let central_funds = FundsAmount::new(10 * 1_000_000);
-        customer_payment_and_drain_flow(
-            &algod,
-            &drainer,
-            &customer,
-            funds_asset_id,
-            central_funds,
-            &project.project,
-            &capi_deps,
-        )
-        .await?;
+        customer_payment_and_drain_flow(td, &project.project, central_funds, drainer).await?;
 
-        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_optins_flow(algod, investor, &project.project).await?;
 
         // flow
         invests_flow(
-            &algod,
-            &investor,
+            td,
+            investor,
             buy_share_amount,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -580,68 +451,40 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_lock_after_drain_inits_already_harvested_correctly() -> Result<()> {
-        test_init()?;
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
+        let drainer = &investor2();
 
-        // deps
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
-        let investor = investor1();
-        let drainer = investor2();
-        let customer = customer();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
         let buy_share_amount = ShareAmount::new(10);
-        let specs = project_specs();
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(&td).await?;
 
         // precs
 
         // add some funds
         let central_funds = FundsAmount::new(10 * 1_000_000);
-        customer_payment_and_drain_flow(
-            &algod,
-            &drainer,
-            &customer,
-            funds_asset_id,
-            central_funds,
-            &project.project,
-            &capi_deps,
-        )
-        .await?;
+        customer_payment_and_drain_flow(td, &project.project, central_funds, drainer).await?;
 
-        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_optins_flow(algod, investor, &project.project).await?;
 
         // for user to have some free shares (assets) to lock
         buy_and_unlock_shares(
-            &algod,
-            &investor,
+            td,
+            investor,
             &project.project,
             buy_share_amount,
             &project.project_id,
-            funds_asset_id,
         )
         .await?;
 
         // flow
-        invests_optins_flow(&algod, &investor, &project.project).await?; // optin again: unlocking opts user out
+        invests_optins_flow(algod, investor, &project.project).await?; // optin again: unlocking opts user out
         lock_flow(
-            &algod,
+            algod,
             &project.project,
             &project.project_id,
-            &investor,
+            investor,
             buy_share_amount,
         )
         .await?;
@@ -649,9 +492,9 @@ mod tests {
         // tests
 
         let investor_state =
-            central_investor_state(&algod, &investor.address(), project.project.central_app_id)
+            central_investor_state(algod, &investor.address(), project.project.central_app_id)
                 .await?;
-        let central_state = central_global_state(&algod, project.project.central_app_id).await?;
+        let central_state = central_global_state(algod, project.project.central_app_id).await?;
 
         let investor_entitled_harvest = calculate_entitled_harvest(
             central_state.received,
@@ -671,43 +514,24 @@ mod tests {
     #[serial] // reset network (cmd)
     #[ignore] // indexer pause
     async fn test_query_my_investment() -> Result<()> {
-        test_init()?;
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
 
-        // deps
-        let algod = dependencies::algod_for_tests();
-        let indexer = dependencies::indexer_for_tests();
-        let creator = creator();
-        let investor = investor1();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
         let buy_share_amount = ShareAmount::new(10);
-        let specs = project_specs();
 
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            TESTS_DEFAULT_PRECISION,
-            &capi_deps,
-        )
-        .await?;
+        let project = create_project_flow(&td).await?;
 
         // precs
 
-        invests_optins_flow(&algod, &investor, &project.project).await?;
+        invests_optins_flow(algod, investor, &project.project).await?;
 
         // flow
 
         invests_flow(
-            &algod,
-            &investor,
+            td,
+            investor,
             buy_share_amount,
-            funds_asset_id,
             &project.project,
             &project.project_id,
         )
@@ -719,11 +543,11 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_secs(10));
 
         let my_invested_projects = my_current_invested_projects(
-            &algod,
-            &indexer,
+            algod,
+            &td.indexer,
             &investor.address(),
-            &programs()?.escrows,
-            &capi_deps,
+            &td.programs.escrows,
+            &td.dao_deps(),
         )
         .await?;
 
@@ -735,24 +559,17 @@ mod tests {
     }
 
     async fn buy_and_unlock_shares(
-        algod: &Algod,
+        td: &TestDeps,
         investor: &Account,
         project: &Project,
         share_amount: ShareAmount,
         project_id: &ProjectId,
-        funds_asset_id: FundsAssetId,
     ) -> Result<()> {
-        invests_flow(
-            &algod,
-            &investor,
-            share_amount,
-            funds_asset_id,
-            &project,
-            project_id,
-        )
-        .await?;
-        let unlock_tx_id = unlock_flow(&algod, &project, &investor, share_amount).await?;
-        wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
+        let algod = &td.algod;
+
+        invests_flow(td, investor, share_amount, &project, project_id).await?;
+        let unlock_tx_id = unlock_flow(algod, &project, investor, share_amount).await?;
+        wait_for_pending_transaction(algod, &unlock_tx_id).await?;
         Ok(())
     }
 }

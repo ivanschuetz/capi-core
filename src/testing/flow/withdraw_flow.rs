@@ -1,8 +1,6 @@
 #[cfg(test)]
 use super::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
 #[cfg(test)]
-use crate::capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps;
-#[cfg(test)]
 use crate::flows::{
     create_project::model::Project,
     withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs},
@@ -14,6 +12,8 @@ use crate::network_util::wait_for_pending_transaction;
 #[cfg(test)]
 use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
 #[cfg(test)]
+use crate::testing::network_test_util::TestDeps;
+#[cfg(test)]
 use algonaut::{algod::v2::Algod, core::MicroAlgos, transaction::account::Account};
 #[cfg(test)]
 use anyhow::Result;
@@ -22,25 +22,17 @@ use anyhow::Result;
 /// customer payment + draining to central, to have something to withdraw.
 #[cfg(test)]
 pub async fn withdraw_precs(
-    algod: &Algod,
+    td: &TestDeps,
     drainer: &Account,
-    customer: &Account,
     project: &Project,
     pay_and_drain_amount: FundsAmount,
-    funds_asset_id: FundsAssetId,
-    capi_asset_specs: &CapiAssetDaoDeps,
 ) -> Result<WithdrawTestPrecsRes> {
+    let algod = &td.algod;
+
     // customer payment and draining, to have some funds to withdraw
-    let drain_res = customer_payment_and_drain_flow(
-        &algod,
-        &drainer,
-        &customer,
-        funds_asset_id,
-        pay_and_drain_amount,
-        &project,
-        capi_asset_specs,
-    )
-    .await?;
+
+    let drain_res =
+        customer_payment_and_drain_flow(&td, &project, pay_and_drain_amount, &drainer).await?;
     let central_escrow_balance_after_drain = algod
         .account_information(drain_res.project.central_escrow.address())
         .await?
@@ -75,8 +67,6 @@ pub async fn withdraw_flow(
         &project.central_escrow,
     )
     .await?;
-
-    // UI
 
     let pay_withdraw_fee_tx_signed = creator.sign_transaction(&to_sign.pay_withdraw_fee_tx)?;
 

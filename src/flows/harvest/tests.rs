@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        dependencies,
         flows::{
             create_project::{
                 create_project_specs::CreateProjectSpecs, model::CreateSharesSpecs,
@@ -16,8 +15,7 @@ mod tests {
         },
         testing::{
             flow::harvest_flow::{harvest_flow, harvest_precs},
-            network_test_util::{setup_on_chain_deps, test_init, OnChainDeps},
-            test_data::{creator, customer, investor1, investor2, project_specs},
+            network_test_util::test_dao_init,
             TESTS_DEFAULT_PRECISION,
         },
     };
@@ -29,22 +27,11 @@ mod tests {
     #[test]
     #[serial]
     async fn test_harvest() -> Result<()> {
-        test_init()?;
+        let td = test_dao_init().await?;
+        let algod = &td.algod;
 
-        // deps
-
-        let algod = dependencies::algod_for_tests();
-        // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
-        let creator = creator();
-        let drainer = investor1();
-        let harvester = investor2();
-        let customer = customer();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        let specs = project_specs();
+        let drainer = &td.investor1;
+        let harvester = &td.investor2;
 
         // flow
 
@@ -53,17 +40,11 @@ mod tests {
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            &harvester,
-            &drainer,
-            &customer,
+            &td,
             buy_share_amount,
             pay_and_drain_amount,
-            precision,
-            &capi_deps,
+            drainer,
+            harvester,
         )
         .await?;
 
@@ -71,19 +52,12 @@ mod tests {
             precs.drain_res.drained_amounts.dao,
             FundsAmount::new(0),
             buy_share_amount,
-            specs.shares.supply,
+            td.specs.shares.supply,
             precision,
-            specs.investors_part(),
+            td.specs.investors_part(),
         );
 
-        let res = harvest_flow(
-            &algod,
-            &precs.project,
-            &harvester,
-            funds_asset_id,
-            harvest_amount,
-        )
-        .await?;
+        let res = harvest_flow(&td, &precs.project, harvester, harvest_amount).await?;
 
         // test
 
@@ -91,7 +65,7 @@ mod tests {
             &algod,
             &harvester,
             res.project.central_app_id,
-            funds_asset_id,
+            td.funds_asset_id,
             res.project.central_escrow.address(),
             res.project.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
@@ -112,22 +86,11 @@ mod tests {
     #[test]
     #[serial]
     async fn test_cannot_harvest_more_than_max() -> Result<()> {
-        test_init()?;
+        let td = test_dao_init().await?;
+        let algod = &td.algod;
 
-        // deps
-
-        let algod = dependencies::algod_for_tests();
-        // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
-        let creator = creator();
-        let drainer = investor1();
-        let harvester = investor2();
-        let customer = customer();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        let specs = project_specs();
+        let drainer = &td.investor1;
+        let harvester = &td.investor2;
 
         // precs
 
@@ -136,17 +99,11 @@ mod tests {
         let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            &harvester,
-            &drainer,
-            &customer,
+            &td,
             buy_share_amount,
             pay_and_drain_amount,
-            precision,
-            &capi_deps,
+            drainer,
+            harvester,
         )
         .await?;
 
@@ -155,23 +112,16 @@ mod tests {
             central_state.received,
             FundsAmount::new(0),
             buy_share_amount,
-            specs.shares.supply,
+            td.specs.shares.supply,
             precision,
-            specs.investors_part(),
+            td.specs.investors_part(),
         );
         log::debug!("Harvest amount: {}", harvest_amount);
 
         // flow
 
         // we harvest 1 microalgo (smallest possible increment) more than max allowed
-        let res = harvest_flow(
-            &algod,
-            &precs.project,
-            &harvester,
-            funds_asset_id,
-            harvest_amount + 1,
-        )
-        .await;
+        let res = harvest_flow(&td, &precs.project, &harvester, harvest_amount + 1).await;
         log::debug!("res: {:?}", res);
 
         // test
@@ -184,20 +134,11 @@ mod tests {
     #[test]
     #[serial]
     async fn test_harvest_max_with_repeated_fractional_shares_percentage() -> Result<()> {
-        test_init()?;
+        let td = test_dao_init().await?;
+        let algod = &td.algod;
 
-        // deps
-
-        let algod = dependencies::algod_for_tests();
-        // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
-        let creator = creator();
-        let drainer = investor1();
-        let harvester = investor2();
-        let customer = customer();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
+        let drainer = &td.investor1;
+        let harvester = &td.investor2;
 
         // precs
 
@@ -219,17 +160,11 @@ mod tests {
         // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
 
         let precs = harvest_precs(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            &harvester,
-            &drainer,
-            &customer,
+            &td,
             buy_share_amount,
             pay_and_drain_amount,
-            precision,
-            &capi_deps,
+            &drainer,
+            &harvester,
         )
         .await?;
 
@@ -248,14 +183,7 @@ mod tests {
 
         // flow
 
-        let res = harvest_flow(
-            &algod,
-            &precs.project,
-            &harvester,
-            funds_asset_id,
-            harvest_amount,
-        )
-        .await?;
+        let res = harvest_flow(&td, &precs.project, &harvester, harvest_amount).await?;
 
         // test
 
@@ -263,7 +191,7 @@ mod tests {
             &algod,
             &harvester,
             res.project.central_app_id,
-            funds_asset_id,
+            td.funds_asset_id,
             res.project.central_escrow.address(),
             res.project.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
@@ -284,58 +212,28 @@ mod tests {
     #[test]
     #[serial]
     async fn test_2_successful_harvests() -> Result<()> {
-        test_init()?;
+        let td = test_dao_init().await?;
+        let algod = &td.algod;
 
-        // deps
-
-        let algod = dependencies::algod_for_tests();
-        // anyone can drain (they've to pay the fee): it will often be an investor, to be able to harvest
-        let creator = creator();
-        let drainer = investor1();
-        let harvester = investor2();
-        let customer = customer();
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
+        let drainer = &td.investor1;
+        let harvester = &td.investor2;
 
         // flow
 
         let buy_share_amount = ShareAmount::new(20);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
         let harvest_amount = FundsAmount::new(200_000); // just an amount low enough so we can harvest 2x
-        let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = harvest_precs(
-            &algod,
-            &creator,
-            &project_specs(),
-            funds_asset_id,
-            &harvester,
-            &drainer,
-            &customer,
+            &td,
             buy_share_amount,
             pay_and_drain_amount,
-            precision,
-            &capi_deps,
-        )
-        .await?;
-        let res1 = harvest_flow(
-            &algod,
-            &precs.project,
+            &drainer,
             &harvester,
-            funds_asset_id,
-            harvest_amount,
         )
         .await?;
-        let res2 = harvest_flow(
-            &algod,
-            &precs.project,
-            &harvester,
-            funds_asset_id,
-            harvest_amount,
-        )
-        .await?;
+        let res1 = harvest_flow(&td, &precs.project, &harvester, harvest_amount).await?;
+        let res2 = harvest_flow(&td, &precs.project, &harvester, harvest_amount).await?;
 
         // test
 
@@ -344,7 +242,7 @@ mod tests {
             &algod,
             &harvester,
             res2.project.central_app_id,
-            funds_asset_id,
+            td.funds_asset_id,
             res2.project.central_escrow.address(),
             res2.project.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,

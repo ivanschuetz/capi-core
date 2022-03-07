@@ -1,18 +1,13 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        dependencies,
         state::{
             account_state::find_asset_holding_or_err, app_state::ApplicationLocalStateError,
             central_app_state::central_investor_state,
         },
         testing::{
-            flow::create_project_flow::create_project_flow,
-            network_test_util::{setup_on_chain_deps, OnChainDeps},
-            test_data::project_specs,
-            TESTS_DEFAULT_PRECISION,
+            flow::create_project_flow::create_project_flow, network_test_util::test_dao_init,
         },
-        testing::{network_test_util::test_init, test_data::creator},
     };
     use anyhow::Result;
     use serial_test::serial;
@@ -21,35 +16,14 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_create_project_flow() -> Result<()> {
-        test_init()?;
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
 
-        // deps
-        let algod = dependencies::algod_for_tests();
-        let creator = creator();
+        let project = create_project_flow(td).await?;
 
-        let OnChainDeps {
-            funds_asset_id,
-            capi_deps,
-        } = setup_on_chain_deps(&algod).await?;
-
-        // UI
-        let specs = project_specs();
-
-        let precision = TESTS_DEFAULT_PRECISION;
-        let project = create_project_flow(
-            &algod,
-            &creator,
-            &specs,
-            funds_asset_id,
-            precision,
-            &capi_deps,
-        )
-        .await?;
-
-        // UI
         log::debug!("Submitted create project txs, project: {:?}", project);
 
-        let creator_infos = algod.account_information(&creator.address()).await?;
+        let creator_infos = algod.account_information(&td.creator.address()).await?;
         let created_assets = creator_infos.created_assets;
 
         assert_eq!(created_assets.len(), 1);
@@ -57,7 +31,7 @@ mod tests {
         log::debug!("created_assets {:?}", created_assets);
 
         // created asset checks
-        assert_eq!(created_assets[0].params.creator, creator.address());
+        assert_eq!(created_assets[0].params.creator, td.creator.address());
         // name matches specs
         assert_eq!(
             created_assets[0].params.name,
@@ -68,7 +42,7 @@ mod tests {
             created_assets[0].params.unit_name,
             Some(project.project.specs.shares.token_name.clone())
         );
-        assert_eq!(specs.shares.supply.0, created_assets[0].params.total);
+        assert_eq!(td.specs.shares.supply.0, created_assets[0].params.total);
         let creator_assets = creator_infos.assets;
         // funds asset + not opted-out from shares (TODO maybe do this, no reason for creator to be opted in in the investor assets) so still there
         assert_eq!(2, creator_assets.len());
@@ -105,9 +79,12 @@ mod tests {
         assert_eq!(locking_escrow_held_assets[0].amount, 0); // nothing locked yet
 
         // sanity check: the creator doesn't opt in to the app (doesn't invest or lock)
-        let central_state_res =
-            central_investor_state(&algod, &creator.address(), project.project.central_app_id)
-                .await;
+        let central_state_res = central_investor_state(
+            &algod,
+            &td.creator.address(),
+            project.project.central_app_id,
+        )
+        .await;
         assert_eq!(
             Err(ApplicationLocalStateError::NotOptedIn),
             central_state_res
