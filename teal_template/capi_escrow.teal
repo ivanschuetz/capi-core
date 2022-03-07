@@ -52,20 +52,20 @@ int pay
 gtxn 1 TypeEnum
 int axfer
 ==
-&&
+assert
 gtxn 1 XferAsset
 int {capi_asset_id}
 ==
-&&
+assert
 // escrow optin to funds asset
 gtxn 2 TypeEnum
 int axfer
 ==
-&&
+assert
 gtxn 2 XferAsset
 int {funds_asset_id}
 ==
-&&
+assert
 // TODO is it needed / possible to check that txs are sent/received by "this escrow"?
 
 return
@@ -77,24 +77,24 @@ int appl
 int NoOp 
 gtxn 0 OnCompletion
 ==
-&&
+assert
 gtxn 0 ApplicationID
 int {app_id}
 ==
-&&
+assert
 gtxn 1 TypeEnum // harvest
 int axfer
 ==
-&&
+assert
 gtxn 1 XferAsset
 int {funds_asset_id}
 ==
-&&
+assert
 // the app caller is the dividend receiver
 gtxn 0 Sender
 gtxn 1 AssetReceiver
 ==
-&&
+assert
 
 return
 
@@ -105,21 +105,21 @@ int CloseOut
 gtxn 0 ApplicationID
 int {app_id}
 ==
-&&
+assert
 gtxn 1 TypeEnum // unlock
 int axfer
 ==
-&&
+assert
 gtxn 1 XferAsset
 int {capi_asset_id}
 ==
-&&
+assert
 // the app caller is the dividend receiver
 // TODO do we need checks duplicated with the app if we're checking that we're calling the app too
 gtxn 1 AssetReceiver
 gtxn 0 Sender
 ==
-&&
+assert
 return
 
 failure:

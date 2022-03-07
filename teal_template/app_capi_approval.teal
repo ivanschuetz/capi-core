@@ -81,7 +81,7 @@ int appl
 int OptIn 
 gtxn 0 OnCompletion
 ==
-&&
+assert
 return
 
 branch_lock:
@@ -91,21 +91,21 @@ int appl
 int NoOp 
 gtxn 0 OnCompletion
 ==
-&&
+assert
 gtxn 1 TypeEnum // lock
 int axfer
 ==
-&&
+assert
 // the app caller is locking the shares
 gtxn 0 Sender
 gtxn 1 Sender
 ==
-&&
+assert
 // locking capi asset
 gtxn 1 XferAsset
 int {capi_asset_id}
 ==
-&&
+assert
 callsub lock_shares
 b success
 
@@ -116,20 +116,20 @@ int appl
 int NoOp 
 gtxn 0 OnCompletion
 ==
-&&
+assert
 gtxn 1 TypeEnum // harvest
 int axfer
 ==
-&&
+assert
 gtxn 1 XferAsset
 int {funds_asset_id}
 ==
-&&
+assert
 // the app caller is the dividend receiver
 gtxn 0 Sender
 gtxn 1 AssetReceiver
 ==
-&&
+assert
 
 // calculate entitled harvest amount
 gtxn 0 Sender
@@ -143,7 +143,7 @@ callsub get_harvested_total
 // is the xfer less or equal to entitled amount?
 gtxn 1 AssetAmount
 >=
-&&
+assert
 bz failure
 
 // update harvested amount
@@ -163,22 +163,22 @@ int CloseOut
 gtxn 1 TypeEnum // unlock
 int axfer
 ==
-&&
+assert
 gtxn 1 XferAsset
 int {capi_asset_id}
 ==
-&&
+assert
 // the app caller is the dividend receiver
 gtxn 1 AssetReceiver
 gtxn 0 Sender
 ==
-&&
+assert
 // check shares xfer == owned shares count
 gtxn 1 AssetAmount
 int 0
 callsub get_locked_shares
 ==
-&&
+assert
 return
 
 branch_drain:
@@ -188,28 +188,28 @@ int appl
 int NoOp
 gtxn 0 OnCompletion
 ==
-&&
+assert
 gtxn 1 TypeEnum // capi app call
 int appl
 ==
-&&
+assert
 int NoOp
 gtxn 1 OnCompletion
 ==
-&&
+assert
 gtxn 2 TypeEnum // drain
 int axfer
 ==
-&&
+assert
 gtxn 3 TypeEnum // capi share
 int axfer
 ==
-&&
+assert
 // the same user is sending both app calls
 gtxn 1 Sender
 gtxn 0 Sender
 ==
-&&
+assert
 // note that we can't check sender/receiver of the drain tx here, as those are DAO specific
 
 // TODO - store capi escrow in global state

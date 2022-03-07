@@ -85,7 +85,7 @@ int 1
 gtxn 0 TypeEnum
 int appl
 ==
-&&
+assert
 return
 
 // duplicated: app_central_approval, central_escrow, customer escrow, investing_escrow, locking escrow
@@ -97,85 +97,85 @@ int appl
 int NoOp
 gtxn 0 OnCompletion
 ==
-&&
+assert
 gtxn 0 NumAppArgs
 int 4
 ==
-&&
+assert
 // min balance creator -> central escrow
 gtxn 1 TypeEnum
 int pay
 ==
-&&
+assert
 gtxn 1 Receiver
 gtxn 0 ApplicationArgs 0 
 ==
-&&
+assert
 // min balance creator -> customer escrow
 gtxn 2 TypeEnum
 int pay
 ==
-&&
+assert
 gtxn 2 Receiver
 gtxn 0 ApplicationArgs 1
 ==
-&&
+assert
 // min balance creator -> locking escrow
 gtxn 3 TypeEnum
 int pay
 ==
-&&
+assert
 // min balance creator -> invest escrow
 gtxn 4 TypeEnum
 int pay
 ==
-&&
+assert
 // optin locking escrow to shares
 gtxn 5 TypeEnum 
 int axfer
 ==
-&&
+assert
 gtxn 5 AssetAmount 
 int 0
 ==
-&&
+assert
 // optin invest escrow to shares
 gtxn 6 TypeEnum
 int axfer
 ==
-&&
+assert
 gtxn 6 AssetAmount 
 int 0
 ==
-&&
+assert
 // optin central escrow to funds asset
 gtxn 7 TypeEnum
 int axfer
 ==
-&&
+assert
 gtxn 7 AssetAmount 
 int 0
 ==
-&&
+assert
 // optin customer escrow to funds asset
 gtxn 8 TypeEnum
 int axfer
 ==
-&&
+assert
 gtxn 8 AssetAmount 
 int 0
 ==
-&&
+assert
 // shares transfer creator -> investor escrow
 gtxn 9 TypeEnum
 int axfer
 ==
-&&
+assert
 gtxn 9 XferAsset
 gtxn 0 ApplicationArgs 2
 btoi
 ==
-&&
+assert
 
 // setup can be done only once
 // if one of the global variables is set already, exit with failure
@@ -212,15 +212,15 @@ int appl
 int NoOp
 gtxn 0 OnCompletion
 ==
-&&
+assert
 gtxn 0 NumAppArgs
 int 1
 ==
-&&
+assert
 gtxn 1 TypeEnum // lock
 int axfer
 ==
-&&
+assert
 callsub lock_shares
 callsub save_project_id
 return
@@ -234,67 +234,67 @@ int appl
 int NoOp
 gtxn 0 OnCompletion
 ==
-&&
+assert
 gtxn 0 NumAppArgs
 int 1
 ==
-&&
+assert
 gtxn 1 TypeEnum // receive shares
 int axfer
 ==
-&&
+assert
 // Receiving the shares asset
 gtxn 1 XferAsset
 byte "SharesAssetId"
 app_global_get
 btoi
 ==
-&&
+assert
 // TODO set on state
 // gtxn 1 AssetReceiver
 // addr /locking_escrow_address/
 // ==
-// &&
+// assert
 
 gtxn 2 TypeEnum // pay share price (with funds asset)
 int axfer
 ==
-&&
+assert
 // Paying with the funds asset
 gtxn 2 XferAsset
 byte "FundsAssetId"
 app_global_get
 btoi
 ==
-&&
+assert
 gtxn 2 AssetReceiver
 byte "CentralEscrowAddress"
 app_global_get
 ==
-&&
+assert
 gtxn 3 TypeEnum // shares optin
 int axfer
 ==
-&&
+assert
 gtxn 3 AssetAmount
 int 0
 ==
-&&
+assert
 // TODO is this optin check needed - if yes add it to other optins
 gtxn 3 AssetReceiver
 gtxn 3 Sender
 ==
-&&
+assert
 
 // the investor sends 3 txs (app call, pay for shares, shares optin)
 gtxn 0 Sender
 gtxn 2 Sender
 ==
-&&
+assert
 gtxn 2 Sender
 gtxn 3 Sender
 ==
-&&
+assert
 
 // TODO check that gtxn 1 sender is invest escrow and receiver locking escrow? (add both to state)
 
@@ -304,7 +304,7 @@ gtxn 1 AssetAmount // shares received
 int {share_price}
 *
 ==
-&&
+assert
 
 callsub lock_shares
 callsub save_project_id
@@ -317,43 +317,43 @@ int appl
 int NoOp
 gtxn 0 OnCompletion
 ==
-&&
+assert
 gtxn 1 TypeEnum // capi app call
 int appl
 ==
-&&
+assert
 gtxn 1 ApplicationID
 int {capi_app_id}
 ==
-&&
+assert
 int NoOp
 gtxn 1 OnCompletion
 ==
-&&
+assert
 gtxn 2 TypeEnum // drain
 int axfer
 ==
-&&
+assert
 gtxn 3 TypeEnum // capi share
 int axfer
 ==
-&&
+assert
 // the same user is sending both app calls
 gtxn 1 Sender
 gtxn 0 Sender
 ==
-&&
+assert
 // the funds are being drained to the central escrow
 gtxn 2 AssetReceiver
 byte "CentralEscrowAddress"
 app_global_get
 ==
-&&
+assert
 // the capi fee is being sent to the capi escrow
 gtxn 3 AssetReceiver
 addr {capi_escrow_address}
 ==
-&&
+assert
 // TODO check capi share and drain amount, based on customer escrow's holdings (gtxn 2 sender)
 // TODO allow only to drain everything at once? - no particular reason but there's no reason to drain only a part 
 // other than concurrent issues - e.g. receiving a payment after fetching the balance on the frontend, which should be not so frequent, and the tx can be repeated
@@ -377,23 +377,23 @@ int appl
 int NoOp
 gtxn 0 OnCompletion
 ==
-&&
+assert
 gtxn 1 TypeEnum // harvest
 int axfer
 ==
-&&
+assert
 // the dividend receiver is the app call sender 
 gtxn 1 AssetReceiver
 gtxn 0 Sender
 ==
-&&
+assert
 // the harvested asset is the funds asset 
 gtxn 1 XferAsset
 byte "FundsAssetId"
 app_global_get
 btoi
 ==
-&&
+assert
 
 ////////////////////////////////////////
 // update already harvested local state
@@ -412,7 +412,7 @@ app_local_get // if local state doesn't exist yet, this puts a 0 on the stack
 // is the xfer less or equal to entitled amount?
 gtxn 1 AssetAmount
 >=
-&&
+assert
 bz failure // trying to harvest more than entitled amount -> fail
 
 // update harvested amount
@@ -440,21 +440,21 @@ int 0
 gtxn 1 AssetReceiver
 gtxn 0 Sender
 ==
-&&
+assert
 // check shares xfer == owned shares count
 gtxn 1 AssetAmount
 int 0
 byte "Shares"
 app_local_get
 ==
-&&
+assert
 // check that shares is the DAO shares asset
 gtxn 1 XferAsset
 byte "SharesAssetId"
 app_global_get
 btoi
 ==
-&&
+assert
 return
 // check xfer sender is locking escrow omitted,
 // if user sends a wrong xfer sender and it happens to have the DAO asset and it passes, it's a security problem of that sender, not of this app - TODO review
