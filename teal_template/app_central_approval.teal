@@ -197,6 +197,10 @@ app_global_put
 byte "FundsAssetId"
 gtxn 0 ApplicationArgs 3 
 app_global_put
+// initialize to 0
+byte "CentralReceivedTotal"
+int 0
+app_global_put
 
 b success
 
