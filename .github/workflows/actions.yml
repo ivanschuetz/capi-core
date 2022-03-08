@@ -75,7 +75,13 @@ jobs:
           profile: minimal
           toolchain: 1.59.0
           override: true
-      - run: rustup component add clippy
+      - run: |
+          rustup component add clippy
+          cargo clippy -V
+      #- run: | 
+      #    sh ./scripts/setup_sandbox.sh 
+      #    echo ">> pwd:"
+      #    pwd
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
