@@ -21,6 +21,6 @@ impl PartialEq<u64> for AssetAmount {
 
 impl PartialOrd<u64> for AssetAmount {
     fn partial_cmp(&self, other: &u64) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other)
+        self.0.partial_cmp(other)
     }
 }

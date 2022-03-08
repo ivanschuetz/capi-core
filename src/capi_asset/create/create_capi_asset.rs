@@ -16,7 +16,7 @@ pub async fn create_capi_asset(
     params: &SuggestedTransactionParams,
 ) -> Result<CreateCapiAssetToSign> {
     let tx = TxnBuilder::with(
-        &params,
+        params,
         CreateAsset::new(*creator, supply.val(), 0, false)
             // Should be called CAPI - for now using a different name to not attract attention on TestNet
             .unit_name("GLOB".to_owned())

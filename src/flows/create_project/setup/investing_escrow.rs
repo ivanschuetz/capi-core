@@ -28,6 +28,7 @@ const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 
 /// The investing escrow holds the created project's assets (shares) to be bought by investors
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_investing_escrow(
     algod: &Algod,
     shares_asset_id: u64,
@@ -51,6 +52,7 @@ pub async fn create_investing_escrow(
     .await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn render_and_compile_investing_escrow(
     algod: &Algod,
     shares_asset_id: u64,
@@ -143,7 +145,7 @@ pub async fn setup_investing_escrow_txs(
     )
     .build()?;
 
-    fund_algos_tx.fee = calculate_total_fee(&params, &[fund_algos_tx, shares_optin_tx])?;
+    fund_algos_tx.fee = calculate_total_fee(params, &[fund_algos_tx, shares_optin_tx])?;
 
     let transfer_shares_tx = &mut TxnBuilder::with(
         params,

@@ -87,7 +87,7 @@ pub async fn setup_locking_escrow_txs(
     )
     .build()?;
 
-    fund_algos_tx.fee = calculate_total_fee(&params, &[fund_algos_tx, shares_optin_tx])?;
+    fund_algos_tx.fee = calculate_total_fee(params, &[fund_algos_tx, shares_optin_tx])?;
 
     Ok(SetupLockingEscrowToSign {
         escrow,

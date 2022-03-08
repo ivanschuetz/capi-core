@@ -48,7 +48,7 @@ pub async fn setup_central_escrow(
         &mut create_payment_tx(project_creator, escrow.address(), MIN_BALANCE, params).await?;
 
     fund_min_balance_tx.fee =
-        calculate_total_fee(&params, &[fund_min_balance_tx, optin_to_funds_asset_tx])?;
+        calculate_total_fee(params, &[fund_min_balance_tx, optin_to_funds_asset_tx])?;
 
     Ok(SetupCentralEscrowToSign {
         optin_to_funds_asset_tx: optin_to_funds_asset_tx.clone(),

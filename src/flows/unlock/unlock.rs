@@ -54,7 +54,7 @@ pub async fn unlock(
         calculate_total_fee(&params, &[central_app_optout_tx, shares_xfer_tx])?;
     TxGroup::assign_group_id(vec![central_app_optout_tx, shares_xfer_tx])?;
 
-    let signed_shares_xfer_tx = locking_escrow.sign(&shares_xfer_tx, vec![])?;
+    let signed_shares_xfer_tx = locking_escrow.sign(shares_xfer_tx, vec![])?;
 
     Ok(UnlockToSign {
         central_app_optout_tx: central_app_optout_tx.clone(),

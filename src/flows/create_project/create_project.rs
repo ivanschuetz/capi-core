@@ -18,6 +18,7 @@ use crate::{
 use algonaut::{algod::v2::Algod, core::Address, transaction::tx_group::TxGroup};
 use anyhow::Result;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_project_txs(
     algod: &Algod,
     specs: &CreateProjectSpecs,

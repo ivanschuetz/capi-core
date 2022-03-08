@@ -62,6 +62,9 @@ pub trait ApplicationStateExt {
     fn find_uint(&self, key: &AppStateKey) -> Option<u64>;
     fn find_bytes(&self, key: &AppStateKey) -> Option<Vec<u8>>;
     fn len(&self) -> usize;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl ApplicationStateExt for ApplicationLocalState {

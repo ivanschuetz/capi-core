@@ -33,7 +33,7 @@ pub async fn create_assets(
         algod,
         &programs.central_app_approval,
         &programs.central_app_clear,
-        &creator,
+        creator,
         specs.shares.supply,
         precision,
         specs.investors_part(),

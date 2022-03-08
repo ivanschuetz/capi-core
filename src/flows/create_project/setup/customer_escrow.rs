@@ -21,6 +21,7 @@ use crate::{
 // 1 asset (funds asset)
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 
+#[allow(clippy::too_many_arguments)]
 pub async fn setup_customer_escrow(
     algod: &Algod,
     project_creator: &Address,
@@ -41,7 +42,7 @@ pub async fn setup_customer_escrow(
     .await?;
 
     let mut optin_to_funds_asset_tx = TxnBuilder::with_fee(
-        &params,
+        params,
         TxnFee::zero(),
         AcceptAsset::new(*escrow.address(), funds_asset_id.0).build(),
     )
@@ -51,7 +52,7 @@ pub async fn setup_customer_escrow(
         create_payment_tx(project_creator, escrow.address(), MIN_BALANCE, params).await?;
 
     fund_min_balance_tx.fee = calculate_total_fee(
-        &params,
+        params,
         &[&mut optin_to_funds_asset_tx, &mut fund_min_balance_tx],
     )?;
 

@@ -3,7 +3,7 @@ use super::{
     shares_specs::SharesRoundingMode::{self, Ceil, Floor},
 };
 use anyhow::{anyhow, Result};
-use rust_decimal::{Decimal, prelude::ToPrimitive};
+use rust_decimal::{prelude::ToPrimitive, Decimal};
 use std::convert::TryFrom;
 
 // A percentage in range [0..1]

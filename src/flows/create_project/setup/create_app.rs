@@ -70,6 +70,7 @@ pub async fn create_app_tx(
     Ok(tx)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn render_central_app(
     source: &TealSourceTemplate,
     share_supply: ShareAmount,

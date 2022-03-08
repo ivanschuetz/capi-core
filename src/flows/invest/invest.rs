@@ -96,7 +96,7 @@ pub async fn invest_txs(
 
     let receive_shares_asset_signed_tx = project
         .invest_escrow
-        .sign(&receive_shares_asset_tx, vec![])?;
+        .sign(receive_shares_asset_tx, vec![])?;
 
     Ok(InvestToSign {
         project: project.to_owned(),
@@ -115,7 +115,7 @@ pub fn central_app_investor_setup_tx(
     project_id: &ProjectId,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
-        &params,
+        params,
         CallApplication::new(investor, app_id)
             .foreign_assets(vec![shares_asset_id])
             .app_arguments(vec![project_id.bytes().to_vec()])

@@ -19,6 +19,7 @@ use anyhow::{anyhow, Result};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
+#[allow(clippy::too_many_arguments)]
 pub async fn drain_customer_escrow(
     algod: &Algod,
     drainer: &Address,
@@ -37,14 +38,14 @@ pub async fn drain_customer_escrow(
         central_app_id,
         &params,
         drainer,
-        &customer_escrow.address(),
+        customer_escrow.address(),
         funds_asset_id,
     )?;
     let capi_app_call_tx = &mut drain_capi_app_call_tx(
         capi_deps.app_id,
         &params,
         drainer,
-        &customer_escrow.address(),
+        customer_escrow.address(),
         funds_asset_id,
     )?;
 
@@ -102,7 +103,7 @@ pub async fn drain_amounts(
     customer_escrow: &Address,
 ) -> Result<DaoAndCapiDrainAmounts> {
     let customer_escrow_holdings = funds_holdings(algod, customer_escrow, funds_asset_id).await?;
-    calculate_dao_and_capi_escrow_xfer_amounts(customer_escrow_holdings, capi_percentage.clone())
+    calculate_dao_and_capi_escrow_xfer_amounts(customer_escrow_holdings, capi_percentage)
 }
 
 pub async fn fetch_drain_amount_and_drain(

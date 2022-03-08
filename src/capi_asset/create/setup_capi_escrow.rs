@@ -53,7 +53,7 @@ pub async fn setup_capi_escrow(
     .build()?;
 
     fund_min_balance_tx.fee = calculate_total_fee(
-        &params,
+        params,
         &[
             fund_min_balance_tx,
             optin_to_capi_asset_tx,
@@ -66,8 +66,8 @@ pub async fn setup_capi_escrow(
         optin_to_funds_asset_tx,
     ])?;
 
-    let optin_to_capi_asset_tx_signed = escrow.sign(&optin_to_capi_asset_tx, vec![])?;
-    let optin_to_funds_asset_tx_signed = escrow.sign(&optin_to_funds_asset_tx, vec![])?;
+    let optin_to_capi_asset_tx_signed = escrow.sign(optin_to_capi_asset_tx, vec![])?;
+    let optin_to_funds_asset_tx_signed = escrow.sign(optin_to_funds_asset_tx, vec![])?;
 
     Ok(SetupCentralEscrowToSign {
         optin_to_capi_asset_tx: optin_to_capi_asset_tx_signed,

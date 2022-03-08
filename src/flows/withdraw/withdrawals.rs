@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     date_util::timestamp_seconds_to_date,
     flows::{
         create_project::{
@@ -14,7 +15,7 @@ use crate::{
         },
         withdraw::note::base64_withdrawal_note_to_withdrawal_description,
     },
-    funds::FundsAmount, capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
+    funds::FundsAmount,
 };
 use anyhow::{anyhow, Error, Result};
 

@@ -11,7 +11,7 @@ pub fn calculate_total_fee(
 ) -> Result<MicroAlgos> {
     let mut total_fee = MicroAlgos(0);
     for tx in txs {
-        total_fee = total_fee + tx.estimate_fee_with_params(&params)?;
+        total_fee = total_fee + tx.estimate_fee_with_params(params)?;
     }
     log::debug!("Calculated total fee: {total_fee}");
     Ok(total_fee)

@@ -63,18 +63,22 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
         "customer escrow",
     )?;
 
-    let funds_asset_id = FundsAssetId(global_state.find_uint(&GLOBAL_FUNDS_ASSET_ID).ok_or(
-        anyhow!(
-            "Funds asset id not found in global state: {}",
-            global_state.len()
-        ),
+    let funds_asset_id = FundsAssetId(global_state.find_uint(&GLOBAL_FUNDS_ASSET_ID).ok_or_else(
+        || {
+            anyhow!(
+                "Funds asset id not found in global state: {}",
+                global_state.len()
+            )
+        },
     )?);
     let shares_asset_id = global_state
         .find_uint(&GLOBAL_SHARES_ASSET_ID)
-        .ok_or(anyhow!(
-            "Shares asset id not found in global state: {}",
-            global_state.len()
-        ))?;
+        .ok_or_else(|| {
+            anyhow!(
+                "Shares asset id not found in global state: {}",
+                global_state.len()
+            )
+        })?;
 
     Ok(CentralAppGlobalState {
         received: total_received,

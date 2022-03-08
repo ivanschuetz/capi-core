@@ -30,6 +30,7 @@ pub enum FundsActivityEntryType {
     Spending,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn funds_activity(
     algod: &Algod,
     indexer: &Indexer,

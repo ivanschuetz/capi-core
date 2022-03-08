@@ -1,7 +1,7 @@
 pub mod capi_app_id;
 pub mod capi_app_state;
-pub mod capi_asset_id;
 pub mod capi_asset_dao_specs;
+pub mod capi_asset_id;
 pub mod common_test;
 pub mod create;
 pub mod harvest;
