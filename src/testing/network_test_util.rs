@@ -6,6 +6,7 @@ pub use test::{
 
 #[cfg(test)]
 mod test {
+    use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::CapiAssetId;
     use crate::capi_asset::create::test_flow::test_flow::CapiAssetFlowRes;
@@ -19,6 +20,7 @@ mod test {
     use crate::network_util::wait_for_pending_transaction;
     use crate::testing::flow::create_project_flow::programs;
     use crate::testing::test_data::project_specs;
+    use algonaut::core::Address;
     use algonaut::transaction::contract_account::ContractAccount;
     use algonaut::{
         algod::v2::Algod,
@@ -52,8 +54,6 @@ mod test {
 
     #[derive(Debug)]
     pub struct TestDeps {
-        // pub algod: &'a Algod,
-        // pub indexer: &'a Indexer,
         pub algod: Algod,
         pub indexer: Indexer,
 
@@ -143,7 +143,7 @@ mod test {
         fund_accounts_with_local_funds_asset(
             algod,
             &params,
-            asset_id,
+            asset_id.0,
             FundsAmount::new(10_000_000_000),
             &asset_creator,
         )
@@ -206,20 +206,13 @@ mod test {
     async fn fund_accounts_with_local_funds_asset(
         algod: &Algod,
         params: &SuggestedTransactionParams,
-        funds_asset_id: FundsAssetId,
+        asset_id: u64,
         amount: FundsAmount,
         sender: &Account,
     ) -> Result<()> {
         for account in vec![creator(), investor1(), investor2(), customer()] {
-            fund_account_with_local_funds_asset(
-                algod,
-                params,
-                funds_asset_id,
-                amount,
-                sender,
-                &account,
-            )
-            .await?;
+            optin_and_send_asset_to_account(algod, params, asset_id, amount.0, sender, &account)
+                .await?;
         }
         Ok(())
     }
@@ -238,30 +231,24 @@ mod test {
         Decimal::from_str("0.1").unwrap().try_into().unwrap()
     }
 
-    async fn fund_account_with_local_funds_asset(
+    async fn optin_and_send_asset_to_account(
         algod: &Algod,
         params: &SuggestedTransactionParams,
-        funds_asset_id: FundsAssetId,
-        amount: FundsAmount,
+        asset_id: u64,
+        amount: AssetAmount,
         sender: &Account,
         receiver: &Account,
     ) -> Result<()> {
         // optin the receiver to the asset
         let optin_tx = &mut TxnBuilder::with(
             params,
-            AcceptAsset::new(receiver.address(), funds_asset_id.0).build(),
+            AcceptAsset::new(receiver.address(), asset_id).build(),
         )
         .build()?;
 
         let fund_tx = &mut TxnBuilder::with(
             params,
-            TransferAsset::new(
-                sender.address(),
-                funds_asset_id.0,
-                amount.val(),
-                receiver.address(),
-            )
-            .build(),
+            TransferAsset::new(sender.address(), asset_id, amount.0, receiver.address()).build(),
         )
         .build()?;
 
@@ -276,6 +263,25 @@ mod test {
 
         wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
 
+        Ok(())
+    }
+
+    async fn send_asset_to_account(
+        algod: &Algod,
+        params: &SuggestedTransactionParams,
+        asset_id: u64,
+        amount: AssetAmount,
+        sender: &Account,
+        receiver: &Address,
+    ) -> Result<()> {
+        let fund_tx = &mut TxnBuilder::with(
+            params,
+            TransferAsset::new(sender.address(), asset_id, amount.0, *receiver).build(),
+        )
+        .build()?;
+        let fund_tx_signed = sender.sign_transaction(&fund_tx)?;
+        let res = algod.broadcast_signed_transaction(&fund_tx_signed).await?;
+        wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
         Ok(())
     }
 
@@ -314,7 +320,6 @@ mod test {
     }
 
     /// Reset and prepare local network for manual testing.
-    /// Basically execute the same code we do when starting all the automated tests.
     #[test]
     #[ignore]
     async fn reset_and_fund_local_network() -> Result<()> {
@@ -340,22 +345,45 @@ mod test {
         Ok(())
     }
 
-    /// Run this to send some funds (funds asset) to an account
+    /// Run this to send some assets to an account, opting the account in to the asset
     #[test]
-    async fn fund_account_with_funds_asset() -> Result<()> {
+    async fn do_optin_and_fund_account_with_funds_asset() -> Result<()> {
         init_logger()?;
 
         let algod = algod_for_net(&Network::Test);
 
         let params = algod.suggested_transaction_params().await?;
 
-        fund_account_with_local_funds_asset(
+        optin_and_send_asset_to_account(
             &algod,
             &params,
-            FundsAssetId(75503403),
-            FundsAmount::new(1_000_000_000),
+            75503403,
+            AssetAmount(1_000_000_000),
             &capi_owner(),
             &Account::from_mnemonic("frame engage radio switch little scan time column amused spatial dynamic play cruise split coral aisle midnight cave essence midnight mutual dog ostrich absent leopard").unwrap(),
+        )
+        .await?;
+        Ok(())
+    }
+
+    /// Run this to send some assets to an account
+    #[test]
+    async fn do_fund_account_with_funds_asset() -> Result<()> {
+        init_logger()?;
+
+        let algod = algod_for_net(&Network::Test);
+
+        let params = algod.suggested_transaction_params().await?;
+
+        send_asset_to_account(
+            &algod,
+            &params,
+            75503403,
+            AssetAmount(1_000_000_000),
+            &capi_owner(),
+            &"STOUDMINSIPP7JMJMGXVJYVS6HHD3TT5UODCDPYGV6KBGP7UYNTLJVJJME"
+                .parse()
+                .unwrap(),
         )
         .await?;
         Ok(())
