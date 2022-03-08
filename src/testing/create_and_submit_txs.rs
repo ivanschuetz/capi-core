@@ -7,10 +7,9 @@ pub use test::{
 // need wrapper module for auto imports to work https://github.com/rust-analyzer/rust-analyzer/issues/9391
 #[cfg(test)]
 mod test {
-
     use crate::{
         flows::shared::app::optin_to_app, network_util::wait_for_pending_transaction,
-        testing::algorand_checks::optin_to_asset,
+        testing::algorand_checks::test::optin_to_asset,
     };
     use algonaut::{
         algod::v2::Algod,

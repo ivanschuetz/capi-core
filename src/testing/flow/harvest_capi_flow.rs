@@ -65,7 +65,6 @@ mod test {
         Ok(())
     }
 
-    #[cfg(test)]
     pub async fn harvest_capi_precs(
         td: &TestDeps,
         capi_creator: &Account,

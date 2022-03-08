@@ -17,7 +17,7 @@ mod tests {
                 create_project_flow::create_project_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
                 invest_in_project_flow::{invests_flow, invests_optins_flow},
-                withdraw_flow::{withdraw_flow, withdraw_precs},
+                withdraw_flow::{test::withdraw_flow, withdraw_precs},
             },
             network_test_util::test_dao_init,
             test_data::{investor2, project_specs},
