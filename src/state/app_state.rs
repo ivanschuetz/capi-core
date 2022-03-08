@@ -54,6 +54,7 @@ pub enum ApplicationLocalStateError<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppStateKey<'a>(pub &'a str);
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Just a wrapper equivalent to ApplicationLocalState (provided by the SDK), to offer a similar interface
 pub struct ApplicationGlobalState(Vec<TealKeyValue>);
 

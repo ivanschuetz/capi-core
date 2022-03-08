@@ -25,8 +25,8 @@ const LOCAL_HARVESTED_TOTAL: AppStateKey = AppStateKey("HarvestedTotal");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_PROJECT: AppStateKey = AppStateKey("Project");
 
-pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 4; // central escrow address, customer escrow address, shares asset id, funds asset id
-pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 1; // "total received"
+pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 2; // central escrow address, customer escrow address
+pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 3; // "total received", shares asset id, funds asset id
 
 pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 1; // for investors: "project"
 pub const LOCAL_SCHEMA_NUM_INTS: u64 = 2; // for investors: "shares", "already retrieved"
@@ -40,16 +40,25 @@ pub struct CentralAppGlobalState {
     pub shares_asset_id: u64,
 }
 
+/// Returns Ok only if called after dao setup (branch_setup_dao), where all the global state is initialized.
 pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralAppGlobalState> {
     let global_state = global_state(algod, app_id).await?;
     if global_state.len() != ((GLOBAL_SCHEMA_NUM_BYTE_SLICES + GLOBAL_SCHEMA_NUM_INTS) as usize) {
         return Err(anyhow!(
-            "Unexpected global state length: {}",
-            global_state.len()
+            "Unexpected global state length: {}, state: {global_state:?}. Was the DAO setup performed already?",
+            global_state.len(),
         ));
     }
-    let total_received =
-        FundsAmount::new(global_state.find_uint(&GLOBAL_TOTAL_RECEIVED).unwrap_or(0));
+    let total_received = FundsAmount::new(
+        global_state
+            .find_uint(&GLOBAL_TOTAL_RECEIVED)
+            .ok_or_else(|| {
+                anyhow!(
+                    "Global total received: {} not set in global state: {global_state:?}.",
+                    global_state.len(),
+                )
+            })?,
+    );
 
     let central_escrow = read_address_from_state(
         &global_state,
@@ -66,8 +75,8 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
     let funds_asset_id = FundsAssetId(global_state.find_uint(&GLOBAL_FUNDS_ASSET_ID).ok_or_else(
         || {
             anyhow!(
-                "Funds asset id not found in global state: {}",
-                global_state.len()
+                "Funds asset id: {} not found in global state: {global_state:?}",
+                global_state.len(),
             )
         },
     )?);
@@ -75,7 +84,7 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
         .find_uint(&GLOBAL_SHARES_ASSET_ID)
         .ok_or_else(|| {
             anyhow!(
-                "Shares asset id not found in global state: {}",
+                "Shares asset id: {} not found in global state: {global_state:?}",
                 global_state.len()
             )
         })?;
@@ -120,7 +129,7 @@ fn central_investor_state_from_local_state(
 ) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
     if state.len() != ((LOCAL_SCHEMA_NUM_BYTE_SLICES + LOCAL_SCHEMA_NUM_INTS) as usize) {
         return Err(ApplicationLocalStateError::Msg(format!(
-            "Unexpected investor local state length: {}",
+            "Unexpected investor local state length: {}, state: {state:?}",
             state.len(),
         )));
     }
