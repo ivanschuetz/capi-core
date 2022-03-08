@@ -1,6 +1,7 @@
 /// Some quick tests to confirm not documented Algorand functionality
 /// [ignore] because we don't test Algorand here, this is so to say a documentation substitute.
 #[cfg(test)]
+#[allow(dead_code)]
 pub mod test {
     use crate::{
         dependencies::algod_for_tests,
