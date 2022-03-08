@@ -339,4 +339,25 @@ mod test {
 
         Ok(())
     }
+
+    /// Run this to send some funds (funds asset) to an account
+    #[test]
+    async fn fund_account_with_funds_asset() -> Result<()> {
+        init_logger()?;
+
+        let algod = algod_for_net(&Network::Test);
+
+        let params = algod.suggested_transaction_params().await?;
+
+        fund_account_with_local_funds_asset(
+            &algod,
+            &params,
+            FundsAssetId(75503403),
+            FundsAmount::new(1_000_000_000),
+            &capi_owner(),
+            &Account::from_mnemonic("frame engage radio switch little scan time column amused spatial dynamic play cruise split coral aisle midnight cave essence midnight mutual dog ostrich absent leopard").unwrap(),
+        )
+        .await?;
+        Ok(())
+    }
 }
