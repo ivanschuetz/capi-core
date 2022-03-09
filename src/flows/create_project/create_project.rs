@@ -94,6 +94,7 @@ pub async fn create_project_txs(
         central_to_sign.escrow.address(),
         &params,
         central_app_id,
+        &creator,
     )
     .await?;
 

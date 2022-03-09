@@ -11,7 +11,7 @@ use crate::teal::save_rendered_teal;
 use crate::{
     capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId},
     funds::FundsAssetId,
-    teal::{render_template, TealSource, TealSourceTemplate},
+    teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 
 /// Capi app: remembers total dividend retrieved (global) and already retrieved dividend (local), to prevent double harvesting.
@@ -69,15 +69,16 @@ pub fn render_app(
     asset_id: CapiAssetId,
     funds_asset_id: FundsAssetId,
 ) -> Result<TealSource> {
-    let source = render_template(
+    let source = render_template_new(
         source,
-        RenderCapiAppContext {
-            asset_supply: asset_supply.0.to_string(),
-            precision: precision.to_string(),
-            capi_asset_id: asset_id.0.to_string(),
-            funds_asset_id: funds_asset_id.0.to_string(),
-        },
+        &[
+            ("TMPL_CAPI_ASSET_ID", &asset_id.0.to_string()),
+            ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
+            ("TMPL_SHARE_SUPPLY", &asset_supply.0.to_string()),
+            ("TMPL_PRECISION", &precision.to_string()),
+        ],
     )?;
+
     #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("app_capi_approval", source.clone())?; // debugging
     Ok(source)

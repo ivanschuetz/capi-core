@@ -35,7 +35,7 @@ mod tests {
         },
         funds::{FundsAmount, FundsAssetId},
         teal::load_teal_template,
-        testing::TESTS_DEFAULT_PRECISION,
+        testing::{test_data::creator, TESTS_DEFAULT_PRECISION},
     };
 
     // helper for environments that don't allow to open directly the TEAL debugger (e.g. WASM)
@@ -56,6 +56,8 @@ mod tests {
         let central_app_id = 123;
         let capi_app_id = CapiAppId(123);
         let capi_share = 123u64.as_decimal().try_into()?;
+
+        let creator = creator();
 
         let central_escrow = "J7RHJEAARYDZZ6QUKH4KKICZK64PS4UTJPVLEI3WN5SNU47GHWD4PTOOIQ"
             .parse()
@@ -106,6 +108,7 @@ mod tests {
             &locking_escrow,
             &central_escrow,
             central_app_id,
+            &creator.address(),
         )?;
 
         // insert msg pack serialized bytes

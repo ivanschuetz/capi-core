@@ -42,6 +42,7 @@ fn load_file_bytes(folder: &str, file_name: &str) -> Result<Vec<u8>> {
     Ok(fs::read(format!("{}/{}.teal", folder, file_name))?)
 }
 
+/// TODO delete this and tinytemplate after everything is ported to PyTeal
 pub fn render_template<T>(template: &TealSourceTemplate, context: T) -> Result<TealSource>
 where
     T: Serialize,
@@ -53,6 +54,20 @@ where
 
     let rendered = tt.render(template_identifier, &context)?;
     Ok(TealSource(rendered.as_bytes().to_vec()))
+}
+
+/// IMPORTANT: keys must not be contained in other keys (e.g: "precision" and "precision_square")
+/// this currently uses normal text replacement so such keys will lead to errors
+pub fn render_template_new(
+    template: &TealSourceTemplate,
+    key_values: &[(&str, &str)],
+) -> Result<TealSource> {
+    // this has not been tuned at all for performance - probably can be improved
+    let mut teal_str = std::str::from_utf8(&template.0)?.to_owned();
+    for (key, value) in key_values {
+        teal_str = teal_str.replace(key, value);
+    }
+    Ok(TealSource(teal_str.as_bytes().to_vec()))
 }
 
 /// file_name without .teal

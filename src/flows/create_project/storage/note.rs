@@ -184,6 +184,7 @@ async fn storable_project_to_project(
         central_escrow_account.address(),
         &escrows.invest_escrow,
         payload.central_app_id,
+        &payload.creator,
     );
 
     let (customer_escrow_account_res, investing_escrow_account_res) =

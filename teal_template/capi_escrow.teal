@@ -1,134 +1,111 @@
-#pragma version 4
-// int 1
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Identification
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#pragma version 5
 global GroupSize
 int 3
 ==
-bnz branch_setup
-
+bnz main_l10
 global GroupSize
-int 2 // central optout + unlock shares
+int 2
 ==
-bz not_group_size_2
-
-gtxn 0 TypeEnum 
+bnz main_l3
+err
+main_l3:
+gtxn 0 NumAppArgs
+int 1
+==
+bnz main_l5
+err
+main_l5:
+gtxna 0 ApplicationArgs 0
+byte "harvest"
+==
+bnz main_l9
+gtxn 0 TypeEnum
 int appl
 ==
 gtxn 0 NumAppArgs
 int 1
 ==
 &&
-bz not_unlock
-gtxn 0 ApplicationArgs 0
-byte b64 dW5sb2Nr // unlock
+gtxna 0 ApplicationArgs 0
+byte "unlock"
 ==
-gtxn 1 TypeEnum // unlock shares
+&&
+gtxn 1 TypeEnum
 int axfer
 ==
 &&
-bnz branch_unlock
-not_unlock:
-
-b branch_harvest
-
-not_group_size_2:
-
-b failure
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Handling
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-branch_setup:
-// min balance funding
-gtxn 0 TypeEnum
-int pay
+bnz main_l8
+err
+main_l8:
+gtxn 0 OnCompletion
+int CloseOut
 ==
 assert
-// escrow optin to capi asset 
+gtxn 0 ApplicationID
+int TMPL_CAPI_APP_ID
+==
+assert
 gtxn 1 TypeEnum
 int axfer
 ==
 assert
 gtxn 1 XferAsset
-int {capi_asset_id}
+int TMPL_CAPI_ASSET_ID
 ==
 assert
-// escrow optin to funds asset
+gtxn 0 Sender
+gtxn 1 AssetReceiver
+==
+assert
+int 1
+return
+main_l9:
+gtxn 0 TypeEnum
+int appl
+==
+assert
+gtxn 0 OnCompletion
+int NoOp
+==
+assert
+gtxn 0 ApplicationID
+int TMPL_CAPI_APP_ID
+==
+assert
+gtxn 1 TypeEnum
+int axfer
+==
+assert
+gtxn 1 XferAsset
+int TMPL_FUNDS_ASSET_ID
+==
+assert
+gtxn 0 Sender
+gtxn 1 AssetReceiver
+==
+assert
+int 1
+return
+main_l10:
+gtxn 0 TypeEnum
+int pay
+==
+assert
+gtxn 1 TypeEnum
+int axfer
+==
+assert
+gtxn 1 XferAsset
+int TMPL_CAPI_ASSET_ID
+==
+assert
 gtxn 2 TypeEnum
 int axfer
 ==
 assert
 gtxn 2 XferAsset
-int {funds_asset_id}
+int TMPL_FUNDS_ASSET_ID
 ==
 assert
-// TODO is it needed / possible to check that txs are sent/received by "this escrow"?
-
-b success
-
-branch_harvest:
-gtxn 0 TypeEnum // app call
-int appl
-==
-assert
-int NoOp 
-gtxn 0 OnCompletion
-==
-assert
-gtxn 0 ApplicationID
-int {app_id}
-==
-assert
-gtxn 1 TypeEnum // harvest
-int axfer
-==
-assert
-gtxn 1 XferAsset
-int {funds_asset_id}
-==
-assert
-// the app caller is the dividend receiver
-gtxn 0 Sender
-gtxn 1 AssetReceiver
-==
-assert
-
-b success
-
-branch_unlock:
-gtxn 0 OnCompletion // app opt out
-int CloseOut 
-==
-assert
-gtxn 0 ApplicationID
-int {app_id}
-==
-assert
-gtxn 1 TypeEnum // unlock
-int axfer
-==
-assert
-gtxn 1 XferAsset
-int {capi_asset_id}
-==
-assert
-// the app caller is the dividend receiver
-// TODO do we need checks duplicated with the app if we're checking that we're calling the app too
-gtxn 1 AssetReceiver
-gtxn 0 Sender
-==
-assert
-b success
-
-success:
 int 1
-return
-
-failure:
-int 0
 return

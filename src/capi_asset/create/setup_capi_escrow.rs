@@ -5,7 +5,7 @@ use crate::{
     capi_asset::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetId},
     flows::create_project::storage::load_project::TxId,
     funds::FundsAssetId,
-    teal::{render_template, TealSource, TealSourceTemplate},
+    teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 use algonaut::{
     algod::v2::Algod,
@@ -94,13 +94,13 @@ fn render_capi_escrow(
     funds_asset_id: FundsAssetId,
     app_id: CapiAppId,
 ) -> Result<TealSource> {
-    let escrow_source = render_template(
+    let escrow_source = render_template_new(
         source,
-        CapiEscrowTemplateContext {
-            capi_asset_id: capi_asset_id.0.to_string(),
-            funds_asset_id: funds_asset_id.0.to_string(),
-            app_id: app_id.0.to_string(),
-        },
+        &[
+            ("TMPL_CAPI_ASSET_ID", &capi_asset_id.0.to_string()),
+            ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
+            ("TMPL_CAPI_APP_ID", &app_id.0.to_string()),
+        ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("capi_escrow", escrow_source.clone())?; // debugging
@@ -117,8 +117,6 @@ pub async fn submit_setup_capi_escrow(
         signed.optin_to_capi_asset_tx.clone(),
         signed.optin_to_funds_asset_tx.clone(),
     ];
-    // crate::teal::debug_teal_rendered(&txs, "app_capi_approval").unwrap();
-
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Payment tx id: {:?}", res.tx_id);
     Ok(res.tx_id.parse()?)

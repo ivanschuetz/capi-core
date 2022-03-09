@@ -3,7 +3,7 @@ use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
     funds::FundsAssetId,
-    teal::{render_template, TealSource, TealSourceTemplate},
+    teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 use algonaut::{
     algod::v2::Algod,
@@ -74,13 +74,13 @@ fn render_central_escrow(
     funds_asset_id: FundsAssetId,
     central_app_id: u64,
 ) -> Result<TealSource> {
-    let escrow_source = render_template(
+    let escrow_source = render_template_new(
         source,
-        CentralEscrowTemplateContext {
-            funds_asset_id: funds_asset_id.0.to_string(),
-            project_creator_address: project_creator.to_string(),
-            app_id: central_app_id.to_string(),
-        },
+        &[
+            ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
+            ("TMPL_PROJECT_CREATOR", &project_creator.to_string()),
+            ("TMPL_CENTRAL_APP_ID", &central_app_id.to_string()),
+        ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("central_escrow", escrow_source.clone())?; // debugging

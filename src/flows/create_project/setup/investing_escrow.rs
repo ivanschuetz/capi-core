@@ -16,7 +16,7 @@ use crate::{
         share_amount::ShareAmount,
     },
     funds::{FundsAmount, FundsAssetId},
-    teal::{render_template, TealSource, TealSourceTemplate},
+    teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -38,6 +38,7 @@ pub async fn create_investing_escrow(
     central_escrow_address: &Address,
     source: &TealSourceTemplate,
     central_app_id: u64,
+    project_creator: &Address,
 ) -> Result<ContractAccount> {
     render_and_compile_investing_escrow(
         algod,
@@ -48,6 +49,7 @@ pub async fn create_investing_escrow(
         central_escrow_address,
         source,
         central_app_id,
+        project_creator,
     )
     .await
 }
@@ -62,6 +64,7 @@ pub async fn render_and_compile_investing_escrow(
     central_escrow_address: &Address,
     source: &TealSourceTemplate,
     central_app_id: u64,
+    project_creator: &Address,
 ) -> Result<ContractAccount> {
     let source = render_investing_escrow(
         source,
@@ -71,6 +74,7 @@ pub async fn render_and_compile_investing_escrow(
         locking_escrow_address,
         central_escrow_address,
         central_app_id,
+        project_creator,
     )?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
@@ -83,17 +87,25 @@ pub fn render_investing_escrow(
     locking_escrow_address: &Address,
     central_escrow_address: &Address,
     central_app_id: u64,
+    project_creator: &Address,
 ) -> Result<TealSource> {
-    let escrow_source = render_template(
+    let escrow_source = render_template_new(
         source,
-        EditTemplateContext {
-            shares_asset_id: shares_asset_id.to_string(),
-            share_price: share_price.0.to_string(),
-            funds_asset_id: funds_asset_id.0.to_string(),
-            locking_escrow_address: locking_escrow_address.to_string(),
-            central_escrow_address: central_escrow_address.to_string(),
-            app_id: central_app_id.to_string(),
-        },
+        &[
+            ("TMPL_SHARES_ASSET_ID", &shares_asset_id.to_string()),
+            ("TMPL_SHARE_PRICE", &share_price.0.to_string()),
+            ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
+            (
+                "TMPL_LOCKING_ESCROW_ADDRESS",
+                &locking_escrow_address.to_string(),
+            ),
+            (
+                "TMPL_CENTRAL_ESCROW_ADDRESS",
+                &central_escrow_address.to_string(),
+            ),
+            ("TMPL_PROJECT_CREATOR", &project_creator.to_string()),
+            ("TMPL_CENTRAL_APP_ID", &central_app_id.to_string()),
+        ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("investing_escrow", escrow_source.clone())?; // debugging
@@ -113,6 +125,7 @@ pub async fn setup_investing_escrow_txs(
     central_escrow_address: &Address,
     params: &SuggestedTransactionParams,
     central_app_id: u64,
+    project_creator: &Address,
 ) -> Result<SetupInvestingEscrowToSign> {
     log::debug!(
         "Setting up investing escrow with asset id: {shares_asset_id}, transfer_share_amount: {share_supply}, creator: {creator}, locking_escrow_address: {locking_escrow_address}"
@@ -127,6 +140,7 @@ pub async fn setup_investing_escrow_txs(
         central_escrow_address,
         source,
         central_app_id,
+        project_creator,
     )
     .await?;
     log::debug!("Generated investing escrow address: {:?}", escrow.address());
@@ -199,6 +213,7 @@ mod tests {
         flows::create_project::setup::investing_escrow::render_investing_escrow,
         funds::{FundsAmount, FundsAssetId},
         teal::load_teal_template,
+        testing::test_data::creator,
     };
     use algonaut::core::Address;
     use anyhow::Result;
@@ -217,6 +232,7 @@ mod tests {
             &Address::new([0; 32]),
             &Address::new([0; 32]),
             123,
+            &creator().address(),
         )?;
         let source_str = String::from_utf8(source.0)?;
         log::debug!("source: {}", source_str);
@@ -235,6 +251,7 @@ mod tests {
             &Address::new([0; 32]),
             &Address::new([0; 32]),
             123,
+            &creator().address(),
         )?;
 
         // deps

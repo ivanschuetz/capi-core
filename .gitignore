@@ -3,3 +3,4 @@ Cargo.lock
 /teal_rendered/
 /scripts/private_net/net
 .env
+.venv

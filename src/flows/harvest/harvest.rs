@@ -93,6 +93,8 @@ pub fn calculate_entitled_harvest(
     precision: u64,
     investors_part: ShareAmount,
 ) -> FundsAmount {
+    log::debug!("Calculating entitled harvest, central_received_total: {central_received_total:?}, share_supply: {share_supply:?}, share_count: {share_count:?}, precision: {precision:?}, investors_part: {investors_part:?}");
+
     // TODO review possible overflow, type cast, unwrap
     // for easier understanding we use the same arithmetic as in TEAL
     let investors_share_fractional_percentage = investors_part.as_decimal() / 100.as_decimal(); // e.g. 10% -> 0.1

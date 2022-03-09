@@ -17,7 +17,7 @@ use crate::{
         GLOBAL_SCHEMA_NUM_BYTE_SLICES, GLOBAL_SCHEMA_NUM_INTS, LOCAL_SCHEMA_NUM_BYTE_SLICES,
         LOCAL_SCHEMA_NUM_INTS,
     },
-    teal::{render_template, TealSource, TealSourceTemplate},
+    teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -95,18 +95,18 @@ pub fn render_central_app(
         .ok_or_else(|| anyhow!("Precision squared overflow: {}", precision))?)
     .floor();
 
-    let source = render_template(
+    let source = render_template_new(
         source,
-        RenderCentralAppContext {
-            share_supply: share_supply.to_string(),
-            investors_share: investors_share.to_string(),
-            precision: precision.to_string(),
-            precision_square: precision_square.to_string(),
-            capi_escrow_address: capi_escrow_address.to_string(),
-            capi_app_id: capi_app_id.0.to_string(),
-            capi_share: capi_share.to_string(),
-            share_price: share_price.val().to_string(),
-        },
+        &[
+            ("TMPL_SHARE_SUPPLY", &share_supply.to_string()),
+            ("TMPL_INVESTORS_SHARE", &investors_share.to_string()),
+            ("TMPL_PRECISION__", &precision.to_string()),
+            ("TMPL_PRECISION_SQUARE", &precision_square.to_string()),
+            ("TMPL_CAPI_ESCROW_ADDRESS", &capi_escrow_address.to_string()),
+            ("TMPL_CAPI_APP_ID", &capi_app_id.0.to_string()),
+            ("TMPL_CAPI_SHARE", &capi_share.to_string()),
+            ("TMPL_SHARE_PRICE", &share_price.val().to_string()),
+        ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("app_central_approval", source.clone())?; // debugging

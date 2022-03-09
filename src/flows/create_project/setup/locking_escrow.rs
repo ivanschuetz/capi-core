@@ -13,7 +13,7 @@ use serde::Serialize;
 use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
-    teal::{render_template, TealSource, TealSourceTemplate},
+    teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 
 // TODO no constant?
@@ -44,12 +44,12 @@ fn render_locking_escrow(
     source: &TealSourceTemplate,
     central_app_id: u64,
 ) -> Result<TealSource> {
-    let escrow_source = render_template(
+    let escrow_source = render_template_new(
         source,
-        EditTemplateContext {
-            shares_asset_id: shares_asset_id.to_string(),
-            app_id: central_app_id.to_string(),
-        },
+        &[
+            ("TMPL_SHARES_ASSET_ID", &shares_asset_id.to_string()),
+            ("TMPL_CENTRAL_APP_ID", &central_app_id.to_string()),
+        ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("locking_escrow", escrow_source.clone())?; // debugging

@@ -34,6 +34,12 @@ mod test {
         let signed_app_call = investor.sign_transaction(&to_sign.capi_app_call_setup_tx)?;
         let signed_xfer = investor.sign_transaction(&to_sign.shares_xfer_tx)?;
 
+        // crate::teal::debug_teal_rendered(
+        //     &vec![signed_app_call.clone(), signed_xfer.clone()],
+        //     "app_capi_approval",
+        // )
+        // .unwrap();
+
         let submit_lock_tx_id = submit_capi_assets_lock(
             &algod,
             LockSigned {
