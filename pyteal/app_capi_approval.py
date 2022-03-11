@@ -159,11 +159,16 @@ def approval_program():
 
     return compileTeal(program, Mode.Application, version=5)
 
-path = 'teal_template/app_capi_approval.teal'
-with open(path, 'w') as f:
-    output = approval_program()
+def clear_program():
+    return compileTeal(Int(1), Mode.Application, version=5)
+ 
+def export(path, output):
+   with open(path, "w") as f:
     # print(output)
     f.write(output)
-    print("Done! output: " + path)
+    print("Wrote TEAL to: " + path)
 
-# print(os.getcwd())
+export("teal_template/app_capi_approval.teal", approval_program())
+export("teal/app_capi_clear.teal", clear_program())
+
+print("Done! Wrote capi approval and clear TEAL")

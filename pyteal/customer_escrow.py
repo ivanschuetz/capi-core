@@ -73,5 +73,5 @@ with open(path, 'w') as f:
     output = program()
     # print(output)
     f.write(output)
-    print("Done! output: " + path)
+    print("Done! Wrote customer escrow TEAL to: " + path)
 

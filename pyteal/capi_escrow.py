@@ -78,6 +78,4 @@ with open(path, 'w') as f:
     output = program()
     # print(output)
     f.write(output)
-    print("Done! output: " + path)
-
-# print(os.getcwd())
+    print("Done! Wrote capi escrow TEAL to: " + path)
