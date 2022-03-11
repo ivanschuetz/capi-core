@@ -58,7 +58,7 @@ pub async fn unlock_capi_assets(
     .build()?;
 
     capi_app_optout_tx.fee = calculate_total_fee(&params, &[capi_app_optout_tx, shares_xfer_tx])?;
-    TxGroup::assign_group_id(vec![capi_app_optout_tx, shares_xfer_tx])?;
+    TxGroup::assign_group_id(&mut [capi_app_optout_tx, shares_xfer_tx])?;
 
     let signed_shares_xfer_tx = capi_escrow.sign(shares_xfer_tx, vec![])?;
 

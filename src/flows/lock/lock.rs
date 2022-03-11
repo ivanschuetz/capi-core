@@ -50,7 +50,7 @@ pub async fn lock(
     )
     .build()?;
 
-    let txs_for_group = vec![&mut app_call_tx, &mut shares_xfer_tx];
+    let txs_for_group = &mut [&mut app_call_tx, &mut shares_xfer_tx];
     TxGroup::assign_group_id(txs_for_group)?;
 
     Ok(LockToSign {

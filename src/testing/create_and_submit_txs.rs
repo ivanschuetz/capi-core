@@ -44,7 +44,7 @@ mod test {
             .build(),
         )
         .build()?;
-        TxGroup::assign_group_id(vec![&mut pay_fee_tx, &mut xfer_tx])?;
+        TxGroup::assign_group_id(&mut [&mut pay_fee_tx, &mut xfer_tx])?;
 
         let signed_payment = fee_payer.sign_transaction(&pay_fee_tx)?;
         let signed_xfer = xfer_sender.sign_transaction(&xfer_tx)?;

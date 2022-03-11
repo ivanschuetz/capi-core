@@ -98,7 +98,7 @@ pub async fn create_project_txs(
     .await?;
 
     // First tx group to submit - everything except the asset (shares) xfer to the escrow (which requires opt-in to be submitted first)
-    TxGroup::assign_group_id(vec![
+    TxGroup::assign_group_id(&mut [
         // setup app
         &mut setup_app_tx,
         // funding

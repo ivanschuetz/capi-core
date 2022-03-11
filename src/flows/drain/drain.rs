@@ -76,7 +76,7 @@ pub async fn drain_customer_escrow(
     .build()?;
 
     app_call_tx.fee = calculate_total_fee(&params, &[app_call_tx, drain_tx, capi_share_tx])?;
-    TxGroup::assign_group_id(vec![app_call_tx, capi_app_call_tx, drain_tx, capi_share_tx])?;
+    TxGroup::assign_group_id(&mut [app_call_tx, capi_app_call_tx, drain_tx, capi_share_tx])?;
     // TxGroup::assign_group_id(vec![capi_app_call_tx, app_call_tx, drain_tx, capi_share_tx])?;
 
     let signed_drain_tx = customer_escrow.sign(drain_tx, vec![])?;

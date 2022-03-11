@@ -140,7 +140,7 @@ pub mod test {
 
         let mut pay_tx = pay(&algod, &sender.address()).await?;
 
-        TxGroup::assign_group_id(vec![&mut create_app_tx, &mut pay_tx]).unwrap();
+        TxGroup::assign_group_id(&mut [&mut create_app_tx, &mut pay_tx]).unwrap();
 
         let create_app_signed_tx = sender.sign_transaction(&create_app_tx)?;
         let pay_signed_tx = sender.sign_transaction(&pay_tx)?;
@@ -171,7 +171,7 @@ pub mod test {
         let create_app_tx = &mut create_always_approves_app(&algod, &creator.address()).await?;
         let create_asset_tx = &mut create_asset_tx(&algod, &creator.address()).await?;
 
-        TxGroup::assign_group_id(vec![create_app_tx, create_asset_tx])?;
+        TxGroup::assign_group_id(&mut [create_app_tx, create_asset_tx])?;
 
         let create_app_signed_tx_signed = creator.sign_transaction(create_app_tx)?;
         let create_asset_signed_tx_signed = creator.sign_transaction(create_asset_tx)?;
@@ -218,7 +218,7 @@ pub mod test {
         )
         .await?;
 
-        TxGroup::assign_group_id(vec![&mut optin_to_asset_tx, &mut receive_asset_tx]).unwrap();
+        TxGroup::assign_group_id(&mut [&mut optin_to_asset_tx, &mut receive_asset_tx]).unwrap();
 
         // asset receiver signs their optin
         let optin_to_asset_signed_tx = assset_receiver.sign_transaction(&optin_to_asset_tx)?;

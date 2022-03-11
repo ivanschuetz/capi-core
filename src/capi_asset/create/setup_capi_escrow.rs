@@ -60,7 +60,7 @@ pub async fn setup_capi_escrow(
             optin_to_funds_asset_tx,
         ],
     )?;
-    TxGroup::assign_group_id(vec![
+    TxGroup::assign_group_id(&mut [
         fund_min_balance_tx,
         optin_to_capi_asset_tx,
         optin_to_funds_asset_tx,

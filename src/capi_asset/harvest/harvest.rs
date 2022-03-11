@@ -51,7 +51,7 @@ pub async fn harvest(
     let app_call_tx = &mut harvest_app_call_tx(capi_app_id, &params, harvester)?;
 
     app_call_tx.fee = calculate_total_fee(&params, &[harvest_tx, app_call_tx])?;
-    TxGroup::assign_group_id(vec![app_call_tx, harvest_tx])?;
+    TxGroup::assign_group_id(&mut [app_call_tx, harvest_tx])?;
 
     let signed_harvest_tx = capi_escrow.sign(harvest_tx, vec![])?;
 

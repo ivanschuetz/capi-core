@@ -87,7 +87,7 @@ pub async fn invest_txs(
         &params,
         &[central_app_investor_setup_tx, receive_shares_asset_tx],
     )?;
-    TxGroup::assign_group_id(vec![
+    TxGroup::assign_group_id(&mut [
         central_app_investor_setup_tx,
         receive_shares_asset_tx,
         pay_price_tx,

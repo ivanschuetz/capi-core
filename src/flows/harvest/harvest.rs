@@ -50,7 +50,7 @@ pub async fn harvest(
     .build()?;
 
     app_call_tx.fee = calculate_total_fee(&params, &[app_call_tx, harvest_tx])?;
-    TxGroup::assign_group_id(vec![app_call_tx, harvest_tx])?;
+    TxGroup::assign_group_id(&mut [app_call_tx, harvest_tx])?;
 
     let signed_harvest_tx = central_escrow.sign(harvest_tx, vec![])?;
 

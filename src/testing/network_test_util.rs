@@ -252,7 +252,7 @@ mod test {
         )
         .build()?;
 
-        TxGroup::assign_group_id(vec![optin_tx, fund_tx])?;
+        TxGroup::assign_group_id(&mut [optin_tx, fund_tx])?;
 
         let optin_tx_signed = receiver.sign_transaction(&optin_tx)?;
         let fund_tx_signed = sender.sign_transaction(&fund_tx)?;
