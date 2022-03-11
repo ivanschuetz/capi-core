@@ -347,6 +347,7 @@ mod test {
 
     /// Run this to send some assets to an account, opting the account in to the asset
     #[test]
+    #[ignore]
     async fn do_optin_and_fund_account_with_funds_asset() -> Result<()> {
         init_logger()?;
 
@@ -368,6 +369,7 @@ mod test {
 
     /// Run this to send some assets to an account
     #[test]
+    #[ignore]
     async fn do_fund_account_with_funds_asset() -> Result<()> {
         init_logger()?;
 
