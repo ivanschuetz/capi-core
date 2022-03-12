@@ -87,14 +87,16 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxI
 // consider making this function private and renaming - normally should be investor_can_harvest_amount_calc,
 // which takes into account the already harvested amount
 
-pub fn calculate_entitled_harvest(
+/// The total harvest amount the investor is entitled to, based on locked shares and the total received global state.
+/// Does not account for already harvested funds.
+fn total_entitled_harvest(
     central_received_total: FundsAmount,
     share_supply: ShareAmount,
-    share_count: ShareAmount,
+    share_amount: ShareAmount,
     precision: u64,
     investors_part: ShareAmount,
 ) -> Result<FundsAmount> {
-    log::debug!("Calculating entitled harvest, central_received_total: {central_received_total:?}, share_supply: {share_supply:?}, share_count: {share_count:?}, precision: {precision:?}, investors_part: {investors_part:?}");
+    log::debug!("Calculating entitled harvest, central_received_total: {central_received_total:?}, share_supply: {share_supply:?}, share_amount: {share_amount:?}, precision: {precision:?}, investors_part: {investors_part:?}");
 
     // for easier understanding we use the same arithmetic as in TEAL
 
@@ -109,10 +111,10 @@ pub fn calculate_entitled_harvest(
     // Calculate entitled_total
     // intermediate steps per operation to map to clear error messages (containing the operands)
 
-    let mul1 = (share_count
+    let mul1 = (share_amount
         .val()
         .checked_mul(precision)
-        .ok_or_else(|| anyhow!("share_count: {share_count} * precision: {precision} errored"))?)
+        .ok_or_else(|| anyhow!("share_count: {share_amount} * precision: {precision} errored"))?)
     .as_decimal();
 
     let percentage_mul_precision = investors_share_fractional_percentage
@@ -152,11 +154,12 @@ pub fn calculate_entitled_harvest(
     ))
 }
 
-pub fn investor_can_harvest_amount_calc(
+/// The max amount an investor can harvest, based on locked shares, total received global state and the already harvested amount.
+pub fn max_can_harvest_amount(
     central_received_total: FundsAmount,
     harvested_total: FundsAmount,
-    share_amount: ShareAmount,
     share_supply: ShareAmount,
+    share_amount: ShareAmount,
     precision: u64,
     investors_part: ShareAmount,
 ) -> Result<FundsAmount> {
@@ -165,7 +168,7 @@ pub fn investor_can_harvest_amount_calc(
     // the easiest solution is to expect the investor to unlock all their shares
     // if they want to sell only a part, they've to opt-in again with the shares they want to keep.
 
-    let entitled_total = calculate_entitled_harvest(
+    let entitled_total = total_entitled_harvest(
         central_received_total,
         share_supply,
         share_amount,

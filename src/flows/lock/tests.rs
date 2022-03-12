@@ -8,7 +8,7 @@ mod tests {
     use crate::{
         flows::{
             create_project::share_amount::ShareAmount,
-            harvest::harvest::calculate_entitled_harvest,
+            harvest::harvest::max_can_harvest_amount,
             invest::app_optins::{
                 invest_or_locking_app_optin_tx, submit_invest_or_locking_app_optin,
             },
@@ -145,8 +145,9 @@ mod tests {
 
         // the amount drained to the central (all income so far)
         let central_total_received = drain_res.drained_amounts.dao;
-        let investor2_entitled_amount = calculate_entitled_harvest(
+        let investor2_entitled_amount = max_can_harvest_amount(
             central_total_received,
+            FundsAmount::new(0),
             project.project.specs.shares.supply,
             traded_shares,
             TESTS_DEFAULT_PRECISION,
@@ -196,8 +197,9 @@ mod tests {
             funds_holdings(algod, &td.investor2.address(), td.funds_asset_id).await?;
 
         // we'll harvest the max possible amount
-        let investor2_entitled_amount = calculate_entitled_harvest(
+        let investor2_entitled_amount = max_can_harvest_amount(
             drain_res2.drained_amounts.dao,
+            FundsAmount::new(0),
             project.project.specs.shares.supply,
             traded_shares,
             TESTS_DEFAULT_PRECISION,

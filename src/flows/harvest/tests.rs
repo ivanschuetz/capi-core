@@ -6,7 +6,7 @@ mod tests {
                 create_project_specs::CreateProjectSpecs, model::CreateSharesSpecs,
                 share_amount::ShareAmount,
             },
-            harvest::harvest::investor_can_harvest_amount_calc,
+            harvest::harvest::max_can_harvest_amount,
         },
         funds::{FundsAmount, FundsAssetId},
         state::{
@@ -48,11 +48,11 @@ mod tests {
         )
         .await?;
 
-        let harvest_amount = investor_can_harvest_amount_calc(
+        let harvest_amount = max_can_harvest_amount(
             precs.drain_res.drained_amounts.dao,
             FundsAmount::new(0),
-            buy_share_amount,
             td.specs.shares.supply,
+            buy_share_amount,
             precision,
             td.specs.investors_part(),
         )?;
@@ -108,11 +108,11 @@ mod tests {
         .await?;
 
         let central_state = central_global_state(&algod, precs.project.central_app_id).await?;
-        let harvest_amount = investor_can_harvest_amount_calc(
+        let harvest_amount = max_can_harvest_amount(
             central_state.received,
             FundsAmount::new(0),
-            buy_share_amount,
             td.specs.shares.supply,
+            buy_share_amount,
             precision,
             td.specs.investors_part(),
         )?;
@@ -171,11 +171,11 @@ mod tests {
         let central_state = central_global_state(&algod, precs.project.central_app_id).await?;
         log::debug!("central_total_received: {:?}", central_state.received);
 
-        let harvest_amount = investor_can_harvest_amount_calc(
+        let harvest_amount = max_can_harvest_amount(
             central_state.received,
             FundsAmount::new(0),
-            buy_share_amount,
             specs.shares.supply,
+            buy_share_amount,
             precision,
             specs.investors_part(),
         )?;

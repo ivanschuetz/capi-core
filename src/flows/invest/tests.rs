@@ -3,7 +3,7 @@ mod tests {
     use crate::flows::create_project::model::Project;
     use crate::flows::create_project::share_amount::ShareAmount;
     use crate::flows::create_project::storage::load_project::ProjectId;
-    use crate::flows::harvest::harvest::calculate_entitled_harvest;
+    use crate::flows::harvest::harvest::max_can_harvest_amount;
     use crate::funds::FundsAmount;
     use crate::network_util::wait_for_pending_transaction;
     use crate::queries::my_projects::my_current_invested_projects;
@@ -434,8 +434,9 @@ mod tests {
                 .await?;
         let central_state = central_global_state(&algod, project.project.central_app_id).await?;
 
-        let investor_entitled_harvest = calculate_entitled_harvest(
+        let investor_entitled_harvest = max_can_harvest_amount(
             central_state.received,
+            FundsAmount::new(0),
             project.project.specs.shares.supply,
             buy_share_amount,
             TESTS_DEFAULT_PRECISION,
@@ -496,8 +497,9 @@ mod tests {
                 .await?;
         let central_state = central_global_state(algod, project.project.central_app_id).await?;
 
-        let investor_entitled_harvest = calculate_entitled_harvest(
+        let investor_entitled_harvest = max_can_harvest_amount(
             central_state.received,
+            FundsAmount::new(0),
             project.project.specs.shares.supply,
             buy_share_amount,
             TESTS_DEFAULT_PRECISION,
