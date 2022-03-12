@@ -332,7 +332,9 @@ mod test {
     #[ignore]
     async fn reset_and_fund_testnet() -> Result<()> {
         init_logger()?;
-        reset_and_fund_network(&Network::Test).await
+        // Commented for safety - to prevent creating things on TestNet if running by mistake
+        // reset_and_fund_network(&Network::Test).await
+        Ok(())
     }
 
     async fn reset_and_fund_network(net: &Network) -> Result<()> {
