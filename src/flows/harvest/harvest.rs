@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use crate::{
     algo_helpers::calculate_total_fee,
     decimal_util::AsDecimal,
@@ -14,7 +16,7 @@ use algonaut::{
         SignedTransaction, Transaction, TransferAsset, TxnBuilder,
     },
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
@@ -91,24 +93,63 @@ pub fn calculate_entitled_harvest(
     share_count: ShareAmount,
     precision: u64,
     investors_part: ShareAmount,
-) -> FundsAmount {
+) -> Result<FundsAmount> {
     log::debug!("Calculating entitled harvest, central_received_total: {central_received_total:?}, share_supply: {share_supply:?}, share_count: {share_count:?}, precision: {precision:?}, investors_part: {investors_part:?}");
 
-    // TODO review possible overflow, type cast, unwrap
     // for easier understanding we use the same arithmetic as in TEAL
-    let investors_share_fractional_percentage =
-        investors_part.as_decimal() / share_supply.as_decimal();
 
-    let entitled_percentage = ((share_count.val() * precision).as_decimal()
-        * (investors_share_fractional_percentage * precision.as_decimal())
-        / share_supply.as_decimal())
+    let investors_share_fractional_percentage = investors_part
+        .as_decimal()
+        .checked_div(share_supply.as_decimal())
+        .ok_or_else(|| {
+            anyhow!("investors_part: {investors_part} / share_supply: {share_supply} errored")
+        })?;
+
+    ///////////////////////////////////////////////////
+    // Calculate entitled_total
+    // intermediate steps per operation to map to clear error messages (containing the operands)
+
+    let mul1 = (share_count
+        .val()
+        .checked_mul(precision)
+        .ok_or_else(|| anyhow!("share_count: {share_count} * precision: {precision} errored"))?)
+    .as_decimal();
+
+    let percentage_mul_precision = investors_share_fractional_percentage
+            .checked_mul(precision.as_decimal())
+            .ok_or_else(|| anyhow!("investors_share_fractional_percentage: {investors_share_fractional_percentage} * precision: {precision} errored"))?;
+
+    let mul2 = mul1.checked_mul(percentage_mul_precision).ok_or_else(|| {
+        anyhow!("mul1: {mul1} * percentage_mul_precision: {percentage_mul_precision} errored")
+    })?;
+
+    let entitled_percentage = (mul2
+        .checked_div(share_supply.as_decimal())
+        .ok_or_else(|| anyhow!("mul2: {mul2} * share_supply: {share_supply} errored"))?)
     .floor();
 
-    let entitled_total = ((central_received_total.as_decimal() * entitled_percentage)
-        / (precision.as_decimal() * precision.as_decimal()))
-    .floor();
+    let precision_square = precision
+        .as_decimal()
+        .checked_mul(precision.as_decimal())
+        .ok_or_else(|| anyhow!("precision: {precision} * precision: {precision} errored"))?;
 
-    FundsAmount::new(entitled_total.to_u128().unwrap() as u64)
+    let mul3 = central_received_total
+                .as_decimal()
+                .checked_mul(entitled_percentage)
+                .ok_or_else(|| anyhow!("central_received_total: {central_received_total} * entitled_percentage: {entitled_percentage} errored"))?;
+
+    let entitled_total = mul3
+        .checked_div(precision_square)
+        .ok_or_else(|| anyhow!("mul3: {mul3} * precision_square: {precision_square} errored"))?
+        .floor();
+    ///////////////////////////////////////////////////
+
+    Ok(FundsAmount::new(
+        entitled_total
+            .to_u128()
+            .ok_or_else(|| anyhow!("Couldn't convert entitled_total to u128"))?
+            .try_into()?,
+    ))
 }
 
 pub fn investor_can_harvest_amount_calc(
@@ -118,7 +159,7 @@ pub fn investor_can_harvest_amount_calc(
     share_supply: ShareAmount,
     precision: u64,
     investors_part: ShareAmount,
-) -> FundsAmount {
+) -> Result<FundsAmount> {
     // Note that this assumes that investor can't unlock only a part of their shares
     // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with harvested_total, which remains unchanged.
     // the easiest solution is to expect the investor to unlock all their shares
@@ -130,8 +171,17 @@ pub fn investor_can_harvest_amount_calc(
         share_amount,
         precision,
         investors_part,
-    );
-    entitled_total - harvested_total
+    )?;
+    Ok(FundsAmount::new(
+        entitled_total
+            .val()
+            .checked_sub(harvested_total.val())
+            .ok_or_else(|| {
+                anyhow!(
+                    "entitled_total: {entitled_total} - harvested_total: {harvested_total} errored"
+                )
+            })?,
+    ))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

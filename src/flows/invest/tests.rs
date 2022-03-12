@@ -440,7 +440,7 @@ mod tests {
             buy_share_amount,
             TESTS_DEFAULT_PRECISION,
             project.project.specs.investors_part(),
-        );
+        )?;
 
         // investing inits the "harvested" amount to entitled amount (to prevent double harvest)
         assert_eq!(investor_entitled_harvest, investor_state.harvested);
@@ -502,7 +502,7 @@ mod tests {
             buy_share_amount,
             TESTS_DEFAULT_PRECISION,
             project.project.specs.investors_part(),
-        );
+        )?;
 
         // locking inits the "harvested" amount to entitled amount (to prevent double harvest)
         assert_eq!(investor_entitled_harvest, investor_state.harvested);

@@ -151,7 +151,7 @@ mod tests {
             traded_shares,
             TESTS_DEFAULT_PRECISION,
             project.project.specs.investors_part(),
-        );
+        )?;
 
         let investor_state =
             central_investor_state_from_acc(&investor2_infos, project.project.central_app_id)?;
@@ -202,7 +202,7 @@ mod tests {
             traded_shares,
             TESTS_DEFAULT_PRECISION,
             project.project.specs.investors_part(),
-        );
+        )?;
         log::debug!(
             "Harvesting max possible amount (expected to succeed): {:?}",
             investor2_entitled_amount

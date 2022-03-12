@@ -55,7 +55,7 @@ mod tests {
             td.specs.shares.supply,
             precision,
             td.specs.investors_part(),
-        );
+        )?;
 
         let res = harvest_flow(&td, &precs.project, harvester, harvest_amount).await?;
 
@@ -115,7 +115,7 @@ mod tests {
             td.specs.shares.supply,
             precision,
             td.specs.investors_part(),
-        );
+        )?;
         log::debug!("Harvest amount: {}", harvest_amount);
 
         // flow
@@ -178,7 +178,7 @@ mod tests {
             specs.shares.supply,
             precision,
             specs.investors_part(),
-        );
+        )?;
         log::debug!("Harvest amount: {}", harvest_amount);
 
         // flow
