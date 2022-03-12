@@ -8,8 +8,9 @@ use anyhow::{anyhow, Result};
 use rust_decimal::Decimal;
 
 use crate::{
-    asset_amount::AssetAmount, flows::create_project::share_amount::ShareAmount,
-    state::central_app_state::central_investor_state,
+    asset_amount::AssetAmount,
+    flows::create_project::share_amount::ShareAmount,
+    state::{app_state::ApplicationLocalStateError, central_app_state::central_investor_state},
 };
 
 /// Returns holders of the asset with their respective amounts and percentages.
@@ -103,12 +104,25 @@ async fn lockers_holdings(
     for locker in lockers {
         // TODO (low prio) small optimization: read only the shares amount
         // TODO consider using join to parallelize these requests
-        let state = central_investor_state(algod, &locker.address, app_id).await?;
-        log::trace!("Share locker state: {:?}", state);
+        let state_res = central_investor_state(algod, &locker.address, app_id).await;
+        let amount = match state_res {
+            Ok(state) => {
+                log::trace!("Share locker state: {:?}", state);
+                state.shares
+            }
+            Err(e) => {
+                if e == ApplicationLocalStateError::NotOptedIn {
+                    // Not opted in -> has no locked shares for statistics
+                    ShareAmount::new(0)
+                } else {
+                    Err(e)?
+                }
+            }
+        };
 
         holdings.push(ShareHolding {
             address: locker.address,
-            amount: state.shares,
+            amount,
         })
     }
     Ok(holdings)
