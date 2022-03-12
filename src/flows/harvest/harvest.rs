@@ -82,8 +82,7 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxI
     Ok(res.tx_id.parse()?)
 }
 
-// TODO this is wrong - investors_part isn't a percentage anymore - is this not being tested? oh - it's because 100 is coincidentially the shares supply in tests
-// consider also making this function private and renaming - normally should be investor_can_harvest_amount_calc,
+// consider making this function private and renaming - normally should be investor_can_harvest_amount_calc,
 // which takes into account the already harvested amount
 
 pub fn calculate_entitled_harvest(
@@ -97,7 +96,8 @@ pub fn calculate_entitled_harvest(
 
     // TODO review possible overflow, type cast, unwrap
     // for easier understanding we use the same arithmetic as in TEAL
-    let investors_share_fractional_percentage = investors_part.as_decimal() / 100.as_decimal(); // e.g. 10% -> 0.1
+    let investors_share_fractional_percentage =
+        investors_part.as_decimal() / share_supply.as_decimal();
 
     let entitled_percentage = ((share_count.val() * precision).as_decimal()
         * (investors_share_fractional_percentage * precision.as_decimal())
