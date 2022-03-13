@@ -1,8 +1,8 @@
 use crate::{
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     date_util::timestamp_seconds_to_date,
-    flows::create_project::{create_project::Escrows, storage::note::base64_note_to_project},
-    queries::my_projects::StoredProject,
+    flows::create_dao::{create_dao::Escrows, storage::note::base64_note_to_dao},
+    queries::my_daos::StoredDao,
 };
 use algonaut::{algod::v2::Algod, crypto::HashDigest, indexer::v2::Indexer};
 use anyhow::{anyhow, Result};
@@ -14,16 +14,16 @@ use std::{
     str::FromStr,
 };
 
-pub async fn load_project(
+pub async fn load_dao(
     algod: &Algod,
     indexer: &Indexer,
-    project_id: &ProjectId,
+    dao_id: &DaoId,
     escrows: &Escrows,
     capi_deps: &CapiAssetDaoDeps,
-) -> Result<StoredProject> {
-    log::debug!("Fetching project with tx id: {:?}", project_id);
+) -> Result<StoredDao> {
+    log::debug!("Fetching dao with tx id: {:?}", dao_id);
 
-    let response = indexer.transaction_info(&project_id.0.to_string()).await?;
+    let response = indexer.transaction_info(&dao_id.0.to_string()).await?;
 
     let tx = response.transaction;
 
@@ -32,64 +32,64 @@ pub async fn load_project(
         let note = tx
             .note
             .clone()
-            .ok_or_else(|| anyhow!("Unexpected: project storage tx has no note: {:?}", tx))?;
+            .ok_or_else(|| anyhow!("Unexpected: dao storage tx has no note: {:?}", tx))?;
 
-        let project = base64_note_to_project(algod, escrows, &note, capi_deps).await?;
+        let dao = base64_note_to_dao(algod, escrows, &note, capi_deps).await?;
 
         let round_time = tx
             .round_time
             .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
         // Sanity check
-        if tx.id.parse::<TxId>()? != project_id.0 {
+        if tx.id.parse::<TxId>()? != dao_id.0 {
             return Err(anyhow!(
                 "Invalid state: tx returned by indexer has a different id to the one we queried"
             ));
         }
 
-        Ok(StoredProject {
-            id: project_id.to_owned(),
-            project,
+        Ok(StoredDao {
+            id: dao_id.to_owned(),
+            dao,
             stored_date: timestamp_seconds_to_date(round_time)?,
         })
     } else {
         // It can be worth inspecting these, as their purpose would be unclear.
-        // if the project was created with our UI (and it worked correctly), the txs will always be payments.
+        // if the dao was created with our UI (and it worked correctly), the txs will always be payments.
         Err(anyhow!(
-            "Projects txs query returned a non-payment tx: {:?}",
+            "Daos txs query returned a non-payment tx: {:?}",
             tx
         ))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub struct ProjectId(pub TxId);
-impl FromStr for ProjectId {
+pub struct DaoId(pub TxId);
+impl FromStr for DaoId {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(ProjectId(s.parse()?))
+        Ok(DaoId(s.parse()?))
     }
 }
-impl ToString for ProjectId {
+impl ToString for DaoId {
     fn to_string(&self) -> String {
         self.0.to_string()
     }
 }
 
-impl ProjectId {
+impl DaoId {
     pub fn bytes(&self) -> &[u8] {
         &self.0 .0 .0
     }
 }
-impl From<HashDigest> for ProjectId {
+impl From<HashDigest> for DaoId {
     fn from(digest: HashDigest) -> Self {
-        ProjectId(digest.into())
+        DaoId(digest.into())
     }
 }
-impl TryFrom<&[u8]> for ProjectId {
+impl TryFrom<&[u8]> for DaoId {
     type Error = anyhow::Error;
     fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
-        Ok(ProjectId(slice.try_into()?))
+        Ok(DaoId(slice.try_into()?))
     }
 }
 

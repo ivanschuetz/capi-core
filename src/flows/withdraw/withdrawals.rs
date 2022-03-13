@@ -9,9 +9,9 @@ use crate::{
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     date_util::timestamp_seconds_to_date,
     flows::{
-        create_project::{
-            create_project::Escrows,
-            storage::load_project::{load_project, ProjectId, TxId},
+        create_dao::{
+            create_dao::Escrows,
+            storage::load_dao::{load_dao, DaoId, TxId},
         },
         withdraw::note::base64_withdrawal_note_to_withdrawal_description,
     },
@@ -23,13 +23,13 @@ pub async fn withdrawals(
     algod: &Algod,
     indexer: &Indexer,
     creator: &Address,
-    project_id: &ProjectId,
+    dao_id: &DaoId,
     escrows: &Escrows,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Withdrawal>> {
     log::debug!("Querying withdrawals by: {:?}", creator);
 
-    let project = load_project(algod, indexer, project_id, escrows, capi_deps).await?;
+    let dao = load_dao(algod, indexer, dao_id, escrows, capi_deps).await?;
 
     let query = QueryAccountTransaction {
         // For now no prefix filtering
@@ -65,9 +65,7 @@ pub async fn withdrawals(
 
             // account_transactions returns all the txs "related" to the account, i.e. can be sender or receiver
             // we're interested only in central escrow -> creator
-            if sender_address == *project.project.central_escrow.address()
-                && receiver_address == *creator
-            {
+            if sender_address == *dao.dao.central_escrow.address() && receiver_address == *creator {
                 // for now the only payload is the description
                 let withdrawal_description = match &tx.note {
                     Some(note) => base64_withdrawal_note_to_withdrawal_description(note)?,

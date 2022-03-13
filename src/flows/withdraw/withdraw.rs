@@ -10,7 +10,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    flows::{create_project::storage::load_project::TxId, withdraw::note::withdrawal_to_note},
+    flows::{create_dao::storage::load_dao::TxId, withdraw::note::withdrawal_to_note},
     funds::{FundsAmount, FundsAssetId},
 };
 

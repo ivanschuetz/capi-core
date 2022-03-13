@@ -54,7 +54,7 @@ impl SharesDistributionSpecs {
 #[cfg(test)]
 mod tests {
     use super::SharesDistributionSpecs;
-    use crate::flows::create_project::{
+    use crate::flows::create_dao::{
         share_amount::ShareAmount, shares_percentage::SharesPercentage,
     };
     use anyhow::Result;

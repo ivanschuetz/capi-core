@@ -1,4 +1,4 @@
-use crate::flows::create_project::storage::load_project::TxId;
+use crate::flows::create_dao::storage::load_dao::TxId;
 use algonaut::{algod::v2::Algod, error::AlgonautError, model::algod::v2::PendingTransaction};
 use instant::Instant;
 use std::time::Duration;

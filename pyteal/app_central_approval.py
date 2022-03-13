@@ -18,7 +18,7 @@ GLOBAL_SHARES_ASSET_ID = "SharesAssetId"
 GLOBAL_FUNDS_ASSET_ID = "FundsAssetId"
 LOCAL_SHARES = "Shares"
 LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
-LOCAL_PROJECT_ID = "Project"
+LOCAL_DAO_ID = "Dao"
 
 def approval_program():
     is_create = Gtxn[0].application_id() == Int(0)
@@ -137,11 +137,11 @@ def approval_program():
         ),
     )
 
-    # For invest/lock. Project id expected as first arg of the first tx
-    # save the project id in local state, so we can find projects where a user invested in (with the indexer)  
-    # TODO rename in CapiProject or similar - this key is used to filter for txs belonging to capi / project id use case
+    # For invest/lock. Dao id expected as first arg of the first tx
+    # save the dao id in local state, so we can find daos where a user invested in (with the indexer)  
+    # TODO rename in CapiDao or similar - this key is used to filter for txs belonging to capi / dao id use case
     # - we don't have the app id when querying this, only the sender account and this key
-    save_project_id = App.localPut(Gtxn[0].sender(), Bytes(LOCAL_PROJECT_ID), Gtxn[0].application_args[0])
+    save_dao_id = App.localPut(Gtxn[0].sender(), Bytes(LOCAL_DAO_ID), Gtxn[0].application_args[0])
 
     is_lock = Global.group_size() == Int(2)
     handle_lock = Seq(
@@ -153,7 +153,7 @@ def approval_program():
         Assert(Gtxn[1].xfer_asset() == App.globalGet(Bytes(GLOBAL_SHARES_ASSET_ID))), # the locked assets have the DAO's share asset id
 
         lock_shares,
-        save_project_id,
+        save_dao_id,
         
         Approve()
     )
@@ -222,7 +222,7 @@ def approval_program():
         Assert(Gtxn[2].asset_amount() == Mul(Gtxn[1].asset_amount(), tmpl_share_price)), # Paying the correct price for the bought shares
 
         lock_shares,
-        save_project_id,
+        save_dao_id,
 
         Approve()
     )

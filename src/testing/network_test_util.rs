@@ -16,10 +16,10 @@ mod test {
         create::test_flow::test_flow::setup_capi_asset_flow,
     };
     use crate::dependencies::algod_for_net;
-    use crate::flows::create_project::create_project::Programs;
-    use crate::flows::create_project::create_project_specs::CreateProjectSpecs;
-    use crate::testing::flow::create_project_flow::programs;
-    use crate::testing::test_data::project_specs;
+    use crate::flows::create_dao::create_dao::Programs;
+    use crate::flows::create_dao::create_dao_specs::CreateDaoSpecs;
+    use crate::testing::flow::create_dao_flow::programs;
+    use crate::testing::test_data::dao_specs;
     use algonaut::core::Address;
     use algonaut::transaction::contract_account::ContractAccount;
     use algonaut::{
@@ -37,7 +37,7 @@ mod test {
     use tokio::test;
     use {
         crate::dependencies::{self, network, Network},
-        crate::flows::create_project::shares_percentage::SharesPercentage,
+        crate::flows::create_dao::shares_percentage::SharesPercentage,
         crate::funds::{FundsAmount, FundsAssetId},
         crate::logger::init_logger,
         crate::testing::test_data::{capi_owner, creator, customer, investor1, investor2},
@@ -61,7 +61,7 @@ mod test {
         pub investor1: Account,
         pub investor2: Account,
         pub customer: Account,
-        pub specs: CreateProjectSpecs,
+        pub specs: CreateDaoSpecs,
 
         pub funds_asset_id: FundsAssetId,
 
@@ -106,7 +106,7 @@ mod test {
             investor1: investor1(),
             investor2: investor2(),
             customer: customer(),
-            specs: project_specs(),
+            specs: dao_specs(),
             funds_asset_id,
             capi_owner,
             precision: TESTS_DEFAULT_PRECISION,

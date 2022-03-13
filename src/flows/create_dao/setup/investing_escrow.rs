@@ -11,7 +11,7 @@ use serde::Serialize;
 
 use crate::{
     algo_helpers::calculate_total_fee,
-    flows::create_project::{
+    flows::create_dao::{
         model::{SetupInvestEscrowSigned, SetupInvestingEscrowToSign, SubmitSetupEscrowRes},
         share_amount::ShareAmount,
     },
@@ -26,7 +26,7 @@ use crate::teal::save_rendered_teal;
 // 1 asset (funds asset)
 const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 
-/// The investing escrow holds the created project's assets (shares) to be bought by investors
+/// The investing escrow holds the created dao's assets (shares) to be bought by investors
 
 #[allow(clippy::too_many_arguments)]
 pub async fn create_investing_escrow(
@@ -38,7 +38,7 @@ pub async fn create_investing_escrow(
     central_escrow_address: &Address,
     source: &TealSourceTemplate,
     central_app_id: u64,
-    project_creator: &Address,
+    dao_creator: &Address,
 ) -> Result<ContractAccount> {
     render_and_compile_investing_escrow(
         algod,
@@ -49,7 +49,7 @@ pub async fn create_investing_escrow(
         central_escrow_address,
         source,
         central_app_id,
-        project_creator,
+        dao_creator,
     )
     .await
 }
@@ -64,7 +64,7 @@ pub async fn render_and_compile_investing_escrow(
     central_escrow_address: &Address,
     source: &TealSourceTemplate,
     central_app_id: u64,
-    project_creator: &Address,
+    dao_creator: &Address,
 ) -> Result<ContractAccount> {
     let source = render_investing_escrow(
         source,
@@ -74,7 +74,7 @@ pub async fn render_and_compile_investing_escrow(
         locking_escrow_address,
         central_escrow_address,
         central_app_id,
-        project_creator,
+        dao_creator,
     )?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
@@ -87,7 +87,7 @@ pub fn render_investing_escrow(
     locking_escrow_address: &Address,
     central_escrow_address: &Address,
     central_app_id: u64,
-    project_creator: &Address,
+    dao_creator: &Address,
 ) -> Result<TealSource> {
     let escrow_source = render_template_new(
         source,
@@ -103,7 +103,7 @@ pub fn render_investing_escrow(
                 "TMPL_CENTRAL_ESCROW_ADDRESS",
                 &central_escrow_address.to_string(),
             ),
-            ("TMPL_PROJECT_CREATOR", &project_creator.to_string()),
+            ("TMPL_DAO_CREATOR", &dao_creator.to_string()),
             ("TMPL_CENTRAL_APP_ID", &central_app_id.to_string()),
         ],
     )?;
@@ -125,7 +125,7 @@ pub async fn setup_investing_escrow_txs(
     central_escrow_address: &Address,
     params: &SuggestedTransactionParams,
     central_app_id: u64,
-    project_creator: &Address,
+    dao_creator: &Address,
 ) -> Result<SetupInvestingEscrowToSign> {
     log::debug!(
         "Setting up investing escrow with asset id: {shares_asset_id}, transfer_share_amount: {share_supply}, creator: {creator}, locking_escrow_address: {locking_escrow_address}"
@@ -140,7 +140,7 @@ pub async fn setup_investing_escrow_txs(
         central_escrow_address,
         source,
         central_app_id,
-        project_creator,
+        dao_creator,
     )
     .await?;
     log::debug!("Generated investing escrow address: {:?}", escrow.address());
@@ -181,7 +181,7 @@ pub async fn setup_investing_escrow_txs(
     })
 }
 
-// TODO submit these directly on create project submit?
+// TODO submit these directly on create dao submit?
 pub async fn submit_investing_setup_escrow(
     algod: &Algod,
     signed: SetupInvestEscrowSigned,
@@ -210,7 +210,7 @@ struct EditTemplateContext {
 mod tests {
     use crate::{
         dependencies,
-        flows::create_project::setup::investing_escrow::render_investing_escrow,
+        flows::create_dao::setup::investing_escrow::render_investing_escrow,
         funds::{FundsAmount, FundsAssetId},
         teal::load_teal_template,
         testing::test_data::creator,

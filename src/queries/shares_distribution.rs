@@ -11,7 +11,7 @@ use rust_decimal::Decimal;
 
 use crate::{
     asset_amount::AssetAmount,
-    flows::create_project::share_amount::ShareAmount,
+    flows::create_dao::share_amount::ShareAmount,
     state::{app_state::ApplicationLocalStateError, central_app_state::central_investor_state},
 };
 

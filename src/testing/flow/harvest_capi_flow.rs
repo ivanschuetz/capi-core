@@ -17,7 +17,7 @@ mod test {
                 optin_to_app_submit, optin_to_asset_submit, transfer_tokens_and_pay_fee_submit,
             },
             flow::{
-                create_project_flow::create_project_flow,
+                create_dao_flow::create_dao_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
                 lock_capi_asset_flow::lock_capi_asset_flow,
             },
@@ -119,7 +119,7 @@ mod test {
             asset_id: td.capi_asset_id,
         };
 
-        let project = create_project_flow(&td).await?;
+        let dao = create_dao_flow(&td).await?;
 
         // calculate a to-be-drained amount, such that we get exactly the expected funds amount in the capi escrow
         let central_funds_decimal = send_to_escrow_after_investor_locked.as_decimal()
@@ -130,7 +130,7 @@ mod test {
 
         // let central_funds = FundsAmount(10 * 1_000_000);
 
-        customer_payment_and_drain_flow(&td, &project.project, central_funds, &drainer).await?;
+        customer_payment_and_drain_flow(&td, &dao.dao, central_funds, &drainer).await?;
 
         Ok(())
     }

@@ -1,6 +1,6 @@
 use algonaut::core::Address;
 
-use crate::flows::create_project::shares_percentage::SharesPercentage;
+use crate::flows::create_dao::shares_percentage::SharesPercentage;
 
 use super::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetId};
 

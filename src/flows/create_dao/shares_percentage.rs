@@ -47,7 +47,7 @@ impl SharesPercentage {
 
 #[cfg(test)]
 mod tests {
-    use crate::flows::create_project::shares_percentage::SharesPercentage;
+    use crate::flows::create_dao::shares_percentage::SharesPercentage;
     use anyhow::Result;
     use rust_decimal::Decimal;
     use std::convert::TryInto;

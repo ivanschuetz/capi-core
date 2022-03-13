@@ -9,7 +9,7 @@ pub mod test {
     use crate::testing::network_test_util::TestDeps;
     use crate::{
         flows::{
-            create_project::model::Project,
+            create_dao::model::Dao,
             withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs},
         },
         testing::flow::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes,
@@ -17,12 +17,12 @@ pub mod test {
     use algonaut::{algod::v2::Algod, core::MicroAlgos, transaction::account::Account};
     use anyhow::Result;
 
-    /// project creation,
+    /// dao creation,
     /// customer payment + draining to central, to have something to withdraw.
     pub async fn withdraw_precs(
         td: &TestDeps,
         drainer: &Account,
-        project: &Project,
+        dao: &Dao,
         pay_and_drain_amount: FundsAmount,
     ) -> Result<WithdrawTestPrecsRes> {
         let algod = &td.algod;
@@ -30,9 +30,9 @@ pub mod test {
         // customer payment and draining, to have some funds to withdraw
 
         let drain_res =
-            customer_payment_and_drain_flow(&td, &project, pay_and_drain_amount, &drainer).await?;
+            customer_payment_and_drain_flow(&td, &dao, pay_and_drain_amount, &drainer).await?;
         let central_escrow_balance_after_drain = algod
-            .account_information(drain_res.project.central_escrow.address())
+            .account_information(drain_res.dao.central_escrow.address())
             .await?
             .amount;
 
@@ -44,7 +44,7 @@ pub mod test {
 
     pub async fn withdraw_flow(
         algod: &Algod,
-        project: &Project,
+        dao: &Dao,
         creator: &Account,
         amount: FundsAmount,
         funds_asset_id: FundsAssetId,
@@ -61,7 +61,7 @@ pub mod test {
                 amount: amount.to_owned(),
                 description: "Withdrawing from tests".to_owned(),
             },
-            &project.central_escrow,
+            &dao.central_escrow,
         )
         .await?;
 
@@ -78,7 +78,7 @@ pub mod test {
         wait_for_pending_transaction(&algod, &withdraw_tx_id).await?;
 
         Ok(WithdrawTestFlowRes {
-            project: project.clone(),
+            dao: dao.clone(),
             withdrawer_balance_before_withdrawing,
             withdrawal: amount.to_owned(),
         })
@@ -87,7 +87,7 @@ pub mod test {
     // Any data we want to return from the flow to the tests
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct WithdrawTestFlowRes {
-        pub project: Project,
+        pub dao: Dao,
         pub withdrawer_balance_before_withdrawing: MicroAlgos,
         pub withdrawal: FundsAmount,
     }

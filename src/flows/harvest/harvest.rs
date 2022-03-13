@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use crate::{
     algo_helpers::calculate_total_fee,
     decimal_util::AsDecimal,
-    flows::create_project::{share_amount::ShareAmount, storage::load_project::TxId},
+    flows::create_dao::{share_amount::ShareAmount, storage::load_dao::TxId},
     funds::{FundsAmount, FundsAssetId},
 };
 use algonaut::{

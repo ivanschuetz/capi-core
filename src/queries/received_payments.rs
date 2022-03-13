@@ -7,11 +7,11 @@ use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 
 use crate::{
-    date_util::timestamp_seconds_to_date, flows::create_project::storage::load_project::TxId,
+    date_util::timestamp_seconds_to_date, flows::create_dao::storage::load_dao::TxId,
     funds::FundsAmount,
 };
 
-/// Project payments, i.e. funds asset transfers
+/// Dao payments, i.e. funds asset transfers
 pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<Vec<Payment>> {
     log::debug!("Retrieving payment to: {:?}", address);
 

@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CreateProjectSpecs {
+pub struct CreateDaoSpecs {
     pub name: String,
     pub description: String,
     pub shares: CreateSharesSpecs,
@@ -14,7 +14,7 @@ pub struct CreateProjectSpecs {
     pub social_media_url: String, // this can be later in an extension (possibly with more links)
 }
 
-impl CreateProjectSpecs {
+impl CreateDaoSpecs {
     pub fn new(
         name: String,
         description: String,
@@ -23,14 +23,14 @@ impl CreateProjectSpecs {
         share_price: FundsAmount,
         logo_url: String,
         social_media_url: String,
-    ) -> Result<CreateProjectSpecs> {
+    ) -> Result<CreateDaoSpecs> {
         if investors_part > shares.supply {
             return Err(anyhow!(
                 "Investors shares: {investors_part} must be less than shares supply: {}",
                 shares.supply
             ));
         }
-        Ok(CreateProjectSpecs {
+        Ok(CreateDaoSpecs {
             name,
             description,
             shares,

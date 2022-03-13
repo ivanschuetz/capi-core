@@ -6,13 +6,13 @@ pub mod test {
     use crate::funds::FundsAmount;
     use crate::funds::FundsAssetId;
     use crate::{
-        flows::create_project::model::Project,
-        flows::create_project::storage::load_project::TxId,
+        flows::create_dao::model::Dao,
+        flows::create_dao::storage::load_dao::TxId,
         flows::drain::drain::{
             drain_amounts, drain_customer_escrow, submit_drain_customer_escrow,
             DaoAndCapiDrainAmounts, DrainCustomerEscrowSigned,
         },
-        flows::pay_project::pay_project::{pay_project, submit_pay_project, PayProjectSigned},
+        flows::pay_dao::pay_dao::{pay_dao, submit_pay_dao, PayDaoSigned},
         network_util::wait_for_pending_transaction,
         state::account_state::funds_holdings,
         testing::network_test_util::TestDeps,
@@ -26,7 +26,7 @@ pub mod test {
 
     pub async fn customer_payment_and_drain_flow(
         td: &TestDeps,
-        project: &Project,
+        dao: &Dao,
         customer_payment_amount: FundsAmount,
         drainer: &Account,
     ) -> Result<CustomerPaymentAndDrainFlowRes> {
@@ -34,27 +34,27 @@ pub mod test {
 
         // double check precondition: customer escrow has no funds
         let customer_escrow_holdings =
-            funds_holdings(algod, project.customer_escrow.address(), td.funds_asset_id).await?;
+            funds_holdings(algod, dao.customer_escrow.address(), td.funds_asset_id).await?;
         assert_eq!(FundsAmount::new(0), customer_escrow_holdings);
 
         // Customer sends a payment
         let customer_payment_tx_id = send_payment_to_customer_escrow(
             algod,
             &td.customer,
-            project.customer_escrow.address(),
+            dao.customer_escrow.address(),
             td.funds_asset_id,
             customer_payment_amount,
         )
         .await?;
         wait_for_pending_transaction(&algod, &customer_payment_tx_id).await?;
 
-        drain_flow(td, &drainer, project).await
+        drain_flow(td, &drainer, dao).await
     }
 
     pub async fn drain_flow(
         td: &TestDeps,
         drainer: &Account,
-        project: &Project,
+        dao: &Dao,
     ) -> Result<CustomerPaymentAndDrainFlowRes> {
         let algod = &td.algod;
 
@@ -63,19 +63,19 @@ pub mod test {
         let drain_amounts = drain_amounts(
             algod,
             td.dao_deps().escrow_percentage,
-            project.funds_asset_id,
-            &project.customer_escrow.address(),
+            dao.funds_asset_id,
+            &dao.customer_escrow.address(),
         )
         .await?;
 
         let drain_to_sign = drain_customer_escrow(
             &algod,
             &drainer.address(),
-            project.central_app_id,
-            project.funds_asset_id,
+            dao.central_app_id,
+            dao.funds_asset_id,
             &td.dao_deps(),
-            &project.customer_escrow,
-            &project.central_escrow,
+            &dao.customer_escrow,
+            &dao.central_escrow,
             &drain_amounts,
         )
         .await?;
@@ -97,7 +97,7 @@ pub mod test {
         wait_for_pending_transaction(&algod, &drain_tx_id).await?;
 
         Ok(CustomerPaymentAndDrainFlowRes {
-            project: project.to_owned(),
+            dao: dao.to_owned(),
             initial_drainer_balance,
             app_call_tx: drain_to_sign.app_call_tx,
             capi_app_call_tx: drain_to_sign.capi_app_call_tx,
@@ -108,14 +108,14 @@ pub mod test {
     // Any data we want to return from the flow to the tests
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct CustomerPaymentAndDrainFlowRes {
-        pub project: Project,
+        pub dao: Dao,
         pub initial_drainer_balance: MicroAlgos,
         pub app_call_tx: Transaction,
         pub capi_app_call_tx: Transaction,
         pub drained_amounts: DaoAndCapiDrainAmounts,
     }
 
-    // Simulate a payment to the "external" project address
+    // Simulate a payment to the "external" dao address
     async fn send_payment_to_customer_escrow(
         algod: &Algod,
         customer: &Account,
@@ -123,7 +123,7 @@ pub mod test {
         funds_asset_id: FundsAssetId,
         amount: FundsAmount,
     ) -> Result<TxId> {
-        let tx = pay_project(
+        let tx = pay_dao(
             algod,
             &customer.address(),
             customer_escrow,
@@ -133,7 +133,7 @@ pub mod test {
         .await?
         .tx;
         let signed_tx = customer.sign_transaction(&tx)?;
-        let tx_id = submit_pay_project(algod, PayProjectSigned { tx: signed_tx }).await?;
+        let tx_id = submit_pay_dao(algod, PayDaoSigned { tx: signed_tx }).await?;
         log::debug!("Customer payment tx id: {:?}", tx_id);
         Ok(tx_id)
     }

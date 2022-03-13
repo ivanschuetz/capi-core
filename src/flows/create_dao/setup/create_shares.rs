@@ -1,8 +1,8 @@
 use crate::{
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
-    flows::create_project::{
-        create_project::Programs,
-        create_project_specs::CreateProjectSpecs,
+    flows::create_dao::{
+        create_dao::Programs,
+        create_dao_specs::CreateDaoSpecs,
         model::{CreateAssetsToSign, CreateSharesSpecs},
     },
     network_util::wait_for_pending_transaction,
@@ -21,7 +21,7 @@ use super::create_app::create_app_tx;
 pub async fn create_assets(
     algod: &Algod,
     creator: &Address,
-    specs: &CreateProjectSpecs,
+    specs: &CreateDaoSpecs,
     programs: &Programs,
     precision: u64,
     capi_deps: &CapiAssetDaoDeps,

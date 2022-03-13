@@ -18,7 +18,7 @@ mod tests {
         decimal_util::AsDecimal,
         dependencies,
         flows::{
-            create_project::{
+            create_dao::{
                 setup::{
                     create_app::render_central_app,
                     customer_escrow::{render_and_compile_customer_escrow, render_customer_escrow},

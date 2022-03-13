@@ -1,7 +1,7 @@
 use super::{add_roadmap_item::RoadmapItem, note::base64_maybe_roadmap_note_to_roadmap_item};
 use crate::{
     date_util::timestamp_seconds_to_date,
-    flows::create_project::storage::load_project::{ProjectId, TxId},
+    flows::create_dao::storage::load_dao::{DaoId, TxId},
 };
 use algonaut::{
     core::Address,
@@ -15,17 +15,17 @@ use serde::Serialize;
 
 pub async fn get_roadmap(
     indexer: &Indexer,
-    project_creator: &Address,
-    project_id: &ProjectId,
+    dao_creator: &Address,
+    dao_id: &DaoId,
 ) -> Result<Roadmap> {
-    // We get all the txs sent by project's creator and filter manually by the project prefix
+    // We get all the txs sent by dao's creator and filter manually by the dao prefix
     // Algorand's indexer has performance problems with note-prefix and it doesn't work at all with AlgoExplorer or PureStake currently:
     // https://github.com/algorand/indexer/issues/358
     // https://github.com/algorand/indexer/issues/669
 
     let response = indexer
         .transactions(&QueryTransaction {
-            address: Some(project_creator.to_string()),
+            address: Some(dao_creator.to_string()),
             address_role: Some(Role::Sender),
             ..QueryTransaction::default()
         })
@@ -43,7 +43,7 @@ pub async fn get_roadmap(
         if tx.payment_transaction.is_some() {
             if let Some(note) = tx.note.clone() {
                 if let Some(roadmap_item) =
-                    base64_maybe_roadmap_note_to_roadmap_item(&note, project_id)?
+                    base64_maybe_roadmap_note_to_roadmap_item(&note, dao_id)?
                 {
                     let saved_roadmap_item =
                         to_saved_roadmap_item(&roadmap_item, &tx.id.parse()?, round_time)?;
@@ -66,7 +66,7 @@ pub struct Roadmap {
 #[derive(Debug, Clone, Serialize)]
 pub struct SavedRoadmapItem {
     pub tx_id: TxId,
-    pub project_id: ProjectId,
+    pub dao_id: DaoId,
     pub title: String,
     pub date: DateTime<Utc>,
     pub saved_date: DateTime<Utc>,
@@ -81,7 +81,7 @@ fn to_saved_roadmap_item(
 ) -> Result<SavedRoadmapItem> {
     Ok(SavedRoadmapItem {
         tx_id: tx_id.clone(),
-        project_id: item.project_id.clone(),
+        dao_id: item.dao_id.clone(),
         title: item.title.clone(),
         date: item.date,
         saved_date: timestamp_seconds_to_date(round_time)?,

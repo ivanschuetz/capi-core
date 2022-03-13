@@ -1,7 +1,7 @@
 use crate::{
     algo_helpers::calculate_total_fee,
     capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
-    flows::create_project::{shares_percentage::SharesPercentage, storage::load_project::TxId},
+    flows::create_dao::{shares_percentage::SharesPercentage, storage::load_dao::TxId},
     funds::{FundsAmount, FundsAssetId},
     state::account_state::funds_holdings,
 };

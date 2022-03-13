@@ -1,6 +1,6 @@
-use crate::flows::create_project::{
+use crate::flows::create_dao::{
     share_amount::ShareAmount,
-    storage::load_project::{ProjectId, TxId},
+    storage::load_dao::{DaoId, TxId},
 };
 use algonaut::{
     algod::v2::Algod,
@@ -24,7 +24,7 @@ pub async fn lock(
     shares_asset_id: u64,
     central_app_id: u64,
     locking_escrow: &ContractAccount,
-    project_id: &ProjectId,
+    dao_id: &DaoId,
 ) -> Result<LockToSign> {
     let params = algod.suggested_transaction_params().await?;
 
@@ -32,7 +32,7 @@ pub async fn lock(
     let mut app_call_tx = TxnBuilder::with(
         &params,
         CallApplication::new(investor, central_app_id)
-            .app_arguments(vec![project_id.bytes().to_vec()])
+            .app_arguments(vec![dao_id.bytes().to_vec()])
             .build(),
     )
     .build()?;

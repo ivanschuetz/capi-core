@@ -2,8 +2,8 @@
 mod tests {
     use crate::{
         flows::{
-            create_project::{
-                create_project_specs::CreateProjectSpecs, model::CreateSharesSpecs,
+            create_dao::{
+                create_dao_specs::CreateDaoSpecs, model::CreateSharesSpecs,
                 share_amount::ShareAmount,
             },
             harvest::harvest::max_can_harvest_amount,
@@ -57,17 +57,17 @@ mod tests {
             td.specs.investors_part(),
         )?;
 
-        let res = harvest_flow(&td, &precs.project, harvester, harvest_amount).await?;
+        let res = harvest_flow(&td, &precs.dao, harvester, harvest_amount).await?;
 
         // test
 
         test_harvest_result(
             &algod,
             &harvester,
-            res.project.central_app_id,
+            res.dao.central_app_id,
             td.funds_asset_id,
-            res.project.central_escrow.address(),
-            res.project.customer_escrow.address(),
+            res.dao.central_escrow.address(),
+            res.dao.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
             // harvester got the amount
             res.harvester_balance_before_harvesting + res.harvest,
@@ -107,7 +107,7 @@ mod tests {
         )
         .await?;
 
-        let central_state = central_global_state(&algod, precs.project.central_app_id).await?;
+        let central_state = central_global_state(&algod, precs.dao.central_app_id).await?;
         let harvest_amount = max_can_harvest_amount(
             central_state.received,
             FundsAmount::new(0),
@@ -121,7 +121,7 @@ mod tests {
         // flow
 
         // we harvest 1 microalgo (smallest possible increment) more than max allowed
-        let res = harvest_flow(&td, &precs.project, &harvester, harvest_amount + 1).await;
+        let res = harvest_flow(&td, &precs.dao, &harvester, harvest_amount + 1).await;
         log::debug!("res: {:?}", res);
 
         // test
@@ -145,7 +145,7 @@ mod tests {
         let buy_share_amount = ShareAmount::new(10);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
-        let specs = CreateProjectSpecs::new(
+        let specs = CreateDaoSpecs::new(
             "Pancakes ltd".to_owned(),
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
             CreateSharesSpecs {
@@ -168,7 +168,7 @@ mod tests {
         )
         .await?;
 
-        let central_state = central_global_state(&algod, precs.project.central_app_id).await?;
+        let central_state = central_global_state(&algod, precs.dao.central_app_id).await?;
         log::debug!("central_total_received: {:?}", central_state.received);
 
         let harvest_amount = max_can_harvest_amount(
@@ -183,17 +183,17 @@ mod tests {
 
         // flow
 
-        let res = harvest_flow(&td, &precs.project, &harvester, harvest_amount).await?;
+        let res = harvest_flow(&td, &precs.dao, &harvester, harvest_amount).await?;
 
         // test
 
         test_harvest_result(
             &algod,
             &harvester,
-            res.project.central_app_id,
+            res.dao.central_app_id,
             td.funds_asset_id,
-            res.project.central_escrow.address(),
-            res.project.customer_escrow.address(),
+            res.dao.central_escrow.address(),
+            res.dao.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
             // harvester got the amount
             res.harvester_balance_before_harvesting + res.harvest,
@@ -232,8 +232,8 @@ mod tests {
             &harvester,
         )
         .await?;
-        let res1 = harvest_flow(&td, &precs.project, &harvester, harvest_amount).await?;
-        let res2 = harvest_flow(&td, &precs.project, &harvester, harvest_amount).await?;
+        let res1 = harvest_flow(&td, &precs.dao, &harvester, harvest_amount).await?;
+        let res2 = harvest_flow(&td, &precs.dao, &harvester, harvest_amount).await?;
 
         // test
 
@@ -241,10 +241,10 @@ mod tests {
         test_harvest_result(
             &algod,
             &harvester,
-            res2.project.central_app_id,
+            res2.dao.central_app_id,
             td.funds_asset_id,
-            res2.project.central_escrow.address(),
-            res2.project.customer_escrow.address(),
+            res2.dao.central_escrow.address(),
+            res2.dao.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
             // 2 harvests: local state is the total harvested amount
             res1.harvester_balance_before_harvesting + total_expected_harvested_amount,

@@ -5,7 +5,7 @@ from pyteal import *
 tmpl_share_price = Tmpl.Int("TMPL_SHARE_PRICE")
 tmpl_central_app_id = Tmpl.Int("TMPL_CENTRAL_APP_ID")
 tmpl_funds_asset_id = Tmpl.Int("TMPL_FUNDS_ASSET_ID")
-tmpl_project_creator = Tmpl.Addr("TMPL_PROJECT_CREATOR")
+tmpl_dao_creator = Tmpl.Addr("TMPL_DAO_CREATOR")
 tmpl_shares_asset_id = Tmpl.Int("TMPL_SHARES_ASSET_ID")
 tmpl_locking_escrow_address = Tmpl.Addr("TMPL_LOCKING_ESCROW_ADDRESS")
 tmpl_central_escrow_address = Tmpl.Addr("TMPL_CENTRAL_ESCROW_ADDRESS")

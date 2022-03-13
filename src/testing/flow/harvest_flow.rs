@@ -3,18 +3,18 @@ pub use test::{harvest_flow, harvest_precs, HarvestTestFlowRes, HarvestTestPrecs
 
 #[cfg(test)]
 pub mod test {
-    use crate::flows::create_project::{model::Project, share_amount::ShareAmount};
+    use crate::flows::create_dao::{model::Dao, share_amount::ShareAmount};
     use crate::funds::FundsAmount;
     use crate::state::account_state::funds_holdings;
     use crate::testing::flow::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
-    use crate::testing::flow::invest_in_project_flow::invests_optins_flow;
+    use crate::testing::flow::invest_in_dao_flow::invests_optins_flow;
     use crate::{
         flows::harvest::harvest::{harvest, submit_harvest, HarvestSigned},
         network_util::wait_for_pending_transaction,
         testing::flow::{
-            create_project_flow::create_project_flow,
+            create_dao_flow::create_dao_flow,
             customer_payment_and_drain_flow::customer_payment_and_drain_flow,
-            invest_in_project_flow::invests_flow,
+            invest_in_dao_flow::invests_flow,
         },
         testing::network_test_util::TestDeps,
     };
@@ -30,32 +30,21 @@ pub mod test {
     ) -> Result<HarvestTestPrecsRes> {
         let algod = &td.algod;
 
-        let project = create_project_flow(&td).await?;
+        let dao = create_dao_flow(&td).await?;
 
         // investor buys shares: this can be called after draining as well (without affecting test results)
         // the only order required for this is draining->harvesting, obviously harvesting has to be executed after draining (if it's to harvest the drained funds)
-        invests_optins_flow(algod, &harvester, &project.project).await?;
-        let _ = invests_flow(
-            &td,
-            &harvester,
-            share_amount,
-            &project.project,
-            &project.project_id,
-        )
-        .await?;
+        invests_optins_flow(algod, &harvester, &dao.dao).await?;
+        let _ = invests_flow(&td, &harvester, share_amount, &dao.dao, &dao.dao_id).await?;
 
         // payment and draining
-        let drain_res = customer_payment_and_drain_flow(
-            td,
-            &project.project,
-            payment_and_drain_amount,
-            &drainer,
-        )
-        .await?;
+        let drain_res =
+            customer_payment_and_drain_flow(td, &dao.dao, payment_and_drain_amount, &drainer)
+                .await?;
 
         let central_escrow_balance_after_drain = funds_holdings(
             algod,
-            drain_res.project.central_escrow.address(),
+            drain_res.dao.central_escrow.address(),
             td.funds_asset_id,
         )
         .await?;
@@ -63,7 +52,7 @@ pub mod test {
         // end precs
 
         Ok(HarvestTestPrecsRes {
-            project: project.project,
+            dao: dao.dao,
             central_escrow_balance_after_drain,
             drain_res,
         })
@@ -71,7 +60,7 @@ pub mod test {
 
     pub async fn harvest_flow(
         td: &TestDeps,
-        project: &Project,
+        dao: &Dao,
         harvester: &Account,
         amount: FundsAmount,
     ) -> Result<HarvestTestFlowRes> {
@@ -84,10 +73,10 @@ pub mod test {
         let to_sign = harvest(
             &algod,
             &harvester.address(),
-            project.central_app_id,
+            dao.central_app_id,
             td.funds_asset_id,
             amount,
-            &project.central_escrow,
+            &dao.central_escrow,
         )
         .await?;
 
@@ -105,7 +94,7 @@ pub mod test {
         wait_for_pending_transaction(&algod, &harvest_tx_id).await?;
 
         Ok(HarvestTestFlowRes {
-            project: project.clone(),
+            dao: dao.clone(),
             harvester_balance_before_harvesting,
             harvest: amount.to_owned(),
             // drain_res: precs.drain_res.clone(),
@@ -115,7 +104,7 @@ pub mod test {
     // Any data we want to return from the flow to the tests
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct HarvestTestFlowRes {
-        pub project: Project,
+        pub dao: Dao,
         pub harvester_balance_before_harvesting: FundsAmount,
         pub harvest: FundsAmount,
     }
@@ -123,7 +112,7 @@ pub mod test {
     // Any data we want to return from the flow to the tests
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct HarvestTestPrecsRes {
-        pub project: Project,
+        pub dao: Dao,
         pub central_escrow_balance_after_drain: FundsAmount,
         pub drain_res: CustomerPaymentAndDrainFlowRes,
     }

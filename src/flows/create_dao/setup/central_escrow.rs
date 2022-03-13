@@ -22,7 +22,7 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 
 pub async fn setup_central_escrow(
     algod: &Algod,
-    project_creator: &Address,
+    dao_creator: &Address,
     source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
     funds_asset_id: FundsAssetId,
@@ -30,7 +30,7 @@ pub async fn setup_central_escrow(
 ) -> Result<SetupCentralEscrowToSign> {
     let escrow = render_and_compile_central_escrow(
         algod,
-        project_creator,
+        dao_creator,
         source,
         funds_asset_id,
         central_app_id,
@@ -45,7 +45,7 @@ pub async fn setup_central_escrow(
     .build()?;
 
     let fund_min_balance_tx =
-        &mut create_payment_tx(project_creator, escrow.address(), MIN_BALANCE, params).await?;
+        &mut create_payment_tx(dao_creator, escrow.address(), MIN_BALANCE, params).await?;
 
     fund_min_balance_tx.fee =
         calculate_total_fee(params, &[fund_min_balance_tx, optin_to_funds_asset_tx])?;
@@ -59,18 +59,18 @@ pub async fn setup_central_escrow(
 
 pub async fn render_and_compile_central_escrow(
     algod: &Algod,
-    project_creator: &Address,
+    dao_creator: &Address,
     source: &TealSourceTemplate,
     funds_asset_id: FundsAssetId,
     central_app_id: u64,
 ) -> Result<ContractAccount> {
-    let source = render_central_escrow(source, project_creator, funds_asset_id, central_app_id)?;
+    let source = render_central_escrow(source, dao_creator, funds_asset_id, central_app_id)?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
 fn render_central_escrow(
     source: &TealSourceTemplate,
-    project_creator: &Address,
+    dao_creator: &Address,
     funds_asset_id: FundsAssetId,
     central_app_id: u64,
 ) -> Result<TealSource> {
@@ -78,7 +78,7 @@ fn render_central_escrow(
         source,
         &[
             ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
-            ("TMPL_PROJECT_CREATOR", &project_creator.to_string()),
+            ("TMPL_DAO_CREATOR", &dao_creator.to_string()),
             ("TMPL_CENTRAL_APP_ID", &central_app_id.to_string()),
         ],
     )?;
@@ -87,7 +87,7 @@ fn render_central_escrow(
     Ok(escrow_source)
 }
 
-// might not be needed: submitting the create project txs together
+// might not be needed: submitting the create dao txs together
 pub async fn submit_setup_central_escrow(
     algod: &Algod,
     signed: &SetupCentralEscrowSigned,
@@ -124,7 +124,7 @@ pub struct SetupCentralEscrowSigned {
 #[derive(Serialize)]
 struct CentralEscrowTemplateContext {
     funds_asset_id: String,
-    project_creator_address: String,
+    dao_creator_address: String,
     app_id: String,
 }
 

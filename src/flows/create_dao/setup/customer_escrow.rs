@@ -24,7 +24,7 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 #[allow(clippy::too_many_arguments)]
 pub async fn setup_customer_escrow(
     algod: &Algod,
-    project_creator: &Address,
+    dao_creator: &Address,
     central_address: &Address,
     source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
@@ -49,7 +49,7 @@ pub async fn setup_customer_escrow(
     .build()?;
 
     let mut fund_min_balance_tx =
-        create_payment_tx(project_creator, escrow.address(), MIN_BALANCE, params).await?;
+        create_payment_tx(dao_creator, escrow.address(), MIN_BALANCE, params).await?;
 
     fund_min_balance_tx.fee = calculate_total_fee(
         params,
@@ -94,7 +94,7 @@ pub fn render_customer_escrow(
     Ok(escrow_source)
 }
 
-// might not be needed: submitting the create project txs together
+// might not be needed: submitting the create dao txs together
 pub async fn submit_setup_customer_escrow(
     algod: &Algod,
     signed: &SetupCustomerEscrowSigned,

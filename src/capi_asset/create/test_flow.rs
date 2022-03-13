@@ -10,7 +10,7 @@ pub mod test_flow {
     };
     use crate::funds::FundsAssetId;
     use crate::network_util::wait_for_pending_transaction;
-    use crate::testing::flow::create_project_flow::capi_programs;
+    use crate::testing::flow::create_dao_flow::capi_programs;
     use crate::testing::TESTS_DEFAULT_PRECISION;
     use algonaut::algod::v2::Algod;
     use algonaut::transaction::account::Account;

@@ -4,7 +4,7 @@ from pyteal import *
 
 tmpl_central_app_id = Tmpl.Int("TMPL_CENTRAL_APP_ID")
 tmpl_funds_asset_id = Tmpl.Int("TMPL_FUNDS_ASSET_ID")
-tmpl_project_creator = Tmpl.Addr("TMPL_PROJECT_CREATOR")
+tmpl_dao_creator = Tmpl.Addr("TMPL_DAO_CREATOR")
 
 GLOBAL_RECEIVED_TOTAL = "ReceivedTotal"
 LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
@@ -39,10 +39,10 @@ def program():
     is_withdrawal = Global.group_size() == Int(2)
     handle_withdrawal = Seq(
         Assert(Gtxn[0].type_enum() == TxnType.Payment),
-        Assert(Gtxn[0].sender() == tmpl_project_creator),
+        Assert(Gtxn[0].sender() == tmpl_dao_creator),
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id),
-        Assert(Gtxn[1].asset_receiver() == tmpl_project_creator),
+        Assert(Gtxn[1].asset_receiver() == tmpl_dao_creator),
         Approve()
     )
 

@@ -1,19 +1,19 @@
 #[cfg(test)]
-pub use test::{capi_programs, create_project_flow, programs, CreateProjectFlowRes};
+pub use test::{capi_programs, create_dao_flow, programs, CreateDaoFlowRes};
 
 #[cfg(test)]
 pub mod test {
-    use crate::flows::create_project::storage::load_project::ProjectId;
-    use crate::flows::create_project::storage::save_project::{
-        save_project, submit_save_project, SaveProjectSigned,
+    use crate::flows::create_dao::storage::load_dao::DaoId;
+    use crate::flows::create_dao::storage::save_dao::{
+        save_dao, submit_save_dao, SaveDaoSigned,
     };
-    use crate::flows::create_project::{
-        create_project::{create_project_txs, submit_create_project, CapiPrograms},
-        model::{CreateProjectSigned, Project},
+    use crate::flows::create_dao::{
+        create_dao::{create_dao_txs, submit_create_dao, CapiPrograms},
+        model::{CreateDaoSigned, Dao},
         setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
     };
     use crate::{
-        flows::create_project::create_project::{Escrows, Programs},
+        flows::create_dao::create_dao::{Escrows, Programs},
         network_util::wait_for_pending_transaction,
         teal::{load_teal, load_teal_template},
         testing::network_test_util::TestDeps,
@@ -22,12 +22,12 @@ pub mod test {
     use anyhow::{anyhow, Result};
 
     #[derive(Debug, Clone)]
-    pub struct CreateProjectFlowRes {
-        pub project: Project,
-        pub project_id: ProjectId,
+    pub struct CreateDaoFlowRes {
+        pub dao: Dao,
+        pub dao_id: DaoId,
     }
 
-    pub async fn create_project_flow(td: &TestDeps) -> Result<CreateProjectFlowRes> {
+    pub async fn create_dao_flow(td: &TestDeps) -> Result<CreateDaoFlowRes> {
         let algod = &td.algod;
 
         // Create asset first: id needed in app template
@@ -57,8 +57,8 @@ pub mod test {
         )
         .await?;
 
-        // Rest of create project txs
-        let to_sign = create_project_txs(
+        // Rest of create dao txs
+        let to_sign = create_dao_txs(
             algod,
             &td.specs,
             td.creator.address(),
@@ -84,9 +84,9 @@ pub mod test {
         // Create the asset (submit signed tx) and generate escrow funding tx
         // Note that the escrow is generated after the asset, because it uses the asset id (in teal, inserted with template)
 
-        let create_res = submit_create_project(
+        let create_res = submit_create_dao(
             &algod,
-            CreateProjectSigned {
+            CreateDaoSigned {
                 specs: to_sign.specs,
                 creator: td.creator.address(),
                 shares_asset_id: create_assets_res.shares_asset_id,
@@ -104,28 +104,28 @@ pub mod test {
         )
         .await?;
 
-        log::debug!("Created project: {:?}", create_res.project);
+        log::debug!("Created dao: {:?}", create_res.dao);
 
-        let save_res = save_project(algod, &td.creator.address(), &create_res.project).await?;
-        let signed_save_project = td.creator.sign_transaction(&save_res.tx)?;
+        let save_res = save_dao(algod, &td.creator.address(), &create_res.dao).await?;
+        let signed_save_dao = td.creator.sign_transaction(&save_res.tx)?;
 
-        let submit_save_project_tx_id = submit_save_project(
+        let submit_save_dao_tx_id = submit_save_dao(
             &algod,
-            SaveProjectSigned {
-                tx: signed_save_project,
+            SaveDaoSigned {
+                tx: signed_save_dao,
             },
         )
         .await?;
 
-        let project_id = ProjectId(submit_save_project_tx_id.clone());
+        let dao_id = DaoId(submit_save_dao_tx_id.clone());
 
-        let _ = wait_for_pending_transaction(&algod, &submit_save_project_tx_id)
+        let _ = wait_for_pending_transaction(&algod, &submit_save_dao_tx_id)
             .await?
             .ok_or(anyhow!("Couldn't get pending tx"))?;
 
-        Ok(CreateProjectFlowRes {
-            project: create_res.project,
-            project_id,
+        Ok(CreateDaoFlowRes {
+            dao: create_res.dao,
+            dao_id,
         })
     }
 

@@ -14,7 +14,7 @@ mod tests {
             get_roadmap::{get_roadmap, SavedRoadmapItem},
         },
         testing::{
-            flow::create_project_flow::create_project_flow, network_test_util::test_dao_init,
+            flow::create_dao_flow::create_dao_flow, network_test_util::test_dao_init,
         },
     };
 
@@ -27,10 +27,10 @@ mod tests {
         let td = test_dao_init().await?;
         let algod = &td.algod;
 
-        let project = create_project_flow(&td).await?;
+        let dao = create_dao_flow(&td).await?;
 
         let inputs = RoadmapItemInputs {
-            project_id: project.project_id.clone(),
+            dao_id: dao.dao_id.clone(),
             title: "MVP Release".to_owned(),
             parent: Box::new(None),
             date: Utc::now(),
@@ -50,7 +50,7 @@ mod tests {
         // check that the item was added correctly
 
         let saved_roadmap =
-            get_roadmap(&td.indexer, &td.creator.address(), &project.project_id).await?;
+            get_roadmap(&td.indexer, &td.creator.address(), &dao.dao_id).await?;
 
         assert_eq!(1, saved_roadmap.items.len());
 
@@ -69,7 +69,7 @@ mod tests {
         saved_item: &SavedRoadmapItem,
     ) -> RoadmapItemInputs {
         RoadmapItemInputs {
-            project_id: saved_item.project_id.clone(),
+            dao_id: saved_item.dao_id.clone(),
             title: saved_item.title.clone(),
             parent: saved_item.parent.clone(),
             date: saved_item.date.clone(),

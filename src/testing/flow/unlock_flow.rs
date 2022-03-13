@@ -3,8 +3,8 @@ pub use test::unlock_flow;
 
 #[cfg(test)]
 pub mod test {
-    use crate::flows::create_project::model::Project;
-    use crate::flows::create_project::{share_amount::ShareAmount, storage::load_project::TxId};
+    use crate::flows::create_dao::model::Dao;
+    use crate::flows::create_dao::{share_amount::ShareAmount, storage::load_dao::TxId};
     use crate::flows::unlock::unlock::unlock;
     use crate::flows::unlock::unlock::{submit_unlock, UnlockSigned};
     use algonaut::{algod::v2::Algod, transaction::account::Account};
@@ -12,7 +12,7 @@ pub mod test {
 
     pub async fn unlock_flow(
         algod: &Algod,
-        project: &Project,
+        dao: &Dao,
         investor: &Account,
         shares_to_unlock: ShareAmount,
     ) -> Result<TxId> {
@@ -20,9 +20,9 @@ pub mod test {
             &algod,
             investor.address(),
             shares_to_unlock,
-            project.shares_asset_id,
-            project.central_app_id,
-            &project.locking_escrow,
+            dao.shares_asset_id,
+            dao.central_app_id,
+            &dao.locking_escrow,
         )
         .await?;
 

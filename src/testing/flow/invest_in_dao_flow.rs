@@ -1,5 +1,5 @@
 #[cfg(test)]
-pub use test::{invests_flow, invests_optins_flow, InvestInProjectTestFlowRes};
+pub use test::{invests_flow, invests_optins_flow, InvestInDaoTestFlowRes};
 
 #[cfg(test)]
 pub mod test {
@@ -7,8 +7,8 @@ pub mod test {
         invest_or_locking_app_optin_tx, submit_invest_or_locking_app_optin,
     };
     use crate::flows::{
-        create_project::{
-            model::Project, share_amount::ShareAmount, storage::load_project::ProjectId,
+        create_dao::{
+            model::Dao, share_amount::ShareAmount, storage::load_dao::DaoId,
         },
         invest::model::InvestResult,
         invest::{
@@ -26,11 +26,11 @@ pub mod test {
     pub async fn invests_optins_flow(
         algod: &Algod,
         investor: &Account,
-        project: &Project,
+        dao: &Dao,
     ) -> Result<()> {
         // app optins (have to happen before invest_txs, which initializes investor's local state)
         let app_optin_tx =
-            invest_or_locking_app_optin_tx(algod, project, &investor.address()).await?;
+            invest_or_locking_app_optin_tx(algod, dao, &investor.address()).await?;
 
         let app_optin_signed_tx = investor.sign_transaction(&app_optin_tx)?;
 
@@ -47,9 +47,9 @@ pub mod test {
         td: &TestDeps,
         investor: &Account,
         buy_share_amount: ShareAmount,
-        project: &Project,
-        project_id: &ProjectId,
-    ) -> Result<InvestInProjectTestFlowRes> {
+        dao: &Dao,
+        dao_id: &DaoId,
+    ) -> Result<InvestInDaoTestFlowRes> {
         let algod = &td.algod;
 
         // remember initial investor's funds
@@ -57,19 +57,19 @@ pub mod test {
             funds_holdings(algod, &investor.address(), td.funds_asset_id).await?;
         // remember initial central escrow's funds
         let central_escrow_initial_amount =
-            funds_holdings(algod, project.central_escrow.address(), td.funds_asset_id).await?;
+            funds_holdings(algod, dao.central_escrow.address(), td.funds_asset_id).await?;
 
         let to_sign = invest_txs(
             &algod,
-            &project,
+            &dao,
             &investor.address(),
-            &project.locking_escrow,
-            project.central_app_id,
-            project.shares_asset_id,
+            &dao.locking_escrow,
+            dao.central_app_id,
+            dao.shares_asset_id,
             buy_share_amount,
             td.funds_asset_id,
-            project.specs.share_price,
-            project_id,
+            dao.specs.share_price,
+            dao_id,
         )
         .await?;
 
@@ -81,7 +81,7 @@ pub mod test {
         let invest_res = submit_invest(
             &algod,
             &InvestSigned {
-                project: to_sign.project,
+                dao: to_sign.dao,
                 central_app_setup_tx: signed_central_app_setup_tx,
                 shares_asset_optin_tx: signed_shares_optin_tx,
                 payment_tx: signed_payment_tx,
@@ -97,20 +97,20 @@ pub mod test {
             .await?
             .ok_or(anyhow!("Couldn't get pending tx"))?;
 
-        Ok(InvestInProjectTestFlowRes {
+        Ok(InvestInDaoTestFlowRes {
             investor_initial_amount,
             central_escrow_initial_amount,
             invest_res,
-            project: project.to_owned(),
+            dao: dao.to_owned(),
         })
     }
 
     // Any data we want to return from the flow to the tests
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct InvestInProjectTestFlowRes {
+    pub struct InvestInDaoTestFlowRes {
         pub investor_initial_amount: FundsAmount,
         pub central_escrow_initial_amount: FundsAmount,
         pub invest_res: InvestResult,
-        pub project: Project,
+        pub dao: Dao,
     }
 }

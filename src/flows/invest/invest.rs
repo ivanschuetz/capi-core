@@ -1,9 +1,7 @@
 use super::model::{InvestResult, InvestSigned, InvestToSign};
 use crate::{
     algo_helpers::calculate_total_fee,
-    flows::create_project::{
-        model::Project, share_amount::ShareAmount, storage::load_project::ProjectId,
-    },
+    flows::create_dao::{model::Dao, share_amount::ShareAmount, storage::load_dao::DaoId},
     funds::{FundsAmount, FundsAssetId},
 };
 use algonaut::{
@@ -23,7 +21,7 @@ use anyhow::{anyhow, Result};
 #[allow(clippy::too_many_arguments)]
 pub async fn invest_txs(
     algod: &Algod,
-    project: &Project,
+    dao: &Dao,
     investor: &Address,
     locking_escrow: &ContractAccount,
     central_app_id: u64,
@@ -31,9 +29,9 @@ pub async fn invest_txs(
     share_amount: ShareAmount,
     funds_asset_id: FundsAssetId,
     share_price: FundsAmount,
-    project_id: &ProjectId,
+    dao_id: &DaoId,
 ) -> Result<InvestToSign> {
-    log::debug!("Investing in project: {:?}", project);
+    log::debug!("Investing in dao: {:?}", dao);
 
     let params = algod.suggested_transaction_params().await?;
 
@@ -49,7 +47,7 @@ pub async fn invest_txs(
         central_app_id,
         shares_asset_id,
         *investor,
-        project_id,
+        dao_id,
     )?;
 
     let pay_price_tx = &mut TxnBuilder::with(
@@ -58,7 +56,7 @@ pub async fn invest_txs(
             *investor,
             funds_asset_id.0,
             total_price,
-            *project.central_escrow.address(),
+            *dao.central_escrow.address(),
         )
         .build(),
     )
@@ -66,7 +64,7 @@ pub async fn invest_txs(
 
     let shares_optin_tx = &mut TxnBuilder::with(
         &params,
-        AcceptAsset::new(*investor, project.shares_asset_id).build(),
+        AcceptAsset::new(*investor, dao.shares_asset_id).build(),
     )
     .build()?;
 
@@ -74,8 +72,8 @@ pub async fn invest_txs(
         &params,
         TxnFee::zero(),
         TransferAsset::new(
-            *project.invest_escrow.address(),
-            project.shares_asset_id,
+            *dao.invest_escrow.address(),
+            dao.shares_asset_id,
             share_amount.val(),
             *locking_escrow.address(),
         )
@@ -94,12 +92,10 @@ pub async fn invest_txs(
         shares_optin_tx,
     ])?;
 
-    let receive_shares_asset_signed_tx = project
-        .invest_escrow
-        .sign(receive_shares_asset_tx, vec![])?;
+    let receive_shares_asset_signed_tx = dao.invest_escrow.sign(receive_shares_asset_tx, vec![])?;
 
     Ok(InvestToSign {
-        project: project.to_owned(),
+        dao: dao.to_owned(),
         central_app_setup_tx: central_app_investor_setup_tx.clone(),
         payment_tx: pay_price_tx.clone(),
         shares_asset_optin_tx: shares_optin_tx.clone(),
@@ -112,13 +108,13 @@ pub fn central_app_investor_setup_tx(
     app_id: u64,
     shares_asset_id: u64,
     investor: Address,
-    project_id: &ProjectId,
+    dao_id: &DaoId,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
         params,
         CallApplication::new(investor, app_id)
             .foreign_assets(vec![shares_asset_id])
-            .app_arguments(vec![project_id.bytes().to_vec()])
+            .app_arguments(vec![dao_id.bytes().to_vec()])
             .build(),
     )
     .build()?;
@@ -142,7 +138,7 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
     let res = algod.broadcast_signed_transactions(&txs).await?;
     Ok(InvestResult {
         tx_id: res.tx_id.parse()?,
-        project: signed.project.clone(),
+        dao: signed.dao.clone(),
         central_app_investor_setup_tx: signed.central_app_setup_tx.clone(),
         payment_tx: signed.payment_tx.clone(),
         shares_asset_optin_tx: signed.shares_asset_optin_tx.clone(),

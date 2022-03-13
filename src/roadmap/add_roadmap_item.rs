@@ -1,5 +1,5 @@
 use super::note::roadmap_item_to_note;
-use crate::flows::create_project::storage::load_project::ProjectId;
+use crate::flows::create_dao::storage::load_dao::DaoId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
@@ -13,7 +13,7 @@ use sha2::Digest;
 
 pub async fn add_roadmap_item(
     algod: &Algod,
-    project_creator: &Address,
+    dao_creator: &Address,
     item_inputs: &RoadmapItemInputs,
 ) -> Result<AddRoadmapItemToSign> {
     let params = algod.suggested_transaction_params().await?;
@@ -24,7 +24,7 @@ pub async fn add_roadmap_item(
     // 0 payment to themselves - we use a minimal tx only to store data.
     let tx = TxnBuilder::with(
         &params,
-        Pay::new(*project_creator, *project_creator, MicroAlgos(0)).build(),
+        Pay::new(*dao_creator, *dao_creator, MicroAlgos(0)).build(),
     )
     .note(note)
     .build()?;
@@ -53,7 +53,7 @@ pub struct AddRoadmapItemToSigned {
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct RoadmapItemInputs {
-    pub project_id: ProjectId,
+    pub dao_id: DaoId,
     pub title: String,
     pub parent: Box<Option<HashDigest>>,
     pub date: DateTime<Utc>,
@@ -73,7 +73,7 @@ impl RoadmapItemInputs {
     fn to_roadmap_item(&self) -> Result<RoadmapItem> {
         let hash = self.hash()?;
         Ok(RoadmapItem {
-            project_id: self.project_id.clone(),
+            dao_id: self.dao_id.clone(),
             title: self.title.clone(),
             parent: self.parent.clone(),
             hash,
@@ -85,7 +85,7 @@ impl RoadmapItemInputs {
 // roadmap item model + hash
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RoadmapItem {
-    pub project_id: ProjectId,
+    pub dao_id: DaoId,
     pub title: String,
     pub parent: Box<Option<HashDigest>>,
     pub hash: HashDigest,

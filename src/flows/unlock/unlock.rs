@@ -1,6 +1,6 @@
 use crate::{
     algo_helpers::calculate_total_fee,
-    flows::create_project::{share_amount::ShareAmount, storage::load_project::TxId},
+    flows::create_dao::{share_amount::ShareAmount, storage::load_dao::TxId},
 };
 use algonaut::{
     algod::v2::Algod,

@@ -11,7 +11,7 @@ use crate::teal::save_rendered_teal;
 use crate::{
     capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
     decimal_util::AsDecimal,
-    flows::create_project::{share_amount::ShareAmount, shares_percentage::SharesPercentage},
+    flows::create_dao::{share_amount::ShareAmount, shares_percentage::SharesPercentage},
     funds::FundsAmount,
     state::central_app_state::{
         GLOBAL_SCHEMA_NUM_BYTE_SLICES, GLOBAL_SCHEMA_NUM_INTS, LOCAL_SCHEMA_NUM_BYTE_SLICES,
@@ -136,7 +136,7 @@ mod tests {
         },
         decimal_util::AsDecimal,
         dependencies,
-        flows::create_project::share_amount::ShareAmount,
+        flows::create_dao::share_amount::ShareAmount,
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         teal::{load_teal, load_teal_template},

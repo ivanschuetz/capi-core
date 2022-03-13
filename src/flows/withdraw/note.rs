@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 use std::convert::TryInto;
 
-// TODO write a test for save+load withdrawal(s) (like for project and roadmap items)
+// TODO write a test for save+load withdrawal(s) (like for dao and roadmap items)
 
 pub fn withdrawal_to_note(item: &WithdrawalInputs) -> Result<Vec<u8>> {
     let version_bytes = u16::to_be_bytes(1);
@@ -33,7 +33,7 @@ fn note_to_withdrawal_description(note: &[u8]) -> Result<String> {
 
 /// Note that we don't use prefixes here as the involved addresses (central escrow -> creator address)
 /// (which we assume to have been used in the indexer query / result filtering)
-/// are enough to identify withdrawals for a specific project.
+/// are enough to identify withdrawals for a specific dao.
 fn note_to_withdrawal_payload(note: &[u8]) -> Result<WithdrawalPayload> {
     let version_bytes = note
         .get(0..2)

@@ -2,7 +2,7 @@ use algonaut::{algod::v2::Algod, core::Address};
 use anyhow::{Error, Result};
 
 use crate::{
-    flows::create_project::{model::Project, share_amount::ShareAmount},
+    flows::create_dao::{model::Dao, share_amount::ShareAmount},
     funds::FundsAmount,
     state::{
         account_state::funds_holdings,
@@ -13,28 +13,20 @@ use crate::{
 pub async fn harvest_diagnostics(
     algod: &Algod,
     investor: &Address,
-    project: &Project,
+    dao: &Dao,
 ) -> Result<HarvestDiagnostics> {
-    let central_total_received = central_global_state(algod, project.central_app_id)
+    let central_total_received = central_global_state(algod, dao.central_app_id)
         .await?
         .received;
-    let central_investor_state = central_investor_state(algod, investor, project.central_app_id)
+    let central_investor_state = central_investor_state(algod, investor, dao.central_app_id)
         .await
         .map_err(Error::msg)?;
 
-    let central_balance = funds_holdings(
-        algod,
-        project.central_escrow.address(),
-        project.funds_asset_id,
-    )
-    .await?;
+    let central_balance =
+        funds_holdings(algod, dao.central_escrow.address(), dao.funds_asset_id).await?;
 
-    let customer_escrow_balance = funds_holdings(
-        algod,
-        project.customer_escrow.address(),
-        project.funds_asset_id,
-    )
-    .await?;
+    let customer_escrow_balance =
+        funds_holdings(algod, dao.customer_escrow.address(), dao.funds_asset_id).await?;
 
     Ok(HarvestDiagnostics {
         central_total_received,
@@ -54,12 +46,8 @@ pub struct HarvestDiagnostics {
     pub investor_share_amount: ShareAmount,
 }
 
-pub async fn log_harvest_diagnostics(
-    algod: &Algod,
-    investor: &Address,
-    project: &Project,
-) -> Result<()> {
-    let diag = harvest_diagnostics(algod, investor, project).await?;
+pub async fn log_harvest_diagnostics(algod: &Algod, investor: &Address, dao: &Dao) -> Result<()> {
+    let diag = harvest_diagnostics(algod, investor, dao).await?;
 
     log::info!("//////////////////////////////////////////////////////////");
     log::info!("// harvest diagnostics");

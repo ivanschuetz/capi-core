@@ -1,11 +1,11 @@
 #[cfg(test)]
-pub use test::{capi_owner, creator, customer, investor1, investor2, project_specs, shares_specs};
+pub use test::{capi_owner, creator, customer, investor1, investor2, dao_specs, shares_specs};
 
 #[cfg(test)]
 mod test {
-    use crate::flows::create_project::share_amount::ShareAmount;
-    use crate::flows::create_project::{
-        create_project_specs::CreateProjectSpecs, model::CreateSharesSpecs,
+    use crate::flows::create_dao::share_amount::ShareAmount;
+    use crate::flows::create_dao::{
+        create_dao_specs::CreateDaoSpecs, model::CreateSharesSpecs,
     };
     use crate::funds::FundsAmount;
     use algonaut::transaction::account::Account;
@@ -45,8 +45,8 @@ mod test {
         println!("capi_owner: {}", capi_owner().address());
     }
 
-    pub fn project_specs() -> CreateProjectSpecs {
-        CreateProjectSpecs::new(
+    pub fn dao_specs() -> CreateDaoSpecs {
+        CreateDaoSpecs::new(
         "Pancakes ltd".to_owned(),
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
         shares_specs(),

@@ -4,7 +4,7 @@ use super::app_state::{
     ApplicationStateExt,
 };
 use crate::{
-    flows::create_project::{share_amount::ShareAmount, storage::load_project::ProjectId},
+    flows::create_dao::{share_amount::ShareAmount, storage::load_dao::DaoId},
     funds::{FundsAmount, FundsAssetId},
 };
 use algonaut::{
@@ -23,12 +23,12 @@ const GLOBAL_SHARES_ASSET_ID: AppStateKey = AppStateKey("SharesAssetId");
 
 const LOCAL_HARVESTED_TOTAL: AppStateKey = AppStateKey("HarvestedTotal");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
-const LOCAL_PROJECT: AppStateKey = AppStateKey("Project");
+const LOCAL_DAO: AppStateKey = AppStateKey("Dao");
 
 pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 2; // central escrow address, customer escrow address
 pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 3; // "total received", shares asset id, funds asset id
 
-pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 1; // for investors: "project"
+pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 1; // for investors: "dao"
 pub const LOCAL_SCHEMA_NUM_INTS: u64 = 2; // for investors: "shares", "already retrieved"
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,7 +102,7 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
 pub struct CentralAppInvestorState {
     pub shares: ShareAmount,
     pub harvested: FundsAmount,
-    pub project_id: ProjectId,
+    pub dao_id: DaoId,
 }
 
 pub async fn central_investor_state(
@@ -136,9 +136,9 @@ fn central_investor_state_from_local_state(
 
     let shares = get_uint_value_or_error(state, &LOCAL_SHARES)?;
     let harvested = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
-    let project_id_bytes = get_bytes_value_or_error(state, &LOCAL_PROJECT)?;
+    let dao_id_bytes = get_bytes_value_or_error(state, &LOCAL_DAO)?;
 
-    let project_id: ProjectId = project_id_bytes
+    let dao_id: DaoId = dao_id_bytes
         .as_slice()
         .try_into()
         .map_err(|e: anyhow::Error| ApplicationLocalStateError::Msg(e.to_string()))?;
@@ -146,19 +146,19 @@ fn central_investor_state_from_local_state(
     Ok(CentralAppInvestorState {
         shares: ShareAmount::new(shares),
         harvested,
-        project_id,
+        dao_id,
     })
 }
 
-/// Gets project ids for all the capi apps where the user is opted in
-pub fn find_state_with_a_capi_project_id(
+/// Gets dao ids for all the capi apps where the user is opted in
+pub fn find_state_with_a_capi_dao_id(
     app_local_state: &ApplicationLocalState,
-) -> Result<Option<ProjectId>> {
-    let maybe_bytes = app_local_state.find_bytes(&LOCAL_PROJECT);
+) -> Result<Option<DaoId>> {
+    let maybe_bytes = app_local_state.find_bytes(&LOCAL_DAO);
     match maybe_bytes {
         Some(bytes) => {
-            let project_id: ProjectId = bytes.as_slice().try_into()?;
-            Ok(Some(project_id))
+            let dao_id: DaoId = bytes.as_slice().try_into()?;
+            Ok(Some(dao_id))
         }
         // Not found is Ok: we just didn't find a matching key value
         None => Ok(None),

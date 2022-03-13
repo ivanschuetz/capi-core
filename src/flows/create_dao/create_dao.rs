@@ -1,11 +1,11 @@
 use super::{
-    create_project_specs::CreateProjectSpecs,
-    model::{CreateProjectSigned, CreateProjectToSign, SubmitCreateProjectResult},
+    create_dao_specs::CreateDaoSpecs,
+    model::{CreateDaoSigned, CreateDaoToSign, SubmitCreateDaoResult},
 };
 use crate::{
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
-    flows::create_project::{
-        model::Project,
+    flows::create_dao::{
+        model::Dao,
         setup::{
             central_escrow::setup_central_escrow, customer_escrow::setup_customer_escrow,
             investing_escrow::setup_investing_escrow_txs, locking_escrow::setup_locking_escrow_txs,
@@ -19,9 +19,9 @@ use algonaut::{algod::v2::Algod, core::Address, transaction::tx_group::TxGroup};
 use anyhow::Result;
 
 #[allow(clippy::too_many_arguments)]
-pub async fn create_project_txs(
+pub async fn create_dao_txs(
     algod: &Algod,
-    specs: &CreateProjectSpecs,
+    specs: &CreateDaoSpecs,
     creator: Address,
     shares_asset_id: u64,
     funds_asset_id: FundsAssetId,
@@ -29,9 +29,9 @@ pub async fn create_project_txs(
     precision: u64,
     central_app_id: u64,
     capi_deps: &CapiAssetDaoDeps,
-) -> Result<CreateProjectToSign> {
+) -> Result<CreateDaoToSign> {
     log::debug!(
-        "Creating project with specs: {:?}, shares_asset_id: {}, precision: {}",
+        "Creating dao with specs: {:?}, shares_asset_id: {}, precision: {}",
         specs,
         shares_asset_id,
         precision
@@ -72,7 +72,7 @@ pub async fn create_project_txs(
     )
     .await?;
 
-    // TODO why do we do this (invest and locking escrows setup) here instead of directly on project creation? there seem to be no deps on post-creation things?
+    // TODO why do we do this (invest and locking escrows setup) here instead of directly on dao creation? there seem to be no deps on post-creation things?
     let mut setup_locking_escrow_to_sign = setup_locking_escrow_txs(
         algod,
         &programs.escrows.locking_escrow,
@@ -137,7 +137,7 @@ pub async fn create_project_txs(
         customer_escrow_optin_to_funds_asset_tx_signed,
     ];
 
-    Ok(CreateProjectToSign {
+    Ok(CreateDaoToSign {
         specs: specs.to_owned(),
         creator,
 
@@ -162,13 +162,13 @@ pub async fn create_project_txs(
     })
 }
 
-pub async fn submit_create_project(
+pub async fn submit_create_dao(
     algod: &Algod,
-    signed: CreateProjectSigned,
-) -> Result<SubmitCreateProjectResult> {
+    signed: CreateDaoSigned,
+) -> Result<SubmitCreateDaoResult> {
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
     log::debug!(
-        "Submitting, created project specs: {:?}, creator: {:?}",
+        "Submitting, created dao specs: {:?}, creator: {:?}",
         signed.specs,
         signed.creator
     );
@@ -189,8 +189,8 @@ pub async fn submit_create_project(
 
     algod.broadcast_signed_transactions(&signed_txs).await?;
 
-    Ok(SubmitCreateProjectResult {
-        project: Project {
+    Ok(SubmitCreateDaoResult {
+        dao: Dao {
             specs: signed.specs,
             shares_asset_id: signed.shares_asset_id,
             funds_asset_id: signed.funds_asset_id,

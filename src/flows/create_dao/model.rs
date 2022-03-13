@@ -1,3 +1,5 @@
+use super::{create_dao_specs::CreateDaoSpecs, share_amount::ShareAmount};
+use crate::{funds::FundsAssetId, hashable::Hashable};
 use algonaut::{
     core::Address,
     crypto::HashDigest,
@@ -5,10 +7,6 @@ use algonaut::{
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-
-use crate::{funds::FundsAssetId, hashable::Hashable};
-
-use super::{create_project_specs::CreateProjectSpecs, share_amount::ShareAmount};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubmitSetupEscrowRes {
@@ -31,7 +29,7 @@ pub struct SetupInvestEscrowSigned {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CreateProjectToSign {
+pub struct CreateDaoToSign {
     // to be signed by creator
     pub escrow_funding_txs: Vec<Transaction>,
     pub setup_app_tx: Transaction,
@@ -41,7 +39,7 @@ pub struct CreateProjectToSign {
     // (note that "to sign" in struct's name means that there are _some_ txs to sign. this is just passtrough data)
     pub optin_txs: Vec<SignedTransaction>,
 
-    pub specs: CreateProjectSpecs,
+    pub specs: CreateDaoSpecs,
     pub locking_escrow: ContractAccount,
     pub invest_escrow: ContractAccount,
     pub central_escrow: ContractAccount,
@@ -50,7 +48,7 @@ pub struct CreateProjectToSign {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct CreateProjectSigned {
+pub struct CreateDaoSigned {
     //////////////////////////////////////////////
     // transactions to be submitted
     //////////////////////////////////////////////
@@ -64,14 +62,14 @@ pub struct CreateProjectSigned {
 
     // escrows opt-in (lsig - signed when created)
     // to be submitted before possible asset transfers
-    // on project creation assets are transferred only to investing escrow,
+    // on dao creation assets are transferred only to investing escrow,
     // we opt-in all the escrows that may touch the assets later here too, just to leave the system "initialized"
     pub optin_txs: Vec<SignedTransaction>,
 
     //////////////////////////////////////////////
     // passthrough
     //////////////////////////////////////////////
-    pub specs: CreateProjectSpecs,
+    pub specs: CreateDaoSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
     pub central_app_id: u64,
@@ -82,11 +80,11 @@ pub struct CreateProjectSigned {
     pub customer_escrow: ContractAccount,
 }
 
-/// Note that Project doesn't know its id (ProjectId), because it's generated after it's stored (it's the id of the storage tx),
-/// TODO it probably makes sense to nane the id "StoredProjectId" to be more accurate.
+/// Note that dao doesn't know its id (DaoId), because it's generated after it's stored (it's the id of the storage tx),
+/// TODO it probably makes sense to nane the id "StoredDaoId" to be more accurate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Project {
-    pub specs: CreateProjectSpecs,
+pub struct Dao {
+    pub specs: CreateDaoSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
@@ -97,15 +95,15 @@ pub struct Project {
     pub customer_escrow: ContractAccount,
 }
 
-impl Project {
+impl Dao {
     pub fn hash(&self) -> Result<HashDigest> {
         Ok(*self.compute_hash()?.hash())
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SubmitCreateProjectResult {
-    pub project: Project,
+pub struct SubmitCreateDaoResult {
+    pub dao: Dao,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

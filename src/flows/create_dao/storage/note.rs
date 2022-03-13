@@ -1,9 +1,9 @@
 use crate::{
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
-    flows::create_project::{
-        create_project::Escrows,
-        create_project_specs::CreateProjectSpecs,
-        model::{CreateSharesSpecs, Project},
+    flows::create_dao::{
+        create_dao::Escrows,
+        create_dao_specs::CreateDaoSpecs,
+        model::{CreateSharesSpecs, Dao},
         setup::{
             central_escrow::render_and_compile_central_escrow,
             customer_escrow::render_and_compile_customer_escrow,
@@ -22,71 +22,65 @@ use futures::join;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::convert::TryInto;
 
-pub fn project_to_note(project: &Project) -> Result<Vec<u8>> {
+pub fn dao_to_note(dao: &Dao) -> Result<Vec<u8>> {
     let version_bytes = u16::to_be_bytes(1);
 
-    let project_hash = project.hash()?;
+    let dao_hash = dao.hash()?;
 
-    let project_note_payload: ProjectNoteProjectPayload = project.to_owned().into();
-    let project_note_payload_bytes = project_note_payload.bytes()?;
+    let dao_note_payload: DaoNoteDaoPayload = dao.to_owned().into();
+    let dao_note_payload_bytes = dao_note_payload.bytes()?;
 
-    // Note that the hash belongs to the Project instance, not the saved payload.
-    // This allows us to store a minimal representation and validate the generated full Project against the hash.
+    // Note that the hash belongs to the Dao instance, not the saved payload.
+    // This allows us to store a minimal representation and validate the generated full Dao against the hash.
     // In this case minimal means that the programs (escrows) are not stored: they can be rendered on demand.
     let bytes = [
         version_bytes.as_slice(),
-        &project_hash.0,
-        &project_note_payload_bytes,
+        &dao_hash.0,
+        &dao_note_payload_bytes,
     ]
     .concat();
     Ok(bytes)
 }
 
-pub async fn base64_note_to_project(
+pub async fn base64_note_to_dao(
     algod: &Algod,
     escrows: &Escrows,
     note: &str,
     capi_deps: &CapiAssetDaoDeps,
-) -> Result<Project> {
+) -> Result<Dao> {
     let bytes = BASE64.decode(note.as_bytes())?;
-    note_to_project(algod, escrows, &bytes, capi_deps).await
+    note_to_dao(algod, escrows, &bytes, capi_deps).await
 }
 
-async fn note_to_project(
+async fn note_to_dao(
     algod: &Algod,
     escrows: &Escrows,
     note: &[u8],
     capi_deps: &CapiAssetDaoDeps,
-) -> Result<Project> {
-    let payload = note_to_project_payload(note)?;
+) -> Result<Dao> {
+    let payload = note_to_dao_payload(note)?;
     if payload.version != 1 {
         return Err(anyhow!(
-            "Not supported project version in note: {}",
+            "Not supported dao version in note: {}",
             payload.version
         ));
     }
 
     let variable = payload.variable;
 
-    // The hash seems meaningless now that we're fetching the project data using the tx id (instead of the hash)
+    // The hash seems meaningless now that we're fetching the dao data using the tx id (instead of the hash)
     // but we'll keep it for now. It doesn't hurt.
-    let hashed_stored_project = extract_hash_and_object_from_note_payload(&variable)?;
-    let stored_project = hashed_stored_project.obj;
-    let stored_project_digest = hashed_stored_project.hash;
+    let hashed_stored_dao = extract_hash_and_object_from_note_payload(&variable)?;
+    let stored_dao = hashed_stored_dao.obj;
+    let stored_dao_digest = hashed_stored_dao.hash;
 
-    let project = storable_project_to_project(
-        algod,
-        &stored_project,
-        &stored_project_digest,
-        escrows,
-        capi_deps,
-    )
-    .await?;
+    let dao =
+        storable_dao_to_dao(algod, &stored_dao, &stored_dao_digest, escrows, capi_deps).await?;
 
-    Ok(project)
+    Ok(dao)
 }
 
-fn note_to_project_payload(note: &[u8]) -> Result<ProjectPayload> {
+fn note_to_dao_payload(note: &[u8]) -> Result<DaoPayload> {
     let version_bytes = note
         .get(0..2)
         .ok_or_else(|| anyhow!("Not enough bytes in note to get version. Note: {:?}", note))?;
@@ -96,7 +90,7 @@ fn note_to_project_payload(note: &[u8]) -> Result<ProjectPayload> {
         .get(2..note.len())
         .ok_or_else(|| anyhow!("Not enough bytes in note to get version. Note: {:?}", note))?;
 
-    Ok(ProjectPayload {
+    Ok(DaoPayload {
         version,
         variable: variable_bytes.to_vec(),
     })
@@ -138,15 +132,15 @@ where
     pub obj: T,
 }
 
-/// Converts and completes the project data stored in note to a full project instance.
+/// Converts and completes the dao data stored in note to a full dao instance.
 /// It also verifies the hash.
-async fn storable_project_to_project(
+async fn storable_dao_to_dao(
     algod: &Algod,
-    payload: &ProjectNoteProjectPayload,
+    payload: &DaoNoteDaoPayload,
     prefix_hash: &HashDigest,
     escrows: &Escrows,
     capi_deps: &CapiAssetDaoDeps,
-) -> Result<Project> {
+) -> Result<Dao> {
     // Render and compile the escrows
     let central_escrow_account_fut = render_and_compile_central_escrow(
         algod,
@@ -192,8 +186,8 @@ async fn storable_project_to_project(
     let customer_escrow_account = customer_escrow_account_res?;
     let investing_escrow_account = investing_escrow_account_res?;
 
-    let project = Project {
-        specs: CreateProjectSpecs::new(
+    let dao = Dao {
+        specs: CreateDaoSpecs::new(
             payload.name.clone(),
             payload.description.clone(),
             CreateSharesSpecs {
@@ -218,25 +212,25 @@ async fn storable_project_to_project(
     // Verify hash (compare freshly calculated hash with prefix hash contained in note)
     // NOTE that this doesn't seem necessary anymore, as we're not using the prefix hash anymore to fetch (but the tx id instead)
     // but, why not: more verifications is better than less, if they don't impact significantly performance
-    let hash = *project.compute_hash()?.hash();
+    let hash = *dao.compute_hash()?.hash();
     if &hash != prefix_hash {
         return Err(anyhow!(
             "Hash verification failed: Note hash doesn't correspond to calculated hash"
         ));
     }
 
-    Ok(project)
+    Ok(dao)
 }
 
-/// The project representation that's directly stored in the storage tx note
+/// The dao representation that's directly stored in the storage tx note
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ProjectNoteProjectPayload {
+pub struct DaoNoteDaoPayload {
     pub name: String,
     pub description: String,
     pub asset_id: u64,
 
     // NOTE: asset name and supply are redundant, we save them to not have to fetch the asset infos (also, they're short).
-    // When someone shares their project, people should be able to see it as quickly as possible.
+    // When someone shares their dao, people should be able to see it as quickly as possible.
     // Note also that these asset properties are immutable (https://developer.algorand.org/docs/get-details/asa/#modifying-an-asset), so it's safe to save them.
     pub asset_name: String,
     pub asset_supply: ShareAmount,
@@ -251,15 +245,15 @@ pub struct ProjectNoteProjectPayload {
     pub central_app_id: u64,
 }
 
-impl ProjectNoteProjectPayload {
+impl DaoNoteDaoPayload {
     pub fn bytes(&self) -> Result<Vec<u8>> {
         Ok(rmp_serde::to_vec_named(self)?)
     }
 }
 
-impl From<Project> for ProjectNoteProjectPayload {
-    fn from(p: Project) -> Self {
-        ProjectNoteProjectPayload {
+impl From<Dao> for DaoNoteDaoPayload {
+    fn from(p: Dao) -> Self {
+        DaoNoteDaoPayload {
             name: p.specs.name.clone(),
             description: p.specs.description.clone(),
             social_media_url: p.specs.social_media_url.clone(),
@@ -278,7 +272,7 @@ impl From<Project> for ProjectNoteProjectPayload {
 }
 
 #[derive(Debug, Clone)]
-struct ProjectPayload {
+struct DaoPayload {
     version: u16,
     variable: Vec<u8>,
 }
