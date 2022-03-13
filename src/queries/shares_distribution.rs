@@ -78,7 +78,9 @@ async fn share_sholders(
     let free_holders =
         free_assets_holdings(indexer, asset_id, investing_escrow, locking_escrow).await?;
     let lockers = lockers_holdings(algod, indexer, app_id).await?;
-    let merged = merge(free_holders, lockers);
+    let mut merged = merge(free_holders, lockers);
+    // sort descendingly by amount
+    merged.sort_by(|h1, h2| h2.amount.val().cmp(&h1.amount.val()));
     Ok(merged)
 }
 
