@@ -6,6 +6,7 @@ mod tests {
     use tokio::test;
 
     use crate::{
+        algo_helpers::send_tx_and_wait,
         flows::{
             create_project::share_amount::ShareAmount,
             harvest::harvest::max_can_harvest_amount,
@@ -70,7 +71,7 @@ mod tests {
         let traded_shares = buy_share_amount;
         let unlock_tx_id =
             unlock_flow(algod, &project.project, &td.investor1, traded_shares).await?;
-        let _ = wait_for_pending_transaction(algod, &unlock_tx_id).await?;
+        wait_for_pending_transaction(algod, &unlock_tx_id).await?;
 
         // investor2 gets shares from investor1 externally
         // normally this will be a swap in a dex. could also be a gift or some other service
@@ -83,10 +84,7 @@ mod tests {
         )
         .build()?;
         let signed_shares_optin_tx = td.investor2.sign_transaction(shares_optin_tx)?;
-        let res = algod
-            .broadcast_signed_transaction(&signed_shares_optin_tx)
-            .await?;
-        let _ = wait_for_pending_transaction(&algod, &res.tx_id.parse()?);
+        send_tx_and_wait(algod, &signed_shares_optin_tx).await?;
 
         // investor1 sends shares to investor2 (e.g. as part of atomic swap in a dex)
         let trade_tx = &mut TxnBuilder::with(
@@ -101,8 +99,7 @@ mod tests {
         )
         .build()?;
         let signed_trade_tx = td.investor1.sign_transaction(trade_tx)?;
-        let res = algod.broadcast_signed_transaction(&signed_trade_tx).await?;
-        let _ = wait_for_pending_transaction(&algod, &res.tx_id.parse()?);
+        send_tx_and_wait(algod, &signed_trade_tx).await?;
 
         // investor2 opts in to our app. this will be on our website.
         // TODO confirm: can't we opt in in the same group (accessing local state during opt in fails)?,
@@ -115,7 +112,7 @@ mod tests {
         let app_optin_signed_tx = td.investor2.sign_transaction(&app_optin_tx)?;
         let app_optin_tx_id =
             submit_invest_or_locking_app_optin(&algod, app_optin_signed_tx).await?;
-        let _ = wait_for_pending_transaction(&algod, &app_optin_tx_id);
+        wait_for_pending_transaction(&algod, &app_optin_tx_id).await?;
 
         // flow
 
@@ -271,7 +268,7 @@ mod tests {
 
         let unlock_tx_id =
             unlock_flow(algod, &project.project, &investor, buy_share_amount).await?;
-        let _ = wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
+        wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
 
         // sanity checks
 
@@ -302,7 +299,7 @@ mod tests {
         let app_optin_signed_tx = investor.sign_transaction(&app_optins_tx)?;
         let app_optin_tx_id =
             submit_invest_or_locking_app_optin(algod, app_optin_signed_tx).await?;
-        let _ = wait_for_pending_transaction(algod, &app_optin_tx_id);
+        wait_for_pending_transaction(algod, &app_optin_tx_id).await?;
 
         // lock
         lock_flow(

@@ -95,13 +95,13 @@ struct RenderCapiAppContext {
 #[cfg(test)]
 mod tests {
     use crate::{
+        algo_helpers::send_tx_and_wait,
         capi_asset::{
             capi_asset_id::{CapiAssetAmount, CapiAssetId},
             create::create_capi_app::create_app,
         },
         dependencies,
         funds::FundsAssetId,
-        network_util::wait_for_pending_transaction,
         teal::{load_teal, load_teal_template},
         testing::{network_test_util::test_init, test_data::creator, TESTS_DEFAULT_PRECISION},
     };
@@ -142,12 +142,8 @@ mod tests {
         .await?;
 
         let signed_tx = creator.sign_transaction(&tx)?;
-        let res = algod.broadcast_signed_transaction(&signed_tx).await?;
+        let p_tx = send_tx_and_wait(&algod, &signed_tx).await?;
 
-        log::debug!("Capi app created! tx id: {:?}", res.tx_id);
-        let p_tx_opt = wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
-        assert!(p_tx_opt.is_some());
-        let p_tx = p_tx_opt.unwrap();
         assert!(p_tx.application_index.is_some());
         let p_tx_app_index = p_tx.application_index.unwrap();
 

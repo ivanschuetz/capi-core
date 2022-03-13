@@ -1,5 +1,6 @@
 #[cfg(test)]
 pub mod test_flow {
+    use crate::algo_helpers::send_tx_and_wait;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId};
     use crate::capi_asset::create::create_capi_app::create_app;
@@ -28,10 +29,8 @@ pub mod test_flow {
         let to_sign = create_capi_asset(capi_supply, &creator.address(), &params).await?;
         let signed = creator.sign_transaction(&to_sign.create_capi_asset_tx)?;
         log::debug!("Will submit crate capi asset..");
-        let res = algod.broadcast_signed_transaction(&signed).await?;
-        let p_tx = wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
-        assert!(p_tx.is_some());
-        let asset_id_opt = p_tx.unwrap().asset_index;
+        let p_tx = send_tx_and_wait(algod, &signed).await?;
+        let asset_id_opt = p_tx.asset_index;
         assert!(asset_id_opt.is_some());
         let asset_id = CapiAssetId(asset_id_opt.unwrap());
 
@@ -53,10 +52,8 @@ pub mod test_flow {
         let signed = creator.sign_transaction(&to_sign_app)?;
         log::debug!("Will submit crate capi app..");
         // crate::teal::debug_teal_rendered(&[signed.clone()], "app_capi_approval").unwrap();
-        let res = algod.broadcast_signed_transaction(&signed).await?;
-        let p_tx = wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
-        assert!(p_tx.is_some());
-        let app_id_opt = p_tx.unwrap().application_index;
+        let p_tx = send_tx_and_wait(algod, &signed).await?;
+        let app_id_opt = p_tx.application_index;
         assert!(app_id_opt.is_some());
         let app_id = CapiAppId(app_id_opt.unwrap());
 

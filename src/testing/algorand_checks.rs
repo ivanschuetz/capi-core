@@ -4,6 +4,7 @@
 #[allow(dead_code)]
 pub mod test {
     use crate::{
+        algo_helpers::{send_tx_and_wait, send_txs_and_wait},
         dependencies::algod_for_tests,
         network_util::wait_for_pending_transaction,
         teal::load_teal,
@@ -102,12 +103,7 @@ pub mod test {
     pub async fn create_asset_and_sign(algod: &Algod, sender: &Account) -> Result<u64> {
         let create_asset_tx = create_asset_tx(&algod, &sender.address()).await?;
         let create_asset_signed_tx = sender.sign_transaction(&create_asset_tx)?;
-        let create_asset_res = algod
-            .broadcast_signed_transaction(&create_asset_signed_tx)
-            .await?;
-        let p_tx = wait_for_pending_transaction(&algod, &create_asset_res.tx_id.parse()?)
-            .await?
-            .unwrap();
+        let p_tx = send_tx_and_wait(algod, &create_asset_signed_tx).await?;
         let asset_id = p_tx.asset_index.unwrap();
         Ok(asset_id)
     }
@@ -145,15 +141,7 @@ pub mod test {
         let create_app_signed_tx = sender.sign_transaction(&create_app_tx)?;
         let pay_signed_tx = sender.sign_transaction(&pay_tx)?;
 
-        let create_app_res = algod
-            .broadcast_signed_transactions(&[create_app_signed_tx, pay_signed_tx])
-            .await
-            .unwrap();
-        let p_tx = wait_for_pending_transaction(&algod, &create_app_res.tx_id.parse()?)
-            .await
-            .unwrap()
-            .unwrap();
-
+        let p_tx = send_txs_and_wait(&algod, &[create_app_signed_tx, pay_signed_tx]).await?;
         let app_id = p_tx.application_index;
         log::debug!("app_id: {:?}", app_id);
 

@@ -36,7 +36,7 @@ pub mod test {
 
         let app_optin_tx_id =
             submit_invest_or_locking_app_optin(algod, app_optin_signed_tx.clone()).await?;
-        let _ = wait_for_pending_transaction(&algod, &app_optin_tx_id).await?;
+        wait_for_pending_transaction(&algod, &app_optin_tx_id).await?;
 
         Ok(())
     }

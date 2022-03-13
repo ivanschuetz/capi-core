@@ -6,6 +6,7 @@ pub use test::{
 
 #[cfg(test)]
 mod test {
+    use crate::algo_helpers::{send_tx_and_wait, send_txs_and_wait};
     use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::CapiAssetId;
@@ -17,7 +18,6 @@ mod test {
     use crate::dependencies::algod_for_net;
     use crate::flows::create_project::create_project::Programs;
     use crate::flows::create_project::create_project_specs::CreateProjectSpecs;
-    use crate::network_util::wait_for_pending_transaction;
     use crate::testing::flow::create_project_flow::programs;
     use crate::testing::test_data::project_specs;
     use algonaut::core::Address;
@@ -184,18 +184,11 @@ mod test {
         )
         .build()?;
 
-        // we need to sign the transaction to prove that we own the sender address
         let signed_t = creator.sign_transaction(&t)?;
 
-        // broadcast the transaction to the network
-
-        let send_response = algod.broadcast_signed_transaction(&signed_t).await?;
-        println!("Transaction ID: {}", send_response.tx_id);
-
-        let pending_t = wait_for_pending_transaction(&algod, &send_response.tx_id.parse()?).await?;
-
-        let asset_id = pending_t
-            .and_then(|t| t.asset_index)
+        let p_tx = send_tx_and_wait(&algod, &signed_t).await?;
+        let asset_id = p_tx
+            .asset_index
             .ok_or_else(|| anyhow!("Couldn't retrieve asset id from pending tx"))?;
 
         log::info!("Created funds asset: {}", asset_id);
@@ -257,11 +250,7 @@ mod test {
         let optin_tx_signed = receiver.sign_transaction(&optin_tx)?;
         let fund_tx_signed = sender.sign_transaction(&fund_tx)?;
 
-        let res = algod
-            .broadcast_signed_transactions(&[optin_tx_signed, fund_tx_signed])
-            .await?;
-
-        wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
+        send_txs_and_wait(&algod, &[optin_tx_signed, fund_tx_signed]).await?;
 
         Ok(())
     }
@@ -280,8 +269,7 @@ mod test {
         )
         .build()?;
         let fund_tx_signed = sender.sign_transaction(&fund_tx)?;
-        let res = algod.broadcast_signed_transaction(&fund_tx_signed).await?;
-        wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
+        send_tx_and_wait(&algod, &fund_tx_signed).await?;
         Ok(())
     }
 

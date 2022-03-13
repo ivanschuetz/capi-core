@@ -81,7 +81,7 @@ mod tests {
 
         let unlock_tx_id =
             unlock_flow(algod, &project.project, investor, unlock_share_amount).await?;
-        let _ = wait_for_pending_transaction(algod, &unlock_tx_id).await?;
+        wait_for_pending_transaction(algod, &unlock_tx_id).await?;
 
         // shares not anymore in locking escrow
         let locking_escrow_infos = algod

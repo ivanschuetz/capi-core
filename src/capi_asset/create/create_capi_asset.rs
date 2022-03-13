@@ -1,6 +1,6 @@
 use crate::{
+    algo_helpers::send_tx_and_wait,
     capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId},
-    network_util::wait_for_pending_transaction,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -39,11 +39,9 @@ pub async fn submit_create_capi_asset(
     algod: &Algod,
     create_shares: &SignedTransaction,
 ) -> Result<CreateCapiAssetResult> {
-    let create_shares_tx_res = algod.broadcast_signed_transaction(create_shares).await?;
+    let p_tx = send_tx_and_wait(algod, &create_shares).await?;
 
-    let asset_id = wait_for_pending_transaction(algod, &create_shares_tx_res.tx_id.parse()?)
-        .await?
-        .ok_or_else(|| anyhow!("No pending tx to retrieve capi asset id"))?
+    let asset_id = p_tx
         .asset_index
         .ok_or_else(|| anyhow!("Capi asset id in pending tx not set"))?;
 

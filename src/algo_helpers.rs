@@ -1,8 +1,11 @@
+use crate::network_util::wait_for_pending_transaction;
 use algonaut::{
+    algod::v2::Algod,
     core::{MicroAlgos, SuggestedTransactionParams},
-    transaction::Transaction,
+    model::algod::v2::{PendingTransaction, TransactionResponse},
+    transaction::{SignedTransaction, Transaction},
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
 /// Sums the estimated fees of all the passed transactions
 pub fn calculate_total_fee(
@@ -15,4 +18,27 @@ pub fn calculate_total_fee(
     }
     log::debug!("Calculated total fee: {total_fee}");
     Ok(total_fee)
+}
+
+pub async fn send_tx_and_wait(algod: &Algod, tx: &SignedTransaction) -> Result<PendingTransaction> {
+    let res = algod.broadcast_signed_transaction(tx).await?;
+    wait_for_p_tx(algod, res).await
+}
+
+pub async fn send_txs_and_wait(
+    algod: &Algod,
+    txs: &[SignedTransaction],
+) -> Result<PendingTransaction> {
+    let res = algod.broadcast_signed_transactions(txs).await?;
+    wait_for_p_tx(algod, res).await
+}
+
+async fn wait_for_p_tx(algod: &Algod, response: TransactionResponse) -> Result<PendingTransaction> {
+    let p_tx = wait_for_pending_transaction(&algod, &response.tx_id.parse()?).await?;
+    Ok(p_tx.ok_or_else(|| {
+        anyhow!(
+            "Pending tx couldn't be retrieved, tx id: {}",
+            response.tx_id
+        )
+    })?)
 }
