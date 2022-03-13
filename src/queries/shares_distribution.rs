@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use algonaut::{
     algod::v2::Algod,
     core::Address,
@@ -14,8 +16,8 @@ use crate::{
 };
 
 /// Returns holders of the asset with their respective amounts and percentages.
-/// See [shares_holders_holdings] doc for more details.
-/// This function just "decorates" [shares_holders_holdings] with the percentage calculation.
+/// See [share_sholders] doc for more details.
+/// This function just "decorates" [share_sholders] with the percentage calculation.
 pub async fn shares_holders_distribution(
     algod: &Algod,
     indexer: &Indexer,
@@ -73,11 +75,36 @@ async fn share_sholders(
     investing_escrow: &Address,
     locking_escrow: &Address,
 ) -> Result<Vec<ShareHolding>> {
-    let mut holdings =
+    let free_holders =
         free_assets_holdings(indexer, asset_id, investing_escrow, locking_escrow).await?;
     let lockers = lockers_holdings(algod, indexer, app_id).await?;
-    holdings.extend(lockers);
-    Ok(holdings)
+    let merged = merge(free_holders, lockers);
+    Ok(merged)
+}
+
+fn merge(
+    free_holdings: Vec<ShareHolding>,
+    locked_holdings: Vec<ShareHolding>,
+) -> Vec<ShareHolding> {
+    let mut map: HashMap<[u8; 32], ShareAmount> = free_holdings
+        .iter()
+        .map(|h| (h.address.0, h.amount.to_owned()))
+        .collect();
+
+    for holding in locked_holdings {
+        if let Some(share_amount) = map.get_mut(&holding.address.0) {
+            share_amount.0 = AssetAmount(share_amount.val() + holding.amount.val());
+        } else {
+            map.insert(holding.address.0, holding.amount);
+        }
+    }
+
+    map.into_iter()
+        .map(|(k, v)| ShareHolding {
+            address: Address(k),
+            amount: v,
+        })
+        .collect()
 }
 
 // TODO paginate? but clarify first whether we'll actually use this, it's quite expensive either way
@@ -163,7 +190,7 @@ async fn free_assets_holdings(
     Ok(holdings)
 }
 
-/// See [shares_holders_holdings] doc
+/// See [share_sholders] doc
 pub async fn holders_count(
     indexer: &Indexer,
     asset_id: u64,
