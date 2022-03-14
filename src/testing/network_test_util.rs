@@ -10,7 +10,9 @@ mod test {
     use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::CapiAssetId;
-    use crate::capi_asset::create::test_flow::test_flow::CapiAssetFlowRes;
+    use crate::capi_asset::create::test_flow::test_flow::{
+        setup_and_submit_capi_escrow, CapiAssetFlowRes,
+    };
     use crate::capi_asset::{
         capi_asset_dao_specs::CapiAssetDaoDeps, capi_asset_id::CapiAssetAmount,
         create::test_flow::test_flow::setup_capi_asset_flow,
@@ -18,7 +20,7 @@ mod test {
     use crate::dependencies::algod_for_net;
     use crate::flows::create_dao::create_dao::Programs;
     use crate::flows::create_dao::create_dao_specs::CreateDaoSpecs;
-    use crate::testing::flow::create_dao_flow::programs;
+    use crate::testing::flow::create_dao_flow::{capi_programs, programs};
     use crate::testing::test_data::dao_specs;
     use algonaut::core::Address;
     use algonaut::transaction::contract_account::ContractAccount;
@@ -303,6 +305,43 @@ mod test {
         {
             // log::debug!("{}", _line);
         }
+
+        Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    async fn do_optin_capi_escrow_to_capi_asset_on_testnet() -> Result<()> {
+        test_init()?;
+        optin_capi_escrow_to_capi_asset(&Network::Test).await?;
+        Ok(())
+    }
+
+    /// If the escrow's code changes, we have to setup (fund and opt-in to assets) it again
+    /// Normally only used for Testnet / MainNet - for private networks everything is just re-created
+    async fn optin_capi_escrow_to_capi_asset(net: &Network) -> Result<()> {
+        test_init()?;
+
+        let algod = algod_for_net(net);
+        let params = algod.suggested_transaction_params().await?;
+
+        // This can be any account that has enough assets (funds asset). Normally the funder will be the capi owner.
+        let funder = capi_owner();
+
+        let capi_escrow_template = capi_programs()?.escrow;
+
+        let escrow = setup_and_submit_capi_escrow(
+            &algod,
+            &params,
+            &funder,
+            FundsAssetId(75503403), // pre-existing asset id
+            CapiAssetId(77428422),  // pre-existing asset id
+            CapiAppId(75503537),    // pre-existing app id
+            &capi_escrow_template,
+        )
+        .await?;
+
+        log::debug!("Finished capi escrow setup: {escrow:?}");
 
         Ok(())
     }

@@ -10,9 +10,11 @@ pub mod test_flow {
     };
     use crate::funds::FundsAssetId;
     use crate::network_util::wait_for_pending_transaction;
+    use crate::teal::TealSourceTemplate;
     use crate::testing::flow::create_dao_flow::capi_programs;
     use crate::testing::TESTS_DEFAULT_PRECISION;
     use algonaut::algod::v2::Algod;
+    use algonaut::core::SuggestedTransactionParams;
     use algonaut::transaction::account::Account;
     use algonaut::transaction::contract_account::ContractAccount;
     use anyhow::Result;
@@ -63,17 +65,50 @@ pub mod test_flow {
         // In the DAOs, we do it the other way - it most likely will be changed.
         // It makes more sense for the escrow to know the app than the other way around.
 
-        let to_sign = setup_capi_escrow(
+        let escrow = setup_and_submit_capi_escrow(
             &algod,
-            &creator.address(),
-            &programs.escrow,
             &params,
-            asset_id,
+            &creator,
             funds_asset_id,
+            asset_id,
             app_id,
+            &programs.escrow,
         )
         .await?;
-        let signed_fund_min_balance = creator.sign_transaction(&to_sign.fund_min_balance_tx)?;
+
+        log::debug!(
+            "Created Capi asset, id: {asset_id}, app id: {app_id}, escrow: {}",
+            escrow.address()
+        );
+
+        Ok(CapiAssetFlowRes {
+            asset_id,
+            app_id,
+            escrow,
+        })
+    }
+
+    /// Renders, funds (min balance), and opts-in capi escrow to assets (capi and funds asset)
+    pub async fn setup_and_submit_capi_escrow(
+        algod: &Algod,
+        params: &SuggestedTransactionParams,
+        funder: &Account,
+        funds_asset_id: FundsAssetId,
+        capi_asset_id: CapiAssetId,
+        capi_app_id: CapiAppId,
+        template: &TealSourceTemplate,
+    ) -> Result<ContractAccount> {
+        let to_sign = setup_capi_escrow(
+            &algod,
+            &funder.address(),
+            template,
+            &params,
+            capi_asset_id,
+            funds_asset_id,
+            capi_app_id,
+        )
+        .await?;
+        let signed_fund_min_balance = funder.sign_transaction(&to_sign.fund_min_balance_tx)?;
         let tx_id = submit_setup_capi_escrow(
             &algod,
             &SetupCentralEscrowSigned {
@@ -85,16 +120,7 @@ pub mod test_flow {
         .await?;
         wait_for_pending_transaction(&algod, &tx_id).await?;
 
-        log::debug!(
-            "Created Capi asset, id: {asset_id}, app id: {app_id}, escrow: {}",
-            to_sign.escrow.address()
-        );
-
-        Ok(CapiAssetFlowRes {
-            asset_id,
-            app_id,
-            escrow: to_sign.escrow,
-        })
+        Ok(to_sign.escrow)
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
