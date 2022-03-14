@@ -43,6 +43,18 @@ gtxn 1 AssetReceiver
 addr TMPL_LOCKING_ESCROW_ADDRESS
 ==
 assert
+gtxn 1 Fee
+int 0
+==
+assert
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 1 RekeyTo
+global ZeroAddress
+==
+assert
 gtxn 2 TypeEnum
 int axfer
 ==
@@ -142,6 +154,18 @@ int axfer
 assert
 gtxn 6 AssetAmount
 int 0
+==
+assert
+gtxn 6 Fee
+int 0
+==
+assert
+gtxn 6 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 6 RekeyTo
+global ZeroAddress
 ==
 assert
 gtxn 7 TypeEnum

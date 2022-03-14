@@ -22,8 +22,14 @@ def program():
         Assert(Gtxn[2].receiver() == Gtxn[0].application_args[1]),
         Assert(Gtxn[3].type_enum() == TxnType.Payment),
         Assert(Gtxn[4].type_enum() == TxnType.Payment),
-        Assert(Gtxn[5].type_enum() == TxnType.AssetTransfer), # optin locking escrow to shares
+
+        # locking escrow opt-in to shares
+        Assert(Gtxn[5].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[5].asset_amount() == Int(0)),
+        Assert(Gtxn[5].fee() == Int(0)),
+        Assert(Gtxn[5].asset_close_to() == Global.zero_address()),
+        Assert(Gtxn[5].rekey_to() == Global.zero_address()),
+
         Assert(Gtxn[6].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[6].asset_amount() == Int(0)),
         Assert(Gtxn[7].type_enum() == TxnType.AssetTransfer),
@@ -41,10 +47,17 @@ def program():
         Gtxn[1].type_enum() == TxnType.AssetTransfer,
     )
     handle_unlock = Seq(
+        # app call to opt-out
         Assert(Gtxn[0].application_id() == tmpl_central_app_id),
+
+        # shares xfer to investor
         Assert(Gtxn[1].xfer_asset() == tmpl_shares_asset_id),
         Assert(Gtxn[1].asset_amount() > Int(0)), # unlocking > 0 shares TODO similar checks in other contracts
         Assert(Gtxn[1].asset_receiver() == Gtxn[0].sender()), # shares receiver is the app caller
+        Assert(Gtxn[1].fee() == Int(0)),
+        Assert(Gtxn[1].asset_close_to() == Global.zero_address()),
+        Assert(Gtxn[1].rekey_to() == Global.zero_address()),
+
         Approve()
     )
  

@@ -27,8 +27,14 @@ def program():
         Assert(Gtxn[5].asset_amount() == Int(0)),
         Assert(Gtxn[6].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[6].asset_amount() == Int(0)),
+        
+        # central opt ins to funds asset
         Assert(Gtxn[7].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[7].asset_amount() == Int(0)),
+        Assert(Gtxn[7].fee() == Int(0)),
+        Assert(Gtxn[7].asset_close_to() == Global.zero_address()),
+        Assert(Gtxn[7].rekey_to() == Global.zero_address()),
+
         Assert(Gtxn[8].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[8].asset_amount() == Int(0)),
         Assert(Gtxn[9].type_enum() == TxnType.AssetTransfer),
@@ -38,11 +44,18 @@ def program():
 
     is_withdrawal = Global.group_size() == Int(2)
     handle_withdrawal = Seq(
+        # pay fee tx
         Assert(Gtxn[0].type_enum() == TxnType.Payment),
         Assert(Gtxn[0].sender() == tmpl_dao_creator),
+
+        # xfer from funds to the creator 
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id),
         Assert(Gtxn[1].asset_receiver() == tmpl_dao_creator),
+        # Assert(Gtxn[1].fee() == Int(0)), // TODO
+        Assert(Gtxn[1].asset_close_to() == Global.zero_address()),
+        Assert(Gtxn[1].rekey_to() == Global.zero_address()),
+
         Approve()
     )
 
@@ -52,9 +65,16 @@ def program():
         Gtxn[1].type_enum() == TxnType.AssetTransfer,
     )
     handle_harvest = Seq(
+        # app call to verify and set dividend
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
-        Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the harvested asset is the funds asset 
         Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is dividend receiver 
+
+        # xfer to transfer dividend to investor
+        Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the harvested asset is the funds asset 
+        Assert(Gtxn[1].fee() == Int(0)),
+        Assert(Gtxn[1].asset_close_to() == Global.zero_address()),
+        Assert(Gtxn[1].rekey_to() == Global.zero_address()),
+
         Approve()
     )
 

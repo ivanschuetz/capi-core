@@ -45,6 +45,10 @@ gtxn 0 ApplicationID
 int TMPL_CAPI_APP_ID
 ==
 assert
+gtxn 0 Sender
+gtxn 1 AssetReceiver
+==
+assert
 gtxn 1 TypeEnum
 int axfer
 ==
@@ -53,8 +57,16 @@ gtxn 1 XferAsset
 int TMPL_CAPI_ASSET_ID
 ==
 assert
-gtxn 0 Sender
-gtxn 1 AssetReceiver
+gtxn 1 Fee
+int 0
+==
+assert
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 1 RekeyTo
+global ZeroAddress
 ==
 assert
 int 1
@@ -72,6 +84,10 @@ gtxn 0 ApplicationID
 int TMPL_CAPI_APP_ID
 ==
 assert
+gtxn 0 Sender
+gtxn 1 AssetReceiver
+==
+assert
 gtxn 1 TypeEnum
 int axfer
 ==
@@ -80,8 +96,16 @@ gtxn 1 XferAsset
 int TMPL_FUNDS_ASSET_ID
 ==
 assert
-gtxn 0 Sender
-gtxn 1 AssetReceiver
+gtxn 1 Fee
+int 0
+==
+assert
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 1 RekeyTo
+global ZeroAddress
 ==
 assert
 int 1
@@ -89,6 +113,14 @@ return
 main_l10:
 gtxn 0 TypeEnum
 int pay
+==
+assert
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+assert
+gtxn 0 RekeyTo
+global ZeroAddress
 ==
 assert
 gtxn 1 TypeEnum
@@ -99,12 +131,36 @@ gtxn 1 XferAsset
 int TMPL_CAPI_ASSET_ID
 ==
 assert
+gtxn 1 Fee
+int 0
+==
+assert
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 1 RekeyTo
+global ZeroAddress
+==
+assert
 gtxn 2 TypeEnum
 int axfer
 ==
 assert
 gtxn 2 XferAsset
 int TMPL_FUNDS_ASSET_ID
+==
+assert
+gtxn 2 Fee
+int 0
+==
+assert
+gtxn 2 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 2 RekeyTo
+global ZeroAddress
 ==
 assert
 int 1

@@ -23,6 +23,10 @@ gtxn 0 OnCompletion
 int NoOp
 ==
 assert
+gtxn 0 Sender
+gtxn 1 Sender
+==
+assert
 gtxn 1 TypeEnum
 int appl
 ==
@@ -35,20 +39,40 @@ gtxn 2 TypeEnum
 int axfer
 ==
 assert
-gtxn 3 TypeEnum
-int axfer
-==
-assert
-gtxn 0 Sender
-gtxn 1 Sender
-==
-assert
 gtxn 2 AssetReceiver
 addr TMPL_CENTRAL_ESCROW_ADDRESS
 ==
 assert
+gtxn 2 Fee
+int 0
+==
+assert
+gtxn 2 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 2 RekeyTo
+global ZeroAddress
+==
+assert
+gtxn 3 TypeEnum
+int axfer
+==
+assert
 gtxn 3 AssetReceiver
 addr TMPL_CAPI_ESCROW_ADDRESS
+==
+assert
+gtxn 3 Fee
+int 0
+==
+assert
+gtxn 3 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 3 RekeyTo
+global ZeroAddress
 ==
 assert
 int 1
@@ -124,6 +148,18 @@ int axfer
 assert
 gtxn 8 AssetAmount
 int 0
+==
+assert
+gtxn 8 Fee
+int 0
+==
+assert
+gtxn 8 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 8 RekeyTo
+global ZeroAddress
 ==
 assert
 gtxn 9 TypeEnum

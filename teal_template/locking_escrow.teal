@@ -39,6 +39,18 @@ gtxn 1 AssetReceiver
 gtxn 0 Sender
 ==
 assert
+gtxn 1 Fee
+int 0
+==
+assert
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 1 RekeyTo
+global ZeroAddress
+==
+assert
 int 1
 return
 main_l6:
@@ -88,6 +100,18 @@ int axfer
 assert
 gtxn 5 AssetAmount
 int 0
+==
+assert
+gtxn 5 Fee
+int 0
+==
+assert
+gtxn 5 AssetCloseTo
+global ZeroAddress
+==
+assert
+gtxn 5 RekeyTo
+global ZeroAddress
 ==
 assert
 gtxn 6 TypeEnum
