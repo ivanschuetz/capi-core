@@ -227,11 +227,6 @@ def approval_program():
         Approve()
     )
 
-################################################
-# TODO the branching here is a bit weird - modelled (mostly) after original TEAL
-# can this be improved - we use group size and arguments to identify the use cases,
-# so we've to branch based on group size / args length
-################################################
     is_group_size2 = Global.group_size() == Int(2)
     handle_group_size2 = Cond(
         [is_unlock, handle_unlock],
@@ -244,7 +239,6 @@ def approval_program():
         [is_drain, handle_drain],
         [is_invest, handle_invest],
     )
-################################################
    
     program = Cond(
         [is_create, handle_create],

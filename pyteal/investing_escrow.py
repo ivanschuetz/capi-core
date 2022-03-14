@@ -65,16 +65,10 @@ def program():
         Approve()
     )
 
-################################################
-# TODO the branching here is a bit weird - modelled (mostly) after original TEAL
-# can this be improved - we use group size and arguments to identify the use cases,
-# so we've to branch based on group size / args length
-################################################
     is_group_size4 = Global.group_size() == Int(4)
     handle_group_size4 = Cond(
         [is_invest, handle_invest],
     )
-################################################
  
     program = Cond(
         [is_setup_dao, handle_setup_dao],

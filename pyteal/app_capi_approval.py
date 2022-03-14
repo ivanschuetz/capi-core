@@ -112,12 +112,6 @@ def approval_program():
         Approve()
     )
 
-
-################################################
-# TODO the branching here is a bit weird - modelled (mostly) after original TEAL
-# can this be improved - we use group size and arguments to identify the use cases,
-# so we've to branch based on group size / args length
-################################################
     is_num_tx0_app_args_1 = Gtxn[0].application_args.length() == Int(1)
     handle_num_tx0_app_args_1 = Cond(
         [is_harvest, handle_harvest],
@@ -128,7 +122,6 @@ def approval_program():
         [is_num_tx0_app_args_1, handle_num_tx0_app_args_1],
         [is_lock, handle_lock],
     )
-################################################
 
     is_drain = Global.group_size() == Int(4)
     
