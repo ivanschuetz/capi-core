@@ -6,6 +6,7 @@ mod debug_msg_pack_submit_par;
 pub mod decimal_util;
 pub mod dependencies;
 pub mod diagnostics;
+mod files;
 pub mod flows;
 pub mod funds;
 mod hashable;

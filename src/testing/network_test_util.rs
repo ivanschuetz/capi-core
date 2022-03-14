@@ -18,6 +18,7 @@ mod test {
         create::test_flow::test_flow::setup_capi_asset_flow,
     };
     use crate::dependencies::algod_for_net;
+    use crate::files::read_lines;
     use crate::flows::create_dao::create_dao::Programs;
     use crate::flows::create_dao::create_dao_specs::CreateDaoSpecs;
     use crate::testing::flow::create_dao_flow::{capi_programs, programs};
@@ -142,12 +143,13 @@ mod test {
         let asset_creator = Account::from_mnemonic("accident inherit artist kid such wheat sure then skirt horse afford penalty grant airport school aim hollow position ask churn extend soft mean absorb achieve")?;
         let asset_id = create_funds_asset(algod, &params, &asset_creator).await?;
 
-        fund_accounts_with_local_funds_asset(
+        optin_and_fund_accounts_with_asset(
             algod,
             &params,
             asset_id.0,
             FundsAmount::new(10_000_000_000),
             &asset_creator,
+            &vec![creator(), investor1(), investor2(), customer()],
         )
         .await?;
         Ok(asset_id)
@@ -198,14 +200,15 @@ mod test {
         Ok(FundsAssetId(asset_id))
     }
 
-    async fn fund_accounts_with_local_funds_asset(
+    async fn optin_and_fund_accounts_with_asset(
         algod: &Algod,
         params: &SuggestedTransactionParams,
         asset_id: u64,
         amount: FundsAmount,
         sender: &Account,
+        accounts: &[Account],
     ) -> Result<()> {
-        for account in vec![creator(), investor1(), investor2(), customer()] {
+        for account in accounts {
             optin_and_send_asset_to_account(algod, params, asset_id, amount.0, sender, &account)
                 .await?;
         }
@@ -253,6 +256,8 @@ mod test {
         let fund_tx_signed = sender.sign_transaction(&fund_tx)?;
 
         send_txs_and_wait(&algod, &[optin_tx_signed, fund_tx_signed]).await?;
+
+        log::debug!("Opted in and funded (funds asset): {}", receiver.address());
 
         Ok(())
     }
@@ -418,5 +423,46 @@ mod test {
         )
         .await?;
         Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    async fn do_prepare_test_accounts() -> Result<()> {
+        init_logger()?;
+
+        let algod = algod_for_net(&Network::Test);
+
+        let params = algod.suggested_transaction_params().await?;
+
+        let accounts = load_test_accounts().await?;
+
+        let assets_sender = capi_owner();
+
+        // Funds asset
+        optin_and_fund_accounts_with_asset(
+            &algod,
+            &params,
+            75503403,
+            FundsAmount::new(10_000_000_000),
+            &assets_sender,
+            &accounts,
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    async fn load_test_accounts() -> Result<Vec<Account>> {
+        let mut accounts = vec![];
+        for line_res in read_lines("./test_accounts.txt")? {
+            let line = line_res?;
+            let trimmed = line.trim();
+            if !trimmed.is_empty() && !trimmed.starts_with("#") {
+                let account = Account::from_mnemonic(trimmed)?;
+                accounts.push(account)
+            }
+        }
+        log::debug!("Loaded {} accounts", accounts.len());
+        Ok(accounts)
     }
 }
