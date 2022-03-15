@@ -39,6 +39,10 @@ gtxn 2 TypeEnum
 int axfer
 ==
 assert
+gtxn 2 AssetAmount
+int 0
+>
+assert
 gtxn 2 AssetReceiver
 addr TMPL_CENTRAL_ESCROW_ADDRESS
 ==

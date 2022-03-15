@@ -52,8 +52,8 @@ def program():
 
         # shares xfer to investor
         Assert(Gtxn[1].xfer_asset() == tmpl_shares_asset_id),
-        Assert(Gtxn[1].asset_amount() > Int(0)), # unlocking > 0 shares TODO similar checks in other contracts
-        Assert(Gtxn[1].asset_receiver() == Gtxn[0].sender()), # shares receiver is the app caller
+        Assert(Gtxn[1].asset_amount() > Int(0)),
+        Assert(Gtxn[1].asset_receiver() == Gtxn[0].sender()),
         Assert(Gtxn[1].fee() == Int(0)),
         Assert(Gtxn[1].asset_close_to() == Global.zero_address()),
         Assert(Gtxn[1].rekey_to() == Global.zero_address()),

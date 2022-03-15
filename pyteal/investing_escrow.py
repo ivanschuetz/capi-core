@@ -57,6 +57,7 @@ def program():
 
         # shares xfer to investor
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].xfer_asset() == tmpl_shares_asset_id),
         Assert(Gtxn[1].asset_receiver() == tmpl_locking_escrow_address), 
         Assert(Gtxn[1].fee() == Int(0)),
@@ -65,6 +66,7 @@ def program():
 
         # investor pays for shares: funds xfer to central escrow
         Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[2].asset_amount() > Int(0)),
         Assert(Gtxn[2].xfer_asset() == tmpl_funds_asset_id), 
         Assert(Gtxn[2].asset_receiver() == tmpl_central_escrow_address),
 

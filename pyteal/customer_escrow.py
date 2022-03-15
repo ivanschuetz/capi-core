@@ -56,6 +56,7 @@ def program():
 
         # drain: funds xfer to central escrow
         Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[2].asset_amount() > Int(0)),
         Assert(Gtxn[2].asset_receiver() == tmpl_central_escrow_address), # the funds are being drained to the central escrow
         Assert(Gtxn[2].fee() == Int(0)),
         Assert(Gtxn[2].asset_close_to() == Global.zero_address()),

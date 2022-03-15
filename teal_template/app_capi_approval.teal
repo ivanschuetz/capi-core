@@ -49,6 +49,10 @@ gtxn 2 TypeEnum
 int axfer
 ==
 assert
+gtxn 2 AssetAmount
+int 0
+>
+assert
 gtxn 2 XferAsset
 int TMPL_FUNDS_ASSET_ID
 ==
@@ -181,6 +185,10 @@ int TMPL_CAPI_ASSET_ID
 ==
 assert
 gtxn 1 AssetAmount
+int 0
+>
+assert
+gtxn 1 AssetAmount
 gtxn 0 Sender
 byte "Shares"
 app_local_get
@@ -208,6 +216,10 @@ assert
 gtxn 1 TypeEnum
 int axfer
 ==
+assert
+gtxn 1 AssetAmount
+int 0
+>
 assert
 gtxn 1 XferAsset
 int TMPL_FUNDS_ASSET_ID

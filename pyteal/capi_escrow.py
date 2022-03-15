@@ -39,12 +39,10 @@ def program():
     )
 
     is_unlock = And(
-        # app call to opt out
         Gtxn[0].type_enum() == TxnType.ApplicationCall,
         Gtxn[0].application_args.length() == Int(1),
         Gtxn[0].application_args[0] == Bytes("unlock"), 
 
-        # xfer to get the shares
         Gtxn[1].type_enum() == TxnType.AssetTransfer,
     )
     handle_unlock = Seq(
@@ -55,6 +53,7 @@ def program():
 
         # xfer to get the shares
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].xfer_asset() == tmpl_capi_asset_id),
         Assert(Gtxn[1].fee() == Int(0)),
         Assert(Gtxn[1].asset_close_to() == Global.zero_address()),
@@ -73,6 +72,7 @@ def program():
 
         # xfer with dividend
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the harvested asset is the funds asset 
         Assert(Gtxn[1].fee() == Int(0)),
         Assert(Gtxn[1].asset_close_to() == Global.zero_address()),

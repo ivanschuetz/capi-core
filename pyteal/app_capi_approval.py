@@ -4,7 +4,6 @@ from pyteal import *
 
 tmpl_share_price = Tmpl.Int("TMPL_SHARE_PRICE")
 tmpl_capi_app_id = Tmpl.Int("TMPL_CAPI_APP_ID")
-# tmpl_capi_escrow_address = Tmpl.Addr("TMPL_CAPI_ESCROW_ADDRESS")
 tmpl_precision = Tmpl.Int("TMPL_PRECISION")
 tmpl_capi_share = Tmpl.Int("TMPL_CAPI_SHARE")
 tmpl_precision_square = Tmpl.Int("TMPL_PRECISION_SQUARE")
@@ -59,6 +58,7 @@ def approval_program():
 
         # xfer to transfer dividend to investor
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the harvested asset is the funds asset 
 
         # verify dividend amount is correct
@@ -93,6 +93,7 @@ def approval_program():
         # xfer to get the capi assets
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].xfer_asset() == tmpl_capi_asset_id),
+        Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].asset_amount() == App.localGet(Gtxn[0].sender(), Bytes(LOCAL_SHARES))), # unlocked amount == owned shares
         Approve()
     )
@@ -163,12 +164,13 @@ def approval_program():
 
         # drain: funds xfer to central escrow
         Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[2].asset_amount() > Int(0)),
         Assert(Gtxn[2].xfer_asset() == tmpl_funds_asset_id),
 
         # pay capi fee: funds xfer to capi escrow
         Assert(Gtxn[3].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[3].xfer_asset() == tmpl_funds_asset_id),
-        # Assert(Gtxn[3].asset_receiver() == tmpl_capi_escrow_address),
+        # no check for capi escrow receiver here as it's checked in the DAO's contract TODO review
 
         # update total capi fee received
         App.globalPut(

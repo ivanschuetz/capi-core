@@ -17,14 +17,20 @@ def program():
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].application_id() == tmpl_central_app_id),
         Assert(Gtxn[0].application_args.length() == Int(4)),
+
         Assert(Gtxn[1].type_enum() == TxnType.Payment),
         Assert(Gtxn[1].receiver() == Gtxn[0].application_args[0]),
+
         Assert(Gtxn[2].type_enum() == TxnType.Payment),
         Assert(Gtxn[2].receiver() == Gtxn[0].application_args[1]),
+
         Assert(Gtxn[3].type_enum() == TxnType.Payment),
+
         Assert(Gtxn[4].type_enum() == TxnType.Payment),
+
         Assert(Gtxn[5].type_enum() == TxnType.AssetTransfer), # optin locking escrow to shares
         Assert(Gtxn[5].asset_amount() == Int(0)),
+
         Assert(Gtxn[6].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[6].asset_amount() == Int(0)),
         
@@ -39,6 +45,7 @@ def program():
         Assert(Gtxn[8].asset_amount() == Int(0)),
         Assert(Gtxn[9].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[9].xfer_asset() == Btoi(Gtxn[0].application_args[2])),
+
         Approve()
     )
 
@@ -50,6 +57,7 @@ def program():
 
         # xfer from funds to the creator 
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id),
         Assert(Gtxn[1].asset_receiver() == tmpl_dao_creator),
         # Assert(Gtxn[1].fee() == Int(0)), // TODO
@@ -72,6 +80,7 @@ def program():
 
         # xfer to transfer dividend to investor
         Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the harvested asset is the funds asset 
+        Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].fee() == Int(0)),
         Assert(Gtxn[1].asset_close_to() == Global.zero_address()),
         Assert(Gtxn[1].rekey_to() == Global.zero_address()),

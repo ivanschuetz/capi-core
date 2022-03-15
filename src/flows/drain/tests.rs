@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_drain_succeeds_if_theres_nothing_to_drain() -> Result<()> {
+    async fn test_drain_fails_if_theres_nothing_to_drain() -> Result<()> {
         let td = &test_dao_init().await?;
         let drainer = &td.investor1;
 
@@ -87,7 +87,7 @@ mod tests {
 
         // tes
 
-        assert!(drain_res.is_ok());
+        assert!(drain_res.is_err());
 
         Ok(())
     }

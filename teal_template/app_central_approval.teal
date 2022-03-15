@@ -56,6 +56,10 @@ gtxn 1 TypeEnum
 int axfer
 ==
 assert
+gtxn 1 AssetAmount
+int 0
+>
+assert
 gtxn 1 XferAsset
 byte "SharesAssetId"
 app_global_get
@@ -64,6 +68,10 @@ assert
 gtxn 2 TypeEnum
 int axfer
 ==
+assert
+gtxn 2 AssetAmount
+int 0
+>
 assert
 gtxn 2 XferAsset
 byte "FundsAssetId"
@@ -178,6 +186,10 @@ gtxn 2 TypeEnum
 int axfer
 ==
 assert
+gtxn 2 AssetAmount
+int 0
+>
+assert
 gtxn 2 XferAsset
 byte "FundsAssetId"
 app_global_get
@@ -272,6 +284,10 @@ gtxn 1 TypeEnum
 int axfer
 ==
 assert
+gtxn 1 AssetAmount
+int 0
+>
+assert
 gtxn 1 XferAsset
 byte "SharesAssetId"
 app_global_get
@@ -336,6 +352,10 @@ assert
 gtxn 1 TypeEnum
 int axfer
 ==
+assert
+gtxn 1 AssetAmount
+int 0
+>
 assert
 gtxn 1 XferAsset
 byte "FundsAssetId"
