@@ -2,14 +2,15 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     transaction::{
-        contract_account::ContractAccount, tx_group::TxGroup, Pay, SignedTransaction, Transaction,
-        TransferAsset, TxnBuilder,
+        builder::TxnFee, contract_account::ContractAccount, tx_group::TxGroup, Pay,
+        SignedTransaction, Transaction, TransferAsset, TxnBuilder,
     },
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    algo_helpers::calculate_total_fee,
     flows::{create_dao::storage::load_dao::TxId, withdraw::note::withdrawal_to_note},
     funds::{FundsAmount, FundsAssetId},
 };
@@ -29,8 +30,9 @@ pub async fn withdraw(
     let params = algod.suggested_transaction_params().await?;
 
     // Funds transfer from escrow to creator
-    let mut withdraw_tx = TxnBuilder::with(
+    let mut withdraw_tx = TxnBuilder::with_fee(
         &params,
+        TxnFee::zero(),
         TransferAsset::new(
             *central_escrow.address(),
             funds_asset_id.0,
@@ -46,15 +48,12 @@ pub async fn withdraw(
     // here we need a dedicated tx, because there's no other txs signed by the creator which could be used to pay the fee.
     let mut pay_withdraw_fee_tx = TxnBuilder::with(
         &params,
-        Pay::new(
-            creator,
-            *central_escrow.address(),
-            withdraw_tx.estimate_fee_with_params(&params)?,
-        )
-        .build(),
+        Pay::new(creator, *central_escrow.address(), MicroAlgos(0)).build(),
     )
     .build()?;
 
+    pay_withdraw_fee_tx.fee =
+        calculate_total_fee(&params, &[&mut pay_withdraw_fee_tx, &mut withdraw_tx])?;
     TxGroup::assign_group_id(&mut [&mut pay_withdraw_fee_tx, &mut withdraw_tx])?;
 
     let signed_withdraw_tx = central_escrow.sign(&withdraw_tx, vec![])?;

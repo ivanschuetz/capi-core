@@ -52,13 +52,14 @@ def program():
         # pay fee tx
         Assert(Gtxn[0].type_enum() == TxnType.Payment),
         Assert(Gtxn[0].sender() == tmpl_dao_creator),
+        Assert(Gtxn[0].amount() == Int(0)),
 
         # xfer from funds to the creator 
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id),
         Assert(Gtxn[1].asset_receiver() == tmpl_dao_creator),
-        # Assert(Gtxn[1].fee() == Int(0)), // TODO
+        Assert(Gtxn[1].fee() == Int(0)),
         Assert(Gtxn[1].asset_close_to() == Global.zero_address()),
         Assert(Gtxn[1].rekey_to() == Global.zero_address()),
 
