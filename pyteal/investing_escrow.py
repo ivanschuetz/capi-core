@@ -59,7 +59,6 @@ def program():
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].xfer_asset() == tmpl_shares_asset_id),
         Assert(Gtxn[1].asset_receiver() == tmpl_locking_escrow_address), 
-        
         Assert(Gtxn[1].fee() == Int(0)),
         Assert(Gtxn[1].asset_close_to() == Global.zero_address()),
         Assert(Gtxn[1].rekey_to() == Global.zero_address()),

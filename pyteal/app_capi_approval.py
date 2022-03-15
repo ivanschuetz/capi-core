@@ -4,7 +4,7 @@ from pyteal import *
 
 tmpl_share_price = Tmpl.Int("TMPL_SHARE_PRICE")
 tmpl_capi_app_id = Tmpl.Int("TMPL_CAPI_APP_ID")
-tmpl_capi_escrow_address = Tmpl.Addr("TMPL_CAPI_ESCROW_ADDRESS")
+# tmpl_capi_escrow_address = Tmpl.Addr("TMPL_CAPI_ESCROW_ADDRESS")
 tmpl_precision = Tmpl.Int("TMPL_PRECISION")
 tmpl_capi_share = Tmpl.Int("TMPL_CAPI_SHARE")
 tmpl_precision_square = Tmpl.Int("TMPL_PRECISION_SQUARE")
@@ -31,7 +31,6 @@ def approval_program():
         Assert(Gtxn[0].on_completion() == OnComplete.OptIn),
         Approve()
     )
-
     
     total_entitled_harvest_amount = Div(
         Mul(
@@ -44,18 +43,26 @@ def approval_program():
         tmpl_precision
     )
 
-    # Expect harvester to be the gtxn 0 sender. Calculates entitled harvest based on LOCAL_SHARES and LOCAL_HARVESTED_TOTAL.
+    # Calculates entitled harvest based on LOCAL_SHARES and LOCAL_HARVESTED_TOTAL.
+    # Expects harvester to be the gtxn 0 sender. 
     entitled_harvest_amount = Minus(total_entitled_harvest_amount, App.localGet(Gtxn[0].sender(), Bytes(LOCAL_HARVESTED_TOTAL)))
     wants_to_harvest_less_or_eq_to_entitled_amount = Ge(entitled_harvest_amount, Gtxn[1].asset_amount())
 
     is_harvest = Gtxn[0].application_args[0] == Bytes("harvest")
     handle_harvest = Seq(
+        # app call to verify and set dividend
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
+        Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is dividend receiver 
+
+        # xfer to transfer dividend to investor
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the harvested asset is the funds asset 
-        Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is dividend receiver 
+
+        # verify dividend amount is correct
         Assert(wants_to_harvest_less_or_eq_to_entitled_amount),
+
+        # update local state with retrieved dividend
         App.localPut(
             Gtxn[0].sender(), 
             Bytes(LOCAL_HARVESTED_TOTAL), 
@@ -64,6 +71,7 @@ def approval_program():
                 Gtxn[1].asset_amount()
             )
         ),
+
         Approve()
     )
 
@@ -71,13 +79,17 @@ def approval_program():
         Gtxn[0].type_enum() == TxnType.ApplicationCall,
         Gtxn[0].application_args.length() == Int(1),
         Gtxn[0].application_args[0] == Bytes("unlock"), 
+
         Gtxn[1].type_enum() == TxnType.AssetTransfer,
     )
     handle_unlock = Seq(
+        # app call to opt-out
         Assert(Gtxn[0].on_completion() == OnComplete.CloseOut),
+        Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is receiving the shares
+
+        # xfer to get the capi assets
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].xfer_asset() == tmpl_capi_asset_id),
-        Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is receiving the shares
         Assert(Gtxn[1].asset_amount() == App.localGet(Gtxn[0].sender(), Bytes(LOCAL_SHARES))), # unlocked amount == owned shares
         Approve()
     )
@@ -85,13 +97,18 @@ def approval_program():
     is_lock = Global.group_size() == Int(2)
    
     handle_lock = Seq(
+        # app call to update state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
+        Assert(Gtxn[0].sender() == Gtxn[1].sender()),
+
+        # send capi assets to capi escrow
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
-        Assert(Gtxn[0].sender() == Gtxn[1].sender()), # app caller is locking the shares
         Assert(Gtxn[1].xfer_asset() == tmpl_capi_asset_id),
-        Assert(Gtxn[1].asset_amount() > Int(0)), # sanity: don't allow locking 0 shares 
-        App.localPut( # set / increment share count in local state
+        Assert(Gtxn[1].asset_amount() > Int(0)),
+
+        # set / increment share count local state
+        App.localPut( 
             Gtxn[0].sender(), 
             Bytes(LOCAL_SHARES), 
             Add(
@@ -99,7 +116,9 @@ def approval_program():
                 Gtxn[1].asset_amount()
             )
         ),
-        App.localPut( # initialize already harvested local state
+
+        # set already harvested local state
+        App.localPut( 
             Gtxn[0].sender(), 
             Bytes(LOCAL_HARVESTED_TOTAL), 
             # NOTE that this sets HarvestedTotal to the entitled amount each time that the investor buys/locks shares
@@ -109,6 +128,7 @@ def approval_program():
             entitled_harvest_amount
             # Gtxn[1].asset_amount()
         ),
+
         Approve()
     )
 
@@ -126,20 +146,30 @@ def approval_program():
     is_drain = Global.group_size() == Int(4)
     
     handle_drain = Seq(
-        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall), # dao app call
+        # call app to verify amount and update state
+        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
-        Assert(Gtxn[1].type_enum() == TxnType.ApplicationCall), # capi app call
-        Assert(Gtxn[1].on_completion() == OnComplete.NoOp),
-        Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer), # drain
-        # Assert(Gtxn[2].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))), # draining the funds asset -- TODO save funds asset id?
-        Assert(Gtxn[3].type_enum() == TxnType.AssetTransfer), # capi share
-        # Assert(Gtxn[3].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))), # capi share is also in funds asset -- TODO save funds asset id?
         Assert(Gtxn[0].sender() == Gtxn[1].sender()), # same user is calling both apps
-        # TODO - store capi escrow in global state (see orig TEAL)
+
+        # call capi app to update state
+        Assert(Gtxn[1].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[1].on_completion() == OnComplete.NoOp),
+
+        # drain: funds xfer to central escrow
+        Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[2].xfer_asset() == tmpl_funds_asset_id),
+
+        # pay capi fee: funds xfer to capi escrow
+        Assert(Gtxn[3].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[3].xfer_asset() == tmpl_funds_asset_id),
+        # Assert(Gtxn[3].asset_receiver() == tmpl_capi_escrow_address),
+
+        # update total capi fee received
         App.globalPut(
             Bytes(GLOBAL_RECEIVED_TOTAL), 
             Add(App.globalGet(Bytes(GLOBAL_RECEIVED_TOTAL)), Gtxn[3].asset_amount())
         ),
+
         Approve()
     )
     

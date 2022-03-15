@@ -150,6 +150,10 @@ gtxn 0 OnCompletion
 int NoOp
 ==
 assert
+gtxn 0 Sender
+gtxn 1 Sender
+==
+assert
 gtxn 1 TypeEnum
 int appl
 ==
@@ -167,21 +171,17 @@ byte "FundsAssetId"
 app_global_get
 ==
 assert
+gtxn 2 AssetReceiver
+byte "CentralEscrowAddress"
+app_global_get
+==
+assert
 gtxn 3 TypeEnum
 int axfer
 ==
 assert
 gtxn 3 XferAsset
 byte "FundsAssetId"
-app_global_get
-==
-assert
-gtxn 0 Sender
-gtxn 1 Sender
-==
-assert
-gtxn 2 AssetReceiver
-byte "CentralEscrowAddress"
 app_global_get
 ==
 assert
@@ -194,11 +194,6 @@ gtxn 2 XferAsset
 asset_holding_get AssetBalance
 store 1
 store 0
-gtxn 2 Sender
-gtxn 2 XferAsset
-asset_holding_get AssetBalance
-store 3
-store 2
 gtxn 3 AssetAmount
 load 0
 int TMPL_PRECISION__
@@ -253,12 +248,12 @@ gtxn 0 NumAppArgs
 int 1
 ==
 assert
-gtxn 1 TypeEnum
-int axfer
-==
-assert
 gtxn 0 Sender
 gtxn 1 Sender
+==
+assert
+gtxn 1 TypeEnum
+int axfer
 ==
 assert
 gtxn 1 XferAsset

@@ -29,6 +29,10 @@ gtxn 0 OnCompletion
 int NoOp
 ==
 assert
+gtxn 0 Sender
+gtxn 1 Sender
+==
+assert
 gtxn 1 TypeEnum
 int appl
 ==
@@ -41,12 +45,16 @@ gtxn 2 TypeEnum
 int axfer
 ==
 assert
+gtxn 2 XferAsset
+int TMPL_FUNDS_ASSET_ID
+==
+assert
 gtxn 3 TypeEnum
 int axfer
 ==
 assert
-gtxn 0 Sender
-gtxn 1 Sender
+gtxn 3 XferAsset
+int TMPL_FUNDS_ASSET_ID
 ==
 assert
 byte "ReceivedTotal"
@@ -76,12 +84,12 @@ gtxn 0 OnCompletion
 int NoOp
 ==
 assert
-gtxn 1 TypeEnum
-int axfer
-==
-assert
 gtxn 0 Sender
 gtxn 1 Sender
+==
+assert
+gtxn 1 TypeEnum
+int axfer
 ==
 assert
 gtxn 1 XferAsset
@@ -148,16 +156,16 @@ gtxn 0 OnCompletion
 int CloseOut
 ==
 assert
+gtxn 0 Sender
+gtxn 1 AssetReceiver
+==
+assert
 gtxn 1 TypeEnum
 int axfer
 ==
 assert
 gtxn 1 XferAsset
 int TMPL_CAPI_ASSET_ID
-==
-assert
-gtxn 0 Sender
-gtxn 1 AssetReceiver
 ==
 assert
 gtxn 1 AssetAmount
@@ -177,16 +185,16 @@ gtxn 0 OnCompletion
 int NoOp
 ==
 assert
+gtxn 0 Sender
+gtxn 1 AssetReceiver
+==
+assert
 gtxn 1 TypeEnum
 int axfer
 ==
 assert
 gtxn 1 XferAsset
 int TMPL_FUNDS_ASSET_ID
-==
-assert
-gtxn 0 Sender
-gtxn 1 AssetReceiver
 ==
 assert
 gtxn 0 Sender

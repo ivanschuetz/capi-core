@@ -69,10 +69,12 @@ def approval_program():
         Gtxn[1].type_enum() == TxnType.AssetTransfer,
     )
     handle_unlock = Seq(
-        Assert(Gtxn[1].asset_amount() > Int(0)), # unlocking > 0 shares TODO similar checks in other contracts
+        # shares xfer to the investor
+        Assert(Gtxn[1].asset_amount() > Int(0)), # TODO similar checks in other contracts
         Assert(Gtxn[1].asset_receiver() == Gtxn[0].sender()), # shares receiver is the app caller
         Assert(Gtxn[1].asset_amount() == App.localGet(Gtxn[0].sender(), Bytes(LOCAL_SHARES))), # shares xfer == owned shares count
-        Assert(Gtxn[1].xfer_asset() == App.globalGet(Bytes(GLOBAL_SHARES_ASSET_ID))), # shares is the DAO shares asset
+        Assert(Gtxn[1].xfer_asset() == App.globalGet(Bytes(GLOBAL_SHARES_ASSET_ID))),
+
         Approve()
     )
  
@@ -145,16 +147,22 @@ def approval_program():
 
     is_lock = Global.group_size() == Int(2)
     handle_lock = Seq(
+        # app call to update state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].application_args.length() == Int(1)),
-        Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[0].sender() == Gtxn[1].sender()), # app caller is locking the shares
+
+        # send capi assets to capi escrow
+        Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].xfer_asset() == App.globalGet(Bytes(GLOBAL_SHARES_ASSET_ID))), # the locked assets have the DAO's share asset id
 
+        # save shares on local state
         lock_shares,
+
+        # save the dao id on local state
         save_dao_id,
-        
+
         Approve()
     )
 
@@ -166,20 +174,28 @@ def approval_program():
     drain_asset_balance = AssetHolding.balance(Gtxn[2].sender(), Gtxn[2].xfer_asset())
 
     handle_drain = Seq(
-        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall), # dao app call
+        # call app to verify amount and update state
+        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
-        Assert(Gtxn[1].type_enum() == TxnType.ApplicationCall), # capi app call
-        Assert(Gtxn[1].on_completion() == OnComplete.NoOp),
-        Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer), # drain
-        Assert(Gtxn[2].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))), # draining the funds asset
-        Assert(Gtxn[3].type_enum() == TxnType.AssetTransfer), # capi share
-        Assert(Gtxn[3].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))), # capi share is also in funds asset
         Assert(Gtxn[0].sender() == Gtxn[1].sender()), # same user is calling both apps
-        Assert(Gtxn[2].asset_receiver() == App.globalGet(Bytes(GLOBAL_CENTRAL_ESCROW_ADDRESS))), # the funds are being drained to the central escrow
-        Assert(Gtxn[3].asset_receiver() == tmpl_capi_escrow_address), # the capi fee is being sent to the capi escrow
 
+        # call capi app to update state
+        Assert(Gtxn[1].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[1].on_completion() == OnComplete.NoOp),
+
+        # drain: funds xfer to central escrow
+        Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[2].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))),
+        Assert(Gtxn[2].asset_receiver() == App.globalGet(Bytes(GLOBAL_CENTRAL_ESCROW_ADDRESS))),
+
+        # pay capi fee: funds xfer to capi escrow
+        Assert(Gtxn[3].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[3].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))),
+        Assert(Gtxn[3].asset_receiver() == tmpl_capi_escrow_address),
+
+        # check that capi fee is correct
         drain_asset_balance, # needs to be listed like this, see: https://forum.algorand.org/t/using-global-get-ex-on-noop-call-giving-error-when-deploying-app/5314/2?u=user123
-        AssetHolding.balance(Gtxn[2].sender(), Gtxn[2].xfer_asset()),
+        # AssetHolding.balance(Gtxn[2].sender(), Gtxn[2].xfer_asset()),
         Assert(
             Gtxn[3].asset_amount() == Div(
                 Mul(
@@ -190,11 +206,13 @@ def approval_program():
             )
         ),
 
+        # update total received
         # TODO - store capi escrow in global state (see orig TEAL)
         App.globalPut(
             Bytes(GLOBAL_RECEIVED_TOTAL), 
             Add(App.globalGet(Bytes(GLOBAL_RECEIVED_TOTAL)), Gtxn[2].asset_amount())
         ),
+
         Approve()
     )
     
@@ -202,18 +220,26 @@ def approval_program():
         Global.group_size() == Int(4), 
     )
     handle_invest = Seq(
-        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall), # app call
+        # app call to initialize shares state
+        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].application_args.length() == Int(1)),
+
+        # shares xfer to investor
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer), # shares xfer
         Assert(Gtxn[1].xfer_asset() == App.globalGet(Bytes(GLOBAL_SHARES_ASSET_ID))), # receiving shares asset
+
+        # investor pays for shares: funds xfer to central escrow
         Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer), # pay for shares (in funds asset)
         Assert(Gtxn[2].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))), # paying with funds asset
         Assert(Gtxn[2].asset_receiver() == App.globalGet(Bytes(GLOBAL_CENTRAL_ESCROW_ADDRESS))), # paying to the central escrow
+
+        # investor opts-in to shares 
         Assert(Gtxn[3].type_enum() == TxnType.AssetTransfer), # optin to shares
         Assert(Gtxn[3].xfer_asset() == App.globalGet(Bytes(GLOBAL_SHARES_ASSET_ID))),
         Assert(Gtxn[3].asset_amount() == Int(0)),
         Assert(Gtxn[3].asset_receiver() == Gtxn[3].sender()), # TODO is this optin check needed - if yes add it to other optins
+
         # the investor sends 3 txs (app call, pay for shares, shares optin)
         Assert(Gtxn[0].sender() == Gtxn[2].sender()),
         Assert(Gtxn[2].sender() == Gtxn[3].sender()),
@@ -221,7 +247,10 @@ def approval_program():
         # TODO check that gtxn 1 sender is invest escrow and receiver locking escrow? (add both to state)
         Assert(Gtxn[2].asset_amount() == Mul(Gtxn[1].asset_amount(), tmpl_share_price)), # Paying the correct price for the bought shares
 
+        # save shares on local state
         lock_shares,
+
+        # save the dao id on local state
         save_dao_id,
 
         Approve()
