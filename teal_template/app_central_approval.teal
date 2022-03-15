@@ -40,6 +40,10 @@ gtxn 0 TypeEnum
 int appl
 ==
 assert
+gtxn 0 ApplicationID
+global CurrentApplicationID
+==
+assert
 gtxn 0 OnCompletion
 int NoOp
 ==
@@ -146,6 +150,10 @@ gtxn 0 TypeEnum
 int appl
 ==
 assert
+gtxn 0 ApplicationID
+global CurrentApplicationID
+==
+assert
 gtxn 0 OnCompletion
 int NoOp
 ==
@@ -156,6 +164,10 @@ gtxn 1 Sender
 assert
 gtxn 1 TypeEnum
 int appl
+==
+assert
+gtxn 1 ApplicationID
+int TMPL_CAPI_APP_ID
 ==
 assert
 gtxn 1 OnCompletion
@@ -240,6 +252,10 @@ gtxn 0 TypeEnum
 int appl
 ==
 assert
+gtxn 0 ApplicationID
+global CurrentApplicationID
+==
+assert
 gtxn 0 OnCompletion
 int NoOp
 ==
@@ -305,8 +321,16 @@ gtxn 0 TypeEnum
 int appl
 ==
 assert
+gtxn 0 ApplicationID
+global CurrentApplicationID
+==
+assert
 gtxn 0 OnCompletion
 int NoOp
+==
+assert
+gtxn 0 Sender
+gtxn 1 AssetReceiver
 ==
 assert
 gtxn 1 TypeEnum
@@ -316,10 +340,6 @@ assert
 gtxn 1 XferAsset
 byte "FundsAssetId"
 app_global_get
-==
-assert
-gtxn 0 Sender
-gtxn 1 AssetReceiver
 ==
 assert
 gtxn 0 Sender
@@ -354,6 +374,10 @@ app_local_put
 int 1
 return
 main_l17:
+gtxn 0 ApplicationID
+global CurrentApplicationID
+==
+assert
 gtxn 1 AssetAmount
 int 0
 >
@@ -380,6 +404,10 @@ gtxn 0 TypeEnum
 int appl
 ==
 assert
+gtxn 0 ApplicationID
+global CurrentApplicationID
+==
+assert
 gtxn 0 OnCompletion
 int OptIn
 ==
@@ -389,6 +417,10 @@ return
 main_l19:
 gtxn 0 TypeEnum
 int appl
+==
+assert
+gtxn 0 ApplicationID
+global CurrentApplicationID
 ==
 assert
 gtxn 0 OnCompletion

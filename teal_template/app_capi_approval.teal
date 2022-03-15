@@ -37,6 +37,10 @@ gtxn 1 TypeEnum
 int appl
 ==
 assert
+gtxn 1 ApplicationID
+global CurrentApplicationID
+==
+assert
 gtxn 1 OnCompletion
 int NoOp
 ==
@@ -78,6 +82,10 @@ err
 main_l9:
 gtxn 0 TypeEnum
 int appl
+==
+assert
+gtxn 0 ApplicationID
+global CurrentApplicationID
 ==
 assert
 gtxn 0 OnCompletion
@@ -152,6 +160,10 @@ int axfer
 bnz main_l13
 err
 main_l13:
+gtxn 0 ApplicationID
+global CurrentApplicationID
+==
+assert
 gtxn 0 OnCompletion
 int CloseOut
 ==
@@ -179,6 +191,10 @@ return
 main_l14:
 gtxn 0 TypeEnum
 int appl
+==
+assert
+gtxn 0 ApplicationID
+global CurrentApplicationID
 ==
 assert
 gtxn 0 OnCompletion
@@ -229,6 +245,10 @@ return
 main_l15:
 gtxn 0 TypeEnum
 int appl
+==
+assert
+gtxn 0 ApplicationID
+global CurrentApplicationID
 ==
 assert
 gtxn 0 OnCompletion

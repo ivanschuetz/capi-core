@@ -30,6 +30,7 @@ def approval_program():
     is_setup_dao = Global.group_size() == Int(10)
     handle_setup_dao = Seq(
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].application_args.length() == Int(4)),
         Assert(Gtxn[1].type_enum() == TxnType.Payment),
@@ -59,6 +60,7 @@ def approval_program():
     is_optin = Global.group_size() == Int(1)
     handle_optin = Seq(
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.OptIn),
         Approve()
     )
@@ -69,6 +71,9 @@ def approval_program():
         Gtxn[1].type_enum() == TxnType.AssetTransfer,
     )
     handle_unlock = Seq(
+        # app call to opt-out
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
+
         # shares xfer to the investor
         Assert(Gtxn[1].asset_amount() > Int(0)), # TODO similar checks in other contracts
         Assert(Gtxn[1].asset_receiver() == Gtxn[0].sender()), # shares receiver is the app caller
@@ -99,12 +104,20 @@ def approval_program():
 
     is_harvest = Gtxn[1].sender() == App.globalGet(Bytes(GLOBAL_CENTRAL_ESCROW_ADDRESS))
     handle_harvest = Seq(
+        # app call to verify and set dividend
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
+        Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is dividend receiver 
+        
+        # xfer to transfer dividend to investor
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))), # the harvested asset is the funds asset 
-        Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is dividend receiver 
+
+        # verify dividend amount is correct
         Assert(wants_to_harvest_less_or_eq_to_entitled_amount),
+        
+        # update local state with retrieved dividend
         App.localPut(
             Gtxn[0].sender(), 
             Bytes(LOCAL_HARVESTED_TOTAL), 
@@ -149,6 +162,7 @@ def approval_program():
     handle_lock = Seq(
         # app call to update state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].application_args.length() == Int(1)),
         Assert(Gtxn[0].sender() == Gtxn[1].sender()), # app caller is locking the shares
@@ -176,11 +190,13 @@ def approval_program():
     handle_drain = Seq(
         # call app to verify amount and update state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].sender() == Gtxn[1].sender()), # same user is calling both apps
 
         # call capi app to update state
         Assert(Gtxn[1].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[1].application_id() == tmpl_capi_app_id),
         Assert(Gtxn[1].on_completion() == OnComplete.NoOp),
 
         # drain: funds xfer to central escrow
@@ -222,6 +238,7 @@ def approval_program():
     handle_invest = Seq(
         # app call to initialize shares state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].application_args.length() == Int(1)),
 

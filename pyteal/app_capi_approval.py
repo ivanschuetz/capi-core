@@ -28,6 +28,7 @@ def approval_program():
     is_optin = Global.group_size() == Int(1)
     handle_optin = Seq(
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.OptIn),
         Approve()
     )
@@ -52,6 +53,7 @@ def approval_program():
     handle_harvest = Seq(
         # app call to verify and set dividend
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is dividend receiver 
 
@@ -84,6 +86,7 @@ def approval_program():
     )
     handle_unlock = Seq(
         # app call to opt-out
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.CloseOut),
         Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is receiving the shares
 
@@ -99,6 +102,7 @@ def approval_program():
     handle_lock = Seq(
         # app call to update state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].sender() == Gtxn[1].sender()),
 
@@ -153,6 +157,7 @@ def approval_program():
 
         # call capi app to update state
         Assert(Gtxn[1].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[1].application_id() == Global.current_application_id()),
         Assert(Gtxn[1].on_completion() == OnComplete.NoOp),
 
         # drain: funds xfer to central escrow
