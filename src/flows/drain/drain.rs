@@ -162,6 +162,7 @@ pub fn drain_app_call_tx(
     let tx = TxnBuilder::with(
         params,
         CallApplication::new(*sender, app_id)
+            .app_arguments(vec!["drain".as_bytes().to_vec()])
             .foreign_assets(vec![funds_asset_id.0])
             .accounts(vec![*customer_escrow])
             .build(),

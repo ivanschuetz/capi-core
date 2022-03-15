@@ -32,7 +32,9 @@ pub async fn unlock(
     // App call to validate the retrieved shares count and clear local state
     let central_app_optout_tx = &mut TxnBuilder::with(
         &params,
-        CloseApplication::new(investor, central_app_id).build(),
+        CloseApplication::new(investor, central_app_id)
+            .app_arguments(vec!["unlock".as_bytes().to_vec()])
+            .build(),
     )
     .build()?;
 

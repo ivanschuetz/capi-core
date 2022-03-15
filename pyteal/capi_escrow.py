@@ -11,10 +11,6 @@ LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
 LOCAL_SHARES = "Shares"
 
 def program():
-    is_setup = And(
-        Global.group_size() == Int(3),
-
-    )
     handle_setup = Seq(
         # capi creator funds escrow with min balance
         Assert(Gtxn[0].type_enum() == TxnType.Payment),
@@ -38,15 +34,12 @@ def program():
         Approve()
     )
 
-    is_unlock = And(
-        Gtxn[0].type_enum() == TxnType.ApplicationCall,
-        Gtxn[0].application_args.length() == Int(1),
-        Gtxn[0].application_args[0] == Bytes("unlock"), 
-
-        Gtxn[1].type_enum() == TxnType.AssetTransfer,
-    )
     handle_unlock = Seq(
+        Assert(Global.group_size() == Int(2)),
+
         # app call to opt out
+        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_args.length() == Int(1)),
         Assert(Gtxn[0].on_completion() == OnComplete.CloseOut),
         Assert(Gtxn[0].application_id() == tmpl_capi_app_id),
         Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is receiving the shares
@@ -62,8 +55,9 @@ def program():
         Approve()
     )
 
-    is_harvest = Gtxn[0].application_args[0] == Bytes("harvest")
     handle_harvest = Seq(
+        Assert(Global.group_size() == Int(2)),
+
         # app call to calculate and set dividend
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
@@ -81,19 +75,11 @@ def program():
         Approve()
     )
 
-    is_num_tx0_app_args_1 = Gtxn[0].application_args.length() == Int(1)
-    handle_num_tx0_app_args_1 = Cond(
-        [is_harvest, handle_harvest],
-        [is_unlock, handle_unlock],
-    )
-    is_group_size2 = Global.group_size() == Int(2)
-    handle_group_size2 = Cond(
-        [is_num_tx0_app_args_1, handle_num_tx0_app_args_1],
-    )
-
     program = Cond(
-        [is_setup, handle_setup],
-        [is_group_size2, handle_group_size2],
+        [Global.group_size() == Int(10), handle_setup],
+        [Global.group_size() == Int(3), handle_setup],
+        [Gtxn[0].application_args[0] == Bytes("unlock"), handle_unlock],
+        [Gtxn[0].application_args[0] == Bytes("harvest"), handle_harvest],
     )
 
     return compileTeal(program, Mode.Signature, version=5)

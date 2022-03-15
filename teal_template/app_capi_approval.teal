@@ -1,26 +1,34 @@
 #pragma version 5
-gtxn 0 TypeEnum
-int appl
-==
 gtxn 0 ApplicationID
 int 0
 ==
-&&
-bnz main_l16
+bnz main_l12
 global GroupSize
 int 1
 ==
-bnz main_l15
-global GroupSize
-int 2
+bnz main_l11
+gtxna 0 ApplicationArgs 0
+byte "harvest"
 ==
-bnz main_l6
+bnz main_l10
+gtxna 0 ApplicationArgs 0
+byte "lock"
+==
+bnz main_l9
+gtxna 0 ApplicationArgs 0
+byte "unlock"
+==
+bnz main_l8
+gtxna 0 ApplicationArgs 0
+byte "drain"
+==
+bnz main_l7
+err
+main_l7:
 global GroupSize
 int 4
 ==
-bnz main_l5
-err
-main_l5:
+assert
 gtxn 0 TypeEnum
 int appl
 ==
@@ -73,17 +81,52 @@ gtxn 3 AssetAmount
 app_global_put
 int 1
 return
-main_l6:
-gtxn 0 NumAppArgs
-int 1
-==
-bnz main_l10
+main_l8:
 global GroupSize
 int 2
 ==
-bnz main_l9
-err
+assert
+gtxn 0 TypeEnum
+int appl
+==
+assert
+gtxn 0 ApplicationID
+global CurrentApplicationID
+==
+assert
+gtxn 0 OnCompletion
+int CloseOut
+==
+assert
+gtxn 0 Sender
+gtxn 1 AssetReceiver
+==
+assert
+gtxn 1 TypeEnum
+int axfer
+==
+assert
+gtxn 1 XferAsset
+int TMPL_CAPI_ASSET_ID
+==
+assert
+gtxn 1 AssetAmount
+int 0
+>
+assert
+gtxn 1 AssetAmount
+gtxn 0 Sender
+byte "Shares"
+app_local_get
+==
+assert
+int 1
+return
 main_l9:
+global GroupSize
+int 2
+==
+assert
 gtxn 0 TypeEnum
 int appl
 ==
@@ -142,61 +185,6 @@ app_local_put
 int 1
 return
 main_l10:
-gtxna 0 ApplicationArgs 0
-byte "harvest"
-==
-bnz main_l14
-gtxn 0 TypeEnum
-int appl
-==
-gtxn 0 NumAppArgs
-int 1
-==
-&&
-gtxna 0 ApplicationArgs 0
-byte "unlock"
-==
-&&
-gtxn 1 TypeEnum
-int axfer
-==
-&&
-bnz main_l13
-err
-main_l13:
-gtxn 0 ApplicationID
-global CurrentApplicationID
-==
-assert
-gtxn 0 OnCompletion
-int CloseOut
-==
-assert
-gtxn 0 Sender
-gtxn 1 AssetReceiver
-==
-assert
-gtxn 1 TypeEnum
-int axfer
-==
-assert
-gtxn 1 XferAsset
-int TMPL_CAPI_ASSET_ID
-==
-assert
-gtxn 1 AssetAmount
-int 0
->
-assert
-gtxn 1 AssetAmount
-gtxn 0 Sender
-byte "Shares"
-app_local_get
-==
-assert
-int 1
-return
-main_l14:
 gtxn 0 TypeEnum
 int appl
 ==
@@ -254,7 +242,7 @@ gtxn 1 AssetAmount
 app_local_put
 int 1
 return
-main_l15:
+main_l11:
 gtxn 0 TypeEnum
 int appl
 ==
@@ -269,6 +257,10 @@ int OptIn
 assert
 int 1
 return
-main_l16:
+main_l12:
+gtxn 0 TypeEnum
+int appl
+==
+assert
 int 1
 return

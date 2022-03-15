@@ -21,13 +21,11 @@ LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
 LOCAL_DAO_ID = "Dao"
 
 def approval_program():
-    is_create = Gtxn[0].application_id() == Int(0)
     handle_create = Seq(
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall), 
         Approve()
     )
 
-    is_setup_dao = Global.group_size() == Int(10)
     handle_setup_dao = Seq(
         # app call
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
@@ -79,7 +77,6 @@ def approval_program():
         Approve()
     )
 
-    is_optin = Global.group_size() == Int(1)
     handle_optin = Seq(
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].application_id() == Global.current_application_id()),
@@ -87,16 +84,16 @@ def approval_program():
         Approve()
     )
 
-    is_unlock = And(
-        Gtxn[0].type_enum() == TxnType.ApplicationCall,
-        Gtxn[0].on_completion() == OnComplete.CloseOut,
-        Gtxn[1].type_enum() == TxnType.AssetTransfer,
-    )
     handle_unlock = Seq(
+        Assert(Global.group_size() == Int(2)),
+
         # app call to opt-out
+        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].on_completion() == OnComplete.CloseOut),
         Assert(Gtxn[0].application_id() == Global.current_application_id()),
 
         # shares xfer to the investor
+        Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].asset_receiver() == Gtxn[0].sender()), # shares receiver is the app caller
         Assert(Gtxn[1].asset_amount() == App.localGet(Gtxn[0].sender(), Bytes(LOCAL_SHARES))), # shares xfer == owned shares count
@@ -126,8 +123,9 @@ def approval_program():
     wants_to_harvest_less_or_eq_to_entitled_amount = Ge(entitled_harvest_amount, Gtxn[1].asset_amount())
 
     # note that identification is different between app and central_escrow - needed? TODO review
-    is_harvest = Gtxn[1].sender() == App.globalGet(Bytes(GLOBAL_CENTRAL_ESCROW_ADDRESS))
     handle_harvest = Seq(
+        Assert(Global.group_size() == Int(2)),
+
         # app call to verify and set dividend
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].application_id() == Global.current_application_id()),
@@ -136,6 +134,7 @@ def approval_program():
         
         # xfer to transfer dividend to investor
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[1].sender() == App.globalGet(Bytes(GLOBAL_CENTRAL_ESCROW_ADDRESS))),
         Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))), # the harvested asset is the funds asset 
 
@@ -181,15 +180,16 @@ def approval_program():
     # save the dao id in local state, so we can find daos where a user invested in (with the indexer)  
     # TODO rename in CapiDao or similar - this key is used to filter for txs belonging to capi / dao id use case
     # - we don't have the app id when querying this, only the sender account and this key
-    save_dao_id = App.localPut(Gtxn[0].sender(), Bytes(LOCAL_DAO_ID), Gtxn[0].application_args[0])
+    save_dao_id = App.localPut(Gtxn[0].sender(), Bytes(LOCAL_DAO_ID), Gtxn[0].application_args[1])
 
-    is_lock = Global.group_size() == Int(2)
     handle_lock = Seq(
+        Assert(Global.group_size() == Int(2)),
+
         # app call to update state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
-        Assert(Gtxn[0].application_args.length() == Int(1)),
+        Assert(Gtxn[0].application_args.length() == Int(2)),
         Assert(Gtxn[0].sender() == Gtxn[1].sender()), # app caller is locking the shares
 
         # send shares to locking escrow
@@ -206,14 +206,11 @@ def approval_program():
         Approve()
     )
 
-    is_drain = And(
-        Global.group_size() == Int(4), 
-        Gtxn[2].sender() == App.globalGet(Bytes(GLOBAL_CUSTOMER_ESCROW_ADDRESS))
-    )
-
     drain_asset_balance = AssetHolding.balance(Gtxn[2].sender(), Gtxn[2].xfer_asset())
 
     handle_drain = Seq(
+        Assert(Global.group_size() == Int(4)), 
+
         # call app to verify amount and update state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].application_id() == Global.current_application_id()),
@@ -228,6 +225,7 @@ def approval_program():
         # drain: funds xfer to central escrow
         Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[2].asset_amount() > Int(0)),
+        Assert(Gtxn[2].sender() == App.globalGet(Bytes(GLOBAL_CUSTOMER_ESCROW_ADDRESS))),
         Assert(Gtxn[2].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))),
         Assert(Gtxn[2].asset_receiver() == App.globalGet(Bytes(GLOBAL_CENTRAL_ESCROW_ADDRESS))),
 
@@ -258,15 +256,14 @@ def approval_program():
         Approve()
     )
     
-    is_invest = And(
-        Global.group_size() == Int(4), 
-    )
     handle_invest = Seq(
+        Assert(Global.group_size() == Int(4)),
+
         # app call to initialize shares state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
-        Assert(Gtxn[0].application_args.length() == Int(1)),
+        Assert(Gtxn[0].application_args.length() == Int(2)),
 
         # shares xfer to investor
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
@@ -301,25 +298,15 @@ def approval_program():
         Approve()
     )
 
-    is_group_size2 = Global.group_size() == Int(2)
-    handle_group_size2 = Cond(
-        [is_unlock, handle_unlock],
-        [is_harvest, handle_harvest],
-        [is_lock, handle_lock], # TODO jump directly here without condition check (it's like "default" clause if group size is 2, which we already know)
-    )
-    
-    is_group_size4 = Global.group_size() == Int(4)
-    handle_group_size4 = Cond(
-        [is_drain, handle_drain],
-        [is_invest, handle_invest],
-    )
-   
     program = Cond(
-        [is_create, handle_create],
-        [is_setup_dao, handle_setup_dao],
-        [is_optin, handle_optin],
-        [is_group_size2, handle_group_size2],
-        [is_group_size4, handle_group_size4],
+        [Gtxn[0].application_id() == Int(0), handle_create],
+        [Global.group_size() == Int(1), handle_optin],
+        [Global.group_size() == Int(10), handle_setup_dao],
+        [Gtxn[0].application_args[0] == Bytes("unlock"), handle_unlock],
+        [Gtxn[0].application_args[0] == Bytes("harvest"), handle_harvest],
+        [Gtxn[0].application_args[0] == Bytes("lock"), handle_lock],
+        [Gtxn[0].application_args[0] == Bytes("drain"), handle_drain],
+        [Gtxn[0].application_args[0] == Bytes("invest"), handle_invest],
     )
 
     return compileTeal(program, Mode.Application, version=5)

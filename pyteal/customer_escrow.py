@@ -11,7 +11,6 @@ LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
 LOCAL_SHARES = "Shares"
 
 def program():
-    is_setup_dao = Global.group_size() == Int(10)
     handle_setup_dao = Seq(
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
@@ -43,8 +42,9 @@ def program():
         Approve()
     )
 
-    is_drain = And(Global.group_size() == Int(4))
     handle_drain = Seq(
+        Assert(Global.group_size() == Int(4)),
+
         # call app to verify amount and update state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
@@ -72,14 +72,9 @@ def program():
         Approve()
     )
 
-    is_group_size4 = Global.group_size() == Int(4)
-    handle_group_size4 = Cond(
-        [is_drain, handle_drain], 
-    )
-
     program = Cond(
-        [is_setup_dao, handle_setup_dao],
-        [is_group_size4, handle_group_size4]
+        [Global.group_size() == Int(10), handle_setup_dao],
+        [Gtxn[0].application_args[0] == Bytes("drain"), handle_drain],
     )
 
     return compileTeal(program, Mode.Signature, version=5)

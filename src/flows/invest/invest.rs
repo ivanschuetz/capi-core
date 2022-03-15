@@ -114,7 +114,7 @@ pub fn central_app_investor_setup_tx(
         params,
         CallApplication::new(investor, app_id)
             .foreign_assets(vec![shares_asset_id])
-            .app_arguments(vec![dao_id.bytes().to_vec()])
+            .app_arguments(vec!["invest".as_bytes().to_vec(), dao_id.bytes().to_vec()])
             .build(),
     )
     .build()?;

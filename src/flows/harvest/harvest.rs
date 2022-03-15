@@ -67,7 +67,13 @@ pub fn harvest_app_call_tx(
     params: &SuggestedTransactionParams,
     sender: &Address,
 ) -> Result<Transaction> {
-    let tx = TxnBuilder::with(params, CallApplication::new(*sender, app_id).build()).build()?;
+    let tx = TxnBuilder::with(
+        params,
+        CallApplication::new(*sender, app_id)
+            .app_arguments(vec!["harvest".as_bytes().to_vec()])
+            .build(),
+    )
+    .build()?;
     Ok(tx)
 }
 

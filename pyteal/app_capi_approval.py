@@ -18,13 +18,11 @@ LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
 LOCAL_SHARES = "Shares"
 
 def approval_program():
-    is_create = And(
-        Gtxn[0].type_enum() == TxnType.ApplicationCall,
-        Gtxn[0].application_id() == Int(0),
+    handle_create = Seq(
+        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Approve()
     )
-    handle_create = Approve()
 
-    is_optin = Global.group_size() == Int(1)
     handle_optin = Seq(
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].application_id() == Global.current_application_id()),
@@ -48,7 +46,6 @@ def approval_program():
     entitled_harvest_amount = Minus(total_entitled_harvest_amount, App.localGet(Gtxn[0].sender(), Bytes(LOCAL_HARVESTED_TOTAL)))
     wants_to_harvest_less_or_eq_to_entitled_amount = Ge(entitled_harvest_amount, Gtxn[1].asset_amount())
 
-    is_harvest = Gtxn[0].application_args[0] == Bytes("harvest")
     handle_harvest = Seq(
         # app call to verify and set dividend
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
@@ -77,15 +74,11 @@ def approval_program():
         Approve()
     )
 
-    is_unlock = And(
-        Gtxn[0].type_enum() == TxnType.ApplicationCall,
-        Gtxn[0].application_args.length() == Int(1),
-        Gtxn[0].application_args[0] == Bytes("unlock"), 
-
-        Gtxn[1].type_enum() == TxnType.AssetTransfer,
-    )
     handle_unlock = Seq(
+        Assert(Global.group_size() == Int(2)),
+
         # app call to opt-out
+        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].application_id() == Global.current_application_id()),
         Assert(Gtxn[0].on_completion() == OnComplete.CloseOut),
         Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is receiving the shares
@@ -97,10 +90,10 @@ def approval_program():
         Assert(Gtxn[1].asset_amount() == App.localGet(Gtxn[0].sender(), Bytes(LOCAL_SHARES))), # unlocked amount == owned shares
         Approve()
     )
-    
-    is_lock = Global.group_size() == Int(2)
    
     handle_lock = Seq(
+        Assert(Global.group_size() == Int(2)),
+
         # app call to update state
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].application_id() == Global.current_application_id()),
@@ -137,20 +130,9 @@ def approval_program():
         Approve()
     )
 
-    is_num_tx0_app_args_1 = Gtxn[0].application_args.length() == Int(1)
-    handle_num_tx0_app_args_1 = Cond(
-        [is_harvest, handle_harvest],
-        [is_unlock, handle_unlock],
-    )
-    is_group_size2 = Global.group_size() == Int(2)
-    handle_group_size2 = Cond(
-        [is_num_tx0_app_args_1, handle_num_tx0_app_args_1],
-        [is_lock, handle_lock],
-    )
-
-    is_drain = Global.group_size() == Int(4)
-    
     handle_drain = Seq(
+        Assert(Global.group_size() == Int(4)),
+
         # call app to verify amount and update state
         # note that we can't verify here that the correct app is being called (DAO) - probably not an issue (TODO review)
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
@@ -182,10 +164,12 @@ def approval_program():
     )
     
     program = Cond(
-        [is_create, handle_create],
-        [is_optin, handle_optin],
-        [is_group_size2, handle_group_size2],
-        [is_drain, handle_drain],
+        [Gtxn[0].application_id() == Int(0), handle_create],
+        [Global.group_size() == Int(1), handle_optin],
+        [Gtxn[0].application_args[0] == Bytes("harvest"), handle_harvest],
+        [Gtxn[0].application_args[0] == Bytes("lock"), handle_lock],
+        [Gtxn[0].application_args[0] == Bytes("unlock"), handle_unlock],
+        [Gtxn[0].application_args[0] == Bytes("drain"), handle_drain],
     )
 
     return compileTeal(program, Mode.Application, version=5)

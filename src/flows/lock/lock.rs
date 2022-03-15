@@ -32,7 +32,7 @@ pub async fn lock(
     let mut app_call_tx = TxnBuilder::with(
         &params,
         CallApplication::new(investor, central_app_id)
-            .app_arguments(vec![dao_id.bytes().to_vec()])
+            .app_arguments(vec!["lock".as_bytes().to_vec(), dao_id.bytes().to_vec()])
             .build(),
     )
     .build()?;

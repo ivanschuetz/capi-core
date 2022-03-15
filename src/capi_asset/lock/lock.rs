@@ -33,7 +33,9 @@ pub async fn lock_capi_assets(
     // Init investor's local state
     let mut app_call_tx = TxnBuilder::with(
         &params,
-        CallApplication::new(*investor, capi_app_id.0).build(),
+        CallApplication::new(*investor, capi_app_id.0)
+            .app_arguments(vec!["lock".as_bytes().to_vec()])
+            .build(),
     )
     .build()?;
 

@@ -11,7 +11,6 @@ LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
 LOCAL_SHARES = "Shares"
 
 def program():
-    is_setup_dao = Global.group_size() == Int(10)
     handle_setup_dao = Seq(
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
@@ -49,7 +48,6 @@ def program():
         Approve()
     )
 
-    is_withdrawal = Global.group_size() == Int(2)
     handle_withdrawal = Seq(
         # pay fee tx
         Assert(Gtxn[0].type_enum() == TxnType.Payment),
@@ -67,18 +65,17 @@ def program():
         Approve()
     )
 
-    # note that identification is different between app and central_escrow - needed? TODO review
-    is_harvest = And(
-        Gtxn[0].type_enum() == TxnType.ApplicationCall,
-        Gtxn[0].application_id() == tmpl_central_app_id,
-        Gtxn[1].type_enum() == TxnType.AssetTransfer,
-    )
     handle_harvest = Seq(
+        Assert(Global.group_size() == Int(2)),
+
         # app call to verify and set dividend
+        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_id() == tmpl_central_app_id),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].sender() == Gtxn[1].asset_receiver()), # app caller is dividend receiver 
 
         # xfer to transfer dividend to investor
+        Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the harvested asset is the funds asset 
         Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].fee() == Int(0)),
@@ -88,15 +85,11 @@ def program():
         Approve()
     )
 
-    is_group_size2 = Global.group_size() == Int(2)
-    handle_group_size2 = Cond(
-        [is_harvest, handle_harvest],
-        [is_withdrawal, handle_withdrawal],
-    )
-
     program = Cond(
-        [is_setup_dao, handle_setup_dao],
-        [is_group_size2, handle_group_size2]
+        [Global.group_size() == Int(10), handle_setup_dao],
+        # withdrawal doesn't have an app call, so no identifier
+        [And(Gtxn[0].application_args.length() == Int(0), Global.group_size() == Int(2)), handle_withdrawal],
+        [Gtxn[0].application_args[0] == Bytes("harvest"), handle_harvest],
     )
 
     return compileTeal(program, Mode.Signature, version=5)
