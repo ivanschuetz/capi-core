@@ -151,6 +151,7 @@ def approval_program():
     
     handle_drain = Seq(
         # call app to verify amount and update state
+        # note that we can't verify here that the correct app is being called (DAO) - probably not an issue (TODO review)
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].on_completion() == OnComplete.NoOp),
         Assert(Gtxn[0].sender() == Gtxn[1].sender()), # same user is calling both apps

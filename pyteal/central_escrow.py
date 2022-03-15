@@ -59,6 +59,7 @@ def program():
         Approve()
     )
 
+    # note that identification is different between app and central_escrow - needed? TODO review
     is_harvest = And(
         Gtxn[0].type_enum() == TxnType.ApplicationCall,
         Gtxn[0].application_id() == tmpl_central_app_id,

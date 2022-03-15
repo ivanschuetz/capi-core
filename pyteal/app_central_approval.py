@@ -102,6 +102,7 @@ def approval_program():
     entitled_harvest_amount = Minus(total_entitled_harvest_amount, App.localGet(Gtxn[0].sender(), Bytes(LOCAL_HARVESTED_TOTAL)))
     wants_to_harvest_less_or_eq_to_entitled_amount = Ge(entitled_harvest_amount, Gtxn[1].asset_amount())
 
+    # note that identification is different between app and central_escrow - needed? TODO review
     is_harvest = Gtxn[1].sender() == App.globalGet(Bytes(GLOBAL_CENTRAL_ESCROW_ADDRESS))
     handle_harvest = Seq(
         # app call to verify and set dividend
