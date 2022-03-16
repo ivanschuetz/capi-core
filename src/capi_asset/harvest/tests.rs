@@ -86,7 +86,7 @@ mod tests {
             investor_capi_amount,
             td.capi_supply,
             td.precision,
-        );
+        )?;
 
         harvest_capi_flow(
             algod,
@@ -179,7 +179,7 @@ mod tests {
             investor_capi_amount,
             td.capi_supply,
             td.precision,
-        );
+        )?;
 
         // The max harvest calculation and TEAL use floor to round the decimal. TEAL will reject + 1
         let res = harvest_capi_flow(
@@ -237,7 +237,7 @@ mod tests {
             investor_capi_amount,
             td.capi_supply,
             td.precision,
-        );
+        )?;
 
         harvest_capi_flow(
             algod,
@@ -308,7 +308,7 @@ mod tests {
             investor_capi_amount,
             td.capi_supply,
             td.precision,
-        );
+        )?;
 
         let res = harvest_capi_flow(
             algod,

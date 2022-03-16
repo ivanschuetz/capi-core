@@ -15,7 +15,7 @@ use algonaut::{
         SignedTransaction, Transaction, TransferAsset, TxnBuilder,
     },
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
@@ -94,33 +94,64 @@ fn calculate_capi_entitled_harvest(
     supply: CapiAssetAmount,
     locked_amount: CapiAssetAmount,
     precision: u64,
-) -> FundsAmount {
-    // TODO review possible overflow, type cast, unwrap
+) -> Result<FundsAmount> {
     // for easier understanding we use the same arithmetic as in TEAL
-    let entitled_percentage =
-        ((locked_amount.val() * precision).as_decimal() / supply.as_decimal()).floor();
-    let entitled_total =
-        ((received_total.as_decimal() * entitled_percentage) / (precision.as_decimal())).floor();
 
-    FundsAmount::new(entitled_total.to_u64().unwrap())
+    let mul1 = locked_amount
+        .val()
+        .checked_mul(precision)
+        .ok_or_else(|| {
+            anyhow!("locked_amount: {locked_amount:?} * precision: {precision} errored")
+        })?
+        .as_decimal();
+
+    let entitled_percentage = mul1
+        .checked_div(supply.as_decimal())
+        .ok_or_else(|| anyhow!("mul1: {mul1} / supply: {supply:?} errored"))?
+        .floor();
+
+    let mul2 = received_total
+        .as_decimal()
+        .checked_mul(entitled_percentage)
+        .ok_or_else(|| {
+            anyhow!("received_total: {received_total:?} * entitled_percentage: {entitled_percentage} errored")
+        })?;
+
+    let entitled_total = mul2
+        .checked_div(precision.as_decimal())
+        .ok_or_else(|| anyhow!("mul2: {mul2:?} * precision: {precision} errored"))?
+        .floor();
+
+    Ok(FundsAmount::new(entitled_total.to_u64().ok_or_else(
+        || anyhow!("Couldn't convert entitled_total to u64"),
+    )?))
 }
 
-// TODO checked arithmetic
 pub fn max_can_harvest_amount(
     app_received_total: FundsAmount,
     harvested_total: FundsAmount,
     locked_amount: CapiAssetAmount,
     supply: CapiAssetAmount,
     precision: u64,
-) -> FundsAmount {
+) -> Result<FundsAmount> {
     // Note that this assumes that investor can't unlock only a part of their shares
     // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with harvested_total, which remains unchanged.
     // the easiest solution is to expect the investor to unlock all their shares
     // if they want to sell only a part, they've to opt-in again with the shares they want to keep.
 
     let entitled_total =
-        calculate_capi_entitled_harvest(app_received_total, supply, locked_amount, precision);
-    entitled_total - harvested_total
+        calculate_capi_entitled_harvest(app_received_total, supply, locked_amount, precision)?;
+
+    Ok(FundsAmount::new(
+        entitled_total
+            .val()
+            .checked_sub(harvested_total.val())
+            .ok_or_else(|| {
+                anyhow!(
+                    "entitled_total: {entitled_total} - harvested_total: {harvested_total} errored"
+                )
+            })?,
+    ))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
