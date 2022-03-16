@@ -9,10 +9,9 @@ mod tests {
         algo_helpers::send_tx_and_wait,
         flows::{
             create_dao::share_amount::ShareAmount,
-            harvest::harvest::max_can_harvest_amount,
             invest::app_optins::{
                 invest_or_locking_app_optin_tx, submit_invest_or_locking_app_optin,
-            },
+            }, harvest::harvest::max_can_harvest_amount,
         },
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,

@@ -90,19 +90,16 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxI
     Ok(res.tx_id.parse()?)
 }
 
-// consider making this function private and renaming - normally should be investor_can_harvest_amount_calc,
-// which takes into account the already harvested amount
-
 /// The total harvest amount the investor is entitled to, based on locked shares and the total received global state.
 /// Does not account for already harvested funds.
 fn total_entitled_harvest(
     central_received_total: FundsAmount,
     share_supply: ShareAmount,
-    share_amount: ShareAmount,
+    locked_amount: ShareAmount,
     precision: u64,
     investors_part: ShareAmount,
 ) -> Result<FundsAmount> {
-    log::debug!("Calculating entitled harvest, central_received_total: {central_received_total:?}, share_supply: {share_supply:?}, share_amount: {share_amount:?}, precision: {precision:?}, investors_part: {investors_part:?}");
+    log::debug!("Calculating entitled harvest, central_received_total: {central_received_total:?}, share_supply: {share_supply:?}, locked_amount: {locked_amount:?}, precision: {precision:?}, investors_part: {investors_part:?}");
 
     // for easier understanding we use the same arithmetic as in TEAL
 
@@ -117,10 +114,9 @@ fn total_entitled_harvest(
     // Calculate entitled_total
     // intermediate steps per operation to map to clear error messages (containing the operands)
 
-    let mul1 = (share_amount
-        .val()
-        .checked_mul(precision)
-        .ok_or_else(|| anyhow!("share_count: {share_amount} * precision: {precision} errored"))?)
+    let mul1 = (locked_amount.val().checked_mul(precision).ok_or_else(|| {
+        anyhow!("locked_amount: {locked_amount} * precision: {precision} errored")
+    })?)
     .as_decimal();
 
     let percentage_mul_precision = investors_share_fractional_percentage
@@ -181,6 +177,7 @@ pub fn max_can_harvest_amount(
         precision,
         investors_part,
     )?;
+
     Ok(FundsAmount::new(
         entitled_total
             .val()

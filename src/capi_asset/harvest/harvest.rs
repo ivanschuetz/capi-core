@@ -89,27 +89,28 @@ pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxI
     Ok(res.tx_id.parse()?)
 }
 
-pub fn calculate_capi_entitled_harvest(
+fn calculate_capi_entitled_harvest(
     received_total: FundsAmount,
-    share_supply: CapiAssetAmount,
-    share_count: CapiAssetAmount,
+    supply: CapiAssetAmount,
+    locked_amount: CapiAssetAmount,
     precision: u64,
 ) -> FundsAmount {
     // TODO review possible overflow, type cast, unwrap
     // for easier understanding we use the same arithmetic as in TEAL
     let entitled_percentage =
-        ((share_count.val() * precision).as_decimal() / share_supply.as_decimal()).floor();
+        ((locked_amount.val() * precision).as_decimal() / supply.as_decimal()).floor();
     let entitled_total =
         ((received_total.as_decimal() * entitled_percentage) / (precision.as_decimal())).floor();
 
     FundsAmount::new(entitled_total.to_u64().unwrap())
 }
 
-pub fn investor_can_harvest_amount_capi_calc(
-    central_received_total: FundsAmount,
+// TODO checked arithmetic
+pub fn max_can_harvest_amount(
+    app_received_total: FundsAmount,
     harvested_total: FundsAmount,
-    share_amount: CapiAssetAmount,
-    share_supply: CapiAssetAmount,
+    locked_amount: CapiAssetAmount,
+    supply: CapiAssetAmount,
     precision: u64,
 ) -> FundsAmount {
     // Note that this assumes that investor can't unlock only a part of their shares
@@ -117,12 +118,8 @@ pub fn investor_can_harvest_amount_capi_calc(
     // the easiest solution is to expect the investor to unlock all their shares
     // if they want to sell only a part, they've to opt-in again with the shares they want to keep.
 
-    let entitled_total = calculate_capi_entitled_harvest(
-        central_received_total,
-        share_supply,
-        share_amount,
-        precision,
-    );
+    let entitled_total =
+        calculate_capi_entitled_harvest(app_received_total, supply, locked_amount, precision);
     entitled_total - harvested_total
 }
 

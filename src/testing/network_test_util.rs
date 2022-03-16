@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub use test::{
-    create_and_distribute_funds_asset, setup_on_chain_deps, test_dao_init, test_init, OnChainDeps,
-    TestDeps,
+    create_and_distribute_funds_asset, setup_on_chain_deps, test_dao_init, test_dao_init_with_deps,
+    test_init, OnChainDeps, TestDeps,
 };
 
 #[cfg(test)]
@@ -73,6 +73,7 @@ mod test {
         pub capi_escrow_percentage: SharesPercentage,
         pub capi_app_id: CapiAppId,
         pub capi_asset_id: CapiAssetId,
+        pub capi_supply: CapiAssetAmount,
 
         pub precision: u64,
 
@@ -97,10 +98,20 @@ mod test {
         let algod = dependencies::algod_for_tests();
         let capi_owner = capi_owner();
 
+        let chain_deps = setup_on_chain_deps(&algod, &capi_owner).await?;
+
+        test_dao_init_with_deps(algod, &chain_deps).await
+    }
+
+    /// Use this for test initialization with custom chain deps
+    pub async fn test_dao_init_with_deps(
+        algod: Algod,
+        chain_deps: &OnChainDeps,
+    ) -> Result<TestDeps> {
         let OnChainDeps {
             funds_asset_id,
             capi_flow_res,
-        } = setup_on_chain_deps(&algod, &capi_owner).await?;
+        } = chain_deps;
 
         Ok(TestDeps {
             algod,
@@ -110,15 +121,17 @@ mod test {
             investor2: investor2(),
             customer: customer(),
             specs: dao_specs(),
-            funds_asset_id,
-            capi_owner,
+            funds_asset_id: funds_asset_id.clone(),
+            // unwrap: we know the owner mnemonic is valid + this is just for tests
+            capi_owner: Account::from_mnemonic(&capi_flow_res.owner_mnemonic).unwrap(),
             precision: TESTS_DEFAULT_PRECISION,
             // unwrap: safe + tests-only
             programs: programs().unwrap(),
-            capi_escrow: capi_flow_res.escrow,
+            capi_escrow: capi_flow_res.escrow.clone(),
             capi_escrow_percentage: capi_escrow_percentage(),
             capi_app_id: capi_flow_res.app_id,
             capi_asset_id: capi_flow_res.asset_id,
+            capi_supply: capi_flow_res.supply,
         })
     }
 

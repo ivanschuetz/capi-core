@@ -1,11 +1,20 @@
 use std::cmp::PartialOrd;
 use std::fmt::Display;
 
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+
+use crate::decimal_util::AsDecimal;
 
 /// An amount of assets (ASA)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord)]
 pub struct AssetAmount(pub u64);
+
+impl AssetAmount {
+    pub fn as_decimal(&self) -> Decimal {
+        self.0.as_decimal()
+    }
+}
 
 impl Display for AssetAmount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

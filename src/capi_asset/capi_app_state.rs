@@ -1,3 +1,4 @@
+use super::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetAmount};
 use crate::{
     funds::FundsAmount,
     state::app_state::{
@@ -12,13 +13,12 @@ use algonaut::{
 };
 use anyhow::Result;
 
-use super::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetAmount};
-
 const TOTAL_RECEIVED: AppStateKey = AppStateKey("ReceivedTotal");
 
 const LOCAL_HARVESTED_TOTAL: AppStateKey = AppStateKey("HarvestedTotal");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapiAppGlobalState {
     pub received: FundsAmount,
 }

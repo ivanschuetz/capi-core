@@ -85,6 +85,8 @@ pub mod test_flow {
             asset_id,
             app_id,
             escrow,
+            supply: capi_supply,
+            owner_mnemonic: creator.mnemonic(),
         })
     }
 
@@ -128,5 +130,7 @@ pub mod test_flow {
         pub asset_id: CapiAssetId,
         pub app_id: CapiAppId,
         pub escrow: ContractAccount,
+        pub supply: CapiAssetAmount,
+        pub owner_mnemonic: String, // for now a string, since Account isn't clonable
     }
 }

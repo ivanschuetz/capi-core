@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use std::convert::TryInto;
+
     use crate::{
         flows::{
             create_dao::{
@@ -15,18 +17,19 @@ mod tests {
         },
         testing::{
             flow::harvest_flow::{harvest_flow, harvest_precs},
-            network_test_util::test_dao_init,
+            network_test_util::{test_dao_init, TestDeps},
             TESTS_DEFAULT_PRECISION,
         },
     };
     use algonaut::{algod::v2::Algod, core::Address, transaction::account::Account};
     use anyhow::Result;
+    use rust_decimal::Decimal;
     use serial_test::serial;
     use tokio::test;
 
     #[test]
     #[serial]
-    async fn test_harvest() -> Result<()> {
+    async fn test_max_harvest() -> Result<()> {
         let td = test_dao_init().await?;
         let algod = &td.algod;
 
@@ -120,7 +123,7 @@ mod tests {
 
         // flow
 
-        // we harvest 1 microalgo (smallest possible increment) more than max allowed
+        // we harvest 1 asset more than max allowed
         let res = harvest_flow(&td, &precs.dao, &harvester, harvest_amount + 1).await;
         log::debug!("res: {:?}", res);
 
@@ -134,7 +137,7 @@ mod tests {
     #[test]
     #[serial]
     async fn test_harvest_max_with_repeated_fractional_shares_percentage() -> Result<()> {
-        let td = test_dao_init().await?;
+        let td = test_fractional_deps().await?;
         let algod = &td.algod;
 
         let drainer = &td.investor1;
@@ -145,18 +148,6 @@ mod tests {
         let buy_share_amount = ShareAmount::new(10);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
-        let specs = CreateDaoSpecs::new(
-            "Pancakes ltd".to_owned(),
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
-            CreateSharesSpecs {
-                token_name: "PCK".to_owned(),
-                supply: ShareAmount::new(300),
-            },
-            ShareAmount::new(120),
-            FundsAmount::new(5_000_000),
-            "https://placekitten.com/200/300".to_owned(),
-            "https://twitter.com/capi_fin".to_owned(),
-        )?;
         // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
 
         let precs = harvest_precs(
@@ -174,10 +165,10 @@ mod tests {
         let harvest_amount = max_can_harvest_amount(
             central_state.received,
             FundsAmount::new(0),
-            specs.shares.supply,
+            td.specs.shares.supply,
             buy_share_amount,
             precision,
-            specs.investors_part(),
+            td.specs.investors_part(),
         )?;
         log::debug!("Harvest amount: {}", harvest_amount);
 
@@ -207,6 +198,25 @@ mod tests {
         .await?;
 
         Ok(())
+    }
+
+    async fn test_fractional_deps() -> Result<TestDeps> {
+        let mut td = test_dao_init().await?;
+        // set capi percentage to 0 - we're not testing this here and it eases calculations (drained amount == amount that ends on central escrow)
+        td.capi_escrow_percentage = Decimal::new(0, 0).try_into().unwrap();
+        td.specs = CreateDaoSpecs::new(
+            "Pancakes ltd".to_owned(),
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
+            CreateSharesSpecs {
+                token_name: "PCK".to_owned(),
+                supply: ShareAmount::new(300),
+            },
+            ShareAmount::new(300),
+            FundsAmount::new(5_000_000),
+            "https://placekitten.com/200/300".to_owned(),
+            "https://twitter.com/capi_fin".to_owned(),
+        )?;
+        Ok(td)
     }
 
     #[test]
@@ -246,7 +256,7 @@ mod tests {
             res2.dao.central_escrow.address(),
             res2.dao.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
-            // 2 harvests: local state is the total harvested amount
+            // 2 harvests: asset balance is the total harvested amount
             res1.harvester_balance_before_harvesting + total_expected_harvested_amount,
             // central lost the amount
             precs.central_escrow_balance_after_drain - total_expected_harvested_amount,

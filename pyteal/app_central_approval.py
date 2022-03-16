@@ -109,7 +109,6 @@ def approval_program():
                     Mul(App.localGet(Gtxn[0].sender(), Bytes(LOCAL_SHARES)), tmpl_precision), 
                     tmpl_investors_share
                 ), 
-                # Mul(App.localGet(Gtxn[0].sender(), Bytes(LOCAL_SHARES)), tmpl_share_supply), 
                 tmpl_share_supply
             ), 
             App.globalGet(Bytes(GLOBAL_RECEIVED_TOTAL))

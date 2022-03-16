@@ -26,7 +26,7 @@ impl CreateDaoSpecs {
     ) -> Result<CreateDaoSpecs> {
         if investors_part > shares.supply {
             return Err(anyhow!(
-                "Investors shares: {investors_part} must be less than shares supply: {}",
+                "Investor's part: {investors_part} must be less than shares supply: {}",
                 shares.supply
             ));
         }

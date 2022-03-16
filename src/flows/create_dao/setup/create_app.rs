@@ -75,7 +75,7 @@ pub fn render_central_app(
     source: &TealSourceTemplate,
     share_supply: ShareAmount,
     precision: u64,
-    investors_share: ShareAmount,
+    investors_part: ShareAmount,
     capi_escrow_address: &Address,
     capi_app_id: CapiAppId,
     capi_percentage: SharesPercentage,
@@ -84,10 +84,12 @@ pub fn render_central_app(
     let precision_square = precision
         .checked_pow(2)
         .ok_or_else(|| anyhow!("Precision squared overflow: {}", precision))?;
-    // TODO supply, checked div
-    // TODO write tests with supply != 100
-    let investors_share =
-        ((investors_share.as_decimal() / 100.as_decimal()) * precision.as_decimal()).floor();
+
+    // TODO checked div
+    // TODO write tests that catch incorrect/variable supply - previously it was hardcoded to 100 and everything was passing
+    let investors_part_percentage = ((investors_part.as_decimal() / share_supply.as_decimal())
+        * precision.as_decimal())
+    .floor();
 
     let capi_share = (capi_percentage
         .value()
@@ -99,7 +101,10 @@ pub fn render_central_app(
         source,
         &[
             ("TMPL_SHARE_SUPPLY", &share_supply.to_string()),
-            ("TMPL_INVESTORS_SHARE", &investors_share.to_string()),
+            (
+                "TMPL_INVESTORS_SHARE",
+                &investors_part_percentage.to_string(),
+            ),
             ("TMPL_PRECISION__", &precision.to_string()),
             ("TMPL_PRECISION_SQUARE", &precision_square.to_string()),
             ("TMPL_CAPI_ESCROW_ADDRESS", &capi_escrow_address.to_string()),
@@ -176,7 +181,7 @@ mod tests {
             &approval_template,
             &clear_source,
             &creator.address(),
-            ShareAmount::new(0),
+            ShareAmount::new(1),
             TESTS_DEFAULT_PRECISION,
             ShareAmount::new(40),
             &params,

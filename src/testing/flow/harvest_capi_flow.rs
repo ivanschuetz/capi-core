@@ -18,7 +18,9 @@ mod test {
             },
             flow::{
                 create_dao_flow::create_dao_flow,
-                customer_payment_and_drain_flow::customer_payment_and_drain_flow,
+                customer_payment_and_drain_flow::{
+                    customer_payment_and_drain_flow, CustomerPaymentAndDrainFlowRes,
+                },
                 lock_capi_asset_flow::lock_capi_asset_flow,
             },
             network_test_util::TestDeps,
@@ -41,6 +43,8 @@ mod test {
         app_id: CapiAppId,
         capi_escrow: &ContractAccount,
     ) -> Result<()> {
+        log::debug!("Calling harvest_capi_flow, harvest amount: {amount:?}");
+
         let to_sign = harvest(
             &algod,
             &investor.address(),
@@ -71,8 +75,10 @@ mod test {
         harvester: &Account,
         asset_amount: CapiAssetAmount,
         // Fee sent to the capi escrow after the investor locks their shares. This is the amount we harvest from.
-        send_to_escrow_after_investor_locked: FundsAmount,
-    ) -> Result<()> {
+        drain_to_escrow_after_investor_locked: FundsAmount,
+    ) -> Result<HarvestTestPrecsRes> {
+        log::debug!(">>>> Calling harvest_capi_precs, drain_to_escrow_after_investor_locked: {drain_to_escrow_after_investor_locked:?}");
+
         let algod = &td.algod;
 
         let params = algod.suggested_transaction_params().await?;
@@ -122,16 +128,23 @@ mod test {
         let dao = create_dao_flow(&td).await?;
 
         // calculate a to-be-drained amount, such that we get exactly the expected funds amount in the capi escrow
-        let central_funds_decimal = send_to_escrow_after_investor_locked.as_decimal()
+        let central_funds_decimal = drain_to_escrow_after_investor_locked.as_decimal()
             / capi_dao_deps.escrow_percentage.value();
         // unwrap: we ensured with parameters above that central_funds_decimal is an integer
         let central_funds = FundsAmount::new(central_funds_decimal.to_u64().unwrap());
-        log::debug!("Harvest precs: Will pay and drain funds: {central_funds}");
+        log::debug!(">>>> Harvest precs: Will pay and drain funds: {central_funds}");
 
         // let central_funds = FundsAmount(10 * 1_000_000);
 
-        customer_payment_and_drain_flow(&td, &dao.dao, central_funds, &drainer).await?;
+        let drain_res =
+            customer_payment_and_drain_flow(&td, &dao.dao, central_funds, &drainer).await?;
 
-        Ok(())
+        Ok(HarvestTestPrecsRes { drain_res })
+    }
+
+    // Any data we want to return from the flow to the tests
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct HarvestTestPrecsRes {
+        pub drain_res: CustomerPaymentAndDrainFlowRes,
     }
 }

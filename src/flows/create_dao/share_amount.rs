@@ -1,10 +1,8 @@
-use std::cmp::Ordering;
-use std::fmt::Display;
-
+use crate::asset_amount::AssetAmount;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-
-use crate::{asset_amount::AssetAmount, decimal_util::AsDecimal};
+use std::cmp::Ordering;
+use std::fmt::Display;
 
 /// An amount of shares (DAO ASA)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,7 +14,7 @@ impl ShareAmount {
     }
 
     pub fn as_decimal(&self) -> Decimal {
-        self.0 .0.as_decimal()
+        self.0.as_decimal()
     }
 
     pub fn val(&self) -> u64 {
