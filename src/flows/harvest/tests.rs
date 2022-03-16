@@ -200,6 +200,57 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    #[serial]
+    async fn test_harvest_max_with_repeated_fractional_shares_percentage_plus_1_fails() -> Result<()>
+    {
+        let td = test_fractional_deps().await?;
+        let algod = &td.algod;
+
+        let drainer = &td.investor1;
+        let harvester = &td.investor2;
+
+        // precs
+
+        let buy_share_amount = ShareAmount::new(10);
+        let pay_and_drain_amount = FundsAmount::new(10_000_000);
+        let precision = TESTS_DEFAULT_PRECISION;
+        // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
+
+        let precs = harvest_precs(
+            &td,
+            buy_share_amount,
+            pay_and_drain_amount,
+            &drainer,
+            &harvester,
+        )
+        .await?;
+
+        let central_state = central_global_state(&algod, precs.dao.central_app_id).await?;
+        log::debug!("central_total_received: {:?}", central_state.received);
+
+        let harvest_amount = max_can_harvest_amount(
+            central_state.received,
+            FundsAmount::new(0),
+            td.specs.shares.supply,
+            buy_share_amount,
+            precision,
+            td.specs.investors_part(),
+        )?;
+        log::debug!("Harvest amount: {}", harvest_amount);
+
+        // flow
+
+        // The max harvest calculation and TEAL use floor to round the decimal. TEAL will reject + 1
+        let res = harvest_flow(&td, &precs.dao, &harvester, harvest_amount + 1).await;
+
+        // test
+
+        assert!(res.is_err());
+
+        Ok(())
+    }
+
     async fn test_fractional_deps() -> Result<TestDeps> {
         let mut td = test_dao_init().await?;
         // set capi percentage to 0 - we're not testing this here and it eases calculations (drained amount == amount that ends on central escrow)

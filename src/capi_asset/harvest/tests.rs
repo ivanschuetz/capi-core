@@ -127,6 +127,80 @@ mod tests {
 
     #[test]
     #[serial]
+    async fn test_harvest_max_with_repeated_fractional_shares_percentage_plus_1_fails() -> Result<()>
+    {
+        test_init()?;
+
+        let algod = dependencies::algod_for_tests();
+        let capi_owner = capi_owner();
+
+        let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
+        let capi_flow_res = setup_capi_asset_flow(
+            &algod,
+            &capi_owner,
+            CapiAssetAmount::new(300),
+            funds_asset_id,
+        )
+        .await?;
+        let chain_deps = OnChainDeps {
+            funds_asset_id,
+            capi_flow_res,
+        };
+
+        let td = &test_dao_init_with_deps(algod, &chain_deps).await?;
+        let algod = &td.algod;
+
+        let investor = &td.investor1;
+
+        // Capi tokens owned by investor, to be able to harvest
+        let investor_capi_amount = CapiAssetAmount::new(10);
+
+        let initial_capi_funds_amount = FundsAmount::new(10_000_000);
+
+        // 10 shares, 300 supply, percentage: 0.0333333333
+
+        // preconditions
+
+        let precs = harvest_capi_precs(
+            td,
+            &td.capi_owner,
+            investor,
+            investor_capi_amount,
+            initial_capi_funds_amount,
+        )
+        .await?;
+
+        // flow
+
+        let harvest_amount = max_can_harvest_amount(
+            // the calculated capi fee is what's on the capi app (total received state) now
+            precs.drain_res.drained_amounts.capi,
+            FundsAmount::new(0),
+            investor_capi_amount,
+            td.capi_supply,
+            td.precision,
+        );
+
+        // The max harvest calculation and TEAL use floor to round the decimal. TEAL will reject + 1
+        let res = harvest_capi_flow(
+            algod,
+            investor,
+            harvest_amount + 1,
+            td.funds_asset_id,
+            td.capi_app_id,
+            &td.capi_escrow,
+        )
+        .await;
+
+        // test
+
+        assert!(res.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
     async fn test_capi_max_harvest() -> Result<()> {
         let td = &test_dao_init().await?;
         let algod = &td.algod;
