@@ -1,5 +1,3 @@
-use std::convert::TryInto;
-
 use crate::{
     algo_helpers::calculate_total_fee,
     decimal_util::AsDecimal,
@@ -148,12 +146,9 @@ fn total_entitled_harvest(
         .floor();
     ///////////////////////////////////////////////////
 
-    Ok(FundsAmount::new(
-        entitled_total
-            .to_u128()
-            .ok_or_else(|| anyhow!("Couldn't convert entitled_total to u128"))?
-            .try_into()?,
-    ))
+    Ok(FundsAmount::new(entitled_total.to_u64().ok_or_else(
+        || anyhow!("Couldn't convert entitled_total to u64"),
+    )?))
 }
 
 /// The max amount an investor can harvest, based on locked shares, total received global state and the already harvested amount.
