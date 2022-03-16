@@ -33,7 +33,7 @@ def approval_program():
     total_entitled_harvest_amount = Div(
         Mul(
             Div(
-                Mul(App.localGet(Gtxn[0].sender(), Bytes(LOCAL_SHARES)), tmpl_share_supply), 
+                Mul(App.localGet(Gtxn[0].sender(), Bytes(LOCAL_SHARES)), tmpl_precision), 
                 tmpl_share_supply
             ), 
             App.globalGet(Bytes(GLOBAL_RECEIVED_TOTAL))

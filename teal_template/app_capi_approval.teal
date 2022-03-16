@@ -168,7 +168,7 @@ byte "HarvestedTotal"
 gtxn 0 Sender
 byte "Shares"
 app_local_get
-int TMPL_SHARE_SUPPLY
+int TMPL_PRECISION
 *
 int TMPL_SHARE_SUPPLY
 /
@@ -216,7 +216,7 @@ assert
 gtxn 0 Sender
 byte "Shares"
 app_local_get
-int TMPL_SHARE_SUPPLY
+int TMPL_PRECISION
 *
 int TMPL_SHARE_SUPPLY
 /
