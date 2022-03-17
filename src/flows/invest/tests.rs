@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use crate::flows::claim::claim::claimable_dividend;
     use crate::flows::create_dao::model::Dao;
     use crate::flows::create_dao::share_amount::ShareAmount;
     use crate::flows::create_dao::storage::load_dao::DaoId;
-    use crate::flows::harvest::harvest::max_can_harvest_amount;
     use crate::funds::FundsAmount;
     use crate::network_util::wait_for_pending_transaction;
     use crate::queries::my_daos::my_current_invested_daos;
@@ -71,8 +71,8 @@ mod tests {
         // check that the dao id was initialized
         assert_eq!(dao.dao_id, central_investor_state.dao_id);
 
-        // check that harvested is 0 (nothing harvested yet)
-        assert_eq!(FundsAmount::new(0), central_investor_state.harvested);
+        // check that claimed is 0 (nothing claimed yet)
+        assert_eq!(FundsAmount::new(0), central_investor_state.claimed);
 
         // double check: investor didn't receive any shares
 
@@ -310,7 +310,7 @@ mod tests {
 
     #[test]
     #[serial] // reset network (cmd)
-    async fn test_invest_after_drain_inits_already_harvested_correctly() -> Result<()> {
+    async fn test_invest_after_drain_inits_already_claimed_correctly() -> Result<()> {
         let td = &test_dao_init().await?;
         let algod = &td.algod;
         let investor = &td.investor1;
@@ -337,7 +337,7 @@ mod tests {
             central_investor_state(&algod, &investor.address(), dao.dao.central_app_id).await?;
         let central_state = central_global_state(&algod, dao.dao.central_app_id).await?;
 
-        let investor_entitled_harvest = max_can_harvest_amount(
+        let claimable_dividend = claimable_dividend(
             central_state.received,
             FundsAmount::new(0),
             dao.dao.specs.shares.supply,
@@ -346,15 +346,15 @@ mod tests {
             dao.dao.specs.investors_part(),
         )?;
 
-        // investing inits the "harvested" amount to entitled amount (to prevent double harvest)
-        assert_eq!(investor_entitled_harvest, investor_state.harvested);
+        // investing inits the "claimed" amount to entitled amount (to prevent double claiming)
+        assert_eq!(claimable_dividend, investor_state.claimed);
 
         Ok(())
     }
 
     #[test]
     #[serial] // reset network (cmd)
-    async fn test_lock_after_drain_inits_already_harvested_correctly() -> Result<()> {
+    async fn test_lock_after_drain_inits_already_claimed_correctly() -> Result<()> {
         let td = &test_dao_init().await?;
         let algod = &td.algod;
         let investor = &td.investor1;
@@ -385,7 +385,7 @@ mod tests {
             central_investor_state(algod, &investor.address(), dao.dao.central_app_id).await?;
         let central_state = central_global_state(algod, dao.dao.central_app_id).await?;
 
-        let investor_entitled_harvest = max_can_harvest_amount(
+        let claimable_dividend = claimable_dividend(
             central_state.received,
             FundsAmount::new(0),
             dao.dao.specs.shares.supply,
@@ -394,8 +394,8 @@ mod tests {
             dao.dao.specs.investors_part(),
         )?;
 
-        // locking inits the "harvested" amount to entitled amount (to prevent double harvest)
-        assert_eq!(investor_entitled_harvest, investor_state.harvested);
+        // locking inits the "claimed" amount to entitled amount (to prevent double claiming)
+        assert_eq!(claimable_dividend, investor_state.claimed);
 
         Ok(())
     }

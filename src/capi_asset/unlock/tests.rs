@@ -127,7 +127,7 @@ mod tests {
 
     // Note: same TODO as on the DAO's partial unlocking tests
     // TODO think how to implement partial unlocking: it should be common that investors want to sell only a part of their shares
-    // currently we require opt-out to prevent double harvest, REVIEW
+    // currently we require opt-out to prevent double claiming, REVIEW
     #[test]
     #[serial]
     async fn test_partial_unlock_not_allowed() -> Result<()> {

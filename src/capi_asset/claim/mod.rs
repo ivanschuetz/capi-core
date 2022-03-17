@@ -1,3 +1,3 @@
 #[allow(clippy::module_inception)]
-pub mod harvest;
+pub mod claim;
 mod tests;

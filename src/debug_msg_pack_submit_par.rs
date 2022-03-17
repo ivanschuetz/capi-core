@@ -18,6 +18,7 @@ mod tests {
         decimal_util::AsDecimal,
         dependencies,
         flows::{
+            claim::claim::{submit_claim, ClaimSigned},
             create_dao::{
                 setup::{
                     create_app::render_central_app,
@@ -29,7 +30,6 @@ mod tests {
                 shares_percentage::SharesPercentage,
             },
             drain::drain::{submit_drain_customer_escrow, DrainCustomerEscrowSigned},
-            harvest::harvest::{submit_harvest, HarvestSigned},
             invest::{invest::submit_invest, model::InvestSigned},
             withdraw::withdraw::{submit_withdraw, WithdrawSigned},
         },
@@ -114,7 +114,7 @@ mod tests {
         // insert msg pack serialized bytes
         let bytes = vec![];
 
-        // let signed: HarvestSigned = rmp_serde::from_slice(&bytes).unwrap();
+        // let signed: ClaimSigned = rmp_serde::from_slice(&bytes).unwrap();
 
         // let signed: WithdrawSigned = rmp_serde::from_slice(&bytes).unwrap();
         // submit_withdraw(&algod, &signed).await?;

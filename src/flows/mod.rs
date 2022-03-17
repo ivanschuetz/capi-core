@@ -1,6 +1,6 @@
+pub mod claim;
 pub mod create_dao;
 pub mod drain;
-pub mod harvest;
 pub mod invest;
 pub mod lock;
 pub mod pay_dao;

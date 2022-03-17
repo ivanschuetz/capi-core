@@ -15,7 +15,7 @@ use anyhow::Result;
 
 const TOTAL_RECEIVED: AppStateKey = AppStateKey("ReceivedTotal");
 
-const LOCAL_HARVESTED_TOTAL: AppStateKey = AppStateKey("HarvestedTotal");
+const LOCAL_CLAIMED_TOTAL: AppStateKey = AppStateKey("ClaimedTotal");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,7 +35,7 @@ pub async fn capi_app_global_state(algod: &Algod, app_id: CapiAppId) -> Result<C
 pub struct CapiAppHolderState {
     // TODO rename in assets? we're naming this asset everywhere else too. shares -> DAO
     pub shares: CapiAssetAmount,
-    pub harvested: FundsAmount,
+    pub claimed: FundsAmount,
 }
 
 pub async fn capi_app_investor_state(
@@ -62,10 +62,10 @@ fn capi_app_investor_state_from_local_state(
     state: &ApplicationLocalState,
 ) -> Result<CapiAppHolderState, ApplicationLocalStateError<'static>> {
     let shares = get_uint_value_or_error(state, &LOCAL_SHARES)?;
-    let harvested = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
+    let claimed = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_CLAIMED_TOTAL)?);
 
     Ok(CapiAppHolderState {
         shares: CapiAssetAmount::new(shares),
-        harvested,
+        claimed,
     })
 }

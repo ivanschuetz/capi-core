@@ -21,7 +21,7 @@ const GLOBAL_CUSTOMER_ESCROW_ADDRESS: AppStateKey = AppStateKey("CustomerEscrowA
 const GLOBAL_FUNDS_ASSET_ID: AppStateKey = AppStateKey("FundsAssetId");
 const GLOBAL_SHARES_ASSET_ID: AppStateKey = AppStateKey("SharesAssetId");
 
-const LOCAL_HARVESTED_TOTAL: AppStateKey = AppStateKey("HarvestedTotal");
+const LOCAL_CLAIMED_TOTAL: AppStateKey = AppStateKey("ClaimedTotal");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_DAO: AppStateKey = AppStateKey("Dao");
 
@@ -101,7 +101,7 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CentralAppInvestorState {
     pub shares: ShareAmount,
-    pub harvested: FundsAmount,
+    pub claimed: FundsAmount,
     pub dao_id: DaoId,
 }
 
@@ -135,7 +135,7 @@ fn central_investor_state_from_local_state(
     }
 
     let shares = get_uint_value_or_error(state, &LOCAL_SHARES)?;
-    let harvested = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_HARVESTED_TOTAL)?);
+    let claimed = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_CLAIMED_TOTAL)?);
     let dao_id_bytes = get_bytes_value_or_error(state, &LOCAL_DAO)?;
 
     let dao_id: DaoId = dao_id_bytes
@@ -145,7 +145,7 @@ fn central_investor_state_from_local_state(
 
     Ok(CentralAppInvestorState {
         shares: ShareAmount::new(shares),
-        harvested,
+        claimed,
         dao_id,
     })
 }

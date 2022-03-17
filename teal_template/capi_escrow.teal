@@ -12,7 +12,7 @@ byte "unlock"
 ==
 bnz main_l6
 gtxna 0 ApplicationArgs 0
-byte "harvest"
+byte "claim"
 ==
 bnz main_l5
 err

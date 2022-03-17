@@ -14,7 +14,7 @@ use crate::{
     teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 
-/// Capi app: remembers total dividend retrieved (global) and already retrieved dividend (local), to prevent double harvesting.
+/// Capi app: remembers total dividend retrieved (global) and already retrieved dividend (local), to prevent double claiming.
 #[allow(clippy::too_many_arguments)]
 pub async fn create_app(
     algod: &Algod,

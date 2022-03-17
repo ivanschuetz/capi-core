@@ -17,7 +17,7 @@ GLOBAL_CUSTOMER_ESCROW_ADDRESS = "CustomerEscrowAddress"
 GLOBAL_SHARES_ASSET_ID = "SharesAssetId"
 GLOBAL_FUNDS_ASSET_ID = "FundsAssetId"
 LOCAL_SHARES = "Shares"
-LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
+LOCAL_CLAIMED_TOTAL = "ClaimedTotal"
 LOCAL_DAO_ID = "Dao"
 
 def approval_program():
@@ -102,7 +102,7 @@ def approval_program():
         Approve()
     )
  
-    total_entitled_harvest_amount = Div(
+    total_entitled_dividend = Div(
         Mul(
             Div(
                 Mul(
@@ -116,13 +116,13 @@ def approval_program():
         tmpl_precision_square
     )
 
-    # Calculates entitled harvest based on LOCAL_SHARES and LOCAL_HARVESTED_TOTAL.
-    # Expects harvester to be the gtxn 0 sender. 
-    entitled_harvest_amount = Minus(total_entitled_harvest_amount, App.localGet(Gtxn[0].sender(), Bytes(LOCAL_HARVESTED_TOTAL)))
-    wants_to_harvest_less_or_eq_to_entitled_amount = Ge(entitled_harvest_amount, Gtxn[1].asset_amount())
+    # Calculates claimable dividend based on LOCAL_SHARES and LOCAL_CLAIMED_TOTAL.
+    # Expects claimer to be the gtxn 0 sender. 
+    claimable_dividend = Minus(total_entitled_dividend, App.localGet(Gtxn[0].sender(), Bytes(LOCAL_CLAIMED_TOTAL)))
+    wants_to_claim_less_or_eq_than_claimable_dividend = Ge(claimable_dividend, Gtxn[1].asset_amount())
 
     # note that identification is different between app and central_escrow - needed? TODO review
-    handle_harvest = Seq(
+    handle_claim = Seq(
         Assert(Global.group_size() == Int(2)),
 
         # app call to verify and set dividend
@@ -135,17 +135,17 @@ def approval_program():
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].sender() == App.globalGet(Bytes(GLOBAL_CENTRAL_ESCROW_ADDRESS))),
         Assert(Gtxn[1].asset_amount() > Int(0)),
-        Assert(Gtxn[1].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))), # the harvested asset is the funds asset 
+        Assert(Gtxn[1].xfer_asset() == App.globalGet(Bytes(GLOBAL_FUNDS_ASSET_ID))), # the claimed asset is the funds asset 
 
         # verify dividend amount is correct
-        Assert(wants_to_harvest_less_or_eq_to_entitled_amount),
+        Assert(wants_to_claim_less_or_eq_than_claimable_dividend),
         
         # update local state with retrieved dividend
         App.localPut(
             Gtxn[0].sender(), 
-            Bytes(LOCAL_HARVESTED_TOTAL), 
+            Bytes(LOCAL_CLAIMED_TOTAL), 
             Add(
-                App.localGet(Gtxn[0].sender(), Bytes(LOCAL_HARVESTED_TOTAL)), 
+                App.localGet(Gtxn[0].sender(), Bytes(LOCAL_CLAIMED_TOTAL)), 
                 Gtxn[1].asset_amount()
             )
         ),
@@ -163,14 +163,14 @@ def approval_program():
                 Gtxn[1].asset_amount()
             )
         ),
-        App.localPut( # initialize already harvested local state
+        App.localPut( # initialize already claimed local state
             Gtxn[0].sender(), 
-            Bytes(LOCAL_HARVESTED_TOTAL), 
-            # NOTE that this sets HarvestedTotal to the entitled amount each time that the investor buys/locks shares
+            Bytes(LOCAL_CLAIMED_TOTAL), 
+            # NOTE that this sets claimedTotal to the entitled amount each time that the investor buys/locks shares
             # meaning that investors may lose pending dividend by buying or locking new shares
             # TODO improve? - a non TEAL way could be to just automatically retrieve pending dividend in the same group 
             # see more notes in old repo
-            entitled_harvest_amount
+            claimable_dividend
             # Gtxn[1].asset_amount()
         ),
     )
@@ -302,7 +302,7 @@ def approval_program():
         [Global.group_size() == Int(1), handle_optin],
         [Global.group_size() == Int(10), handle_setup_dao],
         [Gtxn[0].application_args[0] == Bytes("unlock"), handle_unlock],
-        [Gtxn[0].application_args[0] == Bytes("harvest"), handle_harvest],
+        [Gtxn[0].application_args[0] == Bytes("claim"), handle_claim],
         [Gtxn[0].application_args[0] == Bytes("lock"), handle_lock],
         [Gtxn[0].application_args[0] == Bytes("drain"), handle_drain],
         [Gtxn[0].application_args[0] == Bytes("invest"), handle_invest],

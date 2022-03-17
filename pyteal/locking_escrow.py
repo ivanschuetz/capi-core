@@ -6,7 +6,7 @@ tmpl_central_app_id = Tmpl.Int("TMPL_CENTRAL_APP_ID")
 tmpl_shares_asset_id = Tmpl.Int("TMPL_SHARES_ASSET_ID")
 
 GLOBAL_RECEIVED_TOTAL = "ReceivedTotal"
-LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
+LOCAL_CLAIMED_TOTAL = "ClaimedTotal"
 LOCAL_SHARES = "Shares"
 
 def program():

@@ -1,5 +1,5 @@
 #[cfg(test)]
-pub use test::{harvest_flow, harvest_precs, HarvestTestFlowRes, HarvestTestPrecsRes};
+pub use test::{claim_flow, claim_precs, ClaimTestFlowRes, ClaimTestPrecsRes};
 
 #[cfg(test)]
 pub mod test {
@@ -9,7 +9,7 @@ pub mod test {
     use crate::testing::flow::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
     use crate::testing::flow::invest_in_dao_flow::invests_optins_flow;
     use crate::{
-        flows::harvest::harvest::{harvest, submit_harvest, HarvestSigned},
+        flows::claim::claim::{claim, submit_claim, ClaimSigned},
         network_util::wait_for_pending_transaction,
         testing::flow::{
             create_dao_flow::create_dao_flow,
@@ -21,21 +21,21 @@ pub mod test {
     use algonaut::transaction::account::Account;
     use anyhow::Result;
 
-    pub async fn harvest_precs(
+    pub async fn claim_precs(
         td: &TestDeps,
         share_amount: ShareAmount,
         payment_and_drain_amount: FundsAmount,
         drainer: &Account,
-        harvester: &Account,
-    ) -> Result<HarvestTestPrecsRes> {
+        claimer: &Account,
+    ) -> Result<ClaimTestPrecsRes> {
         let algod = &td.algod;
 
         let dao = create_dao_flow(&td).await?;
 
         // investor buys shares: this can be called after draining as well (without affecting test results)
-        // the only order required for this is draining->harvesting, obviously harvesting has to be executed after draining (if it's to harvest the drained funds)
-        invests_optins_flow(algod, &harvester, &dao.dao).await?;
-        let _ = invests_flow(&td, &harvester, share_amount, &dao.dao, &dao.dao_id).await?;
+        // the only order required for this is draining->claiming, obviously claiming has to be executed after draining (if it's to claim the drained funds)
+        invests_optins_flow(algod, &claimer, &dao.dao).await?;
+        let _ = invests_flow(&td, &claimer, share_amount, &dao.dao, &dao.dao_id).await?;
 
         // payment and draining
         let drain_res =
@@ -51,28 +51,28 @@ pub mod test {
 
         // end precs
 
-        Ok(HarvestTestPrecsRes {
+        Ok(ClaimTestPrecsRes {
             dao: dao.dao,
             central_escrow_balance_after_drain,
             drain_res,
         })
     }
 
-    pub async fn harvest_flow(
+    pub async fn claim_flow(
         td: &TestDeps,
         dao: &Dao,
-        harvester: &Account,
+        claimer: &Account,
         amount: FundsAmount,
-    ) -> Result<HarvestTestFlowRes> {
+    ) -> Result<ClaimTestFlowRes> {
         let algod = &td.algod;
 
         // remember state
-        let harvester_balance_before_harvesting =
-            funds_holdings(algod, &harvester.address(), td.funds_asset_id).await?;
+        let claimer_balance_before_claiming =
+            funds_holdings(algod, &claimer.address(), td.funds_asset_id).await?;
 
-        let to_sign = harvest(
+        let to_sign = claim(
             &algod,
-            &harvester.address(),
+            &claimer.address(),
             dao.central_app_id,
             td.funds_asset_id,
             amount,
@@ -80,38 +80,38 @@ pub mod test {
         )
         .await?;
 
-        let app_call_tx_signed = harvester.sign_transaction(&to_sign.app_call_tx)?;
+        let app_call_tx_signed = claimer.sign_transaction(&to_sign.app_call_tx)?;
 
-        let harvest_tx_id = submit_harvest(
+        let claim_tx_id = submit_claim(
             &algod,
-            &HarvestSigned {
+            &ClaimSigned {
                 app_call_tx_signed,
-                harvest_tx: to_sign.harvest_tx,
+                claim_tx: to_sign.claim_tx,
             },
         )
         .await?;
 
-        wait_for_pending_transaction(&algod, &harvest_tx_id).await?;
+        wait_for_pending_transaction(&algod, &claim_tx_id).await?;
 
-        Ok(HarvestTestFlowRes {
+        Ok(ClaimTestFlowRes {
             dao: dao.clone(),
-            harvester_balance_before_harvesting,
-            harvest: amount.to_owned(),
+            claimer_balance_before_claiming,
+            claimed: amount.to_owned(),
             // drain_res: precs.drain_res.clone(),
         })
     }
 
     // Any data we want to return from the flow to the tests
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct HarvestTestFlowRes {
+    pub struct ClaimTestFlowRes {
         pub dao: Dao,
-        pub harvester_balance_before_harvesting: FundsAmount,
-        pub harvest: FundsAmount,
+        pub claimer_balance_before_claiming: FundsAmount,
+        pub claimed: FundsAmount,
     }
 
     // Any data we want to return from the flow to the tests
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct HarvestTestPrecsRes {
+    pub struct ClaimTestPrecsRes {
         pub dao: Dao,
         pub central_escrow_balance_after_drain: FundsAmount,
         pub drain_res: CustomerPaymentAndDrainFlowRes,

@@ -22,46 +22,46 @@ use serde::{Deserialize, Serialize};
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 
-pub async fn harvest(
+pub async fn claim(
     algod: &Algod,
-    harvester: &Address,
+    claimer: &Address,
     capi_app_id: CapiAppId,
     funds_asset_id: FundsAssetId,
     amount: FundsAmount,
     capi_escrow: &ContractAccount,
-) -> Result<HarvestToSign> {
-    log::debug!("Generating capi harvest txs, harvester: {:?}, capi_app_id: {:?}, amount: {:?}, central_escrow: {:?}", harvester, capi_app_id, amount, capi_escrow);
+) -> Result<ClaimToSign> {
+    log::debug!("Generating capi claim txs, claimer: {:?}, capi_app_id: {:?}, amount: {:?}, central_escrow: {:?}", claimer, capi_app_id, amount, capi_escrow);
     let params = algod.suggested_transaction_params().await?;
 
-    // Funds transfer from escrow to harvester
-    let harvest_tx = &mut TxnBuilder::with_fee(
+    // Funds transfer from escrow to claimer
+    let claim_tx = &mut TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),
         TransferAsset::new(
             *capi_escrow.address(),
             funds_asset_id.0,
             amount.val(),
-            *harvester,
+            *claimer,
         )
         .build(),
     )
     .build()?;
 
-    // App call to update user's local state with harvested amount
-    let app_call_tx = &mut harvest_app_call_tx(capi_app_id, &params, harvester)?;
+    // App call to update user's local state with claimed amount
+    let app_call_tx = &mut claim_app_call_tx(capi_app_id, &params, claimer)?;
 
-    app_call_tx.fee = calculate_total_fee(&params, &[harvest_tx, app_call_tx])?;
-    TxGroup::assign_group_id(&mut [app_call_tx, harvest_tx])?;
+    app_call_tx.fee = calculate_total_fee(&params, &[claim_tx, app_call_tx])?;
+    TxGroup::assign_group_id(&mut [app_call_tx, claim_tx])?;
 
-    let signed_harvest_tx = capi_escrow.sign(harvest_tx, vec![])?;
+    let signed_claim_tx = capi_escrow.sign(claim_tx, vec![])?;
 
-    Ok(HarvestToSign {
+    Ok(ClaimToSign {
         app_call_tx: app_call_tx.clone(),
-        harvest_tx: signed_harvest_tx,
+        claim_tx: signed_claim_tx,
     })
 }
 
-pub fn harvest_app_call_tx(
+pub fn claim_app_call_tx(
     app_id: CapiAppId,
     params: &SuggestedTransactionParams,
     sender: &Address,
@@ -69,27 +69,27 @@ pub fn harvest_app_call_tx(
     let tx = TxnBuilder::with(
         params,
         CallApplication::new(*sender, app_id.0)
-            .app_arguments(vec!["harvest".as_bytes().to_vec()])
+            .app_arguments(vec!["claim".as_bytes().to_vec()])
             .build(),
     )
     .build()?;
     Ok(tx)
 }
 
-pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxId> {
-    log::debug!("Submit capi harvest..");
+pub async fn submit_claim(algod: &Algod, signed: &ClaimSigned) -> Result<TxId> {
+    log::debug!("Submit capi claim..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
-    let txs = vec![signed.app_call_tx_signed.clone(), signed.harvest_tx.clone()];
+    let txs = vec![signed.app_call_tx_signed.clone(), signed.claim_tx.clone()];
     // crate::teal::debug_teal_rendered(&txs, "app_capi_approval").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "capi_escrow").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
-    log::debug!("Harvest tx id: {:?}", res.tx_id);
+    log::debug!("Claim tx id: {:?}", res.tx_id);
     Ok(res.tx_id.parse()?)
 }
 
-fn calculate_capi_entitled_harvest(
+fn calculate_capi_entitled_claim(
     received_total: FundsAmount,
     supply: CapiAssetAmount,
     locked_amount: CapiAssetAmount,
@@ -127,41 +127,39 @@ fn calculate_capi_entitled_harvest(
     )?))
 }
 
-pub fn max_can_harvest_amount(
+pub fn max_claimable_dividend(
     app_received_total: FundsAmount,
-    harvested_total: FundsAmount,
+    claimed_total: FundsAmount,
     locked_amount: CapiAssetAmount,
     supply: CapiAssetAmount,
     precision: u64,
 ) -> Result<FundsAmount> {
     // Note that this assumes that investor can't unlock only a part of their shares
-    // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with harvested_total, which remains unchanged.
+    // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with claimed_total, which remains unchanged.
     // the easiest solution is to expect the investor to unlock all their shares
     // if they want to sell only a part, they've to opt-in again with the shares they want to keep.
 
     let entitled_total =
-        calculate_capi_entitled_harvest(app_received_total, supply, locked_amount, precision)?;
+        calculate_capi_entitled_claim(app_received_total, supply, locked_amount, precision)?;
 
     Ok(FundsAmount::new(
         entitled_total
             .val()
-            .checked_sub(harvested_total.val())
+            .checked_sub(claimed_total.val())
             .ok_or_else(|| {
-                anyhow!(
-                    "entitled_total: {entitled_total} - harvested_total: {harvested_total} errored"
-                )
+                anyhow!("entitled_total: {entitled_total} - claimed_total: {claimed_total} errored")
             })?,
     ))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HarvestToSign {
+pub struct ClaimToSign {
     pub app_call_tx: Transaction,
-    pub harvest_tx: SignedTransaction,
+    pub claim_tx: SignedTransaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HarvestSigned {
+pub struct ClaimSigned {
     pub app_call_tx_signed: SignedTransaction,
-    pub harvest_tx: SignedTransaction,
+    pub claim_tx: SignedTransaction,
 }

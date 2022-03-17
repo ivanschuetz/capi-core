@@ -54,8 +54,8 @@ mod tests {
         // double check investor's local state
         // shares set to bought asset amount
         assert_eq!(buy_share_amount, investor_state.shares);
-        //  harvested total is 0 (hasn't harvested yet)
-        assert_eq!(FundsAmount::new(0), investor_state.harvested);
+        //  claimed total is 0 (hasn't claimed yet)
+        assert_eq!(FundsAmount::new(0), investor_state.claimed);
 
         // double check locking escrow's assets
         let locking_escrow_infos = algod
@@ -98,7 +98,7 @@ mod tests {
     }
 
     // TODO think how to implement partial unlocking: it should be common that investors want to sell only a part of their shares
-    // currently we require opt-out to prevent double harvest, REVIEW
+    // currently we require opt-out to prevent double claiming, REVIEW
     #[test]
     #[serial]
     async fn test_partial_unlock_not_allowed() -> Result<()> {
@@ -130,8 +130,8 @@ mod tests {
             central_investor_state_from_acc(&investor_infos, dao.dao.central_app_id)?;
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
-        // harvested total is 0 (hasn't harvested yet)
-        assert_eq!(FundsAmount::new(0), investor_state.harvested);
+        // claimed total is 0 (hasn't claimed yet)
+        assert_eq!(FundsAmount::new(0), investor_state.claimed);
 
         // double check locking escrow's assets
         let locking_escrow_infos = algod
@@ -175,8 +175,8 @@ mod tests {
         // investor local state not changed
         // shares set to bought asset amount
         assert_eq!(buy_asset_amount, investor_state.shares);
-        // harvested total is 0 (hasn't harvested yet)
-        assert_eq!(FundsAmount::new(0), investor_state.harvested);
+        // claimed total is 0 (hasn't claimed yet)
+        assert_eq!(FundsAmount::new(0), investor_state.claimed);
 
         // investor didn't pay fees (unlock txs failed)
         assert_eq!(investor_balance_before_unlocking, investor_infos.amount);

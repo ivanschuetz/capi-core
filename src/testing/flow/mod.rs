@@ -1,7 +1,7 @@
+pub mod claim_capi_flow;
+pub mod claim_flow;
 pub mod create_dao_flow;
 pub mod customer_payment_and_drain_flow;
-pub mod harvest_capi_flow;
-pub mod harvest_flow;
 pub mod invest_in_dao_flow;
 pub mod lock_capi_asset_flow;
 pub mod lock_flow;

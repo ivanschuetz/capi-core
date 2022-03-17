@@ -7,7 +7,7 @@ tmpl_funds_asset_id = Tmpl.Int("TMPL_FUNDS_ASSET_ID")
 tmpl_dao_creator = Tmpl.Addr("TMPL_DAO_CREATOR")
 
 GLOBAL_RECEIVED_TOTAL = "ReceivedTotal"
-LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
+LOCAL_CLAIMED_TOTAL = "ClaimedTotal"
 LOCAL_SHARES = "Shares"
 
 def program():
@@ -66,7 +66,7 @@ def program():
         Approve()
     )
 
-    handle_harvest = Seq(
+    handle_claim = Seq(
         Assert(Global.group_size() == Int(2)),
 
         # app call to verify and set dividend
@@ -77,7 +77,7 @@ def program():
 
         # xfer to transfer dividend to investor
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
-        Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the harvested asset is the funds asset 
+        Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the claimed asset is the funds asset 
         Assert(Gtxn[1].asset_amount() > Int(0)),
         Assert(Gtxn[1].fee() == Int(0)),
         Assert(Gtxn[1].asset_close_to() == Global.zero_address()),
@@ -90,7 +90,7 @@ def program():
         [Global.group_size() == Int(10), handle_setup_dao],
         # withdrawal doesn't have an app call, so no identifier
         [And(Gtxn[0].application_args.length() == Int(0), Global.group_size() == Int(2)), handle_withdrawal],
-        [Gtxn[0].application_args[0] == Bytes("harvest"), handle_harvest],
+        [Gtxn[0].application_args[0] == Bytes("claim"), handle_claim],
     )
 
     return compileTeal(program, Mode.Signature, version=5)

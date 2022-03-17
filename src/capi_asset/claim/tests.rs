@@ -7,14 +7,14 @@ mod tests {
                 CapiAppHolderState,
             },
             capi_asset_id::CapiAssetAmount,
+            claim::claim::max_claimable_dividend,
             create::test_flow::test_flow::setup_capi_asset_flow,
-            harvest::harvest::max_can_harvest_amount,
         },
         dependencies,
         funds::FundsAmount,
         state::account_state::funds_holdings,
         testing::{
-            flow::harvest_capi_flow::{harvest_capi_flow, harvest_capi_precs},
+            flow::claim_capi_flow::{claim_capi_flow, claim_capi_precs},
             network_test_util::{
                 create_and_distribute_funds_asset, test_dao_init, test_dao_init_with_deps,
                 test_init, OnChainDeps, TestDeps,
@@ -29,7 +29,7 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_harvest_max_with_repeated_fractional_shares_percentage() -> Result<()> {
+    async fn test_claim_max_with_repeated_fractional_shares_percentage() -> Result<()> {
         test_init()?;
 
         let algod = dependencies::algod_for_tests();
@@ -53,7 +53,7 @@ mod tests {
 
         let investor = &td.investor1;
 
-        // Capi tokens owned by investor, to be able to harvest
+        // Capi tokens owned by investor, to be able to claim
         let investor_capi_amount = CapiAssetAmount::new(10);
 
         let initial_capi_funds_amount = FundsAmount::new(10_000_000);
@@ -62,7 +62,7 @@ mod tests {
 
         // preconditions
 
-        let precs = harvest_capi_precs(
+        let precs = claim_capi_precs(
             td,
             &td.capi_owner,
             investor,
@@ -73,13 +73,13 @@ mod tests {
 
         // flow
 
-        let investor_funds_before_harvesting =
+        let investor_funds_before_claiming =
             funds_holdings(algod, &investor.address(), td.funds_asset_id).await?;
 
-        let capi_app_total_received_before_harvesting =
+        let capi_app_total_received_before_claiming =
             capi_app_global_state(algod, td.capi_app_id).await?.received;
 
-        let harvest_amount = max_can_harvest_amount(
+        let dividend = max_claimable_dividend(
             // the calculated capi fee is what's on the capi app (total received state) now
             precs.drain_res.drained_amounts.capi,
             FundsAmount::new(0),
@@ -88,10 +88,10 @@ mod tests {
             td.precision,
         )?;
 
-        harvest_capi_flow(
+        claim_capi_flow(
             algod,
             investor,
-            harvest_amount,
+            dividend,
             td.funds_asset_id,
             td.capi_app_id,
             &td.capi_escrow,
@@ -100,22 +100,22 @@ mod tests {
 
         // test
 
-        test_harvest_result(
+        test_dividend_result(
             &td,
             &investor.address(),
             investor_capi_amount,
-            harvest_amount,
+            dividend,
             CapiAppGlobalState {
-                // Total received didn't change (unaffected by harvesting)
-                received: capi_app_total_received_before_harvesting,
+                // Total received didn't change (unaffected by claiming)
+                received: capi_app_total_received_before_claiming,
             },
-            // Investor received the harvested funds
-            FundsAmount::new(investor_funds_before_harvesting.val() + harvest_amount.val()),
-            // Capi lost the harvested funds
-            FundsAmount::new(initial_capi_funds_amount.val() - harvest_amount.val()),
+            // Investor received the claimed funds
+            FundsAmount::new(investor_funds_before_claiming.val() + dividend.val()),
+            // Capi lost the claimed funds
+            FundsAmount::new(initial_capi_funds_amount.val() - dividend.val()),
             &CapiAppHolderState {
-                // harvested local state is what they just harvested (there wasn't anything on the escrow when the investor invested)
-                harvested: harvest_amount,
+                // claimed local state is what they just claimed (there wasn't anything on the escrow when the investor invested)
+                claimed: dividend,
                 // sanity check: the shares local state is still set to the locked shares
                 shares: investor_capi_amount,
             },
@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_harvest_max_with_repeated_fractional_shares_percentage_plus_1_fails() -> Result<()>
+    async fn test_claim_max_with_repeated_fractional_shares_percentage_plus_1_fails() -> Result<()>
     {
         test_init()?;
 
@@ -152,7 +152,7 @@ mod tests {
 
         let investor = &td.investor1;
 
-        // Capi tokens owned by investor, to be able to harvest
+        // Capi tokens owned by investor, to be able to claim
         let investor_capi_amount = CapiAssetAmount::new(10);
 
         let initial_capi_funds_amount = FundsAmount::new(10_000_000);
@@ -161,7 +161,7 @@ mod tests {
 
         // preconditions
 
-        let precs = harvest_capi_precs(
+        let precs = claim_capi_precs(
             td,
             &td.capi_owner,
             investor,
@@ -172,7 +172,7 @@ mod tests {
 
         // flow
 
-        let harvest_amount = max_can_harvest_amount(
+        let dividend = max_claimable_dividend(
             // the calculated capi fee is what's on the capi app (total received state) now
             precs.drain_res.drained_amounts.capi,
             FundsAmount::new(0),
@@ -181,11 +181,11 @@ mod tests {
             td.precision,
         )?;
 
-        // The max harvest calculation and TEAL use floor to round the decimal. TEAL will reject + 1
-        let res = harvest_capi_flow(
+        // The max dividend calculation and TEAL use floor to round the decimal. TEAL will reject + 1
+        let res = claim_capi_flow(
             algod,
             investor,
-            harvest_amount + 1,
+            dividend + 1,
             td.funds_asset_id,
             td.capi_app_id,
             &td.capi_escrow,
@@ -201,19 +201,19 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_capi_max_harvest() -> Result<()> {
+    async fn test_capi_max_claim() -> Result<()> {
         let td = &test_dao_init().await?;
         let algod = &td.algod;
         let investor = &td.investor1;
 
-        // Capi tokens owned by investor, to be able to harvest
+        // Capi tokens owned by investor, to be able to claim
         let investor_capi_amount = CapiAssetAmount::new(100_000); // 0.0001 -> 0.01 %
 
         let initial_capi_funds_amount = FundsAmount::new(200_000);
 
         // preconditions
 
-        let precs = harvest_capi_precs(
+        let precs = claim_capi_precs(
             td,
             &td.capi_owner,
             investor,
@@ -224,13 +224,13 @@ mod tests {
 
         // flow
 
-        let investor_funds_before_harvesting =
+        let investor_funds_before_claiming =
             funds_holdings(algod, &investor.address(), td.funds_asset_id).await?;
 
-        let capi_app_total_received_before_harvesting =
+        let capi_app_total_received_before_claiming =
             capi_app_global_state(algod, td.capi_app_id).await?.received;
 
-        let harvest_amount = max_can_harvest_amount(
+        let dividend = max_claimable_dividend(
             // the calculated capi fee is what's on the capi app (total received state) now
             precs.drain_res.drained_amounts.capi,
             FundsAmount::new(0),
@@ -239,10 +239,10 @@ mod tests {
             td.precision,
         )?;
 
-        harvest_capi_flow(
+        claim_capi_flow(
             algod,
             investor,
-            harvest_amount,
+            dividend,
             td.funds_asset_id,
             td.capi_app_id,
             &td.capi_escrow,
@@ -251,22 +251,22 @@ mod tests {
 
         // test
 
-        test_harvest_result(
+        test_dividend_result(
             &td,
             &investor.address(),
             investor_capi_amount,
-            harvest_amount,
+            dividend,
             CapiAppGlobalState {
-                // Total received didn't change (unaffected by harvesting)
-                received: capi_app_total_received_before_harvesting,
+                // Total received didn't change (unaffected by claiming)
+                received: capi_app_total_received_before_claiming,
             },
-            // Investor received the harvested funds
-            FundsAmount::new(investor_funds_before_harvesting.val() + harvest_amount.val()),
-            // Capi lost the harvested funds
-            FundsAmount::new(initial_capi_funds_amount.val() - harvest_amount.val()),
+            // Investor received the claimed funds
+            FundsAmount::new(investor_funds_before_claiming.val() + dividend.val()),
+            // Capi lost the claimed funds
+            FundsAmount::new(initial_capi_funds_amount.val() - dividend.val()),
             &CapiAppHolderState {
-                // harvested local state is what they just harvested (there wasn't anything on the escrow when the investor invested)
-                harvested: harvest_amount,
+                // claimed local state is what they just claimed (there wasn't anything on the escrow when the investor invested)
+                claimed: dividend,
                 // sanity check: the shares local state is still set to the locked shares
                 shares: investor_capi_amount,
             },
@@ -278,19 +278,19 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_cannot_capi_harvest_more_than_max() -> Result<()> {
+    async fn test_cannot_capi_claim_more_than_max() -> Result<()> {
         let td = &test_dao_init().await?;
         let algod = &td.algod;
         let investor = &td.investor1;
 
-        // Capi tokens owned by investor, to be able to harvest
+        // Capi tokens owned by investor, to be able to claim
         let investor_capi_amount = CapiAssetAmount::new(100_000); // 0.0001 -> 0.01 %
 
         let initial_capi_funds_amount = FundsAmount::new(200_000);
 
         // preconditions
 
-        let precs = harvest_capi_precs(
+        let precs = claim_capi_precs(
             td,
             &td.capi_owner,
             investor,
@@ -301,7 +301,7 @@ mod tests {
 
         // flow
 
-        let harvest_amount = max_can_harvest_amount(
+        let dividend = max_claimable_dividend(
             // the calculated capi fee is what's on the capi app (total received state) now
             precs.drain_res.drained_amounts.capi,
             FundsAmount::new(0),
@@ -310,11 +310,11 @@ mod tests {
             td.precision,
         )?;
 
-        let res = harvest_capi_flow(
+        let res = claim_capi_flow(
             algod,
             investor,
-            // we harvest 1 asset more than max allowed
-            harvest_amount + 1,
+            // we claim 1 asset more than max allowed
+            dividend + 1,
             td.funds_asset_id,
             td.capi_app_id,
             &td.capi_escrow,
@@ -331,19 +331,19 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_2_successful_harvests() -> Result<()> {
+    async fn test_2_successful_claims() -> Result<()> {
         let td = &test_dao_init().await?;
         let algod = &td.algod;
         let investor = &td.investor1;
 
-        // Capi tokens owned by investor, to be able to harvest
+        // Capi tokens owned by investor, to be able to claim
         let investor_capi_amount = CapiAssetAmount::new(100_000); // 0.0001 -> 0.01 %
 
         let initial_capi_funds_amount = FundsAmount::new(200_000);
 
         // preconditions
 
-        harvest_capi_precs(
+        claim_capi_precs(
             td,
             &td.capi_owner,
             investor,
@@ -354,28 +354,28 @@ mod tests {
 
         // flow
 
-        let investor_funds_before_harvesting =
+        let investor_funds_before_claiming =
             funds_holdings(algod, &investor.address(), td.funds_asset_id).await?;
 
-        let capi_app_total_received_before_harvesting =
+        let capi_app_total_received_before_claiming =
             capi_app_global_state(algod, td.capi_app_id).await?.received;
 
-        let harvest_amount = FundsAmount::new(5); // just an amount low enough so we can harvest 2x
+        let dividend = FundsAmount::new(5); // just an amount low enough so we can claim 2x
 
-        harvest_capi_flow(
+        claim_capi_flow(
             algod,
             investor,
-            harvest_amount,
+            dividend,
             td.funds_asset_id,
             td.capi_app_id,
             &td.capi_escrow,
         )
         .await?;
 
-        harvest_capi_flow(
+        claim_capi_flow(
             algod,
             investor,
-            harvest_amount,
+            dividend,
             td.funds_asset_id,
             td.capi_app_id,
             &td.capi_escrow,
@@ -384,24 +384,24 @@ mod tests {
 
         // test
 
-        let total_harvest_amount = harvest_amount * 2;
+        let total_dividend = dividend * 2;
 
-        test_harvest_result(
+        test_dividend_result(
             &td,
             &investor.address(),
             investor_capi_amount,
-            total_harvest_amount,
+            total_dividend,
             CapiAppGlobalState {
-                // Total received didn't change (unaffected by harvesting)
-                received: capi_app_total_received_before_harvesting,
+                // Total received didn't change (unaffected by claiming)
+                received: capi_app_total_received_before_claiming,
             },
-            // Investor received the harvested funds
-            investor_funds_before_harvesting + total_harvest_amount,
-            // Capi lost the harvested funds
-            FundsAmount::new(initial_capi_funds_amount.val() - total_harvest_amount.val()),
+            // Investor received the claimed funds
+            investor_funds_before_claiming + total_dividend,
+            // Capi lost the claimed funds
+            FundsAmount::new(initial_capi_funds_amount.val() - total_dividend.val()),
             &CapiAppHolderState {
-                // harvested local state is what they just harvested (there wasn't anything on the escrow when the investor invested)
-                harvested: total_harvest_amount,
+                // claimed local state is what they just claimed (there wasn't anything on the escrow when the investor invested)
+                claimed: total_dividend,
                 // sanity check: the shares local state is still set to the locked shares
                 shares: investor_capi_amount,
             },
@@ -411,11 +411,11 @@ mod tests {
         Ok(())
     }
 
-    async fn test_harvest_result(
+    async fn test_dividend_result(
         td: &TestDeps,
         investor: &Address,
         investor_capi_amount: CapiAssetAmount,
-        harvest_amount: FundsAmount,
+        dividend: FundsAmount,
 
         expected_global_state: CapiAppGlobalState,
         expected_investor_funds: FundsAmount,
@@ -424,8 +424,8 @@ mod tests {
     ) -> Result<()> {
         let algod = &td.algod;
 
-        let harvest_funds_amount = funds_holdings(algod, &investor, td.funds_asset_id).await?;
-        assert_eq!(expected_investor_funds, harvest_funds_amount);
+        let investor_funds = funds_holdings(algod, &investor, td.funds_asset_id).await?;
+        assert_eq!(expected_investor_funds, investor_funds);
 
         let capi_escrow_funds_amount =
             funds_holdings(algod, td.capi_escrow.address(), td.funds_asset_id).await?;
@@ -437,7 +437,7 @@ mod tests {
         let investor_local_state =
             capi_app_investor_state(algod, &investor, td.capi_app_id).await?;
         assert_eq!(expected_investor_local_state, &investor_local_state);
-        assert_eq!(harvest_amount.0, investor_local_state.harvested.0);
+        assert_eq!(dividend.0, investor_local_state.claimed.0);
         assert_eq!(investor_capi_amount.0, investor_local_state.shares.0);
 
         Ok(())

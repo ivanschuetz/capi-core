@@ -8,10 +8,11 @@ mod tests {
     use crate::{
         algo_helpers::send_tx_and_wait,
         flows::{
+            claim::claim::claimable_dividend,
             create_dao::share_amount::ShareAmount,
             invest::app_optins::{
                 invest_or_locking_app_optin_tx, submit_invest_or_locking_app_optin,
-            }, harvest::harvest::max_can_harvest_amount,
+            },
         },
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,
@@ -24,9 +25,9 @@ mod tests {
         },
         testing::{
             flow::{
+                claim_flow::claim_flow,
                 create_dao_flow::create_dao_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
-                harvest_flow::harvest_flow,
                 invest_in_dao_flow::{invests_flow, invests_optins_flow},
                 lock_flow::lock_flow,
                 unlock_flow::unlock_flow,
@@ -119,11 +120,11 @@ mod tests {
         let shares_asset = find_asset_holding_or_err(&investor2_assets, dao.dao.shares_asset_id)?;
         assert_eq!(0, shares_asset.amount);
 
-        // already harvested local state initialized to entitled funds
+        // already claimed local state initialized to entitled funds
 
         // the amount drained to the central (all income so far)
         let central_total_received = drain_res.drained_amounts.dao;
-        let investor2_entitled_amount = max_can_harvest_amount(
+        let investor2_entitled_amount = claimable_dividend(
             central_total_received,
             FundsAmount::new(0),
             dao.dao.specs.shares.supply,
@@ -136,8 +137,8 @@ mod tests {
             central_investor_state_from_acc(&investor2_infos, dao.dao.central_app_id)?;
         // shares local state initialized to shares
         assert_eq!(traded_shares, investor_state.shares);
-        // harvested total is initialized to entitled amount
-        assert_eq!(investor2_entitled_amount, investor_state.harvested);
+        // claimed total is initialized to entitled amount
+        assert_eq!(investor2_entitled_amount, investor_state.claimed);
 
         // renaming for clarity
         let total_withdrawn_after_locking_setup_call = investor2_entitled_amount;
@@ -150,27 +151,27 @@ mod tests {
         assert_eq!(1, locking_escrow_assets.len()); // opted in to shares
         assert_eq!(traded_shares.0, locking_escrow_assets[0].amount);
 
-        // investor2 harvests: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
-        // the harvest amount is the smallest number possible, to show that we can't retrieve anything
-        let harvest_flow_res = harvest_flow(td, &dao.dao, &td.investor2, FundsAmount::new(1)).await;
-        log::debug!("Expected error harvesting: {:?}", harvest_flow_res);
-        // If there's nothing to harvest, the smart contract fails (transfer amount > allowed)
-        assert!(harvest_flow_res.is_err());
+        // investor2 claims: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
+        // the dividend is the smallest number possible, to show that we can't retrieve anything
+        let claim_flow_res = claim_flow(td, &dao.dao, &td.investor2, FundsAmount::new(1)).await;
+        log::debug!("Expected error claiming: {:?}", claim_flow_res);
+        // If there's nothing to claim, the smart contract fails (transfer amount > allowed)
+        assert!(claim_flow_res.is_err());
 
-        // drain again to generate dividend and be able to harvest
+        // drain again to generate dividend and be able to claim
         let customer_payment_amount_2 = FundsAmount::new(10 * 1_000_000);
         let drain_res2 =
             customer_payment_and_drain_flow(td, &dao.dao, customer_payment_amount_2, drainer)
                 .await?;
 
-        // harvest again: this time there's something to harvest and we expect success
+        // claim again: this time there's something to claim and we expect success
 
         // remember state
-        let investor2_amount_before_harvest =
+        let investor2_amount_before_claim =
             funds_holdings(algod, &td.investor2.address(), td.funds_asset_id).await?;
 
-        // we'll harvest the max possible amount
-        let investor2_entitled_amount = max_can_harvest_amount(
+        // we'll claim the max possible amount
+        let investor2_entitled_amount = claimable_dividend(
             drain_res2.drained_amounts.dao,
             FundsAmount::new(0),
             dao.dao.specs.shares.supply,
@@ -179,32 +180,32 @@ mod tests {
             dao.dao.specs.investors_part(),
         )?;
         log::debug!(
-            "Harvesting max possible amount (expected to succeed): {:?}",
+            "Claiming max possible amount (expected to succeed): {:?}",
             investor2_entitled_amount
         );
-        let _ = harvest_flow(td, &dao.dao, &td.investor2, investor2_entitled_amount).await?;
+        let _ = claim_flow(td, &dao.dao, &td.investor2, investor2_entitled_amount).await?;
 
         // just a rename to help with clarity a bit
-        let expected_harvested_amount = investor2_entitled_amount;
+        let expected_claimed_amount = investor2_entitled_amount;
         let investor2_infos = algod.account_information(&td.investor2.address()).await?;
         let investor2_amount = funds_holdings_from_account(&investor2_infos, td.funds_asset_id)?;
 
-        // the balance is increased with the harvest
+        // the balance is increased with the claim
         assert_eq!(
-            investor2_amount_before_harvest + expected_harvested_amount,
+            investor2_amount_before_claim + expected_claimed_amount,
             investor2_amount
         );
 
-        // investor's harvested local state was updated:
+        // investor's claimed local state was updated:
         let investor_state =
             central_investor_state_from_acc(&investor2_infos, dao.dao.central_app_id)?;
         // the shares haven't changed
         assert_eq!(traded_shares, investor_state.shares);
-        // the harvested total was updated:
-        // initial (total_withdrawn_after_locking_setup_call: entitled amount when locking the shares) + just harvested
+        // the claimed total was updated:
+        // initial (total_withdrawn_after_locking_setup_call: entitled amount when locking the shares) + just claimed
         assert_eq!(
-            total_withdrawn_after_locking_setup_call + expected_harvested_amount,
-            investor_state.harvested
+            total_withdrawn_after_locking_setup_call + expected_claimed_amount,
+            investor_state.claimed
         );
 
         Ok(())

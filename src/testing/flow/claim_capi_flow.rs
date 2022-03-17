@@ -1,5 +1,5 @@
 #[cfg(test)]
-pub use test::{harvest_capi_flow, harvest_capi_precs};
+pub use test::{claim_capi_flow, claim_capi_precs};
 
 #[cfg(test)]
 mod test {
@@ -8,7 +8,7 @@ mod test {
             capi_app_id::CapiAppId,
             capi_asset_dao_specs::CapiAssetDaoDeps,
             capi_asset_id::CapiAssetAmount,
-            harvest::harvest::{harvest, submit_harvest, HarvestSigned},
+            claim::claim::{claim, submit_claim, ClaimSigned},
         },
         funds::{FundsAmount, FundsAssetId},
         network_util::wait_for_pending_transaction,
@@ -35,7 +35,7 @@ mod test {
     use rust_decimal::{prelude::ToPrimitive, Decimal};
     use std::{convert::TryInto, str::FromStr};
 
-    pub async fn harvest_capi_flow(
+    pub async fn claim_capi_flow(
         algod: &Algod,
         investor: &Account,
         amount: FundsAmount,
@@ -43,9 +43,9 @@ mod test {
         app_id: CapiAppId,
         capi_escrow: &ContractAccount,
     ) -> Result<()> {
-        log::debug!("Calling harvest_capi_flow, harvest amount: {amount:?}");
+        log::debug!("Calling claim_capi_flow, claim amount: {amount:?}");
 
-        let to_sign = harvest(
+        let to_sign = claim(
             &algod,
             &investor.address(),
             app_id,
@@ -56,11 +56,11 @@ mod test {
         .await?;
         let signed_app_call_tx = investor.sign_transaction(&to_sign.app_call_tx)?;
 
-        let submit_lock_tx_id = submit_harvest(
+        let submit_lock_tx_id = submit_claim(
             &algod,
-            &HarvestSigned {
+            &ClaimSigned {
                 app_call_tx_signed: signed_app_call_tx,
-                harvest_tx: to_sign.harvest_tx,
+                claim_tx: to_sign.claim_tx,
             },
         )
         .await?;
@@ -69,15 +69,15 @@ mod test {
         Ok(())
     }
 
-    pub async fn harvest_capi_precs(
+    pub async fn claim_capi_precs(
         td: &TestDeps,
         capi_creator: &Account,
-        harvester: &Account,
+        claimer: &Account,
         asset_amount: CapiAssetAmount,
-        // Fee sent to the capi escrow after the investor locks their shares. This is the amount we harvest from.
+        // Fee sent to the capi escrow after the investor locks their shares. This is the amount we claim from.
         drain_to_escrow_after_investor_locked: FundsAmount,
-    ) -> Result<HarvestTestPrecsRes> {
-        log::debug!(">>>> Calling harvest_capi_precs, drain_to_escrow_after_investor_locked: {drain_to_escrow_after_investor_locked:?}");
+    ) -> Result<ClaimTestPrecsRes> {
+        log::debug!("Calling claim_capi_precs, drain_to_escrow_after_investor_locked: {drain_to_escrow_after_investor_locked:?}");
 
         let algod = &td.algod;
 
@@ -85,8 +85,8 @@ mod test {
 
         // opt ins
 
-        optin_to_asset_submit(&algod, &harvester, td.capi_asset_id.0).await?;
-        optin_to_app_submit(&algod, &params, &harvester, td.capi_app_id.0).await?;
+        optin_to_asset_submit(&algod, &claimer, td.capi_asset_id.0).await?;
+        optin_to_app_submit(&algod, &params, &claimer, td.capi_app_id.0).await?;
 
         // send capi assets to investor
 
@@ -95,7 +95,7 @@ mod test {
             &params,
             &capi_creator,
             &capi_creator,
-            &harvester.address(),
+            &claimer.address(),
             td.capi_asset_id.0,
             asset_amount.val(),
         )
@@ -105,7 +105,7 @@ mod test {
 
         lock_capi_asset_flow(
             &algod,
-            &harvester,
+            &claimer,
             asset_amount,
             td.capi_asset_id,
             td.capi_app_id,
@@ -132,19 +132,19 @@ mod test {
             / capi_dao_deps.escrow_percentage.value();
         // unwrap: we ensured with parameters above that central_funds_decimal is an integer
         let central_funds = FundsAmount::new(central_funds_decimal.to_u64().unwrap());
-        log::debug!(">>>> Harvest precs: Will pay and drain funds: {central_funds}");
+        log::debug!("Claim precs: Will pay and drain funds: {central_funds}");
 
         // let central_funds = FundsAmount(10 * 1_000_000);
 
         let drain_res =
             customer_payment_and_drain_flow(&td, &dao.dao, central_funds, &drainer).await?;
 
-        Ok(HarvestTestPrecsRes { drain_res })
+        Ok(ClaimTestPrecsRes { drain_res })
     }
 
     // Any data we want to return from the flow to the tests
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct HarvestTestPrecsRes {
+    pub struct ClaimTestPrecsRes {
         pub drain_res: CustomerPaymentAndDrainFlowRes,
     }
 }

@@ -14,7 +14,7 @@ tmpl_funds_asset_id = Tmpl.Int("TMPL_FUNDS_ASSET_ID")
 tmpl_capi_asset_id = Tmpl.Int("TMPL_CAPI_ASSET_ID")
 
 GLOBAL_RECEIVED_TOTAL = "ReceivedTotal"
-LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
+LOCAL_CLAIMED_TOTAL = "ClaimedTotal"
 LOCAL_SHARES = "Shares"
 
 def approval_program():
@@ -30,7 +30,7 @@ def approval_program():
         Approve()
     )
     
-    total_entitled_harvest_amount = Div(
+    total_entitled_dividend = Div(
         Mul(
             Div(
                 Mul(App.localGet(Gtxn[0].sender(), Bytes(LOCAL_SHARES)), tmpl_precision), 
@@ -41,12 +41,12 @@ def approval_program():
         tmpl_precision
     )
 
-    # Calculates entitled harvest based on LOCAL_SHARES and LOCAL_HARVESTED_TOTAL.
-    # Expects harvester to be the gtxn 0 sender. 
-    entitled_harvest_amount = Minus(total_entitled_harvest_amount, App.localGet(Gtxn[0].sender(), Bytes(LOCAL_HARVESTED_TOTAL)))
-    wants_to_harvest_less_or_eq_to_entitled_amount = Ge(entitled_harvest_amount, Gtxn[1].asset_amount())
+    # Calculates entitled dividend based on LOCAL_SHARES and LOCAL_CLAIMED_TOTAL.
+    # Expects claimer to be the gtxn 0 sender. 
+    entitled_dividend = Minus(total_entitled_dividend, App.localGet(Gtxn[0].sender(), Bytes(LOCAL_CLAIMED_TOTAL)))
+    wants_to_claim_less_or_eq_to_entitled_amount = Ge(entitled_dividend, Gtxn[1].asset_amount())
 
-    handle_harvest = Seq(
+    handle_claim = Seq(
         # app call to verify and set dividend
         Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[0].application_id() == Global.current_application_id()),
@@ -56,17 +56,17 @@ def approval_program():
         # xfer to transfer dividend to investor
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].asset_amount() > Int(0)),
-        Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the harvested asset is the funds asset 
+        Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the claimed asset is the funds asset 
 
         # verify dividend amount is correct
-        Assert(wants_to_harvest_less_or_eq_to_entitled_amount),
+        Assert(wants_to_claim_less_or_eq_to_entitled_amount),
 
         # update local state with retrieved dividend
         App.localPut(
             Gtxn[0].sender(), 
-            Bytes(LOCAL_HARVESTED_TOTAL), 
+            Bytes(LOCAL_CLAIMED_TOTAL), 
             Add(
-                App.localGet(Gtxn[0].sender(), Bytes(LOCAL_HARVESTED_TOTAL)), 
+                App.localGet(Gtxn[0].sender(), Bytes(LOCAL_CLAIMED_TOTAL)), 
                 Gtxn[1].asset_amount()
             )
         ),
@@ -115,15 +115,15 @@ def approval_program():
             )
         ),
 
-        # set already harvested local state
+        # set already claimed local state
         App.localPut( 
             Gtxn[0].sender(), 
-            Bytes(LOCAL_HARVESTED_TOTAL), 
-            # NOTE that this sets HarvestedTotal to the entitled amount each time that the investor buys/locks shares
+            Bytes(LOCAL_CLAIMED_TOTAL), 
+            # NOTE that this sets claimedTotal to the entitled amount each time that the investor buys/locks shares
             # meaning that investors may lose pending dividend by buying or locking new shares
             # TODO improve? - a non TEAL way could be to just automatically retrieve pending dividend in the same group 
             # see more notes in old repo
-            entitled_harvest_amount
+            entitled_dividend
             # Gtxn[1].asset_amount()
         ),
 
@@ -166,7 +166,7 @@ def approval_program():
     program = Cond(
         [Gtxn[0].application_id() == Int(0), handle_create],
         [Global.group_size() == Int(1), handle_optin],
-        [Gtxn[0].application_args[0] == Bytes("harvest"), handle_harvest],
+        [Gtxn[0].application_args[0] == Bytes("claim"), handle_claim],
         [Gtxn[0].application_args[0] == Bytes("lock"), handle_lock],
         [Gtxn[0].application_args[0] == Bytes("unlock"), handle_unlock],
         [Gtxn[0].application_args[0] == Bytes("drain"), handle_drain],

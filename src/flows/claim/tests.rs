@@ -4,11 +4,11 @@ mod tests {
 
     use crate::{
         flows::{
+            claim::claim::claimable_dividend,
             create_dao::{
                 create_dao_specs::CreateDaoSpecs, model::CreateSharesSpecs,
                 share_amount::ShareAmount,
             },
-            harvest::harvest::max_can_harvest_amount,
         },
         funds::{FundsAmount, FundsAssetId},
         state::{
@@ -16,7 +16,7 @@ mod tests {
             central_app_state::{central_global_state, central_investor_state_from_acc},
         },
         testing::{
-            flow::harvest_flow::{harvest_flow, harvest_precs},
+            flow::claim_flow::{claim_flow, claim_precs},
             network_test_util::{test_dao_init, TestDeps},
             TESTS_DEFAULT_PRECISION,
         },
@@ -29,12 +29,12 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_max_harvest() -> Result<()> {
+    async fn test_claim_max() -> Result<()> {
         let td = test_dao_init().await?;
         let algod = &td.algod;
 
         let drainer = &td.investor1;
-        let harvester = &td.investor2;
+        let claimer = &td.investor2;
 
         // flow
 
@@ -42,16 +42,16 @@ mod tests {
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
 
-        let precs = harvest_precs(
+        let precs = claim_precs(
             &td,
             buy_share_amount,
             pay_and_drain_amount,
             drainer,
-            harvester,
+            claimer,
         )
         .await?;
 
-        let harvest_amount = max_can_harvest_amount(
+        let dividend = claimable_dividend(
             precs.drain_res.drained_amounts.dao,
             FundsAmount::new(0),
             td.specs.shares.supply,
@@ -60,26 +60,26 @@ mod tests {
             td.specs.investors_part(),
         )?;
 
-        let res = harvest_flow(&td, &precs.dao, harvester, harvest_amount).await?;
+        let res = claim_flow(&td, &precs.dao, claimer, dividend).await?;
 
         // test
 
-        test_harvest_result(
+        test_claim_result(
             &algod,
-            &harvester,
+            &claimer,
             res.dao.central_app_id,
             td.funds_asset_id,
             res.dao.central_escrow.address(),
             res.dao.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
-            // harvester got the amount
-            res.harvester_balance_before_harvesting + res.harvest,
+            // claimer got the amount
+            res.claimer_balance_before_claiming + res.claimed,
             // central lost the amount
-            precs.central_escrow_balance_after_drain - res.harvest,
+            precs.central_escrow_balance_after_drain - res.claimed,
             // double check shares local state
             buy_share_amount,
-            // only one harvest: local state is the harvested amount
-            res.harvest,
+            // only one dividend: local state is the claimed amount
+            res.claimed,
         )
         .await?;
 
@@ -88,12 +88,12 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_cannot_harvest_more_than_max() -> Result<()> {
+    async fn test_cannot_claim_more_than_max() -> Result<()> {
         let td = test_dao_init().await?;
         let algod = &td.algod;
 
         let drainer = &td.investor1;
-        let harvester = &td.investor2;
+        let claimer = &td.investor2;
 
         // precs
 
@@ -101,17 +101,17 @@ mod tests {
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
         let precision = TESTS_DEFAULT_PRECISION;
 
-        let precs = harvest_precs(
+        let precs = claim_precs(
             &td,
             buy_share_amount,
             pay_and_drain_amount,
             drainer,
-            harvester,
+            claimer,
         )
         .await?;
 
         let central_state = central_global_state(&algod, precs.dao.central_app_id).await?;
-        let harvest_amount = max_can_harvest_amount(
+        let claim_amount = claimable_dividend(
             central_state.received,
             FundsAmount::new(0),
             td.specs.shares.supply,
@@ -119,12 +119,12 @@ mod tests {
             precision,
             td.specs.investors_part(),
         )?;
-        log::debug!("Harvest amount: {}", harvest_amount);
+        log::debug!("Claim amount: {}", claim_amount);
 
         // flow
 
-        // we harvest 1 asset more than max allowed
-        let res = harvest_flow(&td, &precs.dao, &harvester, harvest_amount + 1).await;
+        // we claim 1 asset more than max allowed
+        let res = claim_flow(&td, &precs.dao, &claimer, claim_amount + 1).await;
         log::debug!("res: {:?}", res);
 
         // test
@@ -136,12 +136,12 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_harvest_max_with_repeated_fractional_shares_percentage() -> Result<()> {
+    async fn test_claim_max_with_repeated_fractional_shares_percentage() -> Result<()> {
         let td = test_fractional_deps().await?;
         let algod = &td.algod;
 
         let drainer = &td.investor1;
-        let harvester = &td.investor2;
+        let claimer = &td.investor2;
 
         // precs
 
@@ -150,19 +150,19 @@ mod tests {
         let precision = TESTS_DEFAULT_PRECISION;
         // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
 
-        let precs = harvest_precs(
+        let precs = claim_precs(
             &td,
             buy_share_amount,
             pay_and_drain_amount,
             &drainer,
-            &harvester,
+            &claimer,
         )
         .await?;
 
         let central_state = central_global_state(&algod, precs.dao.central_app_id).await?;
         log::debug!("central_total_received: {:?}", central_state.received);
 
-        let harvest_amount = max_can_harvest_amount(
+        let dividend = claimable_dividend(
             central_state.received,
             FundsAmount::new(0),
             td.specs.shares.supply,
@@ -170,30 +170,30 @@ mod tests {
             precision,
             td.specs.investors_part(),
         )?;
-        log::debug!("Harvest amount: {}", harvest_amount);
+        log::debug!("dividend: {}", dividend);
 
         // flow
 
-        let res = harvest_flow(&td, &precs.dao, &harvester, harvest_amount).await?;
+        let res = claim_flow(&td, &precs.dao, &claimer, dividend).await?;
 
         // test
 
-        test_harvest_result(
+        test_claim_result(
             &algod,
-            &harvester,
+            &claimer,
             res.dao.central_app_id,
             td.funds_asset_id,
             res.dao.central_escrow.address(),
             res.dao.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
-            // harvester got the amount
-            res.harvester_balance_before_harvesting + res.harvest,
+            // claimer got the amount
+            res.claimer_balance_before_claiming + res.claimed,
             // central lost the amount
-            precs.central_escrow_balance_after_drain - res.harvest,
+            precs.central_escrow_balance_after_drain - res.claimed,
             // double check shares local state
             buy_share_amount,
-            // only one harvest: local state is the harvested amount
-            res.harvest,
+            // only one claim: local state is the claimed amount
+            res.claimed,
         )
         .await?;
 
@@ -202,13 +202,13 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_harvest_max_with_repeated_fractional_shares_percentage_plus_1_fails() -> Result<()>
+    async fn test_claim_max_with_repeated_fractional_shares_percentage_plus_1_fails() -> Result<()>
     {
         let td = test_fractional_deps().await?;
         let algod = &td.algod;
 
         let drainer = &td.investor1;
-        let harvester = &td.investor2;
+        let claimer = &td.investor2;
 
         // precs
 
@@ -217,19 +217,19 @@ mod tests {
         let precision = TESTS_DEFAULT_PRECISION;
         // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
 
-        let precs = harvest_precs(
+        let precs = claim_precs(
             &td,
             buy_share_amount,
             pay_and_drain_amount,
             &drainer,
-            &harvester,
+            &claimer,
         )
         .await?;
 
         let central_state = central_global_state(&algod, precs.dao.central_app_id).await?;
         log::debug!("central_total_received: {:?}", central_state.received);
 
-        let harvest_amount = max_can_harvest_amount(
+        let dividend = claimable_dividend(
             central_state.received,
             FundsAmount::new(0),
             td.specs.shares.supply,
@@ -237,12 +237,12 @@ mod tests {
             precision,
             td.specs.investors_part(),
         )?;
-        log::debug!("Harvest amount: {}", harvest_amount);
+        log::debug!("Dividend: {}", dividend);
 
         // flow
 
-        // The max harvest calculation and TEAL use floor to round the decimal. TEAL will reject + 1
-        let res = harvest_flow(&td, &precs.dao, &harvester, harvest_amount + 1).await;
+        // The claimable dividend calculation and TEAL use floor to round the decimal. TEAL will reject + 1
+        let res = claim_flow(&td, &precs.dao, &claimer, dividend + 1).await;
 
         // test
 
@@ -272,86 +272,85 @@ mod tests {
 
     #[test]
     #[serial]
-    async fn test_2_successful_harvests() -> Result<()> {
+    async fn test_2_successful_claims() -> Result<()> {
         let td = test_dao_init().await?;
         let algod = &td.algod;
 
         let drainer = &td.investor1;
-        let harvester = &td.investor2;
+        let claimer = &td.investor2;
 
         // flow
 
         let buy_share_amount = ShareAmount::new(20);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
-        let harvest_amount = FundsAmount::new(200_000); // just an amount low enough so we can harvest 2x
+        let dividend = FundsAmount::new(200_000); // just an amount low enough so we can claim 2x
 
-        let precs = harvest_precs(
+        let precs = claim_precs(
             &td,
             buy_share_amount,
             pay_and_drain_amount,
             &drainer,
-            &harvester,
+            &claimer,
         )
         .await?;
-        let res1 = harvest_flow(&td, &precs.dao, &harvester, harvest_amount).await?;
-        let res2 = harvest_flow(&td, &precs.dao, &harvester, harvest_amount).await?;
+        let res1 = claim_flow(&td, &precs.dao, &claimer, dividend).await?;
+        let res2 = claim_flow(&td, &precs.dao, &claimer, dividend).await?;
 
         // test
 
-        let total_expected_harvested_amount = res1.harvest + res2.harvest;
-        test_harvest_result(
+        let total_expected_claimed_amount = res1.claimed + res2.claimed;
+        test_claim_result(
             &algod,
-            &harvester,
+            &claimer,
             res2.dao.central_app_id,
             td.funds_asset_id,
             res2.dao.central_escrow.address(),
             res2.dao.customer_escrow.address(),
             precs.drain_res.drained_amounts.dao,
-            // 2 harvests: asset balance is the total harvested amount
-            res1.harvester_balance_before_harvesting + total_expected_harvested_amount,
+            // 2 claims: asset balance is the total claimed amount
+            res1.claimer_balance_before_claiming + total_expected_claimed_amount,
             // central lost the amount
-            precs.central_escrow_balance_after_drain - total_expected_harvested_amount,
+            precs.central_escrow_balance_after_drain - total_expected_claimed_amount,
             // double check shares local state
             buy_share_amount,
-            // 2 harvests: local state is the total harvested amount
-            total_expected_harvested_amount,
+            // 2 claims: local state is the total claimed amount
+            total_expected_claimed_amount,
         )
         .await?;
 
         Ok(())
     }
 
-    // TODO like test_2_successful_harvests but not enough funds for 2nd harvest
-    // (was accidentally partly tested with test_2_successful_harvests, as the default accounts didn't have enough funds for the 2nd harvest,
+    // TODO like test_2_successful_claims but not enough funds for 2nd claim
+    // (was accidentally partly tested with test_2_successful_claims, as the default accounts didn't have enough funds for the 2nd claim,
     // but should be a permanent test of course)
 
-    async fn test_harvest_result(
+    async fn test_claim_result(
         algod: &Algod,
-        harvester: &Account,
+        claimer: &Account,
         central_app_id: u64,
         funds_asset_id: FundsAssetId,
         central_escrow_address: &Address,
         customer_escrow_address: &Address,
-        // this parameter isn't ideal: it assumes that we did a (one) drain before harvesting
+        // this parameter isn't ideal: it assumes that we did a (one) drain before claiming
         // for now letting it there as it's a quick refactoring
-        // arguably needed, it tests basically that the total received global state isn't affected by harvests
+        // arguably needed, it tests basically that the total received global state isn't affected by claiming
         // (otherwise this is/should be already tested in the drain logic)
         drained_amount: FundsAmount,
-        expected_harvester_balance: FundsAmount,
+        expected_claimer_balance: FundsAmount,
         expected_central_balance: FundsAmount,
         expected_shares: ShareAmount,
-        expected_harvested_total: FundsAmount,
+        expected_claimed_total: FundsAmount,
     ) -> Result<()> {
-        let harvest_funds_amount =
-            funds_holdings(algod, &harvester.address(), funds_asset_id).await?;
+        let claim_funds_amount = funds_holdings(algod, &claimer.address(), funds_asset_id).await?;
         let central_escrow_funds_amount =
             funds_holdings(algod, central_escrow_address, funds_asset_id).await?;
 
-        assert_eq!(expected_harvester_balance, harvest_funds_amount);
+        assert_eq!(expected_claimer_balance, claim_funds_amount);
         assert_eq!(expected_central_balance, central_escrow_funds_amount);
 
         // the total received didn't change
-        // (i.e. same as expected after draining, harvesting doesn't affect it)
+        // (i.e. same as expected after draining, claiming doesn't affect it)
         let global_state = central_global_state(algod, central_app_id).await?;
         assert_eq!(global_state.received, drained_amount);
 
@@ -359,19 +358,19 @@ mod tests {
         assert_eq!(&global_state.central_escrow, central_escrow_address);
         assert_eq!(&global_state.customer_escrow, customer_escrow_address);
 
-        // harvester local state: test that it was incremented by amount harvested
+        // claimer local state: test that it was incremented by amount claimed
         // Only one local variable used
-        let harvester_account = algod.account_information(&harvester.address()).await?;
-        assert_eq!(1, harvester_account.apps_local_state.len());
+        let claimer_account = algod.account_information(&claimer.address()).await?;
+        assert_eq!(1, claimer_account.apps_local_state.len());
 
         // check local state
 
-        let investor_state = central_investor_state_from_acc(&harvester_account, central_app_id)?;
+        let investor_state = central_investor_state_from_acc(&claimer_account, central_app_id)?;
 
         // double-check shares count (not directly related to this test)
         assert_eq!(expected_shares, investor_state.shares);
-        // check harvested total local state
-        assert_eq!(expected_harvested_total, investor_state.harvested);
+        // check claimed total local state
+        assert_eq!(expected_claimed_total, investor_state.claimed);
 
         Ok(())
     }

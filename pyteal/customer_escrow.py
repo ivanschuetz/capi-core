@@ -7,7 +7,7 @@ tmpl_central_escrow_address = Tmpl.Addr("TMPL_CENTRAL_ESCROW_ADDRESS")
 tmpl_capi_escrow_address = Tmpl.Addr("TMPL_CAPI_ESCROW_ADDRESS")
 
 GLOBAL_RECEIVED_TOTAL = "ReceivedTotal"
-LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
+LOCAL_CLAIMED_TOTAL = "ClaimedTotal"
 LOCAL_SHARES = "Shares"
 
 def program():

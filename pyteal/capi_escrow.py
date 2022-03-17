@@ -7,7 +7,7 @@ tmpl_funds_asset_id = Tmpl.Int("TMPL_FUNDS_ASSET_ID")
 tmpl_capi_asset_id = Tmpl.Int("TMPL_CAPI_ASSET_ID")
 
 GLOBAL_RECEIVED_TOTAL = "ReceivedTotal"
-LOCAL_HARVESTED_TOTAL = "HarvestedTotal"
+LOCAL_CLAIMED_TOTAL = "ClaimedTotal"
 LOCAL_SHARES = "Shares"
 
 def program():
@@ -55,7 +55,7 @@ def program():
         Approve()
     )
 
-    handle_harvest = Seq(
+    handle_claim = Seq(
         Assert(Global.group_size() == Int(2)),
 
         # app call to calculate and set dividend
@@ -67,7 +67,7 @@ def program():
         # xfer with dividend
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[1].asset_amount() > Int(0)),
-        Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the harvested asset is the funds asset 
+        Assert(Gtxn[1].xfer_asset() == tmpl_funds_asset_id), # the claimed asset is the funds asset 
         Assert(Gtxn[1].fee() == Int(0)),
         Assert(Gtxn[1].asset_close_to() == Global.zero_address()),
         Assert(Gtxn[1].rekey_to() == Global.zero_address()),
@@ -79,7 +79,7 @@ def program():
         [Global.group_size() == Int(10), handle_setup],
         [Global.group_size() == Int(3), handle_setup],
         [Gtxn[0].application_args[0] == Bytes("unlock"), handle_unlock],
-        [Gtxn[0].application_args[0] == Bytes("harvest"), handle_harvest],
+        [Gtxn[0].application_args[0] == Bytes("claim"), handle_claim],
     )
 
     return compileTeal(program, Mode.Signature, version=5)

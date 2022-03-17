@@ -44,8 +44,8 @@ pub mod test {
         let investor_state = capi_app_investor_state_from_acc(&investor_infos, capi_app_id)?;
         // shares local state initialized to shares
         assert_eq!(locked_amount, investor_state.shares);
-        // harvested total is initialized to entitled amount, which at this point is 0 because the escrow doesn't have any funds
-        assert_eq!(FundsAmount::new(0), investor_state.harvested);
+        // claimed total is initialized to entitled amount, which at this point is 0 because the escrow doesn't have any funds
+        assert_eq!(FundsAmount::new(0), investor_state.claimed);
 
         Ok(())
     }

@@ -10,11 +10,11 @@ use crate::{
     },
 };
 
-pub async fn harvest_diagnostics(
+pub async fn claim_diagnostics(
     algod: &Algod,
     investor: &Address,
     dao: &Dao,
-) -> Result<HarvestDiagnostics> {
+) -> Result<ClaimDiagnostics> {
     let central_total_received = central_global_state(algod, dao.central_app_id)
         .await?
         .received;
@@ -28,33 +28,33 @@ pub async fn harvest_diagnostics(
     let customer_escrow_balance =
         funds_holdings(algod, dao.customer_escrow.address(), dao.funds_asset_id).await?;
 
-    Ok(HarvestDiagnostics {
+    Ok(ClaimDiagnostics {
         central_total_received,
-        already_harvested: central_investor_state.harvested,
+        already_claimed: central_investor_state.claimed,
         central_balance,
         customer_escrow_balance,
         investor_share_amount: central_investor_state.shares,
     })
 }
 
-pub struct HarvestDiagnostics {
+pub struct ClaimDiagnostics {
     pub central_total_received: FundsAmount,
-    pub already_harvested: FundsAmount,
+    pub already_claimed: FundsAmount,
     pub central_balance: FundsAmount,
     pub customer_escrow_balance: FundsAmount,
     // pub investor_balance: Funds,
     pub investor_share_amount: ShareAmount,
 }
 
-pub async fn log_harvest_diagnostics(algod: &Algod, investor: &Address, dao: &Dao) -> Result<()> {
-    let diag = harvest_diagnostics(algod, investor, dao).await?;
+pub async fn log_claim_diagnostics(algod: &Algod, investor: &Address, dao: &Dao) -> Result<()> {
+    let diag = claim_diagnostics(algod, investor, dao).await?;
 
     log::info!("//////////////////////////////////////////////////////////");
-    log::info!("// harvest diagnostics");
+    log::info!("// claim diagnostics");
     log::info!("//////////////////////////////////////////////////////////");
 
     log::info!("central_total_received: {:?}", diag.central_total_received);
-    log::info!("already_harvested: {:?}", diag.already_harvested);
+    log::info!("already_claimed: {:?}", diag.already_claimed);
     log::info!("central_balance: {:?}", diag.central_balance);
     log::info!(
         "customer_escrow_balance: {:?}",

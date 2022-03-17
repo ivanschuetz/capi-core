@@ -21,46 +21,46 @@ use serde::{Deserialize, Serialize};
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 
-pub async fn harvest(
+pub async fn claim(
     algod: &Algod,
-    harvester: &Address,
+    claimer: &Address,
     central_app_id: u64,
     funds_asset_id: FundsAssetId,
     amount: FundsAmount,
     central_escrow: &ContractAccount,
-) -> Result<HarvestToSign> {
-    log::debug!("Generating harvest txs, harvester: {:?}, central_app_id: {:?}, amount: {:?}, central_escrow: {:?}", harvester, central_app_id, amount, central_escrow);
+) -> Result<ClaimToSign> {
+    log::debug!("Generating claim txs, claimer: {:?}, central_app_id: {:?}, amount: {:?}, central_escrow: {:?}", claimer, central_app_id, amount, central_escrow);
     let params = algod.suggested_transaction_params().await?;
 
-    // App call to update user's local state with harvested amount
-    let app_call_tx = &mut harvest_app_call_tx(central_app_id, &params, harvester)?;
+    // App call to update user's local state with claimed amount
+    let app_call_tx = &mut claim_app_call_tx(central_app_id, &params, claimer)?;
 
     // Funds transfer from escrow to creator
-    let harvest_tx = &mut TxnBuilder::with_fee(
+    let claim_tx = &mut TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),
         TransferAsset::new(
             *central_escrow.address(),
             funds_asset_id.0,
             amount.val(),
-            *harvester,
+            *claimer,
         )
         .build(),
     )
     .build()?;
 
-    app_call_tx.fee = calculate_total_fee(&params, &[app_call_tx, harvest_tx])?;
-    TxGroup::assign_group_id(&mut [app_call_tx, harvest_tx])?;
+    app_call_tx.fee = calculate_total_fee(&params, &[app_call_tx, claim_tx])?;
+    TxGroup::assign_group_id(&mut [app_call_tx, claim_tx])?;
 
-    let signed_harvest_tx = central_escrow.sign(harvest_tx, vec![])?;
+    let signed_claim_tx = central_escrow.sign(claim_tx, vec![])?;
 
-    Ok(HarvestToSign {
+    Ok(ClaimToSign {
         app_call_tx: app_call_tx.clone(),
-        harvest_tx: signed_harvest_tx,
+        claim_tx: signed_claim_tx,
     })
 }
 
-pub fn harvest_app_call_tx(
+pub fn claim_app_call_tx(
     app_id: u64,
     params: &SuggestedTransactionParams,
     sender: &Address,
@@ -68,36 +68,36 @@ pub fn harvest_app_call_tx(
     let tx = TxnBuilder::with(
         params,
         CallApplication::new(*sender, app_id)
-            .app_arguments(vec!["harvest".as_bytes().to_vec()])
+            .app_arguments(vec!["claim".as_bytes().to_vec()])
             .build(),
     )
     .build()?;
     Ok(tx)
 }
 
-pub async fn submit_harvest(algod: &Algod, signed: &HarvestSigned) -> Result<TxId> {
-    log::debug!("Submit harvest..");
+pub async fn submit_claim(algod: &Algod, signed: &ClaimSigned) -> Result<TxId> {
+    log::debug!("Submit claim..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
-    let txs = vec![signed.app_call_tx_signed.clone(), signed.harvest_tx.clone()];
+    let txs = vec![signed.app_call_tx_signed.clone(), signed.claim_tx.clone()];
     // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "central_escrow").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
-    log::debug!("Harvest tx id: {:?}", res.tx_id);
+    log::debug!("Claim tx id: {:?}", res.tx_id);
     Ok(res.tx_id.parse()?)
 }
 
-/// The total harvest amount the investor is entitled to, based on locked shares and the total received global state.
-/// Does not account for already harvested funds.
-fn total_entitled_harvest(
+/// The total claim amount the investor is entitled to, based on locked shares and the total received global state.
+/// Does not account for already claimed funds.
+fn total_entitled_dividend(
     central_received_total: FundsAmount,
     share_supply: ShareAmount,
     locked_amount: ShareAmount,
     precision: u64,
     investors_part: ShareAmount,
 ) -> Result<FundsAmount> {
-    log::debug!("Calculating entitled harvest, central_received_total: {central_received_total:?}, share_supply: {share_supply:?}, locked_amount: {locked_amount:?}, precision: {precision:?}, investors_part: {investors_part:?}");
+    log::debug!("Calculating entitled claim, central_received_total: {central_received_total:?}, share_supply: {share_supply:?}, locked_amount: {locked_amount:?}, precision: {precision:?}, investors_part: {investors_part:?}");
 
     // for easier understanding we use the same arithmetic as in TEAL
 
@@ -151,21 +151,21 @@ fn total_entitled_harvest(
     )?))
 }
 
-/// The max amount an investor can harvest, based on locked shares, total received global state and the already harvested amount.
-pub fn max_can_harvest_amount(
+/// The max amount an investor can claim, based on locked shares, total received global state and the already claimed amount.
+pub fn claimable_dividend(
     central_received_total: FundsAmount,
-    harvested_total: FundsAmount,
+    claimed_total: FundsAmount,
     share_supply: ShareAmount,
     share_amount: ShareAmount,
     precision: u64,
     investors_part: ShareAmount,
 ) -> Result<FundsAmount> {
     // Note that this assumes that investor can't unlock only a part of their shares
-    // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with harvested_total, which remains unchanged.
+    // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with claimed_total, which remains unchanged.
     // the easiest solution is to expect the investor to unlock all their shares
     // if they want to sell only a part, they've to opt-in again with the shares they want to keep.
 
-    let entitled_total = total_entitled_harvest(
+    let entitled_total = total_entitled_dividend(
         central_received_total,
         share_supply,
         share_amount,
@@ -176,23 +176,21 @@ pub fn max_can_harvest_amount(
     Ok(FundsAmount::new(
         entitled_total
             .val()
-            .checked_sub(harvested_total.val())
+            .checked_sub(claimed_total.val())
             .ok_or_else(|| {
-                anyhow!(
-                    "entitled_total: {entitled_total} - harvested_total: {harvested_total} errored"
-                )
+                anyhow!("entitled_total: {entitled_total} - claimed_total: {claimed_total} errored")
             })?,
     ))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HarvestToSign {
+pub struct ClaimToSign {
     pub app_call_tx: Transaction,
-    pub harvest_tx: SignedTransaction,
+    pub claim_tx: SignedTransaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HarvestSigned {
+pub struct ClaimSigned {
     pub app_call_tx_signed: SignedTransaction,
-    pub harvest_tx: SignedTransaction,
+    pub claim_tx: SignedTransaction,
 }
