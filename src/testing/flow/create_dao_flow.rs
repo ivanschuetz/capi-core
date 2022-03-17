@@ -4,9 +4,7 @@ pub use test::{capi_programs, create_dao_flow, programs, CreateDaoFlowRes};
 #[cfg(test)]
 pub mod test {
     use crate::flows::create_dao::storage::load_dao::DaoId;
-    use crate::flows::create_dao::storage::save_dao::{
-        save_dao, submit_save_dao, SaveDaoSigned,
-    };
+    use crate::flows::create_dao::storage::save_dao::{save_dao, submit_save_dao, SaveDaoSigned};
     use crate::flows::create_dao::{
         create_dao::{create_dao_txs, submit_create_dao, CapiPrograms},
         model::{CreateDaoSigned, Dao},
@@ -43,10 +41,10 @@ pub mod test {
 
         let signed_create_shares_tx = td
             .creator
-            .sign_transaction(&create_assets_txs.create_shares_tx)?;
+            .sign_transaction(create_assets_txs.create_shares_tx)?;
         let signed_create_app_tx = td
             .creator
-            .sign_transaction(&create_assets_txs.create_app_tx)?;
+            .sign_transaction(create_assets_txs.create_app_tx)?;
 
         let create_assets_res = submit_create_assets(
             algod,
@@ -73,13 +71,13 @@ pub mod test {
 
         let mut signed_funding_txs = vec![];
         for tx in to_sign.escrow_funding_txs {
-            signed_funding_txs.push(td.creator.sign_transaction(&tx)?);
+            signed_funding_txs.push(td.creator.sign_transaction(tx)?);
         }
-        let signed_setup_app_tx = td.creator.sign_transaction(&to_sign.setup_app_tx)?;
+        let signed_setup_app_tx = td.creator.sign_transaction(to_sign.setup_app_tx)?;
 
         let signed_xfer_shares_to_invest_escrow = td
             .creator
-            .sign_transaction(&to_sign.xfer_shares_to_invest_escrow)?;
+            .sign_transaction(to_sign.xfer_shares_to_invest_escrow)?;
 
         // Create the asset (submit signed tx) and generate escrow funding tx
         // Note that the escrow is generated after the asset, because it uses the asset id (in teal, inserted with template)
@@ -107,7 +105,7 @@ pub mod test {
         log::debug!("Created dao: {:?}", create_res.dao);
 
         let save_res = save_dao(algod, &td.creator.address(), &create_res.dao).await?;
-        let signed_save_dao = td.creator.sign_transaction(&save_res.tx)?;
+        let signed_save_dao = td.creator.sign_transaction(save_res.tx)?;
 
         let submit_save_dao_tx_id = submit_save_dao(
             &algod,

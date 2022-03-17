@@ -4,9 +4,7 @@ pub use test::lock_flow;
 #[cfg(test)]
 pub mod test {
     use crate::flows::create_dao::model::Dao;
-    use crate::flows::create_dao::{
-        share_amount::ShareAmount, storage::load_dao::DaoId,
-    };
+    use crate::flows::create_dao::{share_amount::ShareAmount, storage::load_dao::DaoId};
     use crate::flows::lock::lock::{lock, submit_lock, LockSigned};
     use crate::network_util::wait_for_pending_transaction;
     use algonaut::{algod::v2::Algod, transaction::account::Account};
@@ -31,9 +29,9 @@ pub mod test {
         .await?;
 
         let signed_app_call_tx =
-            investor.sign_transaction(&lock_to_sign.central_app_call_setup_tx)?;
+            investor.sign_transaction(lock_to_sign.central_app_call_setup_tx)?;
 
-        let signed_shares_xfer_tx = investor.sign_transaction(&lock_to_sign.shares_xfer_tx)?;
+        let signed_shares_xfer_tx = investor.sign_transaction(lock_to_sign.shares_xfer_tx)?;
         let tx_id = submit_lock(
             algod,
             LockSigned {

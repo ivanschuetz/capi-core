@@ -54,7 +54,7 @@ mod test {
             capi_escrow,
         )
         .await?;
-        let signed_app_call_tx = investor.sign_transaction(&to_sign.app_call_tx)?;
+        let signed_app_call_tx = investor.sign_transaction(to_sign.app_call_tx)?;
 
         let submit_lock_tx_id = submit_claim(
             &algod,

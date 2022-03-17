@@ -201,7 +201,7 @@ mod test {
         )
         .build()?;
 
-        let signed_t = creator.sign_transaction(&t)?;
+        let signed_t = creator.sign_transaction(t)?;
 
         let p_tx = send_tx_and_wait(&algod, &signed_t).await?;
         let asset_id = p_tx
@@ -251,22 +251,22 @@ mod test {
         receiver: &Account,
     ) -> Result<()> {
         // optin the receiver to the asset
-        let optin_tx = &mut TxnBuilder::with(
+        let mut optin_tx = TxnBuilder::with(
             params,
             AcceptAsset::new(receiver.address(), asset_id).build(),
         )
         .build()?;
 
-        let fund_tx = &mut TxnBuilder::with(
+        let mut fund_tx = TxnBuilder::with(
             params,
             TransferAsset::new(sender.address(), asset_id, amount.0, receiver.address()).build(),
         )
         .build()?;
 
-        TxGroup::assign_group_id(&mut [optin_tx, fund_tx])?;
+        TxGroup::assign_group_id(&mut [&mut optin_tx, &mut fund_tx])?;
 
-        let optin_tx_signed = receiver.sign_transaction(&optin_tx)?;
-        let fund_tx_signed = sender.sign_transaction(&fund_tx)?;
+        let optin_tx_signed = receiver.sign_transaction(optin_tx)?;
+        let fund_tx_signed = sender.sign_transaction(fund_tx)?;
 
         send_txs_and_wait(&algod, &[optin_tx_signed, fund_tx_signed]).await?;
 
@@ -283,12 +283,12 @@ mod test {
         sender: &Account,
         receiver: &Address,
     ) -> Result<()> {
-        let fund_tx = &mut TxnBuilder::with(
+        let fund_tx = TxnBuilder::with(
             params,
             TransferAsset::new(sender.address(), asset_id, amount.0, *receiver).build(),
         )
         .build()?;
-        let fund_tx_signed = sender.sign_transaction(&fund_tx)?;
+        let fund_tx_signed = sender.sign_transaction(fund_tx)?;
         send_tx_and_wait(&algod, &fund_tx_signed).await?;
         Ok(())
     }

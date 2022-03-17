@@ -69,7 +69,7 @@ mod tests {
 
         // investor2 opts in to the asset (this is done in the external service, e.g. dex)
         let params = algod.suggested_transaction_params().await?;
-        let shares_optin_tx = &mut TxnBuilder::with(
+        let shares_optin_tx = TxnBuilder::with(
             &params,
             AcceptAsset::new(td.investor2.address(), dao.dao.shares_asset_id).build(),
         )
@@ -78,7 +78,7 @@ mod tests {
         send_tx_and_wait(algod, &signed_shares_optin_tx).await?;
 
         // investor1 sends shares to investor2 (e.g. as part of atomic swap in a dex)
-        let trade_tx = &mut TxnBuilder::with(
+        let trade_tx = TxnBuilder::with(
             &params,
             TransferAsset::new(
                 td.investor1.address(),
@@ -99,7 +99,7 @@ mod tests {
         let app_optin_tx =
             invest_or_locking_app_optin_tx(&algod, &dao.dao, &td.investor2.address()).await?;
 
-        let app_optin_signed_tx = td.investor2.sign_transaction(&app_optin_tx)?;
+        let app_optin_signed_tx = td.investor2.sign_transaction(app_optin_tx)?;
         let app_optin_tx_id =
             submit_invest_or_locking_app_optin(&algod, app_optin_signed_tx).await?;
         wait_for_pending_transaction(&algod, &app_optin_tx_id).await?;
@@ -257,7 +257,7 @@ mod tests {
         // optin to app
         let app_optins_tx =
             invest_or_locking_app_optin_tx(algod, &dao.dao, &investor.address()).await?;
-        let app_optin_signed_tx = investor.sign_transaction(&app_optins_tx)?;
+        let app_optin_signed_tx = investor.sign_transaction(app_optins_tx)?;
         let app_optin_tx_id =
             submit_invest_or_locking_app_optin(algod, app_optin_signed_tx).await?;
         wait_for_pending_transaction(algod, &app_optin_tx_id).await?;

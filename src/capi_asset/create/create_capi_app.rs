@@ -141,7 +141,7 @@ mod tests {
         )
         .await?;
 
-        let signed_tx = creator.sign_transaction(&tx)?;
+        let signed_tx = creator.sign_transaction(tx)?;
         let p_tx = send_tx_and_wait(&algod, &signed_tx).await?;
 
         assert!(p_tx.application_index.is_some());
@@ -165,19 +165,27 @@ mod tests {
         let params_global_schema = app.params.global_state_schema.as_ref().unwrap();
         let params_local_schema = app.params.local_state_schema.as_ref().unwrap();
         assert_eq!(
-            global_state_schema(&tx)?.unwrap().number_ints,
+            global_state_schema(&signed_tx.transaction)?
+                .unwrap()
+                .number_ints,
             params_global_schema.num_uint
         );
         assert_eq!(
-            global_state_schema(&tx)?.unwrap().number_byteslices,
+            global_state_schema(&signed_tx.transaction)?
+                .unwrap()
+                .number_byteslices,
             params_global_schema.num_byte_slice
         );
         assert_eq!(
-            local_state_schema(&tx)?.unwrap().number_ints,
+            local_state_schema(&signed_tx.transaction)?
+                .unwrap()
+                .number_ints,
             params_local_schema.num_uint
         );
         assert_eq!(
-            local_state_schema(&tx)?.unwrap().number_byteslices,
+            local_state_schema(&signed_tx.transaction)?
+                .unwrap()
+                .number_byteslices,
             params_local_schema.num_byte_slice
         );
         Ok(())

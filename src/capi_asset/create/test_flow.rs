@@ -29,7 +29,7 @@ pub mod test_flow {
         let params = algod.suggested_transaction_params().await?;
 
         let to_sign = create_capi_asset(capi_supply, &creator.address(), &params).await?;
-        let signed = creator.sign_transaction(&to_sign.create_capi_asset_tx)?;
+        let signed = creator.sign_transaction(to_sign.create_capi_asset_tx)?;
         log::debug!("Will submit crate capi asset..");
         let p_tx = send_tx_and_wait(algod, &signed).await?;
         let asset_id_opt = p_tx.asset_index;
@@ -51,7 +51,7 @@ pub mod test_flow {
             funds_asset_id,
         )
         .await?;
-        let signed = creator.sign_transaction(&to_sign_app)?;
+        let signed = creator.sign_transaction(to_sign_app)?;
         log::debug!("Will submit crate capi app..");
         // crate::teal::debug_teal_rendered(&[signed.clone()], "app_capi_approval").unwrap();
         let p_tx = send_tx_and_wait(algod, &signed).await?;
@@ -110,7 +110,7 @@ pub mod test_flow {
             capi_app_id,
         )
         .await?;
-        let signed_fund_min_balance = funder.sign_transaction(&to_sign.fund_min_balance_tx)?;
+        let signed_fund_min_balance = funder.sign_transaction(to_sign.fund_min_balance_tx)?;
         let tx_id = submit_setup_capi_escrow(
             &algod,
             &SetupCentralEscrowSigned {

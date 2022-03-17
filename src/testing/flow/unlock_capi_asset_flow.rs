@@ -33,7 +33,7 @@ mod test {
             capi_escrow,
         )
         .await?;
-        let signed_app_opt_out = investor.sign_transaction(&to_sign.capi_app_optout_tx)?;
+        let signed_app_opt_out = investor.sign_transaction(to_sign.capi_app_optout_tx)?;
 
         let submit_lock_tx_id = submit_capi_assets_unlock(
             &algod,

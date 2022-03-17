@@ -65,7 +65,7 @@ pub mod test {
         )
         .await?;
 
-        let pay_withdraw_fee_tx_signed = creator.sign_transaction(&to_sign.pay_withdraw_fee_tx)?;
+        let pay_withdraw_fee_tx_signed = creator.sign_transaction(to_sign.pay_withdraw_fee_tx)?;
 
         let withdraw_tx_id = submit_withdraw(
             &algod,

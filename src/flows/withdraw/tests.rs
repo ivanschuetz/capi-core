@@ -115,7 +115,7 @@ mod tests {
         .await?;
 
         let pay_withdraw_fee_tx_signed =
-            td.creator.sign_transaction(&to_sign.pay_withdraw_fee_tx)?;
+            td.creator.sign_transaction(to_sign.pay_withdraw_fee_tx)?;
 
         let withdraw_res = submit_withdraw(
             algod,
@@ -187,7 +187,7 @@ mod tests {
         .await?;
 
         let pay_withdraw_fee_tx_signed =
-            not_creator.sign_transaction(&to_sign.pay_withdraw_fee_tx)?;
+            not_creator.sign_transaction(to_sign.pay_withdraw_fee_tx)?;
 
         let withdraw_res = submit_withdraw(
             algod,

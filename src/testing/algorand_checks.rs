@@ -102,7 +102,7 @@ pub mod test {
 
     pub async fn create_asset_and_sign(algod: &Algod, sender: &Account) -> Result<u64> {
         let create_asset_tx = create_asset_tx(&algod, &sender.address()).await?;
-        let create_asset_signed_tx = sender.sign_transaction(&create_asset_tx)?;
+        let create_asset_signed_tx = sender.sign_transaction(create_asset_tx)?;
         let p_tx = send_tx_and_wait(algod, &create_asset_signed_tx).await?;
         let asset_id = p_tx.asset_index.unwrap();
         Ok(asset_id)
@@ -117,7 +117,7 @@ pub mod test {
     ) -> Result<()> {
         let transfer_tx =
             transfer_asset_tx(&algod, &sender.address(), receiver, asset_id, amount).await?;
-        let transfer_signed_tx = sender.sign_transaction(&transfer_tx)?;
+        let transfer_signed_tx = sender.sign_transaction(transfer_tx)?;
         let transfer_res = algod
             .broadcast_signed_transaction(&transfer_signed_tx)
             .await?;
@@ -138,8 +138,8 @@ pub mod test {
 
         TxGroup::assign_group_id(&mut [&mut create_app_tx, &mut pay_tx]).unwrap();
 
-        let create_app_signed_tx = sender.sign_transaction(&create_app_tx)?;
-        let pay_signed_tx = sender.sign_transaction(&pay_tx)?;
+        let create_app_signed_tx = sender.sign_transaction(create_app_tx)?;
+        let pay_signed_tx = sender.sign_transaction(pay_tx)?;
 
         let p_tx = send_txs_and_wait(&algod, &[create_app_signed_tx, pay_signed_tx]).await?;
         let app_id = p_tx.application_index;
@@ -156,10 +156,10 @@ pub mod test {
         let algod = algod_for_tests();
         let creator = creator();
 
-        let create_app_tx = &mut create_always_approves_app(&algod, &creator.address()).await?;
-        let create_asset_tx = &mut create_asset_tx(&algod, &creator.address()).await?;
+        let mut create_app_tx = create_always_approves_app(&algod, &creator.address()).await?;
+        let mut create_asset_tx = create_asset_tx(&algod, &creator.address()).await?;
 
-        TxGroup::assign_group_id(&mut [create_app_tx, create_asset_tx])?;
+        TxGroup::assign_group_id(&mut [&mut create_app_tx, &mut create_asset_tx])?;
 
         let create_app_signed_tx_signed = creator.sign_transaction(create_app_tx)?;
         let create_asset_signed_tx_signed = creator.sign_transaction(create_asset_tx)?;
@@ -209,10 +209,10 @@ pub mod test {
         TxGroup::assign_group_id(&mut [&mut optin_to_asset_tx, &mut receive_asset_tx]).unwrap();
 
         // asset receiver signs their optin
-        let optin_to_asset_signed_tx = assset_receiver.sign_transaction(&optin_to_asset_tx)?;
+        let optin_to_asset_signed_tx = assset_receiver.sign_transaction(optin_to_asset_tx)?;
         // asset creator/sender signs sending the asset to the receiver
         let receive_asset_signed_tx =
-            asset_creator_and_sender.sign_transaction(&receive_asset_tx)?;
+            asset_creator_and_sender.sign_transaction(receive_asset_tx)?;
 
         let res = algod
             .broadcast_signed_transactions(&[optin_to_asset_signed_tx, receive_asset_signed_tx])

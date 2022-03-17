@@ -26,8 +26,7 @@ pub mod test {
         )
         .await?;
 
-        let signed_central_app_optout =
-            investor.sign_transaction(&to_sign.central_app_optout_tx)?;
+        let signed_central_app_optout = investor.sign_transaction(to_sign.central_app_optout_tx)?;
 
         let tx_id = submit_unlock(
             algod,

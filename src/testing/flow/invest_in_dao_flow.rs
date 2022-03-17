@@ -7,9 +7,7 @@ pub mod test {
         invest_or_locking_app_optin_tx, submit_invest_or_locking_app_optin,
     };
     use crate::flows::{
-        create_dao::{
-            model::Dao, share_amount::ShareAmount, storage::load_dao::DaoId,
-        },
+        create_dao::{model::Dao, share_amount::ShareAmount, storage::load_dao::DaoId},
         invest::model::InvestResult,
         invest::{
             invest::{invest_txs, submit_invest},
@@ -23,16 +21,11 @@ pub mod test {
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::{anyhow, Result};
 
-    pub async fn invests_optins_flow(
-        algod: &Algod,
-        investor: &Account,
-        dao: &Dao,
-    ) -> Result<()> {
+    pub async fn invests_optins_flow(algod: &Algod, investor: &Account, dao: &Dao) -> Result<()> {
         // app optins (have to happen before invest_txs, which initializes investor's local state)
-        let app_optin_tx =
-            invest_or_locking_app_optin_tx(algod, dao, &investor.address()).await?;
+        let app_optin_tx = invest_or_locking_app_optin_tx(algod, dao, &investor.address()).await?;
 
-        let app_optin_signed_tx = investor.sign_transaction(&app_optin_tx)?;
+        let app_optin_signed_tx = investor.sign_transaction(app_optin_tx)?;
 
         let app_optin_tx_id =
             submit_invest_or_locking_app_optin(algod, app_optin_signed_tx.clone()).await?;
@@ -74,9 +67,9 @@ pub mod test {
         .await?;
 
         let signed_central_app_setup_tx =
-            investor.sign_transaction(&to_sign.central_app_setup_tx)?;
-        let signed_shares_optin_tx = investor.sign_transaction(&to_sign.shares_asset_optin_tx)?;
-        let signed_payment_tx = investor.sign_transaction(&to_sign.payment_tx)?;
+            investor.sign_transaction(to_sign.central_app_setup_tx)?;
+        let signed_shares_optin_tx = investor.sign_transaction(to_sign.shares_asset_optin_tx)?;
+        let signed_payment_tx = investor.sign_transaction(to_sign.payment_tx)?;
 
         let invest_res = submit_invest(
             &algod,

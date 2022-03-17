@@ -47,8 +47,8 @@ mod test {
         .build()?;
         TxGroup::assign_group_id(&mut [&mut pay_fee_tx, &mut xfer_tx])?;
 
-        let signed_payment = fee_payer.sign_transaction(&pay_fee_tx)?;
-        let signed_xfer = xfer_sender.sign_transaction(&xfer_tx)?;
+        let signed_payment = fee_payer.sign_transaction(pay_fee_tx)?;
+        let signed_xfer = xfer_sender.sign_transaction(xfer_tx)?;
         log::debug!("Submitting xfer and pay for fee");
         send_txs_and_wait(&algod, &[signed_payment, signed_xfer]).await?;
         Ok(())
@@ -67,7 +67,7 @@ mod test {
             TransferAsset::new(sender.address(), asset_id, amount, *receiver).build(),
         )
         .build()?;
-        let signed = sender.sign_transaction(&tx)?;
+        let signed = sender.sign_transaction(tx)?;
         log::debug!("Submitting xfer");
         send_tx_and_wait(&algod, &signed).await?;
         Ok(())
@@ -79,7 +79,7 @@ mod test {
         asset_id: u64,
     ) -> Result<()> {
         let tx = optin_to_asset(&algod, &sender.address(), asset_id).await?;
-        let signed = sender.sign_transaction(&tx)?;
+        let signed = sender.sign_transaction(tx)?;
         log::debug!("Submitting asset opt in: {asset_id}");
         send_tx_and_wait(&algod, &signed).await?;
         Ok(())
@@ -92,7 +92,7 @@ mod test {
         app_id: u64,
     ) -> Result<()> {
         let tx = optin_to_app(params, app_id, sender.address()).await?;
-        let signed = sender.sign_transaction(&tx)?;
+        let signed = sender.sign_transaction(tx)?;
         log::debug!("Submitting app opt in: {app_id}");
         send_tx_and_wait(&algod, &signed).await?;
         Ok(())

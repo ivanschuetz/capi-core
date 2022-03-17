@@ -13,9 +13,7 @@ mod tests {
             },
             get_roadmap::{get_roadmap, SavedRoadmapItem},
         },
-        testing::{
-            flow::create_dao_flow::create_dao_flow, network_test_util::test_dao_init,
-        },
+        testing::{flow::create_dao_flow::create_dao_flow, network_test_util::test_dao_init},
     };
 
     #[test]
@@ -38,7 +36,7 @@ mod tests {
 
         let to_sign = add_roadmap_item(&algod, &td.creator.address(), &inputs).await?;
 
-        let signed_tx = td.creator.sign_transaction(&to_sign.tx)?;
+        let signed_tx = td.creator.sign_transaction(to_sign.tx)?;
 
         let tx_id =
             submit_add_roadmap_item(&algod, &AddRoadmapItemToSigned { tx: signed_tx }).await?;
@@ -49,8 +47,7 @@ mod tests {
 
         // check that the item was added correctly
 
-        let saved_roadmap =
-            get_roadmap(&td.indexer, &td.creator.address(), &dao.dao_id).await?;
+        let saved_roadmap = get_roadmap(&td.indexer, &td.creator.address(), &dao.dao_id).await?;
 
         assert_eq!(1, saved_roadmap.items.len());
 

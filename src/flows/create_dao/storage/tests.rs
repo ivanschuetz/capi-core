@@ -21,7 +21,7 @@ mod tests {
 
         let to_sign = save_dao(&algod, &td.creator.address(), &create_dao_res.dao).await?;
 
-        let signed_tx = td.creator.sign_transaction(&to_sign.tx)?;
+        let signed_tx = td.creator.sign_transaction(to_sign.tx)?;
 
         let tx_id = algod.broadcast_signed_transaction(&signed_tx).await?.tx_id;
 

@@ -80,7 +80,7 @@ pub mod test {
         )
         .await?;
 
-        let app_call_tx_signed = claimer.sign_transaction(&to_sign.app_call_tx)?;
+        let app_call_tx_signed = claimer.sign_transaction(to_sign.app_call_tx)?;
 
         let claim_tx_id = submit_claim(
             &algod,
