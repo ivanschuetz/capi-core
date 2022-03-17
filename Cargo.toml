@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 algonaut = { git = "https://github.com/manuelmauro/algonaut", branch = "main", features = ["rustls"], default-features = false }
-# algonaut = { path = "../../../algonaut" }
+# algonaut = { path = "../../algonaut" }
 
 anyhow = "1.0"
 rmp-serde = "1.0.0"
@@ -17,7 +17,7 @@ serde = {version = "1.0", features = ["derive"]}
 data-encoding = "2.3.1"
 tinytemplate = "1.2.1"
 tealdbg = { git = "https://github.com/ivanschuetz/tealdbg_launcher", features = ["rustls"], default-features = false }
-# tealdbg = { path = "../../../tealdbg_launcher" }
+# tealdbg = { path = "../../tealdbg_launcher" }
 
 log = "0.4"
 
