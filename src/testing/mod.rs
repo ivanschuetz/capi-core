@@ -1,10 +1,10 @@
 #[cfg(test)]
 pub mod algorand_checks;
 pub mod create_and_submit_txs;
+pub mod dao_general;
 pub mod flow;
 pub mod generate_mnemonic;
 pub mod network_test_util;
-pub mod dao_general;
 pub mod test_data;
 
 #[cfg(test)]

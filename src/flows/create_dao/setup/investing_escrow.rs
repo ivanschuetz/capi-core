@@ -79,6 +79,7 @@ pub async fn render_and_compile_investing_escrow(
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn render_investing_escrow(
     source: &TealSourceTemplate,
     shares_asset_id: u64,

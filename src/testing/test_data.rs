@@ -1,12 +1,10 @@
 #[cfg(test)]
-pub use test::{capi_owner, creator, customer, investor1, investor2, dao_specs, shares_specs};
+pub use test::{capi_owner, creator, customer, dao_specs, investor1, investor2, shares_specs};
 
 #[cfg(test)]
 mod test {
     use crate::flows::create_dao::share_amount::ShareAmount;
-    use crate::flows::create_dao::{
-        create_dao_specs::CreateDaoSpecs, model::CreateSharesSpecs,
-    };
+    use crate::flows::create_dao::{create_dao_specs::CreateDaoSpecs, model::CreateSharesSpecs};
     use crate::funds::FundsAmount;
     use algonaut::transaction::account::Account;
 

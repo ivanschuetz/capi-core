@@ -1,6 +1,4 @@
-use crate::{
-    flows::create_dao::storage::load_dao::DaoId, roadmap::add_roadmap_item::RoadmapItem,
-};
+use crate::{flows::create_dao::storage::load_dao::DaoId, roadmap::add_roadmap_item::RoadmapItem};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 use std::convert::TryInto;
@@ -47,10 +45,7 @@ pub fn base64_maybe_roadmap_note_to_roadmap_item(
     maybe_roadmap_note_to_roadmap_item(&bytes, dao_id)
 }
 
-fn maybe_roadmap_note_to_roadmap_item(
-    note: &[u8],
-    dao_id: &DaoId,
-) -> Result<Option<RoadmapItem>> {
+fn maybe_roadmap_note_to_roadmap_item(note: &[u8], dao_id: &DaoId) -> Result<Option<RoadmapItem>> {
     if let Some(payload) = maybe_roadmap_note_to_roadmap_payload(note, dao_id)? {
         if payload.version != 1 {
             return Err(anyhow!(

@@ -39,7 +39,7 @@ pub async fn submit_create_capi_asset(
     algod: &Algod,
     create_shares: &SignedTransaction,
 ) -> Result<CreateCapiAssetResult> {
-    let p_tx = send_tx_and_wait(algod, &create_shares).await?;
+    let p_tx = send_tx_and_wait(algod, create_shares).await?;
 
     let asset_id = p_tx
         .asset_index

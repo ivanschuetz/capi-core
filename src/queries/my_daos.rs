@@ -49,8 +49,7 @@ pub async fn my_daos(
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<MyStoredDao>> {
     let created = my_created_daos(algod, indexer, address, escrows, capi_deps).await?;
-    let invested =
-        my_current_invested_daos(algod, indexer, address, escrows, capi_deps).await?;
+    let invested = my_current_invested_daos(algod, indexer, address, escrows, capi_deps).await?;
 
     let created_map: HashMap<DaoId, StoredDao> = created
         .iter()

@@ -144,7 +144,7 @@ async fn lockers_holdings(
                     // Not opted in -> has no locked shares for statistics
                     ShareAmount::new(0)
                 } else {
-                    Err(e)?
+                    return Err(e.into());
                 }
             }
         };
