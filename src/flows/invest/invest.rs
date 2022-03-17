@@ -132,7 +132,7 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
         signed.shares_asset_optin_tx.clone(),
     ];
 
-    // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
+    crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "investing_escrow").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;

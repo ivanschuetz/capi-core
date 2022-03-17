@@ -5,6 +5,8 @@ use anyhow::{anyhow, Result};
 use serde::Serialize;
 use tinytemplate::TinyTemplate;
 
+const TEAL_PROJECT_PATH: &str = "../teal";
+
 // not rendered teal template (with placeholders)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TealSourceTemplate(pub Vec<u8>);
@@ -24,8 +26,10 @@ impl ToString for TealSource {
 /// file_name without .teal
 /// use this to debug with debug_teal_rendered
 pub fn save_rendered_teal(file_name: &str, teal: TealSource) -> Result<()> {
-    let folder = "teal_rendered";
-    Ok(fs::write(format!("{}/{}.teal", folder, file_name), teal.0)?)
+    Ok(fs::write(
+        in_teal_dir(&format!("teal_rendered/{file_name}.teal")),
+        teal.0,
+    )?)
 }
 
 // file_name without .teal
@@ -38,8 +42,14 @@ pub fn load_teal(file_name: &str) -> Result<TealSource> {
     load_file_bytes("teal", file_name).map(TealSource)
 }
 
+fn in_teal_dir(subpath: &str) -> String {
+    format!("{TEAL_PROJECT_PATH}/{subpath}")
+}
+
 fn load_file_bytes(folder: &str, file_name: &str) -> Result<Vec<u8>> {
-    Ok(fs::read(format!("{}/{}.teal", folder, file_name))?)
+    Ok(fs::read(in_teal_dir(&format!(
+        "{folder}/{file_name}.teal"
+    )))?)
 }
 
 /// TODO delete this and tinytemplate after everything is ported to PyTeal
@@ -86,5 +96,6 @@ pub fn debug_teal_rendered(txs: &[SignedTransaction], file_name: &str) -> Result
 /// file_name without .teal
 #[allow(dead_code)]
 fn debug_teal_internal(txs: &[SignedTransaction], folder: &str, file_name: &str) -> Result<()> {
-    tealdbg::launch_default(txs, &format!("{}/{}.teal", folder, file_name)).map_err(|e| anyhow!(e))
+    tealdbg::launch_default(txs, &in_teal_dir(&format!("{folder}/{file_name}.teal")))
+        .map_err(|e| anyhow!(e))
 }
