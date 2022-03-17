@@ -17,7 +17,6 @@ pub struct SubmitSetupEscrowRes {
 pub struct SetupInvestingEscrowToSign {
     pub escrow: ContractAccount,
     pub escrow_shares_optin_tx: Transaction,
-    // min amount to hold asset (shares) + asset optin tx fee
     pub escrow_funding_algos_tx: Transaction,
     pub escrow_funding_shares_asset_tx: Transaction,
 }
@@ -30,12 +29,10 @@ pub struct SetupInvestEscrowSigned {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreateDaoToSign {
-    // to be signed by creator
     pub escrow_funding_txs: Vec<Transaction>,
     pub setup_app_tx: Transaction,
     pub xfer_shares_to_invest_escrow: Transaction,
 
-    // escrow optins (lsig)
     // (note that "to sign" in struct's name means that there are _some_ txs to sign. this is just passtrough data)
     pub optin_txs: Vec<SignedTransaction>,
 
@@ -49,26 +46,11 @@ pub struct CreateDaoToSign {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CreateDaoSigned {
-    //////////////////////////////////////////////
-    // transactions to be submitted
-    //////////////////////////////////////////////
-    // escrow funding txs (sent by creator)
     pub escrow_funding_txs: Vec<SignedTransaction>,
-
-    // fund the investing escrow with assets: dedicated fields, to be executed after the asset opt-in
     pub xfer_shares_to_invest_escrow: SignedTransaction,
-
     pub setup_app_tx: SignedTransaction,
-
-    // escrows opt-in (lsig - signed when created)
-    // to be submitted before possible asset transfers
-    // on dao creation assets are transferred only to investing escrow,
-    // we opt-in all the escrows that may touch the assets later here too, just to leave the system "initialized"
     pub optin_txs: Vec<SignedTransaction>,
 
-    //////////////////////////////////////////////
-    // passthrough
-    //////////////////////////////////////////////
     pub specs: CreateDaoSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,

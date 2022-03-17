@@ -72,7 +72,6 @@ pub async fn create_dao_txs(
     )
     .await?;
 
-    // TODO why do we do this (invest and locking escrows setup) here instead of directly on dao creation? there seem to be no deps on post-creation things?
     let mut setup_locking_escrow_to_sign = setup_locking_escrow_txs(
         algod,
         &programs.escrows.locking_escrow,
@@ -98,7 +97,6 @@ pub async fn create_dao_txs(
     )
     .await?;
 
-    // First tx group to submit - everything except the asset (shares) xfer to the escrow (which requires opt-in to be submitted first)
     TxGroup::assign_group_id(&mut [
         // setup app
         &mut setup_app_tx,
@@ -117,7 +115,6 @@ pub async fn create_dao_txs(
         &mut setup_invest_escrow_to_sign.escrow_funding_shares_asset_tx,
     ])?;
 
-    // Now that the lsig txs have been assigned a group id, sign (by their respective programs)
     let locking_escrow = setup_locking_escrow_to_sign.escrow.clone();
     let locking_escrow_shares_optin_tx_signed =
         locking_escrow.sign(&setup_locking_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
@@ -148,7 +145,6 @@ pub async fn create_dao_txs(
         central_escrow: central_to_sign.escrow,
         customer_escrow: customer_to_sign.escrow,
 
-        // initial funding (algos), to be signed by creator
         escrow_funding_txs: vec![
             central_to_sign.fund_min_balance_tx,
             customer_to_sign.fund_min_balance_tx,
@@ -157,7 +153,6 @@ pub async fn create_dao_txs(
         ],
         optin_txs,
 
-        // xfers to escrows: have to be executed after escrows are opted in
         xfer_shares_to_invest_escrow: setup_invest_escrow_to_sign.escrow_funding_shares_asset_tx,
     })
 }
