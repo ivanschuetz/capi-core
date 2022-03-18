@@ -22,7 +22,8 @@ mod test {
     use crate::flows::create_dao::create_dao::Programs;
     use crate::flows::create_dao::create_dao_specs::CreateDaoSpecs;
     use crate::testing::flow::create_dao_flow::{capi_programs, programs};
-    use crate::testing::test_data::dao_specs;
+    use crate::testing::test_data::{dao_specs, msig_acc1, msig_acc2, msig_acc3};
+    use crate::testing::tests_msig::TestsMsig;
     use algonaut::core::Address;
     use algonaut::transaction::contract_account::ContractAccount;
     use algonaut::{
@@ -64,7 +65,10 @@ mod test {
         pub investor1: Account,
         pub investor2: Account,
         pub customer: Account,
+
         pub specs: CreateDaoSpecs,
+
+        pub msig: TestsMsig,
 
         pub funds_asset_id: FundsAssetId,
 
@@ -89,6 +93,10 @@ mod test {
                 asset_id: self.capi_asset_id,
             }
         }
+    }
+
+    fn msig() -> Result<TestsMsig> {
+        Ok(TestsMsig::new(vec![msig_acc1(), msig_acc2(), msig_acc3()])?)
     }
 
     /// Common tests initialization
@@ -120,6 +128,7 @@ mod test {
             investor1: investor1(),
             investor2: investor2(),
             customer: customer(),
+            msig: msig()?,
             specs: dao_specs(),
             funds_asset_id: funds_asset_id.clone(),
             // unwrap: we know the owner mnemonic is valid + this is just for tests
@@ -149,20 +158,36 @@ mod test {
         Ok(())
     }
 
+    fn funds_asset_creator() -> Account {
+        // address: NIKGABIQLRCPJYCNCFZWR7GUIC3NA66EBVR65JKHKLGLIYQ4KO3YYPV67Q
+        Account::from_mnemonic("accident inherit artist kid such wheat sure then skirt horse afford penalty grant airport school aim hollow position ask churn extend soft mean absorb achieve").unwrap()
+    }
+
+    fn test_accounts_initial_funds() -> FundsAmount {
+        FundsAmount::new(10_000_000_000)
+    }
+
     pub async fn create_and_distribute_funds_asset(algod: &Algod) -> Result<FundsAssetId> {
         let params = algod.suggested_transaction_params().await?;
 
-        // address: NIKGABIQLRCPJYCNCFZWR7GUIC3NA66EBVR65JKHKLGLIYQ4KO3YYPV67Q
-        let asset_creator = Account::from_mnemonic("accident inherit artist kid such wheat sure then skirt horse afford penalty grant airport school aim hollow position ask churn extend soft mean absorb achieve")?;
+        let asset_creator = funds_asset_creator();
         let asset_id = create_funds_asset(algod, &params, &asset_creator).await?;
 
         optin_and_fund_accounts_with_asset(
             algod,
             &params,
             asset_id.0,
-            FundsAmount::new(10_000_000_000),
+            test_accounts_initial_funds(),
             &asset_creator,
-            &vec![creator(), investor1(), investor2(), customer()],
+            &vec![
+                creator(),
+                investor1(),
+                investor2(),
+                customer(),
+                msig_acc1(),
+                msig_acc2(),
+                msig_acc3(),
+            ],
         )
         .await?;
         Ok(asset_id)
@@ -170,7 +195,19 @@ mod test {
 
     /// Creates the funds asset and capi-token related dependencies
     pub async fn setup_on_chain_deps(algod: &Algod, capi_owner: &Account) -> Result<OnChainDeps> {
+        let params = algod.suggested_transaction_params().await?;
         let funds_asset_id = create_and_distribute_funds_asset(algod).await?;
+
+        optin_and_send_asset_to_msig(
+            algod,
+            &params,
+            funds_asset_id.0,
+            test_accounts_initial_funds().0,
+            &funds_asset_creator(),
+            &msig()?,
+        )
+        .await?;
+
         let capi_flow_res = create_capi_asset_and_deps(algod, capi_owner, funds_asset_id).await?;
         log::info!("capi_deps: {capi_flow_res:?}, funds_asset_id: {funds_asset_id:?}");
 
@@ -271,6 +308,49 @@ mod test {
         send_txs_and_wait(&algod, &[optin_tx_signed, fund_tx_signed]).await?;
 
         log::debug!("Opted in and funded (funds asset): {}", receiver.address());
+
+        Ok(())
+    }
+
+    /// Note that sending of algos to the msig address is done in fund_accounts_sandbox.sh. This flow could be improved (TODO low prio)
+    async fn optin_and_send_asset_to_msig(
+        algod: &Algod,
+        params: &SuggestedTransactionParams,
+        asset_id: u64,
+        amount: AssetAmount,
+        sender: &Account,
+        receiver: &TestsMsig,
+    ) -> Result<()> {
+        // optin the receiver to the asset
+        let mut optin_tx = TxnBuilder::with(
+            params,
+            AcceptAsset::new(receiver.address().address(), asset_id).build(),
+        )
+        .build()?;
+
+        let mut fund_tx = TxnBuilder::with(
+            params,
+            TransferAsset::new(
+                sender.address(),
+                asset_id,
+                amount.0,
+                receiver.address().address(),
+            )
+            .build(),
+        )
+        .build()?;
+
+        TxGroup::assign_group_id(&mut [&mut optin_tx, &mut fund_tx])?;
+
+        let optin_tx_signed = receiver.sign(optin_tx)?;
+        let fund_tx_signed = sender.sign_transaction(fund_tx)?;
+
+        send_txs_and_wait(&algod, &[optin_tx_signed, fund_tx_signed]).await?;
+
+        log::debug!(
+            "Opted in and funded (funds asset): {}",
+            receiver.address().address()
+        );
 
         Ok(())
     }

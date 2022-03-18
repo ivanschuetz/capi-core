@@ -178,7 +178,6 @@ async fn storable_dao_to_dao(
         central_escrow_account.address(),
         &escrows.invest_escrow,
         payload.central_app_id,
-        &payload.creator,
     );
 
     let (customer_escrow_account_res, investing_escrow_account_res) =

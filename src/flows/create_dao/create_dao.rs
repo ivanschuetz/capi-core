@@ -23,6 +23,7 @@ pub async fn create_dao_txs(
     algod: &Algod,
     specs: &CreateDaoSpecs,
     creator: Address,
+    withdrawer: Address,
     shares_asset_id: u64,
     funds_asset_id: FundsAssetId,
     programs: &Programs,
@@ -42,6 +43,7 @@ pub async fn create_dao_txs(
     let mut central_to_sign = setup_central_escrow(
         algod,
         &creator,
+        &withdrawer,
         &programs.escrows.central_escrow,
         &params,
         funds_asset_id,
@@ -93,7 +95,6 @@ pub async fn create_dao_txs(
         central_to_sign.escrow.address(),
         &params,
         central_app_id,
-        &creator,
     )
     .await?;
 

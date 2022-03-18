@@ -17,6 +17,7 @@ pub mod test {
         testing::network_test_util::TestDeps,
     };
 
+    use algonaut::core::Address;
     use anyhow::{anyhow, Result};
 
     #[derive(Debug, Clone)]
@@ -26,6 +27,13 @@ pub mod test {
     }
 
     pub async fn create_dao_flow(td: &TestDeps) -> Result<CreateDaoFlowRes> {
+        create_dao_flow_with_withdrawer(td, &td.creator.address()).await
+    }
+
+    pub async fn create_dao_flow_with_withdrawer(
+        td: &TestDeps,
+        withdrawer: &Address,
+    ) -> Result<CreateDaoFlowRes> {
         let algod = &td.algod;
 
         // Create asset first: id needed in app template
@@ -60,6 +68,7 @@ pub mod test {
             algod,
             &td.specs,
             td.creator.address(),
+            *withdrawer,
             create_assets_res.shares_asset_id,
             td.funds_asset_id,
             &td.programs,

@@ -22,7 +22,8 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 
 pub async fn setup_central_escrow(
     algod: &Algod,
-    dao_creator: &Address,
+    funder: &Address,
+    withdrawer: &Address,
     source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
     funds_asset_id: FundsAssetId,
@@ -30,7 +31,7 @@ pub async fn setup_central_escrow(
 ) -> Result<SetupCentralEscrowToSign> {
     let escrow = render_and_compile_central_escrow(
         algod,
-        dao_creator,
+        withdrawer,
         source,
         funds_asset_id,
         central_app_id,
@@ -45,7 +46,7 @@ pub async fn setup_central_escrow(
     .build()?;
 
     let fund_min_balance_tx =
-        &mut create_payment_tx(dao_creator, escrow.address(), MIN_BALANCE, params).await?;
+        &mut create_payment_tx(funder, escrow.address(), MIN_BALANCE, params).await?;
 
     fund_min_balance_tx.fee =
         calculate_total_fee(params, &[fund_min_balance_tx, optin_to_funds_asset_tx])?;
@@ -70,7 +71,7 @@ pub async fn render_and_compile_central_escrow(
 
 fn render_central_escrow(
     source: &TealSourceTemplate,
-    dao_creator: &Address,
+    withdrawer: &Address,
     funds_asset_id: FundsAssetId,
     central_app_id: u64,
 ) -> Result<TealSource> {
@@ -78,7 +79,7 @@ fn render_central_escrow(
         source,
         &[
             ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
-            ("TMPL_DAO_CREATOR", &dao_creator.to_string()),
+            ("TMPL_WITHDRAWER", &withdrawer.to_string()),
             ("TMPL_CENTRAL_APP_ID", &central_app_id.to_string()),
         ],
     )?;

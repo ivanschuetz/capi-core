@@ -1,5 +1,8 @@
 #[cfg(test)]
-pub use test::{capi_owner, creator, customer, dao_specs, investor1, investor2, shares_specs};
+pub use test::{
+    capi_owner, creator, customer, dao_specs, investor1, investor2, msig_acc1, msig_acc2,
+    msig_acc3, shares_specs,
+};
 
 #[cfg(test)]
 mod test {
@@ -34,6 +37,21 @@ mod test {
         Account::from_mnemonic("accident inherit artist kid such wheat sure then skirt horse afford penalty grant airport school aim hollow position ask churn extend soft mean absorb achieve").unwrap()
     }
 
+    pub fn msig_acc1() -> Account {
+        // DN7MBMCL5JQ3PFUQS7TMX5AH4EEKOBJVDUF4TCV6WERATKFLQF4MQUPZTA
+        Account::from_mnemonic("auction inquiry lava second expand liberty glass involve ginger illness length room item discover ahead table doctor term tackle cement bonus profit right above catch").unwrap()
+    }
+
+    pub fn msig_acc2() -> Account {
+        // GIZTTA56FAJNAN7ACK3T6YG34FH32ETDULBZ6ENC4UV7EEHPXJGGSPCMVU
+        Account::from_mnemonic("fire enlist diesel stamp nuclear chunk student stumble call snow flock brush example slab guide choice option recall south kangaroo hundred matrix school above zero").unwrap()
+    }
+
+    pub fn msig_acc3() -> Account {
+        // BFRTECKTOOE7A5LHCF3TTEOH2A7BW46IYT2SX5VP6ANKEXHZYJY77SJTVM
+        Account::from_mnemonic("since during average anxiety protect cherry club long lawsuit loan expand embark forum theory winter park twenty ball kangaroo cram burst board host ability left").unwrap()
+    }
+
     #[test]
     fn print_addresses() {
         println!("creator: {}", creator().address());
@@ -41,6 +59,9 @@ mod test {
         println!("investor2: {}", investor2().address());
         println!("customer: {}", customer().address());
         println!("capi_owner: {}", capi_owner().address());
+        println!("msig1: {}", msig_acc1().address());
+        println!("msig2: {}", msig_acc2().address());
+        println!("msig3: {}", msig_acc3().address());
     }
 
     pub fn dao_specs() -> CreateDaoSpecs {
