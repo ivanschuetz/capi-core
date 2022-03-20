@@ -23,20 +23,15 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 pub async fn setup_central_escrow(
     algod: &Algod,
     funder: &Address,
-    withdrawer: &Address,
+    owner: &Address,
     source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
     funds_asset_id: FundsAssetId,
     central_app_id: u64,
 ) -> Result<SetupCentralEscrowToSign> {
-    let escrow = render_and_compile_central_escrow(
-        algod,
-        withdrawer,
-        source,
-        funds_asset_id,
-        central_app_id,
-    )
-    .await?;
+    let escrow =
+        render_and_compile_central_escrow(algod, owner, source, funds_asset_id, central_app_id)
+            .await?;
 
     let optin_to_funds_asset_tx = &mut TxnBuilder::with_fee(
         params,
@@ -71,7 +66,7 @@ pub async fn render_and_compile_central_escrow(
 
 fn render_central_escrow(
     source: &TealSourceTemplate,
-    withdrawer: &Address,
+    owner: &Address,
     funds_asset_id: FundsAssetId,
     central_app_id: u64,
 ) -> Result<TealSource> {
@@ -79,7 +74,7 @@ fn render_central_escrow(
         source,
         &[
             ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
-            ("TMPL_WITHDRAWER", &withdrawer.to_string()),
+            ("TMPL_OWNER", &owner.to_string()),
             ("TMPL_CENTRAL_APP_ID", &central_app_id.to_string()),
         ],
     )?;

@@ -21,6 +21,7 @@ use super::create_app::create_app_tx;
 pub async fn create_assets(
     algod: &Algod,
     creator: &Address,
+    owner: &Address,
     specs: &CreateDaoSpecs,
     programs: &Programs,
     precision: u64,
@@ -34,6 +35,7 @@ pub async fn create_assets(
         &programs.central_app_approval,
         &programs.central_app_clear,
         creator,
+        owner,
         specs.shares.supply,
         precision,
         specs.investors_part(),

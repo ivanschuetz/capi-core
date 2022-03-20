@@ -5,7 +5,7 @@ mod tests {
         state::account_state::funds_holdings,
         testing::{
             flow::{
-                create_dao_flow::test::create_dao_flow_with_withdrawer,
+                create_dao_flow::test::create_dao_flow_with_owner,
                 withdraw_flow::{
                     test::{withdraw_incomplete_msig_flow, withdraw_msig_flow},
                     withdraw_precs,
@@ -29,7 +29,7 @@ mod tests {
 
         let withdraw_amount = FundsAmount::new(1_000_000);
 
-        let dao = create_dao_flow_with_withdrawer(&td, &td.msig.address().address()).await?;
+        let dao = create_dao_flow_with_owner(&td, &td.msig.address().address()).await?;
         let pay_and_drain_amount = FundsAmount::new(10 * 1_000_000);
 
         withdraw_precs(td, drainer, &dao.dao, pay_and_drain_amount).await?;
@@ -90,7 +90,7 @@ mod tests {
 
         let withdraw_amount = FundsAmount::new(1_000_000);
 
-        let dao = create_dao_flow_with_withdrawer(&td, &td.msig.address().address()).await?;
+        let dao = create_dao_flow_with_owner(&td, &td.msig.address().address()).await?;
         let pay_and_drain_amount = FundsAmount::new(10 * 1_000_000);
 
         withdraw_precs(td, drainer, &dao.dao, pay_and_drain_amount).await?;

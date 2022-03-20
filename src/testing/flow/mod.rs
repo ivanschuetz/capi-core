@@ -7,4 +7,5 @@ pub mod lock_capi_asset_flow;
 pub mod lock_flow;
 pub mod unlock_capi_asset_flow;
 pub mod unlock_flow;
+pub mod update_dao_flow;
 pub mod withdraw_flow;

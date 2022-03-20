@@ -26,6 +26,7 @@ pub async fn create_app_tx(
     approval_source: &TealSourceTemplate,
     clear_source: &TealSource,
     creator: &Address,
+    owner: &Address,
     share_supply: ShareAmount,
     precision: u64,
     investors_share: ShareAmount,
@@ -36,6 +37,7 @@ pub async fn create_app_tx(
     log::debug!("Creating central app with asset supply: {}", share_supply);
     let approval_source = render_central_app(
         approval_source,
+        owner,
         share_supply,
         precision,
         investors_share,
@@ -73,6 +75,7 @@ pub async fn create_app_tx(
 #[allow(clippy::too_many_arguments)]
 pub fn render_central_app(
     source: &TealSourceTemplate,
+    owner: &Address,
     share_supply: ShareAmount,
     precision: u64,
     investors_part: ShareAmount,
@@ -105,6 +108,7 @@ pub fn render_central_app(
                 "TMPL_INVESTORS_SHARE",
                 &investors_part_percentage.to_string(),
             ),
+            ("TMPL_OWNER", &owner.to_string()),
             ("TMPL_PRECISION__", &precision.to_string()),
             ("TMPL_PRECISION_SQUARE", &precision_square.to_string()),
             ("TMPL_CAPI_ESCROW_ADDRESS", &capi_escrow_address.to_string()),
@@ -180,6 +184,7 @@ mod tests {
             &algod,
             &approval_template,
             &clear_source,
+            &creator.address(),
             &creator.address(),
             ShareAmount::new(1),
             TESTS_DEFAULT_PRECISION,

@@ -56,6 +56,7 @@ mod tests {
         let central_app_id = 123;
         let capi_app_id = CapiAppId(123);
         let capi_share = 123u64.as_decimal().try_into()?;
+        let owner = creator();
 
         let central_escrow = "J7RHJEAARYDZZ6QUKH4KKICZK64PS4UTJPVLEI3WN5SNU47GHWD4PTOOIQ"
             .parse()
@@ -80,6 +81,7 @@ mod tests {
         let approval_template = load_teal_template("app_central_approval")?;
         render_central_app(
             &approval_template,
+            &owner.address(),
             share_supply,
             TESTS_DEFAULT_PRECISION,
             investors_share,

@@ -1,11 +1,11 @@
 #[cfg(test)]
 pub use test::{claim_flow, claim_precs, ClaimTestFlowRes, ClaimTestPrecsRes};
-
 #[cfg(test)]
 pub mod test {
     use crate::flows::create_dao::{model::Dao, share_amount::ShareAmount};
     use crate::funds::FundsAmount;
     use crate::state::account_state::funds_holdings;
+    use crate::testing::flow::create_dao_flow::CreateDaoFlowRes;
     use crate::testing::flow::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
     use crate::testing::flow::invest_in_dao_flow::invests_optins_flow;
     use crate::{
@@ -26,16 +26,34 @@ pub mod test {
         share_amount: ShareAmount,
         payment_and_drain_amount: FundsAmount,
         drainer: &Account,
-        claimer: &Account,
+        investor: &Account,
+    ) -> Result<ClaimTestPrecsRes> {
+        let dao = create_dao_flow(&td).await?;
+        claim_precs_with_dao_res(
+            td,
+            &dao,
+            share_amount,
+            payment_and_drain_amount,
+            drainer,
+            investor,
+        )
+        .await
+    }
+
+    pub async fn claim_precs_with_dao_res(
+        td: &TestDeps,
+        dao: &CreateDaoFlowRes,
+        share_amount: ShareAmount,
+        payment_and_drain_amount: FundsAmount,
+        drainer: &Account,
+        investor: &Account,
     ) -> Result<ClaimTestPrecsRes> {
         let algod = &td.algod;
 
-        let dao = create_dao_flow(&td).await?;
-
         // investor buys shares: this can be called after draining as well (without affecting test results)
         // the only order required for this is draining->claiming, obviously claiming has to be executed after draining (if it's to claim the drained funds)
-        invests_optins_flow(algod, &claimer, &dao.dao).await?;
-        let _ = invests_flow(&td, &claimer, share_amount, &dao.dao, &dao.dao_id).await?;
+        invests_optins_flow(algod, &investor, &dao.dao).await?;
+        let _ = invests_flow(&td, &investor, share_amount, &dao.dao, &dao.dao_id).await?;
 
         // payment and draining
         let drain_res =
@@ -52,7 +70,7 @@ pub mod test {
         // end precs
 
         Ok(ClaimTestPrecsRes {
-            dao: dao.dao,
+            dao: dao.dao.to_owned(),
             central_escrow_balance_after_drain,
             drain_res,
         })

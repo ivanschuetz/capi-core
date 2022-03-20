@@ -27,18 +27,20 @@ pub mod test {
     }
 
     pub async fn create_dao_flow(td: &TestDeps) -> Result<CreateDaoFlowRes> {
-        create_dao_flow_with_withdrawer(td, &td.creator.address()).await
+        create_dao_flow_with_owner(td, &td.creator.address()).await
     }
 
-    pub async fn create_dao_flow_with_withdrawer(
+    pub async fn create_dao_flow_with_owner(
         td: &TestDeps,
-        withdrawer: &Address,
+        owner: &Address,
     ) -> Result<CreateDaoFlowRes> {
         let algod = &td.algod;
 
         // Create asset first: id needed in app template
         let create_assets_txs = create_assets(
             &algod,
+            &td.creator.address(),
+            // in the default test flows, the creator is always the owner
             &td.creator.address(),
             &td.specs,
             &td.programs,
@@ -68,7 +70,7 @@ pub mod test {
             algod,
             &td.specs,
             td.creator.address(),
-            *withdrawer,
+            *owner,
             create_assets_res.shares_asset_id,
             td.funds_asset_id,
             &td.programs,

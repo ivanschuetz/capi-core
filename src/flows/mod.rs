@@ -6,4 +6,5 @@ pub mod lock;
 pub mod pay_dao;
 pub mod shared;
 pub mod unlock;
+pub mod update_app;
 pub mod withdraw;
