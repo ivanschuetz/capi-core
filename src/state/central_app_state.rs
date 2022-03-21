@@ -80,14 +80,10 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
     }
     let total_received = FundsAmount::new(get_int_or_err(&GLOBAL_TOTAL_RECEIVED, &gs)?);
 
-    let central_escrow =
-        read_address_from_state(&gs, GLOBAL_CENTRAL_ESCROW_ADDRESS, "central escrow")?;
-    let customer_escrow =
-        read_address_from_state(&gs, GLOBAL_CUSTOMER_ESCROW_ADDRESS, "customer escrow")?;
-    let investing_escrow =
-        read_address_from_state(&gs, GLOBAL_INVESTING_ESCROW_ADDRESS, "investing escrow")?;
-    let locking_escrow =
-        read_address_from_state(&gs, GLOBAL_LOCKING_ESCROW_ADDRESS, "locking escrow")?;
+    let central_escrow = read_address_from_state(&gs, GLOBAL_CENTRAL_ESCROW_ADDRESS)?;
+    let customer_escrow = read_address_from_state(&gs, GLOBAL_CUSTOMER_ESCROW_ADDRESS)?;
+    let investing_escrow = read_address_from_state(&gs, GLOBAL_INVESTING_ESCROW_ADDRESS)?;
+    let locking_escrow = read_address_from_state(&gs, GLOBAL_LOCKING_ESCROW_ADDRESS)?;
 
     let funds_asset_id = FundsAssetId(get_int_or_err(&GLOBAL_FUNDS_ASSET_ID, &gs)?);
     let shares_asset_id = get_int_or_err(&GLOBAL_SHARES_ASSET_ID, &gs)?;
@@ -101,7 +97,7 @@ pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralA
     let logo_url = String::from_utf8(get_bytes_or_err(&GLOBAL_LOGO_URL, &gs)?)?;
     let social_media_url = String::from_utf8(get_bytes_or_err(&GLOBAL_SOCIAL_MEDIA_URL, &gs)?)?;
 
-    let owner = read_address_from_state(&gs, GLOBAL_OWNER, "owner")?;
+    let owner = read_address_from_state(&gs, GLOBAL_OWNER)?;
 
     Ok(CentralAppGlobalState {
         received: total_received,

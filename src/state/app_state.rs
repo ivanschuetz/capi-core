@@ -158,15 +158,14 @@ pub fn get_bytes_value_or_error(
 pub fn read_address_from_state(
     state: &dyn ApplicationStateExt,
     key: AppStateKey,
-    log_identifier: &str,
 ) -> Result<Address> {
-    let bytes = state.find_bytes(&key).ok_or(anyhow!(
-        "Unexpected: {log_identifier} address not in global state"
-    ))?;
+    let bytes = state
+        .find_bytes(&key)
+        .ok_or(anyhow!("Unexpected: {key:?} address not in global state"))?;
 
     Ok(Address(bytes.try_into().map_err(|e| {
         Error::msg(format!(
-            "Illegal state: couldn't convert {log_identifier} bytes to address: {e:?}"
+            "Illegal state: couldn't convert {key:?} bytes to address: {e:?}"
         ))
     })?))
 }
