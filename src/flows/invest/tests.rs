@@ -21,7 +21,6 @@ mod tests {
     use crate::testing::network_test_util::{test_dao_init, TestDeps};
     use crate::testing::test_data::dao_specs;
     use crate::testing::test_data::investor2;
-    use crate::testing::TESTS_DEFAULT_PRECISION;
     use algonaut::transaction::account::Account;
     use anyhow::Result;
     use serial_test::serial;
@@ -342,7 +341,7 @@ mod tests {
             FundsAmount::new(0),
             dao.dao.specs.shares.supply,
             buy_share_amount,
-            TESTS_DEFAULT_PRECISION,
+            td.precision,
             dao.dao.specs.investors_part(),
         )?;
 
@@ -390,7 +389,7 @@ mod tests {
             FundsAmount::new(0),
             dao.dao.specs.shares.supply,
             buy_share_amount,
-            TESTS_DEFAULT_PRECISION,
+            td.precision,
             dao.dao.specs.investors_part(),
         )?;
 

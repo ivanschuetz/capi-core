@@ -18,7 +18,6 @@ mod tests {
         testing::{
             flow::claim_flow::{claim_flow, claim_precs},
             network_test_util::{test_dao_init, TestDeps},
-            TESTS_DEFAULT_PRECISION,
         },
     };
     use algonaut::{algod::v2::Algod, core::Address, transaction::account::Account};
@@ -40,7 +39,6 @@ mod tests {
 
         let buy_share_amount = ShareAmount::new(10);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
-        let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = claim_precs(
             &td,
@@ -56,7 +54,7 @@ mod tests {
             FundsAmount::new(0),
             td.specs.shares.supply,
             buy_share_amount,
-            precision,
+            td.precision,
             td.specs.investors_part(),
         )?;
 
@@ -99,7 +97,6 @@ mod tests {
 
         let buy_share_amount = ShareAmount::new(10);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
-        let precision = TESTS_DEFAULT_PRECISION;
 
         let precs = claim_precs(
             &td,
@@ -116,7 +113,7 @@ mod tests {
             FundsAmount::new(0),
             td.specs.shares.supply,
             buy_share_amount,
-            precision,
+            td.precision,
             td.specs.investors_part(),
         )?;
         log::debug!("Claim amount: {}", claim_amount);
@@ -147,7 +144,6 @@ mod tests {
 
         let buy_share_amount = ShareAmount::new(10);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
-        let precision = TESTS_DEFAULT_PRECISION;
         // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
 
         let precs = claim_precs(
@@ -167,7 +163,7 @@ mod tests {
             FundsAmount::new(0),
             td.specs.shares.supply,
             buy_share_amount,
-            precision,
+            td.precision,
             td.specs.investors_part(),
         )?;
         log::debug!("dividend: {}", dividend);
@@ -214,7 +210,6 @@ mod tests {
 
         let buy_share_amount = ShareAmount::new(10);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
-        let precision = TESTS_DEFAULT_PRECISION;
         // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
 
         let precs = claim_precs(
@@ -234,7 +229,7 @@ mod tests {
             FundsAmount::new(0),
             td.specs.shares.supply,
             buy_share_amount,
-            precision,
+            td.precision,
             td.specs.investors_part(),
         )?;
         log::debug!("Dividend: {}", dividend);

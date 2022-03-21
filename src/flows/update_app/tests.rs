@@ -96,7 +96,6 @@ mod tests {
         let drainer = &td.investor1;
         let buy_share_amount = ShareAmount::new(10);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
-        let precision = TESTS_DEFAULT_PRECISION;
         let precs = claim_precs_with_dao_res(
             &td,
             &dao,
@@ -111,7 +110,7 @@ mod tests {
             FundsAmount::new(0),
             td.specs.shares.supply,
             buy_share_amount,
-            precision,
+            td.precision,
             td.specs.investors_part(),
         )?;
         claim_flow(&td, &precs.dao, investor, dividend).await?;

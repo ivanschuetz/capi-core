@@ -33,7 +33,6 @@ mod tests {
                 unlock_flow::unlock_flow,
             },
             network_test_util::test_dao_init,
-            TESTS_DEFAULT_PRECISION,
         },
     };
 
@@ -129,7 +128,7 @@ mod tests {
             FundsAmount::new(0),
             dao.dao.specs.shares.supply,
             traded_shares,
-            TESTS_DEFAULT_PRECISION,
+            td.precision,
             dao.dao.specs.investors_part(),
         )?;
 
@@ -176,7 +175,7 @@ mod tests {
             FundsAmount::new(0),
             dao.dao.specs.shares.supply,
             traded_shares,
-            TESTS_DEFAULT_PRECISION,
+            td.precision,
             dao.dao.specs.investors_part(),
         )?;
         log::debug!(
