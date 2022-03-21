@@ -90,10 +90,6 @@ mod tests {
 
         let investor = &td.investor1;
 
-        // TODO why TEAL rejects work with these quantities (copied from capi claim fractional tests, note that we don't use custom supply here)
-        // let investor_capi_amount = CapiAssetAmount::new(10);
-        // let initial_capi_funds_amount = FundsAmount::new(10_000_000);
-
         let investor_capi_amount = CapiAssetAmount::new(100_000);
         let initial_capi_funds_amount = FundsAmount::new(200_000);
         let precs = claim_capi_precs(
