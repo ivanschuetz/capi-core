@@ -4,7 +4,6 @@ use algonaut::{
     transaction::{transaction::StateSchema, CreateApplication, Transaction, TxnBuilder},
 };
 use anyhow::Result;
-use serde::Serialize;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
@@ -26,6 +25,7 @@ pub async fn create_app(
     params: &SuggestedTransactionParams,
     asset_id: CapiAssetId,
     funds_asset_id: FundsAssetId,
+    capi_owner: &Address,
 ) -> Result<Transaction> {
     log::debug!("Creating capi app");
 
@@ -35,6 +35,7 @@ pub async fn create_app(
         precision,
         asset_id,
         funds_asset_id,
+        capi_owner,
     )?;
 
     let compiled_approval_program = algod.compile_teal(&approval_rendered.0).await?;
@@ -68,6 +69,7 @@ pub fn render_app(
     precision: u64,
     asset_id: CapiAssetId,
     funds_asset_id: FundsAssetId,
+    capi_owner: &Address,
 ) -> Result<TealSource> {
     let source = render_template_new(
         source,
@@ -76,20 +78,13 @@ pub fn render_app(
             ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
             ("TMPL_SHARE_SUPPLY", &asset_supply.0.to_string()),
             ("TMPL_PRECISION", &precision.to_string()),
+            ("TMPL_CAPI_OWNER", &capi_owner.to_string()),
         ],
     )?;
 
     #[cfg(not(target_arch = "wasm32"))]
     save_rendered_teal("app_capi_approval", source.clone())?; // debugging
     Ok(source)
-}
-
-#[derive(Serialize)]
-struct RenderCapiAppContext {
-    asset_supply: String,
-    precision: String,
-    capi_asset_id: String,
-    funds_asset_id: String,
 }
 
 #[cfg(test)]
@@ -138,6 +133,7 @@ mod tests {
             &params,
             CapiAssetId(0),
             FundsAssetId(0),
+            &creator.address(),
         )
         .await?;
 

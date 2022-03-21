@@ -127,7 +127,7 @@ fn calculate_capi_entitled_claim(
     )?))
 }
 
-pub fn max_claimable_dividend(
+pub fn claimable_capi_dividend(
     app_received_total: FundsAmount,
     claimed_total: FundsAmount,
     locked_amount: CapiAssetAmount,

@@ -7,7 +7,7 @@ mod tests {
                 CapiAppHolderState,
             },
             capi_asset_id::CapiAssetAmount,
-            claim::claim::max_claimable_dividend,
+            claim::claim::claimable_capi_dividend,
             create::test_flow::test_flow::setup_capi_asset_flow,
         },
         dependencies,
@@ -79,7 +79,7 @@ mod tests {
         let capi_app_total_received_before_claiming =
             capi_app_global_state(algod, td.capi_app_id).await?.received;
 
-        let dividend = max_claimable_dividend(
+        let dividend = claimable_capi_dividend(
             // the calculated capi fee is what's on the capi app (total received state) now
             precs.drain_res.drained_amounts.capi,
             FundsAmount::new(0),
@@ -172,7 +172,7 @@ mod tests {
 
         // flow
 
-        let dividend = max_claimable_dividend(
+        let dividend = claimable_capi_dividend(
             // the calculated capi fee is what's on the capi app (total received state) now
             precs.drain_res.drained_amounts.capi,
             FundsAmount::new(0),
@@ -230,7 +230,7 @@ mod tests {
         let capi_app_total_received_before_claiming =
             capi_app_global_state(algod, td.capi_app_id).await?.received;
 
-        let dividend = max_claimable_dividend(
+        let dividend = claimable_capi_dividend(
             // the calculated capi fee is what's on the capi app (total received state) now
             precs.drain_res.drained_amounts.capi,
             FundsAmount::new(0),
@@ -301,7 +301,7 @@ mod tests {
 
         // flow
 
-        let dividend = max_claimable_dividend(
+        let dividend = claimable_capi_dividend(
             // the calculated capi fee is what's on the capi app (total received state) now
             precs.drain_res.drained_amounts.capi,
             FundsAmount::new(0),

@@ -7,3 +7,4 @@ pub mod common_test;
 pub mod create;
 pub mod lock;
 pub mod unlock;
+pub mod update_app;
