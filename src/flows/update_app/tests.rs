@@ -12,7 +12,6 @@ mod tests {
                 update_dao_flow::update_dao_flow,
             },
             network_test_util::test_dao_init,
-            TESTS_DEFAULT_PRECISION,
         },
     };
     use anyhow::Result;
