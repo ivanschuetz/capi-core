@@ -67,7 +67,7 @@ mod test {
     pub fn dao_specs() -> CreateDaoSpecs {
         CreateDaoSpecs::new(
         "Pancakes ltd".to_owned(),
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
         shares_specs(),
         ShareAmount::new(40),
         FundsAmount::new(5_000_000),

@@ -252,7 +252,7 @@ mod tests {
         td.capi_escrow_percentage = Decimal::new(0, 0).try_into().unwrap();
         td.specs = CreateDaoSpecs::new(
             "Pancakes ltd".to_owned(),
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat".to_owned(),
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
             CreateSharesSpecs {
                 token_name: "PCK".to_owned(),
                 supply: ShareAmount::new(300),

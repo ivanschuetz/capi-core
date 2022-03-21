@@ -7,9 +7,11 @@ use crate::{
     flows::create_dao::{
         model::Dao,
         setup::{
-            central_escrow::setup_central_escrow, customer_escrow::setup_customer_escrow,
-            investing_escrow::setup_investing_escrow_txs, locking_escrow::setup_locking_escrow_txs,
-            setup_app::setup_app_tx,
+            central_escrow::setup_central_escrow,
+            customer_escrow::setup_customer_escrow,
+            investing_escrow::setup_investing_escrow_txs,
+            locking_escrow::setup_locking_escrow_txs,
+            setup_app::{setup_app_tx, DaoInitData},
         },
     },
     funds::FundsAssetId,
@@ -63,17 +65,6 @@ pub async fn create_dao_txs(
     )
     .await?;
 
-    let mut setup_app_tx = setup_app_tx(
-        central_app_id,
-        &creator,
-        &params,
-        central_to_sign.escrow.address(),
-        customer_to_sign.escrow.address(),
-        shares_asset_id,
-        funds_asset_id,
-    )
-    .await?;
-
     let mut setup_locking_escrow_to_sign = setup_locking_escrow_txs(
         algod,
         &programs.escrows.locking_escrow,
@@ -95,6 +86,28 @@ pub async fn create_dao_txs(
         central_to_sign.escrow.address(),
         &params,
         central_app_id,
+    )
+    .await?;
+
+    let mut setup_app_tx = setup_app_tx(
+        central_app_id,
+        &creator,
+        &params,
+        &DaoInitData {
+            central_escrow: *central_to_sign.escrow.address(),
+            customer_escrow: *customer_to_sign.escrow.address(),
+            investing_escrow: *setup_locking_escrow_to_sign.escrow.address(),
+            locking_escrow: *setup_locking_escrow_to_sign.escrow.address(),
+            shares_asset_id,
+            funds_asset_id,
+            project_name: specs.name.clone(),
+            project_description: specs.description.clone(),
+            share_price: specs.share_price,
+            investors_part: specs.investors_part(),
+            logo_url: specs.logo_url.clone(),
+            social_media_url: specs.social_media_url.clone(),
+            owner,
+        },
     )
     .await?;
 
