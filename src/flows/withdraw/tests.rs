@@ -38,11 +38,11 @@ mod tests {
         let dao = create_dao_flow(&td).await?;
         let pay_and_drain_amount = FundsAmount::new(10 * 1_000_000);
 
-        withdraw_precs(td, drainer, &dao.dao, pay_and_drain_amount).await?;
+        withdraw_precs(td, drainer, &dao, pay_and_drain_amount).await?;
 
         // remeber state
         let central_balance_before_withdrawing =
-            funds_holdings(&algod, dao.dao.central_escrow.address(), td.funds_asset_id).await?;
+            funds_holdings(&algod, dao.central_escrow.address(), td.funds_asset_id).await?;
         let creator_balance_bafore_withdrawing =
             funds_holdings(&algod, &td.creator.address(), td.funds_asset_id).await?;
 
@@ -50,7 +50,7 @@ mod tests {
 
         withdraw_flow(
             &algod,
-            &dao.dao,
+            &dao,
             &td.creator,
             withdraw_amount,
             td.funds_asset_id,
@@ -63,7 +63,7 @@ mod tests {
             &algod,
             &td.creator.address(),
             td.funds_asset_id,
-            dao.dao.central_escrow.address(),
+            dao.central_escrow.address(),
             // creator got the amount
             creator_balance_bafore_withdrawing + withdraw_amount,
             // central lost the withdrawn amount
@@ -91,12 +91,12 @@ mod tests {
         let dao = create_dao_flow(td).await?;
 
         // Investor buys some shares
-        invests_optins_flow(algod, &investor, &dao.dao).await?;
-        invests_flow(td, investor, investor_share_amount, &dao.dao, &dao.dao_id).await?;
+        invests_optins_flow(algod, &investor, &dao).await?;
+        invests_flow(td, investor, investor_share_amount, &dao).await?;
 
         // remember state
         let central_balance_before_withdrawing =
-            funds_holdings(&algod, dao.dao.central_escrow.address(), td.funds_asset_id).await?;
+            funds_holdings(&algod, dao.central_escrow.address(), td.funds_asset_id).await?;
         let creator_balance_bafore_withdrawing =
             funds_holdings(algod, &td.creator.address(), td.funds_asset_id).await?;
 
@@ -110,7 +110,7 @@ mod tests {
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.dao.central_escrow,
+            &dao.central_escrow,
         )
         .await?;
 
@@ -134,7 +134,7 @@ mod tests {
             algod,
             &td.creator.address(),
             td.funds_asset_id,
-            dao.dao.central_escrow.address(),
+            dao.central_escrow.address(),
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
         )
@@ -159,16 +159,16 @@ mod tests {
         let pay_and_drain_amount = FundsAmount::new(10 * 1_000_000);
 
         // customer payment and draining, to have some funds to withdraw
-        customer_payment_and_drain_flow(td, &dao.dao, pay_and_drain_amount, drainer).await?;
+        customer_payment_and_drain_flow(td, &dao, pay_and_drain_amount, drainer).await?;
 
         // Investor buys some shares
         let investor_share_amount = ShareAmount::new(10);
-        invests_optins_flow(algod, investor, &dao.dao).await?;
-        invests_flow(td, investor, investor_share_amount, &dao.dao, &dao.dao_id).await?;
+        invests_optins_flow(algod, investor, &dao).await?;
+        invests_flow(td, investor, investor_share_amount, &dao).await?;
 
         // remember state
         let central_balance_before_withdrawing =
-            funds_holdings(algod, dao.dao.central_escrow.address(), td.funds_asset_id).await?;
+            funds_holdings(algod, dao.central_escrow.address(), td.funds_asset_id).await?;
         let creator_balance_bafore_withdrawing =
             funds_holdings(algod, &td.creator.address(), td.funds_asset_id).await?;
 
@@ -182,7 +182,7 @@ mod tests {
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.dao.central_escrow,
+            &dao.central_escrow,
         )
         .await?;
 
@@ -206,7 +206,7 @@ mod tests {
             algod,
             &td.creator.address(),
             td.funds_asset_id,
-            dao.dao.central_escrow.address(),
+            dao.central_escrow.address(),
             creator_balance_bafore_withdrawing,
             central_balance_before_withdrawing,
         )

@@ -1,6 +1,9 @@
 use crate::{
     algo_helpers::calculate_total_fee,
-    flows::create_dao::{share_amount::ShareAmount, storage::load_dao::TxId},
+    flows::create_dao::{
+        share_amount::ShareAmount,
+        storage::load_dao::{DaoAppId, TxId},
+    },
 };
 use algonaut::{
     algod::v2::Algod,
@@ -24,7 +27,7 @@ pub async fn unlock(
     // required to be === held shares (otherwise central app rejects the tx)
     share_amount: ShareAmount,
     shares_asset_id: u64,
-    central_app_id: u64,
+    app_id: DaoAppId,
     locking_escrow: &ContractAccount,
 ) -> Result<UnlockToSign> {
     let params = algod.suggested_transaction_params().await?;
@@ -32,7 +35,7 @@ pub async fn unlock(
     // App call to validate the retrieved shares count and clear local state
     let central_app_optout_tx = &mut TxnBuilder::with(
         &params,
-        CloseApplication::new(investor, central_app_id)
+        CloseApplication::new(investor, app_id.0)
             .app_arguments(vec!["unlock".as_bytes().to_vec()])
             .build(),
     )

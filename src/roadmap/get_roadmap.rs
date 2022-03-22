@@ -16,7 +16,7 @@ use serde::Serialize;
 pub async fn get_roadmap(
     indexer: &Indexer,
     dao_creator: &Address,
-    dao_id: &DaoId,
+    dao_id: DaoId,
 ) -> Result<Roadmap> {
     // We get all the txs sent by dao's creator and filter manually by the dao prefix
     // Algorand's indexer has performance problems with note-prefix and it doesn't work at all with AlgoExplorer or PureStake currently:

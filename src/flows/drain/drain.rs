@@ -1,7 +1,10 @@
 use crate::{
     algo_helpers::calculate_total_fee,
     capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
-    flows::create_dao::{shares_percentage::SharesPercentage, storage::load_dao::TxId},
+    flows::create_dao::{
+        shares_percentage::SharesPercentage,
+        storage::load_dao::{DaoAppId, TxId},
+    },
     funds::{FundsAmount, FundsAssetId},
     state::account_state::funds_holdings,
 };
@@ -23,7 +26,7 @@ use serde::{Deserialize, Serialize};
 pub async fn drain_customer_escrow(
     algod: &Algod,
     drainer: &Address,
-    central_app_id: u64,
+    app_id: DaoAppId,
     funds_asset_id: FundsAssetId,
     capi_deps: &CapiAssetDaoDeps,
     customer_escrow: &ContractAccount,
@@ -35,7 +38,7 @@ pub async fn drain_customer_escrow(
     let params = algod.suggested_transaction_params().await?;
 
     let app_call_tx = &mut drain_app_call_tx(
-        central_app_id,
+        app_id,
         &params,
         drainer,
         customer_escrow.address(),
@@ -109,7 +112,7 @@ pub async fn drain_amounts(
 pub async fn fetch_drain_amount_and_drain(
     algod: &Algod,
     drainer: &Address,
-    central_app_id: u64,
+    app_id: DaoAppId,
     funds_asset_id: FundsAssetId,
     capi_deps: &CapiAssetDaoDeps,
     customer_escrow: &ContractAccount,
@@ -126,7 +129,7 @@ pub async fn fetch_drain_amount_and_drain(
     drain_customer_escrow(
         algod,
         drainer,
-        central_app_id,
+        app_id,
         funds_asset_id,
         capi_deps,
         customer_escrow,
@@ -153,7 +156,7 @@ fn calculate_dao_and_capi_escrow_xfer_amounts(
 }
 
 pub fn drain_app_call_tx(
-    app_id: u64,
+    app_id: DaoAppId,
     params: &SuggestedTransactionParams,
     sender: &Address,
     customer_escrow: &Address,
@@ -161,7 +164,7 @@ pub fn drain_app_call_tx(
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
         params,
-        CallApplication::new(*sender, app_id)
+        CallApplication::new(*sender, app_id.0)
             .app_arguments(vec!["drain".as_bytes().to_vec()])
             .foreign_assets(vec![funds_asset_id.0])
             .accounts(vec![*customer_escrow])

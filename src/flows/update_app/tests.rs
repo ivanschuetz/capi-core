@@ -3,11 +3,11 @@ mod tests {
     use crate::{
         flows::{claim::claim::claimable_dividend, create_dao::share_amount::ShareAmount},
         funds::FundsAmount,
-        state::central_app_state::{central_global_state, central_investor_state},
+        state::central_app_state::{dao_global_state, dao_investor_state},
         teal::TealSource,
         testing::{
             flow::{
-                claim_flow::{claim_flow, test::claim_precs_with_dao_res},
+                claim_flow::{claim_flow, test::claim_precs_with_dao},
                 create_dao_flow::test::create_dao_flow_with_owner,
                 update_dao_flow::update_dao_flow,
             },
@@ -39,7 +39,7 @@ mod tests {
         let not_owner = &td.investor1; // arbitrary account that's not the owner
         let update_by_not_owner_res = update_dao_flow(
             td,
-            &dao.dao,
+            &dao,
             &not_owner,
             always_accept_teal(),
             always_accept_teal(),
@@ -51,21 +51,15 @@ mod tests {
         // test
 
         // update to "always accept"
-        let update_by_owner_res = update_dao_flow(
-            td,
-            &dao.dao,
-            &owner,
-            always_accept_teal(),
-            always_accept_teal(),
-        )
-        .await;
+        let update_by_owner_res =
+            update_dao_flow(td, &dao, &owner, always_accept_teal(), always_accept_teal()).await;
         log::debug!("update_by_owner_res: {update_by_owner_res:?}");
         assert!(update_by_owner_res.is_ok());
 
         // update by non-owner: since new TEAL accepts everything, this time it passes
         let new_update_by_non_owner_res = update_dao_flow(
             td,
-            &dao.dao,
+            &dao,
             &not_owner,
             // updating to different TEAL, just in case that upgrades are rejected if it's the same TEAL
             // this can be arbitrary TEAL - just has to be different to the previous one
@@ -95,7 +89,7 @@ mod tests {
         let drainer = &td.investor1;
         let buy_share_amount = ShareAmount::new(10);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
-        let precs = claim_precs_with_dao_res(
+        let precs = claim_precs_with_dao(
             &td,
             &dao,
             buy_share_amount,
@@ -116,28 +110,20 @@ mod tests {
 
         // // flow
 
-        let global_state_before_update =
-            central_global_state(&td.algod, dao.dao.central_app_id).await?;
+        let global_state_before_update = dao_global_state(&td.algod, dao.app_id).await?;
         let local_state_before_update =
-            central_investor_state(&td.algod, &investor.address(), dao.dao.central_app_id).await?;
+            dao_investor_state(&td.algod, &investor.address(), dao.app_id).await?;
 
-        let update_res = update_dao_flow(
-            td,
-            &dao.dao,
-            &owner,
-            always_accept_teal(),
-            always_accept_teal(),
-        )
-        .await;
+        let update_res =
+            update_dao_flow(td, &dao, &owner, always_accept_teal(), always_accept_teal()).await;
         assert!(update_res.is_ok());
 
         // test
 
-        let global_state_after_update =
-            central_global_state(&td.algod, dao.dao.central_app_id).await?;
+        let global_state_after_update = dao_global_state(&td.algod, dao.app_id).await?;
         log::debug!("global_state_after_update: {global_state_after_update:?}");
         let local_state_after_update =
-            central_investor_state(&td.algod, &investor.address(), dao.dao.central_app_id).await?;
+            dao_investor_state(&td.algod, &investor.address(), dao.app_id).await?;
 
         assert_eq!(global_state_before_update, global_state_after_update);
         assert_eq!(local_state_before_update, local_state_after_update);

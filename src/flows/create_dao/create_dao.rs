@@ -1,6 +1,7 @@
 use super::{
     create_dao_specs::CreateDaoSpecs,
     model::{CreateDaoSigned, CreateDaoToSign, SubmitCreateDaoResult},
+    storage::load_dao::DaoAppId,
 };
 use crate::{
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
@@ -30,7 +31,7 @@ pub async fn create_dao_txs(
     funds_asset_id: FundsAssetId,
     programs: &Programs,
     precision: u64,
-    central_app_id: u64,
+    app_id: DaoAppId,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<CreateDaoToSign> {
     log::debug!(
@@ -49,7 +50,7 @@ pub async fn create_dao_txs(
         &programs.escrows.central_escrow,
         &params,
         funds_asset_id,
-        central_app_id,
+        app_id,
     )
     .await?;
 
@@ -61,7 +62,7 @@ pub async fn create_dao_txs(
         &params,
         funds_asset_id,
         &capi_deps.escrow,
-        central_app_id,
+        app_id,
     )
     .await?;
 
@@ -71,7 +72,7 @@ pub async fn create_dao_txs(
         shares_asset_id,
         &creator,
         &params,
-        central_app_id,
+        app_id,
     )
     .await?;
     let mut setup_invest_escrow_to_sign = setup_investing_escrow_txs(
@@ -85,12 +86,12 @@ pub async fn create_dao_txs(
         setup_locking_escrow_to_sign.escrow.address(),
         central_to_sign.escrow.address(),
         &params,
-        central_app_id,
+        app_id,
     )
     .await?;
 
     let mut setup_app_tx = setup_app_tx(
-        central_app_id,
+        app_id,
         &creator,
         &params,
         &DaoInitData {
@@ -203,7 +204,7 @@ pub async fn submit_create_dao(
             specs: signed.specs,
             shares_asset_id: signed.shares_asset_id,
             funds_asset_id: signed.funds_asset_id,
-            central_app_id: signed.central_app_id,
+            app_id: signed.app_id,
             invest_escrow: signed.invest_escrow,
             locking_escrow: signed.locking_escrow,
             customer_escrow: signed.customer_escrow,

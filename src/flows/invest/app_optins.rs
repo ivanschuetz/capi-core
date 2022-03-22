@@ -1,6 +1,6 @@
 use crate::flows::{
     create_dao::{model::Dao, storage::load_dao::TxId},
-    shared::app::optin_to_app,
+    shared::app::optin_to_dao_app,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -15,7 +15,7 @@ pub async fn invest_or_locking_app_optin_tx(
     investor: &Address,
 ) -> Result<Transaction> {
     let params = algod.suggested_transaction_params().await?;
-    let central_optin_tx = optin_to_app(&params, dao.central_app_id, *investor).await?;
+    let central_optin_tx = optin_to_dao_app(&params, dao.app_id, *investor).await?;
     Ok(central_optin_tx)
 }
 

@@ -5,7 +5,7 @@ use algonaut::{
 use anyhow::Result;
 
 use crate::{
-    flows::create_dao::share_amount::ShareAmount,
+    flows::create_dao::{share_amount::ShareAmount, storage::load_dao::DaoAppId},
     funds::{FundsAmount, FundsAssetId},
     note::dao_setup_prefix,
 };
@@ -35,15 +35,15 @@ pub struct DaoInitData {
 }
 
 pub async fn setup_app_tx(
-    app_id: u64,
+    app_id: DaoAppId,
     creator: &Address,
     params: &SuggestedTransactionParams,
     data: &DaoInitData,
 ) -> Result<Transaction> {
-    log::debug!("Setting up app: {app_id}");
+    log::debug!("Setting up app: {app_id:?}");
     let tx = TxnBuilder::with(
         params,
-        CallApplication::new(*creator, app_id)
+        CallApplication::new(*creator, app_id.0)
             .app_arguments(vec![
                 data.central_escrow.0.to_vec(),
                 data.customer_escrow.0.to_vec(),

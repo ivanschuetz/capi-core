@@ -13,6 +13,7 @@ use serde::Serialize;
 use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
+    flows::create_dao::storage::load_dao::DaoAppId,
     funds::FundsAssetId,
     teal::{render_template_new, TealSource, TealSourceTemplate},
 };
@@ -30,14 +31,14 @@ pub async fn setup_customer_escrow(
     params: &SuggestedTransactionParams,
     funds_asset_id: FundsAssetId,
     capi_escrow_address: &Address,
-    central_app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<SetupCustomerEscrowToSign> {
     let escrow = render_and_compile_customer_escrow(
         algod,
         central_address,
         source,
         capi_escrow_address,
-        central_app_id,
+        app_id,
     )
     .await?;
 
@@ -68,10 +69,9 @@ pub async fn render_and_compile_customer_escrow(
     central_address: &Address,
     source: &TealSourceTemplate,
     capi_escrow_address: &Address,
-    central_app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<ContractAccount> {
-    let source =
-        render_customer_escrow(central_address, source, capi_escrow_address, central_app_id)?;
+    let source = render_customer_escrow(central_address, source, capi_escrow_address, app_id)?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
@@ -79,14 +79,14 @@ pub fn render_customer_escrow(
     central_address: &Address,
     source: &TealSourceTemplate,
     capi_escrow_address: &Address,
-    central_app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<TealSource> {
     let escrow_source = render_template_new(
         source,
         &[
             ("TMPL_CENTRAL_ESCROW_ADDRESS", &central_address.to_string()),
             ("TMPL_CAPI_ESCROW_ADDRESS", &capi_escrow_address.to_string()),
-            ("TMPL_CENTRAL_APP_ID", &central_app_id.to_string()),
+            ("TMPL_CENTRAL_APP_ID", &app_id.to_string()),
         ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]

@@ -1,7 +1,11 @@
 use super::model::{InvestResult, InvestSigned, InvestToSign};
 use crate::{
     algo_helpers::calculate_total_fee,
-    flows::create_dao::{model::Dao, share_amount::ShareAmount, storage::load_dao::DaoId},
+    flows::create_dao::{
+        model::Dao,
+        share_amount::ShareAmount,
+        storage::load_dao::{DaoAppId, DaoId},
+    },
     funds::{FundsAmount, FundsAssetId},
 };
 use algonaut::{
@@ -24,12 +28,11 @@ pub async fn invest_txs(
     dao: &Dao,
     investor: &Address,
     locking_escrow: &ContractAccount,
-    central_app_id: u64,
+    app_id: DaoAppId,
     shares_asset_id: u64,
     share_amount: ShareAmount,
     funds_asset_id: FundsAssetId,
     share_price: FundsAmount,
-    dao_id: &DaoId,
 ) -> Result<InvestToSign> {
     log::debug!("Investing in dao: {:?}", dao);
 
@@ -42,13 +45,8 @@ pub async fn invest_txs(
         "Share price: {share_price} multiplied by share amount: {share_amount} caused an overflow."
     ))?;
 
-    let central_app_investor_setup_tx = &mut central_app_investor_setup_tx(
-        &params,
-        central_app_id,
-        shares_asset_id,
-        *investor,
-        dao_id,
-    )?;
+    let central_app_investor_setup_tx =
+        &mut dao_app_investor_setup_tx(&params, app_id, shares_asset_id, *investor, dao.id())?;
 
     let pay_price_tx = &mut TxnBuilder::with(
         &params,
@@ -103,16 +101,16 @@ pub async fn invest_txs(
     })
 }
 
-pub fn central_app_investor_setup_tx(
+pub fn dao_app_investor_setup_tx(
     params: &SuggestedTransactionParams,
-    app_id: u64,
+    app_id: DaoAppId,
     shares_asset_id: u64,
     investor: Address,
-    dao_id: &DaoId,
+    dao_id: DaoId,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
         params,
-        CallApplication::new(investor, app_id)
+        CallApplication::new(investor, app_id.0)
             .foreign_assets(vec![shares_asset_id])
             .app_arguments(vec!["invest".as_bytes().to_vec(), dao_id.bytes().to_vec()])
             .build(),

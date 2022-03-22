@@ -4,6 +4,7 @@ use crate::{
         create_dao::Programs,
         create_dao_specs::CreateDaoSpecs,
         model::{CreateAssetsToSign, CreateSharesSpecs},
+        storage::load_dao::DaoAppId,
     },
     network_util::wait_for_pending_transaction,
 };
@@ -68,7 +69,7 @@ pub async fn submit_create_assets(
     let shares_asset_id = shares_asset_id_res?;
     let app_id = app_id_res?;
 
-    log::debug!("Dao assets created. Shares id: {shares_asset_id}, app id: {app_id}");
+    log::debug!("Dao assets created. Shares id: {shares_asset_id}, app id: {app_id:?}");
 
     Ok(CreateAssetsResult {
         shares_asset_id,
@@ -82,10 +83,12 @@ async fn send_and_retrieve_asset_id(algod: &Algod, tx: &SignedTransaction) -> Re
         .ok_or_else(|| anyhow!("Shares asset id in pending tx not set"))
 }
 
-async fn send_and_retrieve_app_id(algod: &Algod, tx: &SignedTransaction) -> Result<u64> {
+async fn send_and_retrieve_app_id(algod: &Algod, tx: &SignedTransaction) -> Result<DaoAppId> {
     let p_tx = send_and_wait_for_pending_tx(algod, tx).await?;
-    p_tx.application_index
-        .ok_or_else(|| anyhow!("App id in pending tx not set"))
+    Ok(DaoAppId(
+        p_tx.application_index
+            .ok_or_else(|| anyhow!("App id in pending tx not set"))?,
+    ))
 }
 
 async fn send_and_wait_for_pending_tx(
@@ -107,7 +110,7 @@ pub struct CrateDaoAssetsSigned {
 #[derive(Debug)]
 pub struct CreateAssetsResult {
     pub shares_asset_id: u64,
-    pub app_id: u64,
+    pub app_id: DaoAppId,
 }
 
 async fn create_shares_tx(

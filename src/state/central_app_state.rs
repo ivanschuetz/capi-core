@@ -4,7 +4,10 @@ use super::app_state::{
     ApplicationLocalStateError, ApplicationStateExt,
 };
 use crate::{
-    flows::create_dao::{share_amount::ShareAmount, storage::load_dao::DaoId},
+    flows::create_dao::{
+        share_amount::ShareAmount,
+        storage::load_dao::{DaoAppId, DaoId},
+    },
     funds::{FundsAmount, FundsAssetId},
 };
 use algonaut::{
@@ -69,10 +72,9 @@ pub struct CentralAppGlobalState {
     pub owner: Address,
 }
 
-// TODO rename (maybe dao state? and DaoId as parameter?)
 /// Returns Ok only if called after dao setup (branch_setup_dao), where all the global state is initialized.
-pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralAppGlobalState> {
-    let gs = global_state(algod, app_id).await?;
+pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<CentralAppGlobalState> {
+    let gs = global_state(algod, app_id.0).await?;
     if gs.len() != ((GLOBAL_SCHEMA_NUM_BYTE_SLICES + GLOBAL_SCHEMA_NUM_INTS) as usize) {
         return Err(anyhow!(
             "Unexpected global state length: {}, state: {gs:?}. Was the DAO setup performed already?",
@@ -142,20 +144,20 @@ pub struct CentralAppInvestorState {
     pub dao_id: DaoId,
 }
 
-pub async fn central_investor_state(
+pub async fn dao_investor_state(
     algod: &Algod,
     investor: &Address,
-    app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
-    let local_state = local_state(algod, investor, app_id).await?;
+    let local_state = local_state(algod, investor, app_id.0).await?;
     central_investor_state_from_local_state(&local_state)
 }
 
 pub fn central_investor_state_from_acc(
     account: &Account,
-    app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
-    let local_state = local_state_from_account(account, app_id)?;
+    let local_state = local_state_from_account(account, app_id.0)?;
     central_investor_state_from_local_state(&local_state)
         .map_err(|e| ApplicationLocalStateError::Msg(e.to_string()))
 }

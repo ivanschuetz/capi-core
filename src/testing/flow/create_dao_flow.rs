@@ -1,9 +1,8 @@
 #[cfg(test)]
-pub use test::{capi_programs, create_dao_flow, programs, CreateDaoFlowRes};
+pub use test::{capi_programs, create_dao_flow, programs};
 
 #[cfg(test)]
 pub mod test {
-    use crate::flows::create_dao::storage::load_dao::DaoId;
     use crate::flows::create_dao::{
         create_dao::{create_dao_txs, submit_create_dao, CapiPrograms},
         model::{CreateDaoSigned, Dao},
@@ -14,24 +13,14 @@ pub mod test {
         teal::{load_teal, load_teal_template},
         testing::network_test_util::TestDeps,
     };
-
     use algonaut::core::Address;
     use anyhow::Result;
 
-    #[derive(Debug, Clone)]
-    pub struct CreateDaoFlowRes {
-        pub dao: Dao,
-        pub dao_id: DaoId, // TODO consider removing this - as it's in dao now (central app id)
-    }
-
-    pub async fn create_dao_flow(td: &TestDeps) -> Result<CreateDaoFlowRes> {
+    pub async fn create_dao_flow(td: &TestDeps) -> Result<Dao> {
         create_dao_flow_with_owner(td, &td.creator.address()).await
     }
 
-    pub async fn create_dao_flow_with_owner(
-        td: &TestDeps,
-        owner: &Address,
-    ) -> Result<CreateDaoFlowRes> {
+    pub async fn create_dao_flow_with_owner(td: &TestDeps, owner: &Address) -> Result<Dao> {
         let algod = &td.algod;
 
         // Create asset first: id needed in app template
@@ -106,19 +95,14 @@ pub mod test {
                 locking_escrow: to_sign.locking_escrow,
                 central_escrow: to_sign.central_escrow,
                 customer_escrow: to_sign.customer_escrow,
-                central_app_id: create_assets_res.app_id,
+                app_id: create_assets_res.app_id,
             },
         )
         .await?;
 
         log::debug!("Created dao: {:?}", create_res.dao);
 
-        let dao_id = DaoId(create_res.dao.central_app_id);
-
-        Ok(CreateDaoFlowRes {
-            dao: create_res.dao,
-            dao_id,
-        })
+        Ok(create_res.dao)
     }
 
     pub fn programs() -> Result<Programs> {

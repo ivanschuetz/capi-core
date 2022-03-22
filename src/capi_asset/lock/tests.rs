@@ -8,7 +8,7 @@ mod tests {
         dependencies,
         testing::{
             create_and_submit_txs::{
-                optin_to_app_submit, optin_to_asset_submit, transfer_tokens_and_pay_fee_submit,
+                optin_to_asset_submit, optin_to_capi_app_submit, transfer_tokens_and_pay_fee_submit,
             },
             flow::lock_capi_asset_flow::lock_capi_asset_flow,
             network_test_util::{create_and_distribute_funds_asset, test_init},
@@ -43,7 +43,7 @@ mod tests {
 
         let params = algod.suggested_transaction_params().await?;
         optin_to_asset_submit(&algod, &investor, capi_deps.asset_id.0).await?;
-        optin_to_app_submit(&algod, &params, &investor, capi_deps.app_id.0).await?;
+        optin_to_capi_app_submit(&algod, &params, &investor, capi_deps.app_id).await?;
         transfer_tokens_and_pay_fee_submit(
             &algod,
             &params,
@@ -104,7 +104,7 @@ mod tests {
 
         let params = algod.suggested_transaction_params().await?;
         optin_to_asset_submit(&algod, &investor, capi_deps.asset_id.0).await?;
-        optin_to_app_submit(&algod, &params, &investor, capi_deps.app_id.0).await?;
+        optin_to_capi_app_submit(&algod, &params, &investor, capi_deps.app_id).await?;
         transfer_tokens_and_pay_fee_submit(
             &algod,
             &params,

@@ -71,7 +71,7 @@ pub mod test {
         let drain_to_sign = drain_customer_escrow(
             &algod,
             &drainer.address(),
-            dao.central_app_id,
+            dao.app_id,
             dao.funds_asset_id,
             &td.dao_deps(),
             &dao.customer_escrow,

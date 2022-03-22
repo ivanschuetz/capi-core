@@ -1,7 +1,10 @@
 use crate::{
     algo_helpers::calculate_total_fee,
     decimal_util::AsDecimal,
-    flows::create_dao::{share_amount::ShareAmount, storage::load_dao::TxId},
+    flows::create_dao::{
+        share_amount::ShareAmount,
+        storage::load_dao::{DaoAppId, TxId},
+    },
     funds::{FundsAmount, FundsAssetId},
 };
 use algonaut::{
@@ -24,16 +27,16 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 pub async fn claim(
     algod: &Algod,
     claimer: &Address,
-    central_app_id: u64,
+    app_id: DaoAppId,
     funds_asset_id: FundsAssetId,
     amount: FundsAmount,
     central_escrow: &ContractAccount,
 ) -> Result<ClaimToSign> {
-    log::debug!("Generating claim txs, claimer: {:?}, central_app_id: {:?}, amount: {:?}, central_escrow: {:?}", claimer, central_app_id, amount, central_escrow);
+    log::debug!("Generating claim txs, claimer: {:?}, central_app_id: {:?}, amount: {:?}, central_escrow: {:?}", claimer, app_id, amount, central_escrow);
     let params = algod.suggested_transaction_params().await?;
 
     // App call to update user's local state with claimed amount
-    let app_call_tx = &mut claim_app_call_tx(central_app_id, &params, claimer)?;
+    let app_call_tx = &mut claim_app_call_tx(app_id, &params, claimer)?;
 
     // Funds transfer from escrow to creator
     let claim_tx = &mut TxnBuilder::with_fee(
@@ -61,13 +64,13 @@ pub async fn claim(
 }
 
 pub fn claim_app_call_tx(
-    app_id: u64,
+    app_id: DaoAppId,
     params: &SuggestedTransactionParams,
     sender: &Address,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
         params,
-        CallApplication::new(*sender, app_id)
+        CallApplication::new(*sender, app_id.0)
             .app_arguments(vec!["claim".as_bytes().to_vec()])
             .build(),
     )

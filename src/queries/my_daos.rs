@@ -3,7 +3,7 @@ use crate::{
     flows::create_dao::{
         create_dao::Escrows,
         model::Dao,
-        storage::load_dao::{load_dao, DaoId},
+        storage::load_dao::{load_dao, DaoAppId, DaoId},
     },
     note::dao_setup_prefix_base64,
     state::central_app_state::find_state_with_a_capi_dao_id,
@@ -18,17 +18,9 @@ use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
-// TODO use StoredDao where applicable
-// TODO move this somewhere else
-#[derive(Debug, Clone)]
-pub struct StoredDao {
-    pub id: DaoId,
-    pub dao: Dao,
-}
-
 #[derive(Debug, Clone)]
 pub struct MyStoredDao {
-    pub dao: StoredDao,
+    pub dao: Dao,
     // whether I created this dao
     pub created_by_me: bool,
     // whether I'm currently invested (locking shares) in this dao
@@ -45,20 +37,20 @@ pub async fn my_daos(
     let created = my_created_daos(algod, indexer, address, escrows, capi_deps).await?;
     let invested = my_current_invested_daos(algod, address, escrows, capi_deps).await?;
 
-    let created_map: HashMap<DaoId, StoredDao> = created
+    let created_map: HashMap<DaoId, Dao> = created
         .iter()
-        .map(|a| (a.id.clone(), a.to_owned()))
+        .map(|d| (d.id().clone(), d.to_owned()))
         .collect();
 
-    let invested_map: HashMap<DaoId, StoredDao> = invested
+    let invested_map: HashMap<DaoId, Dao> = invested
         .iter()
-        .map(|a| (a.id.clone(), a.to_owned()))
+        .map(|d| (d.id().clone(), d.to_owned()))
         .collect();
 
     // Daos created by me and [created and invested] by me
     let mut daos = vec![];
     for dao in created {
-        let invested_by_me = invested_map.contains_key(&dao.id);
+        let invested_by_me = invested_map.contains_key(&dao.id());
         daos.push(MyStoredDao {
             dao,
             created_by_me: true,
@@ -68,7 +60,7 @@ pub async fn my_daos(
 
     // Daos only invested by me
     for dao in invested {
-        if !created_map.contains_key(&dao.id) {
+        if !created_map.contains_key(&dao.id()) {
             daos.push(MyStoredDao {
                 dao,
                 created_by_me: false,
@@ -88,7 +80,7 @@ pub async fn my_current_invested_daos(
     address: &Address,
     escrows: &Escrows,
     capi_deps: &CapiAssetDaoDeps,
-) -> Result<Vec<StoredDao>> {
+) -> Result<Vec<Dao>> {
     log::debug!("Retrieving my dao from: {:?}", address);
 
     let account = algod.account_information(address).await?;
@@ -126,7 +118,7 @@ pub async fn my_created_daos(
     address: &Address,
     escrows: &Escrows,
     capi_deps: &CapiAssetDaoDeps,
-) -> Result<Vec<StoredDao>> {
+) -> Result<Vec<Dao>> {
     log::debug!("Retrieving my dao from: {:?}", address);
 
     let response = indexer
@@ -152,7 +144,7 @@ pub async fn my_created_daos(
                             "Invalid state: Found 0 app id fetching dao setup transactions. Tx: {tx:?}"
                         ));
                     }
-                    let dao_id = DaoId(app_id);
+                    let dao_id = DaoId(DaoAppId(app_id));
 
                     let dao = load_dao(algod, dao_id, escrows, capi_deps).await?;
                     my_daos.push(dao);

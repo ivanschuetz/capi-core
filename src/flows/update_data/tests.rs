@@ -6,10 +6,10 @@ mod tests {
             update_data::update_data::UpdatableDaoData,
         },
         funds::FundsAmount,
-        state::central_app_state::{central_global_state, central_investor_state},
+        state::central_app_state::{dao_global_state, dao_investor_state},
         testing::{
             flow::{
-                claim_flow::{claim_flow, test::claim_precs_with_dao_res},
+                claim_flow::{claim_flow, test::claim_precs_with_dao},
                 create_dao_flow::test::create_dao_flow_with_owner,
                 update_dao_data_flow::update_dao_data_flow,
             },
@@ -36,8 +36,7 @@ mod tests {
         // precs
 
         // sanity check: current state is different to the new one
-        let global_state_before_update =
-            central_global_state(algod, dao.dao.central_app_id).await?;
+        let global_state_before_update = dao_global_state(algod, dao.app_id).await?;
         assert_ne!(
             global_state_before_update.central_escrow,
             new_central_escrow_address
@@ -53,11 +52,11 @@ mod tests {
             central_escrow: new_central_escrow_address,
             customer_escrow: new_customer_escrow_address,
         };
-        update_dao_data_flow(td, &dao.dao, &owner, &data).await?;
+        update_dao_data_flow(td, &dao, &owner, &data).await?;
 
         // test
 
-        let global_state_after_update = central_global_state(algod, dao.dao.central_app_id).await?;
+        let global_state_after_update = dao_global_state(algod, dao.app_id).await?;
         assert_eq!(
             global_state_after_update.central_escrow,
             new_central_escrow_address
@@ -90,7 +89,7 @@ mod tests {
         let drainer = &td.investor1;
         let buy_share_amount = ShareAmount::new(10);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
-        let precs = claim_precs_with_dao_res(
+        let precs = claim_precs_with_dao(
             &td,
             &dao,
             buy_share_amount,
@@ -109,9 +108,9 @@ mod tests {
         )?;
         claim_flow(&td, &precs.dao, investor, dividend).await?;
 
-        let gs_before_update = central_global_state(&td.algod, dao.dao.central_app_id).await?;
+        let gs_before_update = dao_global_state(&td.algod, dao.app_id).await?;
         let ls_before_update =
-            central_investor_state(&td.algod, &investor.address(), dao.dao.central_app_id).await?;
+            dao_investor_state(&td.algod, &investor.address(), dao.app_id).await?;
 
         // flow
 
@@ -119,13 +118,13 @@ mod tests {
             central_escrow: new_central_escrow_address,
             customer_escrow: new_customer_escrow_address,
         };
-        update_dao_data_flow(td, &dao.dao, &owner, &data).await?;
+        update_dao_data_flow(td, &dao, &owner, &data).await?;
 
         // test
 
-        let gs_after_update = central_global_state(algod, dao.dao.central_app_id).await?;
+        let gs_after_update = dao_global_state(algod, dao.app_id).await?;
         let ls_after_update =
-            central_investor_state(&td.algod, &investor.address(), dao.dao.central_app_id).await?;
+            dao_investor_state(&td.algod, &investor.address(), dao.app_id).await?;
 
         // state was updated
         assert_eq!(gs_after_update.central_escrow, new_central_escrow_address);

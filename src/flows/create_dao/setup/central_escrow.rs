@@ -2,6 +2,7 @@
 use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
+    flows::create_dao::storage::load_dao::DaoAppId,
     funds::FundsAssetId,
     teal::{render_template_new, TealSource, TealSourceTemplate},
 };
@@ -27,11 +28,10 @@ pub async fn setup_central_escrow(
     source: &TealSourceTemplate,
     params: &SuggestedTransactionParams,
     funds_asset_id: FundsAssetId,
-    central_app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<SetupCentralEscrowToSign> {
     let escrow =
-        render_and_compile_central_escrow(algod, owner, source, funds_asset_id, central_app_id)
-            .await?;
+        render_and_compile_central_escrow(algod, owner, source, funds_asset_id, app_id).await?;
 
     let optin_to_funds_asset_tx = &mut TxnBuilder::with_fee(
         params,
@@ -58,9 +58,9 @@ pub async fn render_and_compile_central_escrow(
     dao_creator: &Address,
     source: &TealSourceTemplate,
     funds_asset_id: FundsAssetId,
-    central_app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<ContractAccount> {
-    let source = render_central_escrow(source, dao_creator, funds_asset_id, central_app_id)?;
+    let source = render_central_escrow(source, dao_creator, funds_asset_id, app_id)?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
@@ -68,14 +68,14 @@ fn render_central_escrow(
     source: &TealSourceTemplate,
     owner: &Address,
     funds_asset_id: FundsAssetId,
-    central_app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<TealSource> {
     let escrow_source = render_template_new(
         source,
         &[
             ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
             ("TMPL_OWNER", &owner.to_string()),
-            ("TMPL_CENTRAL_APP_ID", &central_app_id.to_string()),
+            ("TMPL_CENTRAL_APP_ID", &app_id.to_string()),
         ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]

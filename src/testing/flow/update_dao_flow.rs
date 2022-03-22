@@ -17,14 +17,7 @@ pub mod test {
         approval: TealSource,
         clear: TealSource,
     ) -> Result<()> {
-        let to_sign = update(
-            &td.algod,
-            &owner.address(),
-            dao.central_app_id,
-            approval,
-            clear,
-        )
-        .await?;
+        let to_sign = update(&td.algod, &owner.address(), dao.app_id, approval, clear).await?;
 
         let signed = owner.sign_transaction(to_sign.update)?;
         send_tx_and_wait(&td.algod, &signed).await?;

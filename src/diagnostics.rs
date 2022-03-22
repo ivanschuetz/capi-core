@@ -6,7 +6,7 @@ use crate::{
     funds::FundsAmount,
     state::{
         account_state::funds_holdings,
-        central_app_state::{central_global_state, central_investor_state},
+        central_app_state::{dao_global_state, dao_investor_state},
     },
 };
 
@@ -15,10 +15,8 @@ pub async fn claim_diagnostics(
     investor: &Address,
     dao: &Dao,
 ) -> Result<ClaimDiagnostics> {
-    let central_total_received = central_global_state(algod, dao.central_app_id)
-        .await?
-        .received;
-    let central_investor_state = central_investor_state(algod, investor, dao.central_app_id)
+    let central_total_received = dao_global_state(algod, dao.app_id).await?.received;
+    let central_investor_state = dao_investor_state(algod, investor, dao.app_id)
         .await
         .map_err(Error::msg)?;
 

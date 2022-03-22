@@ -15,7 +15,7 @@ pub mod test {
         owner: &Account,
         data: &UpdatableDaoData,
     ) -> Result<()> {
-        let to_sign = update_data(&td.algod, &owner.address(), dao.central_app_id, data).await?;
+        let to_sign = update_data(&td.algod, &owner.address(), dao.app_id, data).await?;
 
         let signed = owner.sign_transaction(to_sign.update)?;
         send_tx_and_wait(&td.algod, &signed).await?;

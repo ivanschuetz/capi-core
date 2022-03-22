@@ -12,8 +12,7 @@ use crate::{
         },
         share_amount::ShareAmount,
     },
-    queries::my_daos::StoredDao,
-    state::central_app_state::central_global_state,
+    state::central_app_state::dao_global_state,
 };
 use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
 use anyhow::{anyhow, Result};
@@ -31,10 +30,12 @@ pub async fn load_dao(
     dao_id: DaoId,
     escrows: &Escrows,
     capi_deps: &CapiAssetDaoDeps,
-) -> Result<StoredDao> {
-    log::debug!("Fetching dao with id: {:?}", dao_id);
+) -> Result<Dao> {
+    let app_id = dao_id.0;
 
-    let dao_state = central_global_state(algod, dao_id.0).await?;
+    log::debug!("Fetching dao with id: {:?}", app_id);
+
+    let dao_state = dao_global_state(algod, app_id).await?;
 
     // TODO store this state (redundantly in the same app field), to prevent this call?
     let asset_infos = algod.asset_information(dao_state.shares_asset_id).await?;
@@ -45,13 +46,13 @@ pub async fn load_dao(
         &dao_state.owner,
         &escrows.central_escrow,
         dao_state.funds_asset_id,
-        dao_id.0,
+        app_id,
     );
     let locking_escrow_account_fut = render_and_compile_locking_escrow(
         algod,
         dao_state.shares_asset_id,
         &escrows.locking_escrow,
-        dao_id.0,
+        app_id,
     );
     let (central_escrow_account_res, locking_escrow_account_res) =
         join!(central_escrow_account_fut, locking_escrow_account_fut);
@@ -62,7 +63,7 @@ pub async fn load_dao(
         central_escrow_account.address(),
         &escrows.customer_escrow,
         &capi_deps.escrow,
-        dao_id.0,
+        app_id,
     );
     let investing_escrow_account_fut = render_and_compile_investing_escrow(
         algod,
@@ -72,7 +73,7 @@ pub async fn load_dao(
         locking_escrow_account.address(),
         central_escrow_account.address(),
         &escrows.invest_escrow,
-        dao_id.0,
+        app_id,
     );
     let (customer_escrow_account_res, investing_escrow_account_res) =
         join!(customer_escrow_account_fut, investing_escrow_account_fut);
@@ -108,17 +109,14 @@ pub async fn load_dao(
         funds_asset_id: dao_state.funds_asset_id,
         creator: dao_state.owner,
         shares_asset_id: dao_state.shares_asset_id,
-        central_app_id: dao_id.0,
+        app_id,
         invest_escrow: investing_escrow_account,
         locking_escrow: locking_escrow_account,
         central_escrow: central_escrow_account,
         customer_escrow: customer_escrow_account,
     };
 
-    Ok(StoredDao {
-        id: dao_id.to_owned(),
-        dao,
-    })
+    Ok(dao)
 }
 
 fn expect_match(stored_address: &Address, generated_address: &Address) -> Result<()> {
@@ -128,36 +126,52 @@ fn expect_match(stored_address: &Address, generated_address: &Address) -> Result
     Ok(())
 }
 
-// TODO consider smart initializer: return error if id is 0 (invalid dao/app id)
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub struct DaoId(pub u64);
-impl FromStr for DaoId {
-    type Err = anyhow::Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(DaoId(s.parse()?))
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+pub struct DaoId(pub DaoAppId);
+impl DaoId {
+    pub fn bytes(&self) -> [u8; 8] {
+        self.0.bytes()
     }
 }
-impl ToString for DaoId {
+impl TryFrom<&[u8]> for DaoId {
+    type Error = anyhow::Error;
+    fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
+        let app_id: DaoAppId = slice.try_into()?;
+        Ok(DaoId(app_id))
+    }
+}
+
+// TODO consider smart initializer: return error if id is 0 (invalid dao/app id)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+pub struct DaoAppId(pub u64);
+
+impl FromStr for DaoAppId {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(DaoAppId(s.parse()?))
+    }
+}
+impl ToString for DaoAppId {
     fn to_string(&self) -> String {
         self.0.to_string()
     }
 }
 
-impl DaoId {
+impl DaoAppId {
     pub fn bytes(&self) -> [u8; 8] {
         // note: matches to_le_bytes() in DaoId::from()
         self.0.to_le_bytes()
     }
 }
 
-impl From<[u8; 8]> for DaoId {
+impl From<[u8; 8]> for DaoAppId {
     fn from(slice: [u8; 8]) -> Self {
         // note: matches to_le_bytes() in DaoId::bytes()
-        DaoId(u64::from_le_bytes(slice))
+        DaoAppId(u64::from_le_bytes(slice))
     }
 }
 
-impl TryFrom<&[u8]> for DaoId {
+impl TryFrom<&[u8]> for DaoAppId {
     type Error = anyhow::Error;
     fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
         let array: [u8; 8] = slice.try_into()?;

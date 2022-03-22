@@ -14,7 +14,7 @@ mod test {
         network_util::wait_for_pending_transaction,
         testing::{
             create_and_submit_txs::{
-                optin_to_app_submit, optin_to_asset_submit, transfer_tokens_and_pay_fee_submit,
+                optin_to_asset_submit, optin_to_capi_app_submit, transfer_tokens_and_pay_fee_submit,
             },
             flow::{
                 create_dao_flow::create_dao_flow,
@@ -86,7 +86,7 @@ mod test {
         // opt ins
 
         optin_to_asset_submit(&algod, &claimer, td.capi_asset_id.0).await?;
-        optin_to_app_submit(&algod, &params, &claimer, td.capi_app_id.0).await?;
+        optin_to_capi_app_submit(&algod, &params, &claimer, td.capi_app_id).await?;
 
         // send capi assets to investor
 
@@ -136,8 +136,7 @@ mod test {
 
         // let central_funds = FundsAmount(10 * 1_000_000);
 
-        let drain_res =
-            customer_payment_and_drain_flow(&td, &dao.dao, central_funds, &drainer).await?;
+        let drain_res = customer_payment_and_drain_flow(&td, &dao, central_funds, &drainer).await?;
 
         Ok(ClaimTestPrecsRes { drain_res })
     }

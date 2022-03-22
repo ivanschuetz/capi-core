@@ -5,7 +5,6 @@ pub mod test {
     use crate::flows::create_dao::{model::Dao, share_amount::ShareAmount};
     use crate::funds::FundsAmount;
     use crate::state::account_state::funds_holdings;
-    use crate::testing::flow::create_dao_flow::CreateDaoFlowRes;
     use crate::testing::flow::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
     use crate::testing::flow::invest_in_dao_flow::invests_optins_flow;
     use crate::{
@@ -29,7 +28,7 @@ pub mod test {
         investor: &Account,
     ) -> Result<ClaimTestPrecsRes> {
         let dao = create_dao_flow(&td).await?;
-        claim_precs_with_dao_res(
+        claim_precs_with_dao(
             td,
             &dao,
             share_amount,
@@ -40,9 +39,9 @@ pub mod test {
         .await
     }
 
-    pub async fn claim_precs_with_dao_res(
+    pub async fn claim_precs_with_dao(
         td: &TestDeps,
-        dao: &CreateDaoFlowRes,
+        dao: &Dao,
         share_amount: ShareAmount,
         payment_and_drain_amount: FundsAmount,
         drainer: &Account,
@@ -52,13 +51,12 @@ pub mod test {
 
         // investor buys shares: this can be called after draining as well (without affecting test results)
         // the only order required for this is draining->claiming, obviously claiming has to be executed after draining (if it's to claim the drained funds)
-        invests_optins_flow(algod, &investor, &dao.dao).await?;
-        let _ = invests_flow(&td, &investor, share_amount, &dao.dao, &dao.dao_id).await?;
+        invests_optins_flow(algod, &investor, dao).await?;
+        let _ = invests_flow(&td, &investor, share_amount, dao).await?;
 
         // payment and draining
         let drain_res =
-            customer_payment_and_drain_flow(td, &dao.dao, payment_and_drain_amount, &drainer)
-                .await?;
+            customer_payment_and_drain_flow(td, dao, payment_and_drain_amount, &drainer).await?;
 
         let central_escrow_balance_after_drain = funds_holdings(
             algod,
@@ -70,7 +68,7 @@ pub mod test {
         // end precs
 
         Ok(ClaimTestPrecsRes {
-            dao: dao.dao.to_owned(),
+            dao: dao.to_owned(),
             central_escrow_balance_after_drain,
             drain_res,
         })
@@ -91,7 +89,7 @@ pub mod test {
         let to_sign = claim(
             &algod,
             &claimer.address(),
-            dao.central_app_id,
+            dao.app_id,
             td.funds_asset_id,
             amount,
             &dao.central_escrow,

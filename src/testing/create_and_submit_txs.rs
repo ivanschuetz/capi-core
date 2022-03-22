@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub use test::{
-    optin_to_app_submit, optin_to_asset_submit, transfer_tokens_and_pay_fee_submit,
+    optin_to_asset_submit, optin_to_capi_app_submit, transfer_tokens_and_pay_fee_submit,
     transfer_tokens_submit,
 };
 
@@ -9,6 +9,7 @@ pub use test::{
 mod test {
     use crate::{
         algo_helpers::{send_tx_and_wait, send_txs_and_wait},
+        capi_asset::capi_app_id::CapiAppId,
         flows::shared::app::optin_to_app,
         testing::algorand_checks::test::optin_to_asset,
     };
@@ -85,15 +86,15 @@ mod test {
         Ok(())
     }
 
-    pub async fn optin_to_app_submit(
+    pub async fn optin_to_capi_app_submit(
         algod: &Algod,
         params: &SuggestedTransactionParams,
         sender: &Account,
-        app_id: u64,
+        app_id: CapiAppId,
     ) -> Result<()> {
-        let tx = optin_to_app(params, app_id, sender.address()).await?;
+        let tx = optin_to_app(params, app_id.0, sender.address()).await?;
         let signed = sender.sign_transaction(tx)?;
-        log::debug!("Submitting app opt in: {app_id}");
+        log::debug!("Submitting dao app opt in: {app_id:?}");
         send_tx_and_wait(&algod, &signed).await?;
         Ok(())
     }

@@ -34,13 +34,13 @@ pub fn roadmap_item_to_note(item: &RoadmapItem) -> Result<Vec<u8>> {
 /// If the note is not a roadmap note or belongs to a roadmap of a different dao, it returns Ok(None).
 pub fn base64_maybe_roadmap_note_to_roadmap_item(
     note: &str,
-    dao_id: &DaoId,
+    dao_id: DaoId,
 ) -> Result<Option<RoadmapItem>> {
     let bytes = BASE64.decode(note.as_bytes())?;
     maybe_roadmap_note_to_roadmap_item(&bytes, dao_id)
 }
 
-fn maybe_roadmap_note_to_roadmap_item(note: &[u8], dao_id: &DaoId) -> Result<Option<RoadmapItem>> {
+fn maybe_roadmap_note_to_roadmap_item(note: &[u8], dao_id: DaoId) -> Result<Option<RoadmapItem>> {
     if let Some(payload) = maybe_roadmap_note_to_roadmap_payload(note, dao_id)? {
         if payload.version != 1 {
             return Err(anyhow!(
@@ -55,7 +55,7 @@ fn maybe_roadmap_note_to_roadmap_item(note: &[u8], dao_id: &DaoId) -> Result<Opt
         // and in the prefix is needed to allow querying the indexer by it (though this is not used currently,
         // as the Algorand indexer is unoptimized and these queries time out on Test/MainNet)
         // TODO (low prio) consider removing dao id from the items - leaving it only in prefix.
-        if &item.dao_id == dao_id {
+        if item.dao_id == dao_id {
             Ok(Some(item))
         } else {
             Err(anyhow!(
@@ -69,7 +69,7 @@ fn maybe_roadmap_note_to_roadmap_item(note: &[u8], dao_id: &DaoId) -> Result<Opt
 
 fn maybe_roadmap_note_to_roadmap_payload(
     note: &[u8],
-    dao_id: &DaoId,
+    dao_id: DaoId,
 ) -> Result<Option<RoadmapNotePayload>> {
     // Since we're parsing notes that are only potentially roadmap / capi notes / don't belong to the current dao,
     // not finding these prefixes is valid (it just returns None)
@@ -88,7 +88,7 @@ fn maybe_roadmap_note_to_roadmap_payload(
 
             if let Some(note_dao_id_bytes) = note.get(10..18) {
                 let note_dao_id: DaoId = note_dao_id_bytes.try_into()?;
-                if &note_dao_id != dao_id {
+                if note_dao_id != dao_id {
                     return Ok(None);
                 }
 

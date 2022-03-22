@@ -28,7 +28,7 @@ mod tests {
         let dao = create_dao_flow(&td).await?;
 
         let inputs = RoadmapItemInputs {
-            dao_id: dao.dao_id.clone(),
+            dao_id: dao.id(),
             title: "MVP Release".to_owned(),
             parent: Box::new(None),
             date: Utc::now(),
@@ -47,7 +47,7 @@ mod tests {
 
         // check that the item was added correctly
 
-        let saved_roadmap = get_roadmap(&td.indexer, &td.creator.address(), &dao.dao_id).await?;
+        let saved_roadmap = get_roadmap(&td.indexer, &td.creator.address(), dao.id()).await?;
 
         assert_eq!(1, saved_roadmap.items.len());
 

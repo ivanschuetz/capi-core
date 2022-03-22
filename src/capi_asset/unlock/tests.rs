@@ -10,7 +10,7 @@ mod tests {
         state::account_state::{asset_holdings, find_asset_holding_or_err},
         testing::{
             create_and_submit_txs::{
-                optin_to_app_submit, optin_to_asset_submit, transfer_tokens_submit,
+                optin_to_asset_submit, optin_to_capi_app_submit, transfer_tokens_submit,
             },
             flow::{
                 lock_capi_asset_flow::lock_capi_asset_flow,
@@ -46,7 +46,7 @@ mod tests {
 
         let params = algod.suggested_transaction_params().await?;
         optin_to_asset_submit(&algod, &investor, capi_deps.asset_id.0).await?;
-        optin_to_app_submit(&algod, &params, &investor, capi_deps.app_id.0).await?;
+        optin_to_capi_app_submit(&algod, &params, &investor, capi_deps.app_id).await?;
         transfer_tokens_submit(
             &algod,
             &params,
@@ -152,7 +152,7 @@ mod tests {
 
         let params = algod.suggested_transaction_params().await?;
         optin_to_asset_submit(&algod, &investor, setup_res.asset_id.0).await?;
-        optin_to_app_submit(&algod, &params, &investor, setup_res.app_id.0).await?;
+        optin_to_capi_app_submit(&algod, &params, &investor, setup_res.app_id).await?;
         transfer_tokens_submit(
             &algod,
             &params,

@@ -7,13 +7,13 @@ mod tests {
             claim::claim::claimable_dividend,
             create_dao::{
                 create_dao_specs::CreateDaoSpecs, model::CreateSharesSpecs,
-                share_amount::ShareAmount,
+                share_amount::ShareAmount, storage::load_dao::DaoAppId,
             },
         },
         funds::{FundsAmount, FundsAssetId},
         state::{
             account_state::funds_holdings,
-            central_app_state::{central_global_state, central_investor_state_from_acc},
+            central_app_state::{central_investor_state_from_acc, dao_global_state},
         },
         testing::{
             flow::claim_flow::{claim_flow, claim_precs},
@@ -65,7 +65,7 @@ mod tests {
         test_claim_result(
             &algod,
             &claimer,
-            res.dao.central_app_id,
+            res.dao.app_id,
             td.funds_asset_id,
             res.dao.central_escrow.address(),
             res.dao.customer_escrow.address(),
@@ -107,7 +107,7 @@ mod tests {
         )
         .await?;
 
-        let central_state = central_global_state(&algod, precs.dao.central_app_id).await?;
+        let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
         let claim_amount = claimable_dividend(
             central_state.received,
             FundsAmount::new(0),
@@ -155,7 +155,7 @@ mod tests {
         )
         .await?;
 
-        let central_state = central_global_state(&algod, precs.dao.central_app_id).await?;
+        let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
         log::debug!("central_total_received: {:?}", central_state.received);
 
         let dividend = claimable_dividend(
@@ -177,7 +177,7 @@ mod tests {
         test_claim_result(
             &algod,
             &claimer,
-            res.dao.central_app_id,
+            res.dao.app_id,
             td.funds_asset_id,
             res.dao.central_escrow.address(),
             res.dao.customer_escrow.address(),
@@ -221,7 +221,7 @@ mod tests {
         )
         .await?;
 
-        let central_state = central_global_state(&algod, precs.dao.central_app_id).await?;
+        let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
         log::debug!("central_total_received: {:?}", central_state.received);
 
         let dividend = claimable_dividend(
@@ -297,7 +297,7 @@ mod tests {
         test_claim_result(
             &algod,
             &claimer,
-            res2.dao.central_app_id,
+            res2.dao.app_id,
             td.funds_asset_id,
             res2.dao.central_escrow.address(),
             res2.dao.customer_escrow.address(),
@@ -323,7 +323,7 @@ mod tests {
     async fn test_claim_result(
         algod: &Algod,
         claimer: &Account,
-        central_app_id: u64,
+        app_id: DaoAppId,
         funds_asset_id: FundsAssetId,
         central_escrow_address: &Address,
         customer_escrow_address: &Address,
@@ -346,7 +346,7 @@ mod tests {
 
         // the total received didn't change
         // (i.e. same as expected after draining, claiming doesn't affect it)
-        let global_state = central_global_state(algod, central_app_id).await?;
+        let global_state = dao_global_state(algod, app_id).await?;
         assert_eq!(global_state.received, drained_amount);
 
         // sanity check: global state addresses are set
@@ -360,7 +360,7 @@ mod tests {
 
         // check local state
 
-        let investor_state = central_investor_state_from_acc(&claimer_account, central_app_id)?;
+        let investor_state = central_investor_state_from_acc(&claimer_account, app_id)?;
 
         // double-check shares count (not directly related to this test)
         assert_eq!(expected_shares, investor_state.shares);

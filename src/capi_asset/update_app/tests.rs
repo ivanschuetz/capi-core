@@ -38,7 +38,7 @@ mod tests {
         let not_owner = &td.investor1; // arbitrary account that's not the owner
         let update_by_not_owner_res = update_capi_flow(
             td,
-            &td.capi_app_id,
+            td.capi_app_id,
             &not_owner,
             always_accept_teal(),
             always_accept_teal(),
@@ -52,7 +52,7 @@ mod tests {
         // update to "always accept"
         let update_by_owner_res = update_capi_flow(
             td,
-            &td.capi_app_id,
+            td.capi_app_id,
             &td.capi_owner,
             always_accept_teal(),
             always_accept_teal(),
@@ -64,7 +64,7 @@ mod tests {
         // update by non-owner: since new TEAL accepts everything, this time it passes
         let new_update_by_non_owner_res = update_capi_flow(
             td,
-            &td.capi_app_id,
+            td.capi_app_id,
             &not_owner,
             // updating to different TEAL, just in case that upgrades are rejected if it's the same TEAL
             // this can be arbitrary TEAL - just has to be different to the previous one
@@ -126,7 +126,7 @@ mod tests {
 
         let update_res = update_capi_flow(
             td,
-            &td.capi_app_id,
+            td.capi_app_id,
             &td.capi_owner,
             always_accept_teal(),
             always_accept_teal(),

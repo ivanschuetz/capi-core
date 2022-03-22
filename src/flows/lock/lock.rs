@@ -1,6 +1,6 @@
 use crate::flows::create_dao::{
     share_amount::ShareAmount,
-    storage::load_dao::{DaoId, TxId},
+    storage::load_dao::{DaoAppId, DaoId, TxId},
 };
 use algonaut::{
     algod::v2::Algod,
@@ -22,16 +22,16 @@ pub async fn lock(
     investor: Address,
     share_amount: ShareAmount,
     shares_asset_id: u64,
-    central_app_id: u64,
+    app_id: DaoAppId,
     locking_escrow: &ContractAccount,
-    dao_id: &DaoId,
+    dao_id: DaoId,
 ) -> Result<LockToSign> {
     let params = algod.suggested_transaction_params().await?;
 
     // Central app setup app call (init investor's local state)
     let mut app_call_tx = TxnBuilder::with(
         &params,
-        CallApplication::new(investor, central_app_id)
+        CallApplication::new(investor, app_id.0)
             .app_arguments(vec!["lock".as_bytes().to_vec(), dao_id.bytes().to_vec()])
             .build(),
     )

@@ -1,4 +1,4 @@
-use crate::flows::create_dao::storage::load_dao::TxId;
+use crate::flows::create_dao::storage::load_dao::{DaoAppId, TxId};
 use algonaut::{
     algod::v2::Algod,
     core::Address,
@@ -17,7 +17,7 @@ pub struct UpdatableDaoData {
 pub async fn update_data(
     algod: &Algod,
     owner: &Address,
-    app_id: u64,
+    app_id: DaoAppId,
     data: &UpdatableDaoData,
 ) -> Result<UpdateAppToSign> {
     let params = algod.suggested_transaction_params().await?;
@@ -25,7 +25,7 @@ pub async fn update_data(
     // We might make these updates more granular later. For now everything in 1 call.
     let update = TxnBuilder::with(
         &params,
-        CallApplication::new(*owner, app_id)
+        CallApplication::new(*owner, app_id.0)
             .app_arguments(vec![
                 "update_data".as_bytes().to_vec(),
                 data.central_escrow.0.to_vec(),

@@ -1,4 +1,7 @@
-use crate::{flows::create_dao::storage::load_dao::TxId, teal::TealSource};
+use crate::{
+    flows::create_dao::storage::load_dao::{DaoAppId, TxId},
+    teal::TealSource,
+};
 use algonaut::{
     algod::v2::Algod,
     core::Address,
@@ -10,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub async fn update(
     algod: &Algod,
     owner: &Address,
-    app_id: u64,
+    app_id: DaoAppId,
     approval: TealSource,
     clear: TealSource,
 ) -> Result<UpdateAppToSign> {
@@ -21,7 +24,7 @@ pub async fn update(
 
     let update = TxnBuilder::with(
         &params,
-        UpdateApplication::new(*owner, app_id, compiled_approval, compiled_clear).build(),
+        UpdateApplication::new(*owner, app_id.0, compiled_approval, compiled_clear).build(),
     )
     .build()?;
 

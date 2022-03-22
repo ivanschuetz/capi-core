@@ -4,7 +4,7 @@ pub use test::lock_flow;
 #[cfg(test)]
 pub mod test {
     use crate::flows::create_dao::model::Dao;
-    use crate::flows::create_dao::{share_amount::ShareAmount, storage::load_dao::DaoId};
+    use crate::flows::create_dao::share_amount::ShareAmount;
     use crate::flows::lock::lock::{lock, submit_lock, LockSigned};
     use crate::network_util::wait_for_pending_transaction;
     use algonaut::{algod::v2::Algod, transaction::account::Account};
@@ -13,7 +13,6 @@ pub mod test {
     pub async fn lock_flow(
         algod: &Algod,
         dao: &Dao,
-        dao_id: &DaoId,
         investor: &Account,
         amount: ShareAmount,
     ) -> Result<()> {
@@ -22,9 +21,9 @@ pub mod test {
             investor.address(),
             amount,
             dao.shares_asset_id,
-            dao.central_app_id,
+            dao.app_id,
             &dao.locking_escrow,
-            dao_id,
+            dao.id(),
         )
         .await?;
 

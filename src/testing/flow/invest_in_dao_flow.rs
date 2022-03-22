@@ -7,7 +7,7 @@ pub mod test {
         invest_or_locking_app_optin_tx, submit_invest_or_locking_app_optin,
     };
     use crate::flows::{
-        create_dao::{model::Dao, share_amount::ShareAmount, storage::load_dao::DaoId},
+        create_dao::{model::Dao, share_amount::ShareAmount},
         invest::model::InvestResult,
         invest::{
             invest::{invest_txs, submit_invest},
@@ -41,7 +41,6 @@ pub mod test {
         investor: &Account,
         buy_share_amount: ShareAmount,
         dao: &Dao,
-        dao_id: &DaoId,
     ) -> Result<InvestInDaoTestFlowRes> {
         let algod = &td.algod;
 
@@ -57,12 +56,11 @@ pub mod test {
             &dao,
             &investor.address(),
             &dao.locking_escrow,
-            dao.central_app_id,
+            dao.app_id,
             dao.shares_asset_id,
             buy_share_amount,
             td.funds_asset_id,
             dao.specs.share_price,
-            dao_id,
         )
         .await?;
 

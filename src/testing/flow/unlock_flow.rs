@@ -21,7 +21,7 @@ pub mod test {
             investor.address(),
             shares_to_unlock,
             dao.shares_asset_id,
-            dao.central_app_id,
+            dao.app_id,
             &dao.locking_escrow,
         )
         .await?;

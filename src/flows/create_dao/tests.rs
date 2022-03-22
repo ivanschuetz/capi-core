@@ -6,7 +6,7 @@ mod tests {
         state::{
             account_state::find_asset_holding_or_err,
             app_state::ApplicationLocalStateError,
-            central_app_state::{central_global_state, central_investor_state},
+            central_app_state::{dao_global_state, dao_investor_state},
         },
         testing::{
             flow::create_dao_flow::create_dao_flow,
@@ -40,50 +40,44 @@ mod tests {
         // name matches specs
         assert_eq!(
             created_assets[0].params.name,
-            Some(dao.dao.specs.shares.token_name.clone())
+            Some(dao.specs.shares.token_name.clone())
         );
         // unit matches specs
         assert_eq!(
             created_assets[0].params.unit_name,
-            Some(dao.dao.specs.shares.token_name.clone())
+            Some(dao.specs.shares.token_name.clone())
         );
         assert_eq!(td.specs.shares.supply.0, created_assets[0].params.total);
         let creator_assets = creator_infos.assets;
         // funds asset + not opted-out from shares (TODO maybe do this, no reason for creator to be opted in in the investor assets) so still there
         assert_eq!(2, creator_assets.len());
         // creator sent all the shares to the escrow (during dao creation): has 0
-        let shares_asset = find_asset_holding_or_err(&creator_assets, dao.dao.shares_asset_id)?;
+        let shares_asset = find_asset_holding_or_err(&creator_assets, dao.shares_asset_id)?;
         assert_eq!(0, shares_asset.amount);
 
         // investing escrow funding checks
-        let escrow = &dao.dao.invest_escrow;
+        let escrow = &dao.invest_escrow;
         let escrow_infos = algod.account_information(escrow.address()).await?;
         // TODO refactor and check min algos balance
         let escrow_held_assets = escrow_infos.assets;
         assert_eq!(escrow_held_assets.len(), 1);
-        assert_eq!(escrow_held_assets[0].asset_id, dao.dao.shares_asset_id);
-        assert_eq!(
-            escrow_held_assets[0].amount,
-            dao.dao.specs.shares.supply.val()
-        );
+        assert_eq!(escrow_held_assets[0].asset_id, dao.shares_asset_id);
+        assert_eq!(escrow_held_assets[0].amount, dao.specs.shares.supply.val());
 
         // locking escrow funding checks
-        let locking_escrow = &dao.dao.locking_escrow;
+        let locking_escrow = &dao.locking_escrow;
         let locking_escrow_infos = algod.account_information(locking_escrow.address()).await?;
         let locking_escrow_held_assets = locking_escrow_infos.assets;
         // TODO refactor and check min algos balance
         assert_eq!(locking_escrow_held_assets.len(), 1);
-        assert_eq!(
-            locking_escrow_held_assets[0].asset_id,
-            dao.dao.shares_asset_id
-        );
+        assert_eq!(locking_escrow_held_assets[0].asset_id, dao.shares_asset_id);
         assert_eq!(locking_escrow_held_assets[0].amount, 0); // nothing locked yet
 
-        test_global_app_state_setup_correctly(algod, &dao.dao, td).await?;
+        test_global_app_state_setup_correctly(algod, &dao, td).await?;
 
         // sanity check: the creator doesn't opt in to the app (doesn't invest or lock)
         let central_investor_state_res =
-            central_investor_state(&algod, &td.creator.address(), dao.dao.central_app_id).await;
+            dao_investor_state(&algod, &td.creator.address(), dao.app_id).await;
         assert_eq!(
             Err(ApplicationLocalStateError::NotOptedIn),
             central_investor_state_res
@@ -97,7 +91,7 @@ mod tests {
         dao: &Dao,
         td: &TestDeps,
     ) -> Result<()> {
-        let state = central_global_state(algod, dao.central_app_id).await?;
+        let state = dao_global_state(algod, dao.app_id).await?;
         assert_eq!(dao.central_escrow.address(), &state.central_escrow);
         assert_eq!(dao.customer_escrow.address(), &state.customer_escrow);
         assert_eq!(td.funds_asset_id, state.funds_asset_id);

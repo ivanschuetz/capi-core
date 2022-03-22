@@ -1,4 +1,8 @@
-use super::{create_dao_specs::CreateDaoSpecs, share_amount::ShareAmount};
+use super::{
+    create_dao_specs::CreateDaoSpecs,
+    share_amount::ShareAmount,
+    storage::load_dao::{DaoAppId, DaoId},
+};
 use crate::funds::FundsAssetId;
 use algonaut::{
     core::Address,
@@ -52,7 +56,7 @@ pub struct CreateDaoSigned {
     pub specs: CreateDaoSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
-    pub central_app_id: u64,
+    pub app_id: DaoAppId,
     pub funds_asset_id: FundsAssetId,
     pub invest_escrow: ContractAccount,
     pub locking_escrow: ContractAccount,
@@ -64,15 +68,22 @@ pub struct CreateDaoSigned {
 /// TODO it probably makes sense to nane the id "StoredDaoId" to be more accurate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dao {
+    pub app_id: DaoAppId,
     pub specs: CreateDaoSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
-    pub central_app_id: u64, // TODO rename in id and DaoId type? -- means the "central app" is basically "the" dao now
     pub invest_escrow: ContractAccount,
     pub locking_escrow: ContractAccount,
     pub central_escrow: ContractAccount,
     pub customer_escrow: ContractAccount,
+}
+
+impl Dao {
+    pub fn id(&self) -> DaoId {
+        // we can repurpose the app id as dao id, because it's permanent and unique on the blockchain
+        DaoId(self.app_id)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

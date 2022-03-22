@@ -11,8 +11,8 @@ use rust_decimal::Decimal;
 
 use crate::{
     asset_amount::AssetAmount,
-    flows::create_dao::share_amount::ShareAmount,
-    state::{app_state::ApplicationLocalStateError, central_app_state::central_investor_state},
+    flows::create_dao::{share_amount::ShareAmount, storage::load_dao::DaoAppId},
+    state::{app_state::ApplicationLocalStateError, central_app_state::dao_investor_state},
 };
 
 /// Returns holders of the asset with their respective amounts and percentages.
@@ -22,7 +22,7 @@ pub async fn shares_holders_distribution(
     algod: &Algod,
     indexer: &Indexer,
     asset_id: u64,
-    app_id: u64,
+    app_id: DaoAppId,
     asset_supply: u64,
     investing_escrow: &Address,
     locking_escrow: &Address,
@@ -71,7 +71,7 @@ async fn share_sholders(
     algod: &Algod,
     indexer: &Indexer,
     asset_id: u64,
-    app_id: u64,
+    app_id: DaoAppId,
     investing_escrow: &Address,
     locking_escrow: &Address,
 ) -> Result<Vec<ShareHolding>> {
@@ -111,11 +111,11 @@ fn merge(
 
 // TODO paginate? but clarify first whether we'll actually use this, it's quite expensive either way
 // we've to fetch the local state for each account to get the share count
-async fn lockers(indexer: &Indexer, app_id: u64) -> Result<Vec<Account>> {
+async fn lockers(indexer: &Indexer, app_id: DaoAppId) -> Result<Vec<Account>> {
     // get all the accounts opted in to the app (lockers/investors)
     let accounts = indexer
         .accounts(&QueryAccount {
-            application_id: Some(app_id),
+            application_id: Some(app_id.0),
             ..QueryAccount::default()
         })
         .await?;
@@ -126,14 +126,14 @@ async fn lockers(indexer: &Indexer, app_id: u64) -> Result<Vec<Account>> {
 async fn lockers_holdings(
     algod: &Algod,
     indexer: &Indexer,
-    app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<Vec<ShareHolding>> {
     let lockers = lockers(indexer, app_id).await?;
     let mut holdings = vec![];
     for locker in lockers {
         // TODO (low prio) small optimization: read only the shares amount
         // TODO consider using join to parallelize these requests
-        let state_res = central_investor_state(algod, &locker.address, app_id).await;
+        let state_res = dao_investor_state(algod, &locker.address, app_id).await;
         let amount = match state_res {
             Ok(state) => {
                 log::trace!("Share locker state: {:?}", state);

@@ -28,6 +28,7 @@ mod tests {
                 },
                 share_amount::ShareAmount,
                 shares_percentage::SharesPercentage,
+                storage::load_dao::DaoAppId,
             },
             drain::drain::{submit_drain_customer_escrow, DrainCustomerEscrowSigned},
             invest::{invest::submit_invest, model::InvestSigned},
@@ -53,7 +54,7 @@ mod tests {
         let funds_asset_id = FundsAssetId(6);
         let share_supply = ShareAmount::new(100);
         let investors_share = ShareAmount::new(40);
-        let central_app_id = 123;
+        let app_id = DaoAppId(123);
         let capi_app_id = CapiAppId(123);
         let capi_share = 123u64.as_decimal().try_into()?;
         let owner = creator();
@@ -91,14 +92,6 @@ mod tests {
             shares_price,
         )?;
 
-        let customer_escrow_template = load_teal_template("customer_escrow")?;
-        render_customer_escrow(
-            &central_escrow,
-            &customer_escrow_template,
-            &capi_escrow_address,
-            central_app_id,
-        )?;
-
         let investing_escrow_template = load_teal_template("investing_escrow")?;
         render_investing_escrow(
             &investing_escrow_template,
@@ -107,7 +100,7 @@ mod tests {
             &funds_asset_id,
             &locking_escrow,
             &central_escrow,
-            central_app_id,
+            app_id,
         )?;
 
         // insert msg pack serialized bytes

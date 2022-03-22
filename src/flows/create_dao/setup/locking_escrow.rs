@@ -13,6 +13,7 @@ use serde::Serialize;
 use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
+    flows::create_dao::storage::load_dao::DaoAppId,
     teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 
@@ -24,31 +25,31 @@ async fn create_locking_escrow(
     algod: &Algod,
     shares_asset_id: u64,
     source: &TealSourceTemplate,
-    central_app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<ContractAccount> {
-    render_and_compile_locking_escrow(algod, shares_asset_id, source, central_app_id).await
+    render_and_compile_locking_escrow(algod, shares_asset_id, source, app_id).await
 }
 
 pub async fn render_and_compile_locking_escrow(
     algod: &Algod,
     shares_asset_id: u64,
     source: &TealSourceTemplate,
-    central_app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<ContractAccount> {
-    let source = render_locking_escrow(shares_asset_id, source, central_app_id)?;
+    let source = render_locking_escrow(shares_asset_id, source, app_id)?;
     Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
 }
 
 fn render_locking_escrow(
     shares_asset_id: u64,
     source: &TealSourceTemplate,
-    central_app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<TealSource> {
     let escrow_source = render_template_new(
         source,
         &[
             ("TMPL_SHARES_ASSET_ID", &shares_asset_id.to_string()),
-            ("TMPL_CENTRAL_APP_ID", &central_app_id.to_string()),
+            ("TMPL_CENTRAL_APP_ID", &app_id.to_string()),
         ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -62,7 +63,7 @@ pub async fn setup_locking_escrow_txs(
     shares_asset_id: u64,
     creator: &Address,
     params: &SuggestedTransactionParams,
-    central_app_id: u64,
+    app_id: DaoAppId,
 ) -> Result<SetupLockingEscrowToSign> {
     log::debug!(
         "Setting up escrow with asset id: {}, creator: {:?}",
@@ -70,7 +71,7 @@ pub async fn setup_locking_escrow_txs(
         creator
     );
 
-    let escrow = create_locking_escrow(algod, shares_asset_id, source, central_app_id).await?;
+    let escrow = create_locking_escrow(algod, shares_asset_id, source, app_id).await?;
     log::debug!("Generated locking escrow address: {:?}", *escrow.address());
 
     // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
