@@ -1,11 +1,9 @@
 use super::{create_dao_specs::CreateDaoSpecs, share_amount::ShareAmount};
-use crate::{funds::FundsAssetId, hashable::Hashable};
+use crate::funds::FundsAssetId;
 use algonaut::{
     core::Address,
-    crypto::HashDigest,
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
 };
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,17 +68,11 @@ pub struct Dao {
     pub creator: Address,
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
-    pub central_app_id: u64,
+    pub central_app_id: u64, // TODO rename in id and DaoId type? -- means the "central app" is basically "the" dao now
     pub invest_escrow: ContractAccount,
     pub locking_escrow: ContractAccount,
     pub central_escrow: ContractAccount,
     pub customer_escrow: ContractAccount,
-}
-
-impl Dao {
-    pub fn hash(&self) -> Result<HashDigest> {
-        Ok(*self.compute_hash()?.hash())
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

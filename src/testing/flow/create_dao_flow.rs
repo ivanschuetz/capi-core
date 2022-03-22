@@ -4,7 +4,6 @@ pub use test::{capi_programs, create_dao_flow, programs, CreateDaoFlowRes};
 #[cfg(test)]
 pub mod test {
     use crate::flows::create_dao::storage::load_dao::DaoId;
-    use crate::flows::create_dao::storage::save_dao::{save_dao, submit_save_dao, SaveDaoSigned};
     use crate::flows::create_dao::{
         create_dao::{create_dao_txs, submit_create_dao, CapiPrograms},
         model::{CreateDaoSigned, Dao},
@@ -12,18 +11,17 @@ pub mod test {
     };
     use crate::{
         flows::create_dao::create_dao::{Escrows, Programs},
-        network_util::wait_for_pending_transaction,
         teal::{load_teal, load_teal_template},
         testing::network_test_util::TestDeps,
     };
 
     use algonaut::core::Address;
-    use anyhow::{anyhow, Result};
+    use anyhow::Result;
 
     #[derive(Debug, Clone)]
     pub struct CreateDaoFlowRes {
         pub dao: Dao,
-        pub dao_id: DaoId,
+        pub dao_id: DaoId, // TODO consider removing this - as it's in dao now (central app id)
     }
 
     pub async fn create_dao_flow(td: &TestDeps) -> Result<CreateDaoFlowRes> {
@@ -115,22 +113,7 @@ pub mod test {
 
         log::debug!("Created dao: {:?}", create_res.dao);
 
-        let save_res = save_dao(algod, &td.creator.address(), &create_res.dao).await?;
-        let signed_save_dao = td.creator.sign_transaction(save_res.tx)?;
-
-        let submit_save_dao_tx_id = submit_save_dao(
-            &algod,
-            SaveDaoSigned {
-                tx: signed_save_dao,
-            },
-        )
-        .await?;
-
-        let dao_id = DaoId(submit_save_dao_tx_id.clone());
-
-        let _ = wait_for_pending_transaction(&algod, &submit_save_dao_tx_id)
-            .await?
-            .ok_or(anyhow!("Couldn't get pending tx"))?;
+        let dao_id = DaoId(create_res.dao.central_app_id);
 
         Ok(CreateDaoFlowRes {
             dao: create_res.dao,

@@ -69,6 +69,7 @@ pub struct CentralAppGlobalState {
     pub owner: Address,
 }
 
+// TODO rename (maybe dao state? and DaoId as parameter?)
 /// Returns Ok only if called after dao setup (branch_setup_dao), where all the global state is initialized.
 pub async fn central_global_state(algod: &Algod, app_id: u64) -> Result<CentralAppGlobalState> {
     let gs = global_state(algod, app_id).await?;

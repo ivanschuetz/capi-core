@@ -1,27 +1,22 @@
-use std::collections::HashMap;
-
+use crate::{
+    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
+    flows::create_dao::{
+        create_dao::Escrows,
+        model::Dao,
+        storage::load_dao::{load_dao, DaoId},
+    },
+    note::dao_setup_prefix_base64,
+    state::central_app_state::find_state_with_a_capi_dao_id,
+};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     indexer::v2::Indexer,
-    model::indexer::v2::{QueryTransaction, Role},
+    model::indexer::v2::{OnCompletion, QueryTransaction, Role},
 };
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-
-use crate::{
-    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
-    date_util::timestamp_seconds_to_date,
-    flows::create_dao::{
-        create_dao::Escrows,
-        model::Dao,
-        storage::{
-            load_dao::{load_dao, DaoId},
-            note::base64_note_to_dao,
-        },
-    },
-    state::central_app_state::find_state_with_a_capi_dao_id,
-};
+use std::collections::HashMap;
 
 // TODO use StoredDao where applicable
 // TODO move this somewhere else
@@ -29,7 +24,6 @@ use crate::{
 pub struct StoredDao {
     pub id: DaoId,
     pub dao: Dao,
-    pub stored_date: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -49,7 +43,7 @@ pub async fn my_daos(
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<MyStoredDao>> {
     let created = my_created_daos(algod, indexer, address, escrows, capi_deps).await?;
-    let invested = my_current_invested_daos(algod, indexer, address, escrows, capi_deps).await?;
+    let invested = my_current_invested_daos(algod, address, escrows, capi_deps).await?;
 
     let created_map: HashMap<DaoId, StoredDao> = created
         .iter()
@@ -83,17 +77,14 @@ pub async fn my_daos(
         }
     }
 
-    // sort ascendingly by date
-    daos.sort_by(|p1, p2| p1.dao.stored_date.cmp(&p2.dao.stored_date));
-
     Ok(daos)
 }
 
 /// Returns daos where the user is invested. Meaning: has currently locked shares (more exactly a local state containing the dao id).
 /// (Daos for non-locked shares, where the user opted out, or where the local state was deleted (externally) don't count).
+/// TODO can this be improved, now that we use URL->app id?
 pub async fn my_current_invested_daos(
     algod: &Algod,
-    indexer: &Indexer,
     address: &Address,
     escrows: &Escrows,
     capi_deps: &CapiAssetDaoDeps,
@@ -116,7 +107,7 @@ pub async fn my_current_invested_daos(
     for dao_id in my_dao_ids {
         // If there's a dao id and there are no bugs, there should *always* be a dao - as the ids are on-chain tx ids
         // and these tx should have the properly formatted dao data in the note field
-        let dao = load_dao(algod, indexer, &dao_id, escrows, capi_deps).await?;
+        let dao = load_dao(algod, dao_id, escrows, capi_deps).await?;
         my_daos.push(dao);
     }
 
@@ -150,32 +141,21 @@ pub async fn my_created_daos(
     let mut my_daos = vec![];
 
     for tx in response.transactions {
-        if tx.payment_transaction.is_some() {
-            if let Some(note) = &tx.note {
-                if !note.is_empty() {
-                    match base64_note_to_dao(algod, escrows, note, capi_deps).await {
-                        Ok(dao) => {
-                            // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
-                            // Unclear when it's None. For now we just reject it.
-                            let round_time = tx.round_time.ok_or_else(|| {
-                                anyhow!("Unexpected: tx has no round time: {:?}", tx)
-                            })?;
-
-                            my_daos.push(StoredDao {
-                                id: tx.id.parse()?,
-                                dao,
-                                stored_date: timestamp_seconds_to_date(round_time)?,
-                            });
-                        }
-                        Err(_e) => {
-                            // for now we'll assume that if the note can't be parsed, the tx is not a dao storage tx
-                            // TODO that's of course incorrect - it can't be parsed e.g. because the payload is incorrectly formatted
-                            // and we should return an error in these cases.
-                            // ideally these notes should have a prefix to identify as capi/dao storage
-                            // so if it doesn't have the prefix, we can safely ignore, otherwise treat errors as actual errors.
-                            log::trace!("Checking user's txs for dao creation txs: User sent a non-dao storage cration tx.")
-                        }
+        if let Some(app_tx) = &tx.application_transaction {
+            if app_tx.on_completion == OnCompletion::Noop {
+                // Filter out app calls that are Capi DAO setups
+                // these transactions are unique per sender-dao and give us the app id (dao id)
+                if tx.note == Some(dao_setup_prefix_base64()) {
+                    let app_id = app_tx.application_id;
+                    if app_id == 0 {
+                        return Err(anyhow!(
+                            "Invalid state: Found 0 app id fetching dao setup transactions. Tx: {tx:?}"
+                        ));
                     }
+                    let dao_id = DaoId(app_id);
+
+                    let dao = load_dao(algod, dao_id, escrows, capi_deps).await?;
+                    my_daos.push(dao);
                 }
             }
         }

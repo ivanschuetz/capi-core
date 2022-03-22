@@ -1,15 +1,10 @@
-use crate::{flows::create_dao::storage::load_dao::DaoId, roadmap::add_roadmap_item::RoadmapItem};
+use crate::{
+    flows::create_dao::storage::load_dao::DaoId, note::capi_note_prefix,
+    roadmap::add_roadmap_item::RoadmapItem,
+};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 use std::convert::TryInto;
-
-/// a general (capi) note prefix
-/// for now used only here, so here. we might use it for other kind of notes in the future.
-pub fn capi_note_prefix() -> [u8; 4] {
-    // Just an arbitrary byte sequence (here specifically: control char, space, tilde, control char)
-    // (we don't need this to be human readable)
-    [0x8, 0x20, 0x7e, 0x82]
-}
 
 fn roadmap_note_identifier() -> [u8; 4] {
     // utf-8 encoding of "road"
@@ -29,7 +24,7 @@ pub fn roadmap_item_to_note(item: &RoadmapItem) -> Result<Vec<u8>> {
         capi_note_prefix().as_slice(),
         &roadmap_note_identifier(),
         &version_bytes,
-        item.dao_id.bytes(),
+        &item.dao_id.bytes(),
         &serialized,
     ]
     .concat())
@@ -91,13 +86,13 @@ fn maybe_roadmap_note_to_roadmap_payload(
             })?;
             let version = u16::from_be_bytes(version_bytes.try_into()?);
 
-            if let Some(note_dao_id_bytes) = note.get(10..42) {
+            if let Some(note_dao_id_bytes) = note.get(10..18) {
                 let note_dao_id: DaoId = note_dao_id_bytes.try_into()?;
                 if &note_dao_id != dao_id {
                     return Ok(None);
                 }
 
-                let variable_bytes = note.get(42..note.len()).ok_or_else(|| {
+                let variable_bytes = note.get(18..note.len()).ok_or_else(|| {
                     anyhow!("Not enough bytes in note to get version. Note: {note:?}")
                 })?;
 

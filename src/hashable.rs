@@ -17,6 +17,8 @@ pub trait Hashable: Serialize {
     }
 }
 
+/// Not using this since using app state to store dao, but ok to keep
+#[allow(dead_code)]
 pub fn hash(bytes: &[u8]) -> HashDigest {
     HashDigest(sha2::Sha512_256::digest(bytes).into())
 }
@@ -29,6 +31,7 @@ pub struct HashResult {
 }
 
 impl HashResult {
+    #[allow(dead_code)]
     pub fn hash(&self) -> &HashDigest {
         &self.hash
     }

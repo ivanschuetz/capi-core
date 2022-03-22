@@ -35,7 +35,7 @@ pub async fn funds_activity(
     algod: &Algod,
     indexer: &Indexer,
     creator: &Address,
-    dao_id: &DaoId,
+    dao_id: DaoId,
     customer_escrow_address: &Address,
     central_escrow_address: &Address,
     escrows: &Escrows,

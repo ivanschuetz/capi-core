@@ -96,7 +96,7 @@ pub async fn create_dao_txs(
         &DaoInitData {
             central_escrow: *central_to_sign.escrow.address(),
             customer_escrow: *customer_to_sign.escrow.address(),
-            investing_escrow: *setup_locking_escrow_to_sign.escrow.address(),
+            investing_escrow: *setup_invest_escrow_to_sign.escrow.address(),
             locking_escrow: *setup_locking_escrow_to_sign.escrow.address(),
             shares_asset_id,
             funds_asset_id,

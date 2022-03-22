@@ -401,7 +401,6 @@ mod tests {
 
     #[test]
     #[serial] // reset network (cmd)
-    #[ignore] // indexer pause
     async fn test_query_my_investment() -> Result<()> {
         let td = &test_dao_init().await?;
         let algod = &td.algod;
@@ -419,14 +418,10 @@ mod tests {
 
         invests_flow(td, investor, buy_share_amount, &dao.dao, &dao.dao_id).await?;
 
-        // check that the invested daos query returns the dao where the user invested
-
-        // // give time for indexing
-        std::thread::sleep(std::time::Duration::from_secs(10));
+        // test
 
         let my_invested_daos = my_current_invested_daos(
             algod,
-            &td.indexer,
             &investor.address(),
             &td.programs.escrows,
             &td.dao_deps(),

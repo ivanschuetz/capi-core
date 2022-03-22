@@ -1,12 +1,24 @@
 use crate::{
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
-    date_util::timestamp_seconds_to_date,
-    flows::create_dao::{create_dao::Escrows, storage::note::base64_note_to_dao},
+    flows::create_dao::{
+        create_dao::Escrows,
+        create_dao_specs::CreateDaoSpecs,
+        model::{CreateSharesSpecs, Dao},
+        setup::{
+            central_escrow::render_and_compile_central_escrow,
+            customer_escrow::render_and_compile_customer_escrow,
+            investing_escrow::render_and_compile_investing_escrow,
+            locking_escrow::render_and_compile_locking_escrow,
+        },
+        share_amount::ShareAmount,
+    },
     queries::my_daos::StoredDao,
+    state::central_app_state::central_global_state,
 };
-use algonaut::{algod::v2::Algod, crypto::HashDigest, indexer::v2::Indexer};
+use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE32_NOPAD;
+use futures::join;
 use serde::{Deserialize, Serialize};
 use std::{
     convert::{TryFrom, TryInto},
@@ -16,54 +28,109 @@ use std::{
 
 pub async fn load_dao(
     algod: &Algod,
-    indexer: &Indexer,
-    dao_id: &DaoId,
+    dao_id: DaoId,
     escrows: &Escrows,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<StoredDao> {
-    log::debug!("Fetching dao with tx id: {:?}", dao_id);
+    log::debug!("Fetching dao with id: {:?}", dao_id);
 
-    let response = indexer.transaction_info(&dao_id.0.to_string()).await?;
+    let dao_state = central_global_state(algod, dao_id.0).await?;
 
-    let tx = response.transaction;
+    // TODO store this state (redundantly in the same app field), to prevent this call?
+    let asset_infos = algod.asset_information(dao_state.shares_asset_id).await?;
 
-    if tx.payment_transaction.is_some() {
-        // Unexpected because we just fetched by (a non empty) note prefix, so logically it should have a note
-        let note = tx
-            .note
-            .clone()
-            .ok_or_else(|| anyhow!("Unexpected: dao storage tx has no note: {:?}", tx))?;
+    // Render and compile the escrows
+    let central_escrow_account_fut = render_and_compile_central_escrow(
+        algod,
+        &dao_state.owner,
+        &escrows.central_escrow,
+        dao_state.funds_asset_id,
+        dao_id.0,
+    );
+    let locking_escrow_account_fut = render_and_compile_locking_escrow(
+        algod,
+        dao_state.shares_asset_id,
+        &escrows.locking_escrow,
+        dao_id.0,
+    );
+    let (central_escrow_account_res, locking_escrow_account_res) =
+        join!(central_escrow_account_fut, locking_escrow_account_fut);
+    let central_escrow_account = central_escrow_account_res?;
+    let locking_escrow_account = locking_escrow_account_res?;
+    let customer_escrow_account_fut = render_and_compile_customer_escrow(
+        algod,
+        central_escrow_account.address(),
+        &escrows.customer_escrow,
+        &capi_deps.escrow,
+        dao_id.0,
+    );
+    let investing_escrow_account_fut = render_and_compile_investing_escrow(
+        algod,
+        dao_state.shares_asset_id,
+        &dao_state.share_price,
+        &dao_state.funds_asset_id,
+        locking_escrow_account.address(),
+        central_escrow_account.address(),
+        &escrows.invest_escrow,
+        dao_id.0,
+    );
+    let (customer_escrow_account_res, investing_escrow_account_res) =
+        join!(customer_escrow_account_fut, investing_escrow_account_fut);
+    let customer_escrow_account = customer_escrow_account_res?;
+    let investing_escrow_account = investing_escrow_account_res?;
 
-        let dao = base64_note_to_dao(algod, escrows, &note, capi_deps).await?;
+    // validate the generated programs against the addresses stored in the app
+    // TODO versioning: stored addresses need a version + need to pass or be able to fetch the template for this version
+    expect_match(&dao_state.central_escrow, central_escrow_account.address())?;
+    expect_match(&dao_state.locking_escrow, locking_escrow_account.address())?;
+    expect_match(
+        &dao_state.customer_escrow,
+        customer_escrow_account.address(),
+    )?;
+    expect_match(
+        &dao_state.investing_escrow,
+        investing_escrow_account.address(),
+    )?;
 
-        let round_time = tx
-            .round_time
-            .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
+    let dao = Dao {
+        specs: CreateDaoSpecs::new(
+            dao_state.project_name.clone(),
+            dao_state.project_desc.clone(),
+            CreateSharesSpecs {
+                token_name: asset_infos.params.name.unwrap_or("".to_owned()),
+                supply: ShareAmount::new(asset_infos.params.total),
+            },
+            dao_state.investors_part,
+            dao_state.share_price,
+            dao_state.logo_url.clone(),
+            dao_state.social_media_url.clone(),
+        )?,
+        funds_asset_id: dao_state.funds_asset_id,
+        creator: dao_state.owner,
+        shares_asset_id: dao_state.shares_asset_id,
+        central_app_id: dao_id.0,
+        invest_escrow: investing_escrow_account,
+        locking_escrow: locking_escrow_account,
+        central_escrow: central_escrow_account,
+        customer_escrow: customer_escrow_account,
+    };
 
-        // Sanity check
-        if tx.id.parse::<TxId>()? != dao_id.0 {
-            return Err(anyhow!(
-                "Invalid state: tx returned by indexer has a different id to the one we queried"
-            ));
-        }
-
-        Ok(StoredDao {
-            id: dao_id.to_owned(),
-            dao,
-            stored_date: timestamp_seconds_to_date(round_time)?,
-        })
-    } else {
-        // It can be worth inspecting these, as their purpose would be unclear.
-        // if the dao was created with our UI (and it worked correctly), the txs will always be payments.
-        Err(anyhow!(
-            "Daos txs query returned a non-payment tx: {:?}",
-            tx
-        ))
-    }
+    Ok(StoredDao {
+        id: dao_id.to_owned(),
+        dao,
+    })
 }
 
+fn expect_match(stored_address: &Address, generated_address: &Address) -> Result<()> {
+    if stored_address != generated_address {
+        return Err(anyhow!("Stored address: {stored_address:?} doesn't match with generated address: {generated_address:?}"));
+    }
+    Ok(())
+}
+
+// TODO consider smart initializer: return error if id is 0 (invalid dao/app id)
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub struct DaoId(pub TxId);
+pub struct DaoId(pub u64);
 impl FromStr for DaoId {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -77,19 +144,24 @@ impl ToString for DaoId {
 }
 
 impl DaoId {
-    pub fn bytes(&self) -> &[u8] {
-        &self.0 .0 .0
+    pub fn bytes(&self) -> [u8; 8] {
+        // note: matches to_le_bytes() in DaoId::from()
+        self.0.to_le_bytes()
     }
 }
-impl From<HashDigest> for DaoId {
-    fn from(digest: HashDigest) -> Self {
-        DaoId(digest.into())
+
+impl From<[u8; 8]> for DaoId {
+    fn from(slice: [u8; 8]) -> Self {
+        // note: matches to_le_bytes() in DaoId::bytes()
+        DaoId(u64::from_le_bytes(slice))
     }
 }
+
 impl TryFrom<&[u8]> for DaoId {
     type Error = anyhow::Error;
     fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
-        Ok(DaoId(slice.try_into()?))
+        let array: [u8; 8] = slice.try_into()?;
+        Ok(array.into())
     }
 }
 

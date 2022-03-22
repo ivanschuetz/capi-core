@@ -12,6 +12,7 @@ pub mod funds;
 mod hashable;
 mod logger;
 pub mod network_util;
+mod note;
 pub mod queries;
 pub mod roadmap;
 pub mod state;

@@ -23,13 +23,13 @@ pub async fn withdrawals(
     algod: &Algod,
     indexer: &Indexer,
     creator: &Address,
-    dao_id: &DaoId,
+    dao_id: DaoId,
     escrows: &Escrows,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Withdrawal>> {
     log::debug!("Querying withdrawals by: {:?}", creator);
 
-    let dao = load_dao(algod, indexer, dao_id, escrows, capi_deps).await?;
+    let dao = load_dao(algod, dao_id, escrows, capi_deps).await?;
 
     let query = QueryAccountTransaction {
         // For now no prefix filtering

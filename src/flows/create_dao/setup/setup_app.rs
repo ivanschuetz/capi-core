@@ -7,6 +7,7 @@ use anyhow::Result;
 use crate::{
     flows::create_dao::share_amount::ShareAmount,
     funds::{FundsAmount, FundsAssetId},
+    note::dao_setup_prefix,
 };
 
 /// Data to initialize the app's global state with
@@ -60,6 +61,11 @@ pub async fn setup_app_tx(
             ])
             .build(),
     )
+    // TODO: consider enforcing in TEAL that this note is being set
+    // for now it's used only as a helper to filter "daos created by me" (via indexer)
+    // so it doesn't need to be secure (it's in the interest of the user / they don't gain anything by omitting it)
+    // but maybe this usage changes
+    .note(dao_setup_prefix().to_vec())
     .build()?;
     Ok(tx)
 }
