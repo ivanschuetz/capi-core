@@ -28,8 +28,8 @@ const GLOBAL_LOCKING_ESCROW_ADDRESS: AppStateKey = AppStateKey("LockingEscrowAdd
 const GLOBAL_FUNDS_ASSET_ID: AppStateKey = AppStateKey("FundsAssetId");
 const GLOBAL_SHARES_ASSET_ID: AppStateKey = AppStateKey("SharesAssetId");
 
-const GLOBAL_PROJECT_NAME: AppStateKey = AppStateKey("ProjectName");
-const GLOBAL_PROJECT_DESC: AppStateKey = AppStateKey("ProjectDesc");
+const GLOBAL_DAO_NAME: AppStateKey = AppStateKey("DaoName");
+const GLOBAL_DAO_DESC: AppStateKey = AppStateKey("DaoDesc");
 const GLOBAL_SHARE_PRICE: AppStateKey = AppStateKey("SharePrice");
 const GLOBAL_INVESTORS_PART: AppStateKey = AppStateKey("InvestorsPart");
 
@@ -91,8 +91,8 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
     let funds_asset_id = FundsAssetId(get_int_or_err(&GLOBAL_FUNDS_ASSET_ID, &gs)?);
     let shares_asset_id = get_int_or_err(&GLOBAL_SHARES_ASSET_ID, &gs)?;
 
-    let project_name = String::from_utf8(get_bytes_or_err(&GLOBAL_PROJECT_NAME, &gs)?)?;
-    let project_desc = String::from_utf8(get_bytes_or_err(&GLOBAL_PROJECT_DESC, &gs)?)?;
+    let project_name = String::from_utf8(get_bytes_or_err(&GLOBAL_DAO_NAME, &gs)?)?;
+    let project_desc = String::from_utf8(get_bytes_or_err(&GLOBAL_DAO_DESC, &gs)?)?;
 
     let share_price = FundsAmount::new(get_int_or_err(&GLOBAL_SHARE_PRICE, &gs)?);
     let investors_part = ShareAmount::new(get_int_or_err(&GLOBAL_INVESTORS_PART, &gs)?);
