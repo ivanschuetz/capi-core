@@ -12,9 +12,9 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     indexer::v2::Indexer,
-    model::indexer::v2::{OnCompletion, QueryTransaction, Role},
+    model::indexer::v2::{OnCompletion, QueryTransaction},
 };
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
@@ -124,7 +124,9 @@ pub async fn my_created_daos(
     let response = indexer
         .transactions(&QueryTransaction {
             address: Some(address.to_string()),
-            address_role: Some(Role::Sender),
+            // indexer disabled this, for performance apparently https://github.com/algorand/indexer/commit/1216e7957d5fba7c6a858e244a2aaf7e99412e5d
+            // so we filter locally
+            // address_role: Some(Role::Sender),
             // TODO later we can use a note prefix to make this more performant. Currently Algorand's indexer has performance issues with the indexer query and it doesn't with on third parties.
             ..QueryTransaction::default()
         })
@@ -133,21 +135,24 @@ pub async fn my_created_daos(
     let mut my_daos = vec![];
 
     for tx in response.transactions {
-        if let Some(app_tx) = &tx.application_transaction {
-            if app_tx.on_completion == OnCompletion::Noop {
-                // Filter out app calls that are Capi DAO setups
-                // these transactions are unique per sender-dao and give us the app id (dao id)
-                if tx.note == Some(dao_setup_prefix_base64()) {
-                    let app_id = app_tx.application_id;
-                    if app_id == 0 {
-                        return Err(anyhow!(
-                            "Invalid state: Found 0 app id fetching dao setup transactions. Tx: {tx:?}"
-                        ));
-                    }
-                    let dao_id = DaoId(DaoAppId(app_id));
+        let sender_address = tx.sender.parse::<Address>().map_err(Error::msg)?;
+        if &sender_address == address {
+            if let Some(app_tx) = &tx.application_transaction {
+                if app_tx.on_completion == OnCompletion::Noop {
+                    // Filter out app calls that are Capi DAO setups
+                    // these transactions are unique per sender-dao and give us the app id (dao id)
+                    if tx.note == Some(dao_setup_prefix_base64()) {
+                        let app_id = app_tx.application_id;
+                        if app_id == 0 {
+                            return Err(anyhow!(
+                                "Invalid state: Found 0 app id fetching dao setup transactions. Tx: {tx:?}"
+                            ));
+                        }
+                        let dao_id = DaoId(DaoAppId(app_id));
 
-                    let dao = load_dao(algod, dao_id, escrows, capi_deps).await?;
-                    my_daos.push(dao);
+                        let dao = load_dao(algod, dao_id, escrows, capi_deps).await?;
+                        my_daos.push(dao);
+                    }
                 }
             }
         }

@@ -4,12 +4,9 @@ use crate::{
     flows::create_dao::storage::load_dao::{DaoId, TxId},
 };
 use algonaut::{
-    core::Address,
-    crypto::HashDigest,
-    indexer::v2::Indexer,
-    model::indexer::v2::{QueryTransaction, Role},
+    core::Address, crypto::HashDigest, indexer::v2::Indexer, model::indexer::v2::QueryTransaction,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
@@ -26,7 +23,9 @@ pub async fn get_roadmap(
     let response = indexer
         .transactions(&QueryTransaction {
             address: Some(dao_creator.to_string()),
-            address_role: Some(Role::Sender),
+            // indexer disabled this, for performance apparently https://github.com/algorand/indexer/commit/1216e7957d5fba7c6a858e244a2aaf7e99412e5d
+            // so we filter locally
+            // address_role: Some(Role::Sender),
             ..QueryTransaction::default()
         })
         .await?;
@@ -34,20 +33,23 @@ pub async fn get_roadmap(
     let mut roadmap_items = vec![];
 
     for tx in response.transactions {
-        // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
-        // Unclear when it's None. For now we just reject it.
-        let round_time = tx
-            .round_time
-            .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
+        let sender_address = tx.sender.parse::<Address>().map_err(Error::msg)?;
+        if &sender_address == dao_creator {
+            // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
+            // Unclear when it's None. For now we just reject it.
+            let round_time = tx
+                .round_time
+                .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
-        if tx.payment_transaction.is_some() {
-            if let Some(note) = tx.note.clone() {
-                if let Some(roadmap_item) =
-                    base64_maybe_roadmap_note_to_roadmap_item(&note, dao_id)?
-                {
-                    let saved_roadmap_item =
-                        to_saved_roadmap_item(&roadmap_item, &tx.id.parse()?, round_time)?;
-                    roadmap_items.push(saved_roadmap_item);
+            if tx.payment_transaction.is_some() {
+                if let Some(note) = tx.note.clone() {
+                    if let Some(roadmap_item) =
+                        base64_maybe_roadmap_note_to_roadmap_item(&note, dao_id)?
+                    {
+                        let saved_roadmap_item =
+                            to_saved_roadmap_item(&roadmap_item, &tx.id.parse()?, round_time)?;
+                        roadmap_items.push(saved_roadmap_item);
+                    }
                 }
             }
         }
