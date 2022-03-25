@@ -17,8 +17,8 @@ mod test {
         capi_asset_dao_specs::CapiAssetDaoDeps, capi_asset_id::CapiAssetAmount,
         create::test_flow::test_flow::setup_capi_asset_flow,
     };
-    use crate::dependencies::algod_for_net;
-    use crate::files::read_lines;
+    use crate::dependencies::{algod_for_net, Env};
+    use crate::files::{read_lines, write_to_file};
     use crate::flows::create_dao::create_dao::Programs;
     use crate::flows::create_dao::create_dao_specs::CreateDaoSpecs;
     use crate::testing::flow::create_dao_flow::{capi_programs, programs};
@@ -449,7 +449,16 @@ mod test {
     #[ignore]
     async fn reset_and_fund_local_network() -> Result<()> {
         test_init()?;
-        reset_and_fund_network(&Network::SandboxPrivate).await
+        let deps = reset_and_fund_network(&Network::SandboxPrivate).await?;
+
+        update_wasm_deps(
+            &deps,
+            WasmBuildConfig::Debug,
+            &Network::SandboxPrivate,
+            &Env::Local,
+        )?;
+
+        Ok(())
     }
 
     /// To be executed only once (unless it's required to re-create the dependencies)
@@ -458,19 +467,110 @@ mod test {
     async fn reset_and_fund_testnet() -> Result<()> {
         init_logger()?;
         // Commented for safety - to prevent creating things on TestNet if running by mistake
-        // reset_and_fund_network(&Network::Test).await
+        // let deps = reset_and_fund_network(&Network::Test).await?;
+        // update_wasm_deps(&deps, WasmBuildConfig::Release, &Network::Test, &Env::Test)?;
         Ok(())
     }
 
-    async fn reset_and_fund_network(net: &Network) -> Result<()> {
+    pub async fn reset_and_fund_network(net: &Network) -> Result<OnChainDeps> {
         let algod = algod_for_net(net);
         let capi_owner = capi_owner();
 
         let deps = setup_on_chain_deps(&algod, &capi_owner).await?;
         log::info!("Capi deps: {deps:?}");
 
+        Ok(deps)
+    }
+
+    /////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
+    /// NOTE: this should be in the WASM project - core shouldn't have any WASM dependencies. Temporary exception.
+    /// WASM currently can't use tokio::test (for async tests)
+    /// to fix this, we've to rename this project ("core" causes conflicts)
+    /////////////////////////////////////////////////////////////
+
+    // dead code: release config, usage commented
+    #[allow(dead_code)]
+    #[derive(Debug)]
+    enum WasmBuildConfig {
+        Debug,
+        Release,
+    }
+
+    /// Updates the WASM project with generated local settings
+    fn update_wasm_deps(
+        deps: &OnChainDeps,
+        build_config: WasmBuildConfig,
+        network: &Network,
+        env: &Env,
+    ) -> Result<()> {
+        let build_config_str = match build_config {
+            WasmBuildConfig::Debug => "debug",
+            WasmBuildConfig::Release => "release",
+        };
+
+        let wasm_repo_path = "../frontend/wasm";
+        let wasm_scrits_path = format!("{wasm_repo_path}/scripts");
+
+        let wasm_local_build_script_path = format!("{wasm_scrits_path}/build_local.sh");
+
+        let mut vars = generate_env_vars_for_config(&network, &env);
+        let deps_vars = generate_env_vars_for_deps(deps);
+        vars.extend(deps_vars);
+        let vars_str = vars
+            .into_iter()
+            .map(|(k, v)| format!("{k}={v}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        let build_command = format!("wasm-pack build --out-dir ../wasm-build --{build_config_str}");
+
+        let complete_command = format!("{vars_str} {build_command}");
+
+        write_to_file(wasm_local_build_script_path, &complete_command)?;
+
         Ok(())
     }
+
+    fn generate_env_vars_for_config(network: &Network, env: &Env) -> Vec<(String, String)> {
+        let network_str = match network {
+            Network::SandboxPrivate => "sandbox_private",
+            Network::Test => "test",
+            Network::Private => "private",
+        };
+        let env_str = match env {
+            Env::Test => "test",
+            Env::Local => "local",
+        };
+        vec![
+            ("NETWORK".to_owned(), network_str.to_owned()),
+            ("ENV".to_owned(), env_str.to_owned()),
+        ]
+    }
+
+    fn generate_env_vars_for_deps(deps: &OnChainDeps) -> Vec<(String, String)> {
+        vec![
+            (
+                "FUNDS_ASSET_ID".to_owned(),
+                deps.funds_asset_id.0.to_string(),
+            ),
+            (
+                "CAPI_ESCROW_ADDRESS".to_owned(),
+                deps.capi_flow_res.escrow.address().to_string(),
+            ),
+            (
+                "CAPI_APP_ID".to_owned(),
+                deps.capi_flow_res.app_id.0.to_string(),
+            ),
+            (
+                "CAPI_ASSET_ID".to_owned(),
+                deps.capi_flow_res.asset_id.0.to_string(),
+            ),
+        ]
+    }
+
+    /////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
 
     /// Run this to send some assets to an account, opting the account in to the asset
     #[test]
