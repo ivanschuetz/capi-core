@@ -123,7 +123,7 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
 fn get_int_or_err(key: &AppStateKey, gs: &ApplicationGlobalState) -> Result<u64> {
     gs.find_uint(key).ok_or_else(|| {
         anyhow!(
-            "Key: {key:?} not set in global state: {gs:?}, global state len: {}",
+            "Key: {key:?} (int) not set in global state: {gs:?}, global state len: {}",
             gs.len()
         )
     })
@@ -132,7 +132,7 @@ fn get_int_or_err(key: &AppStateKey, gs: &ApplicationGlobalState) -> Result<u64>
 fn get_bytes_or_err(key: &AppStateKey, gs: &ApplicationGlobalState) -> Result<Vec<u8>> {
     gs.find_bytes(key).ok_or_else(|| {
         anyhow!(
-            "Key: {key:?} not set in global state: {gs:?}, global state len: {}",
+            "Key: {key:?} (bytes) not set in global state: {gs:?}, global state len: {}",
             gs.len()
         )
     })
