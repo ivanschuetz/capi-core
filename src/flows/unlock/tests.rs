@@ -1,11 +1,12 @@
 #[cfg(test)]
 mod tests {
+    use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
 
     use crate::{
-        flows::create_dao::share_amount::ShareAmount,
+        flows::create_dao::{model::Dao, share_amount::ShareAmount},
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         state::{
@@ -39,31 +40,7 @@ mod tests {
         let _ = invests_flow(td, investor, buy_share_amount, &dao).await?;
         // TODO double check tests for state (at least important) tested (e.g. investor has shares, locking doesn't etc.)
 
-        // double check investor's assets
-
-        let investor_infos = algod.account_information(&investor.address()).await?;
-        let investor_assets = &investor_infos.assets;
-        // funds asset + shares asset
-        assert_eq!(2, investor_assets.len());
-        let shares_asset = find_asset_holding_or_err(&investor_assets, dao.shares_asset_id)?;
-        // doesn't have shares (they're sent directly to locking escrow)
-        assert_eq!(0, shares_asset.amount);
-
-        let investor_state = central_investor_state_from_acc(&investor_infos, dao.app_id)?;
-        // double check investor's local state
-        // shares set to bought asset amount
-        assert_eq!(buy_share_amount, investor_state.shares);
-        //  claimed total is 0 (hasn't claimed yet)
-        assert_eq!(FundsAmount::new(0), investor_state.claimed);
-
-        // double check locking escrow's assets
-        let locking_escrow_infos = algod
-            .account_information(dao.locking_escrow.address())
-            .await?;
-        let locking_escrow_assets = locking_escrow_infos.assets;
-
-        assert_eq!(1, locking_escrow_assets.len()); // opted in to shares
-        assert_eq!(buy_share_amount.0, locking_escrow_assets[0].amount);
+        pre_unlock_flow_sanity_tests(algod, investor, &dao, buy_share_amount).await?;
 
         // flow
 
@@ -115,31 +92,10 @@ mod tests {
         invests_optins_flow(algod, investor, &dao).await?;
         let _ = invests_flow(td, investor, buy_asset_amount, &dao).await?;
 
-        // double check investor's assets
-        let investor_infos = algod.account_information(&investor.address()).await?;
-        let investor_assets = &investor_infos.assets;
-        // funds asset + shares asset
-        assert_eq!(2, investor_assets.len());
-        let shares_asset = find_asset_holding_or_err(&investor_assets, dao.shares_asset_id)?;
-        // doesn't have shares (they're sent directly to locking escrow)
-        assert_eq!(0, shares_asset.amount);
-
-        // double check investor's local state
-        let investor_state = central_investor_state_from_acc(&investor_infos, dao.app_id)?;
-        // shares set to bought asset amount
-        assert_eq!(buy_asset_amount, investor_state.shares);
-        // claimed total is 0 (hasn't claimed yet)
-        assert_eq!(FundsAmount::new(0), investor_state.claimed);
-
-        // double check locking escrow's assets
-        let locking_escrow_infos = algod
-            .account_information(dao.locking_escrow.address())
-            .await?;
-        let locking_escrow_assets = locking_escrow_infos.assets;
-        assert_eq!(1, locking_escrow_assets.len()); // opted in to shares
-        assert_eq!(buy_asset_amount.0, locking_escrow_assets[0].amount);
+        pre_unlock_flow_sanity_tests(algod, investor, &dao, buy_asset_amount).await?;
 
         // remember state
+        let investor_infos = algod.account_information(&investor.address()).await?;
         let investor_balance_before_unlocking = investor_infos.amount;
 
         // flow
@@ -177,6 +133,41 @@ mod tests {
 
         // investor didn't pay fees (unlock txs failed)
         assert_eq!(investor_balance_before_unlocking, investor_infos.amount);
+
+        Ok(())
+    }
+
+    async fn pre_unlock_flow_sanity_tests(
+        algod: &Algod,
+        investor: &Account,
+        dao: &Dao,
+        buy_share_amount: ShareAmount,
+    ) -> Result<()> {
+        // double check investor's assets
+
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let investor_assets = &investor_infos.assets;
+        // funds asset + shares asset
+        assert_eq!(2, investor_assets.len());
+        let shares_asset = find_asset_holding_or_err(&investor_assets, dao.shares_asset_id)?;
+        // doesn't have shares (they're sent directly to locking escrow)
+        assert_eq!(0, shares_asset.amount);
+
+        let investor_state = central_investor_state_from_acc(&investor_infos, dao.app_id)?;
+        // double check investor's local state
+        // shares set to bought asset amount
+        assert_eq!(buy_share_amount, investor_state.shares);
+        //  claimed total is 0 (hasn't claimed yet)
+        assert_eq!(FundsAmount::new(0), investor_state.claimed);
+
+        // double check locking escrow's assets
+        let locking_escrow_infos = algod
+            .account_information(dao.locking_escrow.address())
+            .await?;
+        let locking_escrow_assets = locking_escrow_infos.assets;
+
+        assert_eq!(1, locking_escrow_assets.len()); // opted in to shares
+        assert_eq!(buy_share_amount.0, locking_escrow_assets[0].amount);
 
         Ok(())
     }

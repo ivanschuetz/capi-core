@@ -69,6 +69,7 @@ mod tests {
 
         // check that claimed is 0 (nothing claimed yet)
         assert_eq!(FundsAmount::new(0), central_investor_state.claimed);
+        assert_eq!(FundsAmount::new(0), central_investor_state.claimed_init);
 
         // double check: investor didn't receive any shares
 
@@ -334,6 +335,8 @@ mod tests {
 
         // investing inits the "claimed" amount to entitled amount (to prevent double claiming)
         assert_eq!(claimable_dividend, investor_state.claimed);
+        // claimed_init is initialized to the entitled amount too
+        assert_eq!(claimable_dividend, investor_state.claimed_init);
 
         Ok(())
     }
@@ -381,6 +384,8 @@ mod tests {
 
         // locking inits the "claimed" amount to entitled amount (to prevent double claiming)
         assert_eq!(claimable_dividend, investor_state.claimed);
+        // claimed_init is initialized to the entitled amount too
+        assert_eq!(claimable_dividend, investor_state.claimed_init);
 
         Ok(())
     }

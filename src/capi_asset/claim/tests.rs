@@ -95,6 +95,8 @@ mod tests {
             &CapiAppHolderState {
                 // claimed local state is what they just claimed (there wasn't anything on the escrow when the investor invested)
                 claimed: dividend,
+                // when they invested, there nothing had been drained yet
+                claimed_init: FundsAmount::new(0),
                 // sanity check: the shares local state is still set to the locked shares
                 shares: investor_capi_amount,
             },
@@ -230,6 +232,8 @@ mod tests {
             &CapiAppHolderState {
                 // claimed local state is what they just claimed (there wasn't anything on the escrow when the investor invested)
                 claimed: total_dividend,
+                // when they invested, there nothing had been drained yet
+                claimed_init: FundsAmount::new(0),
                 // sanity check: the shares local state is still set to the locked shares
                 shares: investor_capi_amount,
             },
@@ -328,6 +332,8 @@ mod tests {
             &CapiAppHolderState {
                 // claimed local state is what they just claimed (there wasn't anything on the escrow when the investor invested)
                 claimed: dividend,
+                // when they invested, there nothing had been drained yet
+                claimed_init: FundsAmount::new(0),
                 // sanity check: the shares local state is still set to the locked shares
                 shares: investor_capi_amount,
             },

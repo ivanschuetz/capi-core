@@ -40,6 +40,7 @@ const GLOBAL_SOCIAL_MEDIA_URL: AppStateKey = AppStateKey("SocialMediaUrl");
 const GLOBAL_OWNER: AppStateKey = AppStateKey("Owner");
 
 const LOCAL_CLAIMED_TOTAL: AppStateKey = AppStateKey("ClaimedTotal");
+const LOCAL_CLAIMED_INIT: AppStateKey = AppStateKey("ClaimedInit");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_DAO: AppStateKey = AppStateKey("Dao");
 
@@ -47,7 +48,7 @@ pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 9; // central escrow, customer es
 pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 5; // total received, shares asset id, funds asset id, share price, investors part
 
 pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 1; // for investors: "dao"
-pub const LOCAL_SCHEMA_NUM_INTS: u64 = 2; // for investors: "shares", "already retrieved"
+pub const LOCAL_SCHEMA_NUM_INTS: u64 = 3; // for investors: "shares", "claimed total", "claimed init"
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CentralAppGlobalState {
@@ -141,6 +142,12 @@ fn get_bytes_or_err(key: &AppStateKey, gs: &ApplicationGlobalState) -> Result<Ve
 pub struct CentralAppInvestorState {
     pub shares: ShareAmount,
     pub claimed: FundsAmount,
+    /// Value to which "claimed" is initialized when the investor locks the shares
+    /// We need this mainly for UX, to subtract it from "claimed", in order to show the user what they actually have claimed.
+    /// elaboration: "claimed" is initialized to what the investor would be entitled to receive (based on received global state and held shares),
+    /// to prevent double claiming (i.e. we allow to claim dividend only for future income).
+    /// So we need to subtract this initial value from it, to show the investor what they actually claimed.
+    pub claimed_init: FundsAmount,
     pub dao_id: DaoId,
 }
 
@@ -175,6 +182,7 @@ fn central_investor_state_from_local_state(
 
     let shares = get_uint_value_or_error(state, &LOCAL_SHARES)?;
     let claimed = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_CLAIMED_TOTAL)?);
+    let claimed_init = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_CLAIMED_INIT)?);
     let dao_id_bytes = get_bytes_value_or_error(state, &LOCAL_DAO)?;
 
     let dao_id: DaoId = dao_id_bytes
@@ -185,6 +193,7 @@ fn central_investor_state_from_local_state(
     Ok(CentralAppInvestorState {
         shares: ShareAmount::new(shares),
         claimed,
+        claimed_init,
         dao_id,
     })
 }

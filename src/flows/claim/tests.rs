@@ -78,6 +78,8 @@ mod tests {
             buy_share_amount,
             // only one dividend: local state is the claimed amount
             res.claimed,
+            // invested before first drain: initial entitled dividend is 0
+            FundsAmount::new(0),
         )
         .await?;
 
@@ -190,6 +192,8 @@ mod tests {
             buy_share_amount,
             // only one claim: local state is the claimed amount
             res.claimed,
+            // invested before first drain: initial entitled dividend is 0
+            FundsAmount::new(0),
         )
         .await?;
 
@@ -310,6 +314,8 @@ mod tests {
             buy_share_amount,
             // 2 claims: local state is the total claimed amount
             total_expected_claimed_amount,
+            // invested before first drain: initial entitled dividend is 0
+            FundsAmount::new(0),
         )
         .await?;
 
@@ -336,6 +342,7 @@ mod tests {
         expected_central_balance: FundsAmount,
         expected_shares: ShareAmount,
         expected_claimed_total: FundsAmount,
+        expected_claimed_init: FundsAmount,
     ) -> Result<()> {
         let claim_funds_amount = funds_holdings(algod, &claimer.address(), funds_asset_id).await?;
         let central_escrow_funds_amount =
@@ -364,8 +371,9 @@ mod tests {
 
         // double-check shares count (not directly related to this test)
         assert_eq!(expected_shares, investor_state.shares);
-        // check claimed total local state
+        // check claimed local state
         assert_eq!(expected_claimed_total, investor_state.claimed);
+        assert_eq!(expected_claimed_init, investor_state.claimed_init);
 
         Ok(())
     }

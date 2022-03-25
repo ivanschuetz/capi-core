@@ -52,7 +52,7 @@ pub async fn create_app(
                 number_byteslices: 0,
             },
             StateSchema {
-                number_ints: 2, // for investors: "shares", "already retrieved"
+                number_ints: 3, // for investors: "shares", "already retrieved"
                 number_byteslices: 0,
             },
         )
