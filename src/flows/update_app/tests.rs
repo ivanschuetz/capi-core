@@ -3,7 +3,7 @@ mod tests {
     use crate::{
         flows::{claim::claim::claimable_dividend, create_dao::share_amount::ShareAmount},
         funds::FundsAmount,
-        state::central_app_state::{dao_global_state, dao_investor_state},
+        state::dao_app_state::{dao_global_state, dao_investor_state},
         teal::TealSource,
         testing::{
             flow::{

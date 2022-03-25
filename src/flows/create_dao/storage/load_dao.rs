@@ -12,7 +12,7 @@ use crate::{
         },
         share_amount::ShareAmount,
     },
-    state::central_app_state::dao_global_state,
+    state::dao_app_state::dao_global_state,
 };
 use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
 use anyhow::{anyhow, Result};

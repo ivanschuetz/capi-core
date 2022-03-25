@@ -4,7 +4,7 @@ mod tests {
         capi_asset::capi_app_state::capi_app_global_state,
         flows::create_dao::setup::customer_escrow,
         funds::FundsAmount,
-        state::{account_state::funds_holdings, central_app_state::dao_global_state},
+        state::{account_state::funds_holdings, dao_app_state::dao_global_state},
         testing::{
             flow::{
                 create_dao_flow::create_dao_flow,

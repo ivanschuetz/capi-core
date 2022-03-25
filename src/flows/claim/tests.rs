@@ -13,7 +13,7 @@ mod tests {
         funds::{FundsAmount, FundsAssetId},
         state::{
             account_state::funds_holdings,
-            central_app_state::{central_investor_state_from_acc, dao_global_state},
+            dao_app_state::{central_investor_state_from_acc, dao_global_state},
         },
         testing::{
             flow::claim_flow::{claim_flow, claim_precs},

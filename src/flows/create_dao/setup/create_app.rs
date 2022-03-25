@@ -13,7 +13,7 @@ use crate::{
     decimal_util::AsDecimal,
     flows::create_dao::{share_amount::ShareAmount, shares_percentage::SharesPercentage},
     funds::FundsAmount,
-    state::central_app_state::{
+    state::dao_app_state::{
         GLOBAL_SCHEMA_NUM_BYTE_SLICES, GLOBAL_SCHEMA_NUM_INTS, LOCAL_SCHEMA_NUM_BYTE_SLICES,
         LOCAL_SCHEMA_NUM_INTS,
     },

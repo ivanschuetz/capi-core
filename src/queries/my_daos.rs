@@ -6,7 +6,7 @@ use crate::{
         storage::load_dao::{load_dao, DaoAppId, DaoId},
     },
     note::dao_setup_prefix_base64,
-    state::central_app_state::find_state_with_a_capi_dao_id,
+    state::dao_app_state::find_state_with_a_capi_dao_id,
 };
 use algonaut::{
     algod::v2::Algod,

@@ -12,7 +12,7 @@ use rust_decimal::Decimal;
 use crate::{
     asset_amount::AssetAmount,
     flows::create_dao::{share_amount::ShareAmount, storage::load_dao::DaoAppId},
-    state::{app_state::ApplicationLocalStateError, central_app_state::dao_investor_state},
+    state::{app_state::ApplicationLocalStateError, dao_app_state::dao_investor_state},
 };
 
 /// Returns holders of the asset with their respective amounts and percentages.

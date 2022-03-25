@@ -6,7 +6,7 @@ mod tests {
         state::{
             account_state::find_asset_holding_or_err,
             app_state::ApplicationLocalStateError,
-            central_app_state::{dao_global_state, dao_investor_state},
+            dao_app_state::{dao_global_state, dao_investor_state},
         },
         testing::{
             flow::create_dao_flow::create_dao_flow,

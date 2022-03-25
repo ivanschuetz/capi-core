@@ -10,7 +10,7 @@ mod tests {
         network_util::wait_for_pending_transaction,
         state::{
             account_state::find_asset_holding_or_err,
-            central_app_state::central_investor_state_from_acc,
+            dao_app_state::central_investor_state_from_acc,
         },
         testing::{
             flow::{

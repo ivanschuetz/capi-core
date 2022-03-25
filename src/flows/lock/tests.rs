@@ -21,7 +21,7 @@ mod tests {
                 find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
             },
             app_state::ApplicationLocalStateError,
-            central_app_state::{central_investor_state_from_acc, dao_investor_state},
+            dao_app_state::{central_investor_state_from_acc, dao_investor_state},
         },
         testing::{
             flow::{

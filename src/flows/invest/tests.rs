@@ -9,7 +9,7 @@ mod tests {
     use crate::state::account_state::{
         find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
     };
-    use crate::state::central_app_state::{
+    use crate::state::dao_app_state::{
         central_investor_state_from_acc, dao_global_state, dao_investor_state,
     };
     use crate::testing::flow::create_dao_flow::create_dao_flow;

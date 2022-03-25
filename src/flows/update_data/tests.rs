@@ -6,7 +6,7 @@ mod tests {
             update_data::update_data::UpdatableDaoData,
         },
         funds::FundsAmount,
-        state::central_app_state::{dao_global_state, dao_investor_state},
+        state::dao_app_state::{dao_global_state, dao_investor_state},
         testing::{
             flow::{
                 claim_flow::{claim_flow, test::claim_precs_with_dao},
