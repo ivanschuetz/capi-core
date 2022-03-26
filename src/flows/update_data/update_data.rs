@@ -60,7 +60,7 @@ pub async fn update_data(
     Ok(UpdateAppToSign { update })
 }
 
-pub async fn submit_unlock(algod: &Algod, signed: UpdateAppSigned) -> Result<TxId> {
+pub async fn submit_update_data(algod: &Algod, signed: UpdateDaoDataSigned) -> Result<TxId> {
     log::debug!("calling submit app data update..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
@@ -79,6 +79,6 @@ pub struct UpdateAppToSign {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UpdateAppSigned {
+pub struct UpdateDaoDataSigned {
     pub update: SignedTransaction,
 }
