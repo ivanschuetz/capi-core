@@ -108,7 +108,7 @@ mod tests {
         )?;
         claim_flow(&td, &precs.dao, investor, dividend).await?;
 
-        // // flow
+        // flow
 
         let global_state_before_update = dao_global_state(&td.algod, dao.app_id).await?;
         let local_state_before_update =
