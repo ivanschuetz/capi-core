@@ -1,4 +1,7 @@
-use crate::flows::create_dao::storage::load_dao::{DaoAppId, TxId};
+use crate::{
+    flows::create_dao::storage::load_dao::{DaoAppId, TxId},
+    funds::FundsAmount,
+};
 use algonaut::{
     algod::v2::Algod,
     core::Address,
@@ -12,6 +15,17 @@ use serde::{Deserialize, Serialize};
 pub struct UpdatableDaoData {
     pub central_escrow: Address,
     pub customer_escrow: Address,
+    pub investing_escrow: Address,
+    pub locking_escrow: Address,
+
+    pub project_name: String,
+    pub project_desc: String,
+    pub share_price: FundsAmount,
+
+    pub logo_url: String,
+    pub social_media_url: String,
+
+    pub owner: Address,
 }
 
 pub async fn update_data(
@@ -30,6 +44,14 @@ pub async fn update_data(
                 "update_data".as_bytes().to_vec(),
                 data.central_escrow.0.to_vec(),
                 data.customer_escrow.0.to_vec(),
+                data.investing_escrow.0.to_vec(),
+                data.locking_escrow.0.to_vec(),
+                data.project_name.as_bytes().to_vec(),
+                data.project_desc.as_bytes().to_vec(),
+                data.share_price.val().to_be_bytes().to_vec(),
+                data.logo_url.as_bytes().to_vec(),
+                data.social_media_url.as_bytes().to_vec(),
+                data.owner.0.to_vec(),
             ])
             .build(),
     )

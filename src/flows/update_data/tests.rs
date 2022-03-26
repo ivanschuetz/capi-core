@@ -6,14 +6,14 @@ mod tests {
             update_data::update_data::UpdatableDaoData,
         },
         funds::FundsAmount,
-        state::dao_app_state::{dao_global_state, dao_investor_state},
+        state::dao_app_state::{dao_global_state, dao_investor_state, CentralAppGlobalState},
         testing::{
             flow::{
                 claim_flow::{claim_flow, test::claim_precs_with_dao},
                 create_dao_flow::test::create_dao_flow_with_owner,
                 update_dao_data_flow::update_dao_data_flow,
             },
-            network_test_util::test_dao_init,
+            network_test_util::{test_dao_init, TestDeps},
         },
     };
     use anyhow::Result;
@@ -29,42 +29,22 @@ mod tests {
         let owner = &td.creator;
         let dao = create_dao_flow_with_owner(td, &owner.address()).await?;
 
-        // arbitrary data different to the existing one
-        let new_central_escrow_address = td.investor1.address();
-        let new_customer_escrow_address = td.investor2.address();
+        let update_data = some_data_to_update(&td);
 
         // precs
 
         // sanity check: current state is different to the new one
-        let global_state_before_update = dao_global_state(algod, dao.app_id).await?;
-        assert_ne!(
-            global_state_before_update.central_escrow,
-            new_central_escrow_address
-        );
-        assert_ne!(
-            global_state_before_update.customer_escrow,
-            new_customer_escrow_address
-        );
+        let gs_before_update = dao_global_state(algod, dao.app_id).await?;
+        sanity_check_current_state_different_to_update_data(&gs_before_update, &update_data);
 
         // flow
 
-        let data = UpdatableDaoData {
-            central_escrow: new_central_escrow_address,
-            customer_escrow: new_customer_escrow_address,
-        };
-        update_dao_data_flow(td, &dao, &owner, &data).await?;
+        update_dao_data_flow(td, &dao, &owner, &update_data).await?;
 
         // test
 
-        let global_state_after_update = dao_global_state(algod, dao.app_id).await?;
-        assert_eq!(
-            global_state_after_update.central_escrow,
-            new_central_escrow_address
-        );
-        assert_eq!(
-            global_state_after_update.customer_escrow,
-            new_customer_escrow_address
-        );
+        let gs_after_update = dao_global_state(algod, dao.app_id).await?;
+        validate_global_state_with_update_data(&gs_after_update, &update_data);
 
         Ok(())
     }
@@ -78,9 +58,7 @@ mod tests {
         let owner = &td.creator;
         let dao = create_dao_flow_with_owner(td, &owner.address()).await?;
 
-        // arbitrary data different to the existing one
-        let new_central_escrow_address = td.investor1.address();
-        let new_customer_escrow_address = td.investor2.address();
+        let update_data = some_data_to_update(&td);
 
         // precs
 
@@ -112,13 +90,12 @@ mod tests {
         let ls_before_update =
             dao_investor_state(&td.algod, &investor.address(), dao.app_id).await?;
 
+        // sanity check: current state is different to the new one
+        sanity_check_current_state_different_to_update_data(&gs_before_update, &update_data);
+
         // flow
 
-        let data = UpdatableDaoData {
-            central_escrow: new_central_escrow_address,
-            customer_escrow: new_customer_escrow_address,
-        };
-        update_dao_data_flow(td, &dao, &owner, &data).await?;
+        update_dao_data_flow(td, &dao, &owner, &update_data).await?;
 
         // test
 
@@ -126,24 +103,78 @@ mod tests {
         let ls_after_update =
             dao_investor_state(&td.algod, &investor.address(), dao.app_id).await?;
 
-        // state was updated
-        assert_eq!(gs_after_update.central_escrow, new_central_escrow_address);
-        assert_eq!(gs_after_update.customer_escrow, new_customer_escrow_address);
+        validate_global_state_with_update_data(&gs_after_update, &update_data);
 
-        // aside of what we updated, global state stays the same
+        // aside of what we updated, data.global state stays the same
         assert_eq!(
-            gs_before_update.funds_asset_id,
-            gs_after_update.funds_asset_id
+            gs_after_update.funds_asset_id,
+            gs_before_update.funds_asset_id
         );
-        assert_eq!(gs_before_update.received, gs_after_update.received);
+        assert_eq!(gs_after_update.received, gs_before_update.received);
         assert_eq!(
-            gs_before_update.shares_asset_id,
-            gs_after_update.shares_asset_id
+            gs_after_update.shares_asset_id,
+            gs_before_update.shares_asset_id
         );
 
         // local state stays the same
         assert_eq!(ls_before_update, ls_after_update);
 
         Ok(())
+    }
+
+    fn some_data_to_update(td: &TestDeps) -> UpdatableDaoData {
+        // arbitrary data different to the existing one
+        let new_central_escrow_address = td.investor1.address();
+        let new_customer_escrow_address = td.investor2.address();
+        let new_investing_escrow_address = td.creator.address();
+        let new_locking_escrow_address = td.capi_owner.address();
+        let new_project_name = "new_project_name".to_owned();
+        let new_project_desc = "new_project_desc".to_owned();
+        let new_share_price = FundsAmount::new(121212);
+        let new_logo_url = "new_logo_url".to_owned();
+        let new_social_media_url = "new_social_media_url".to_owned();
+        let new_owner = td.customer.address();
+
+        UpdatableDaoData {
+            central_escrow: new_central_escrow_address,
+            customer_escrow: new_customer_escrow_address,
+            investing_escrow: new_investing_escrow_address,
+            locking_escrow: new_locking_escrow_address,
+            project_name: new_project_name.clone(),
+            project_desc: new_project_desc.clone(),
+            share_price: new_share_price,
+            logo_url: new_logo_url.clone(),
+            social_media_url: new_social_media_url.clone(),
+            owner: new_owner,
+        }
+    }
+
+    fn validate_global_state_with_update_data(gs: &CentralAppGlobalState, data: &UpdatableDaoData) {
+        assert_eq!(gs.central_escrow, data.central_escrow);
+        assert_eq!(gs.customer_escrow, data.customer_escrow);
+        assert_eq!(gs.investing_escrow, data.investing_escrow);
+        assert_eq!(gs.locking_escrow, data.locking_escrow);
+        assert_eq!(gs.project_name, data.project_name);
+        assert_eq!(gs.project_desc, data.project_desc);
+        assert_eq!(gs.share_price, data.share_price);
+        assert_eq!(gs.logo_url, data.logo_url);
+        assert_eq!(gs.social_media_url, data.social_media_url);
+        assert_eq!(gs.owner, data.owner);
+    }
+
+    fn sanity_check_current_state_different_to_update_data(
+        gs: &CentralAppGlobalState,
+        data: &UpdatableDaoData,
+    ) {
+        assert_ne!(gs.central_escrow, data.central_escrow);
+        assert_ne!(gs.customer_escrow, data.customer_escrow);
+        assert_ne!(gs.investing_escrow, data.investing_escrow);
+        assert_ne!(gs.locking_escrow, data.locking_escrow);
+        assert_ne!(gs.project_name, data.project_name);
+        assert_ne!(gs.project_desc, data.project_desc);
+        assert_ne!(gs.share_price, data.share_price);
+        assert_ne!(gs.logo_url, data.logo_url);
+        assert_ne!(gs.social_media_url, data.social_media_url);
+        assert_ne!(gs.owner, data.owner);
     }
 }
