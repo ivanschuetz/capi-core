@@ -31,7 +31,7 @@ pub async fn update(
     Ok(UpdateAppToSign { update })
 }
 
-pub async fn submit_unlock(algod: &Algod, signed: UpdateAppSigned) -> Result<TxId> {
+pub async fn submit_update(algod: &Algod, signed: UpdateAppSigned) -> Result<TxId> {
     log::debug!("calling submit app update..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
