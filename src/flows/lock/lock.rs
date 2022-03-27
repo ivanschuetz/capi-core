@@ -6,8 +6,8 @@ use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     transaction::{
-        builder::CallApplication, contract_account::ContractAccount, tx_group::TxGroup,
-        SignedTransaction, Transaction, TransferAsset, TxnBuilder,
+        builder::CallApplication, tx_group::TxGroup, SignedTransaction, Transaction, TransferAsset,
+        TxnBuilder,
     },
 };
 use anyhow::Result;
@@ -23,7 +23,7 @@ pub async fn lock(
     share_amount: ShareAmount,
     shares_asset_id: u64,
     app_id: DaoAppId,
-    locking_escrow: &ContractAccount,
+    locking_escrow: &Address,
     dao_id: DaoId,
 ) -> Result<LockToSign> {
     let params = algod.suggested_transaction_params().await?;
@@ -44,7 +44,7 @@ pub async fn lock(
             investor,
             shares_asset_id,
             share_amount.val(),
-            *locking_escrow.address(),
+            *locking_escrow,
         )
         .build(),
     )

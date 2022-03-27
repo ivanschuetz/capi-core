@@ -55,7 +55,7 @@ pub mod test {
             &algod,
             &dao,
             &investor.address(),
-            &dao.locking_escrow,
+            &dao.locking_escrow.address(),
             dao.app_id,
             dao.shares_asset_id,
             buy_share_amount,

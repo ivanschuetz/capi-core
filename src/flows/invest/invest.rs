@@ -13,7 +13,6 @@ use algonaut::{
     core::{Address, SuggestedTransactionParams},
     transaction::{
         builder::{CallApplication, TxnFee},
-        contract_account::ContractAccount,
         tx_group::TxGroup,
         AcceptAsset, Transaction, TransferAsset, TxnBuilder,
     },
@@ -27,7 +26,7 @@ pub async fn invest_txs(
     algod: &Algod,
     dao: &Dao,
     investor: &Address,
-    locking_escrow: &ContractAccount,
+    locking_escrow: &Address,
     app_id: DaoAppId,
     shares_asset_id: u64,
     share_amount: ShareAmount,
@@ -73,7 +72,7 @@ pub async fn invest_txs(
             *dao.invest_escrow.address(),
             dao.shares_asset_id,
             share_amount.val(),
-            *locking_escrow.address(),
+            *locking_escrow,
         )
         .build(),
     )

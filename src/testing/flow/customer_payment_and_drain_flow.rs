@@ -75,7 +75,7 @@ pub mod test {
             dao.funds_asset_id,
             &td.dao_deps(),
             &dao.customer_escrow,
-            &dao.central_escrow,
+            &dao.central_escrow.address(),
             &drain_amounts,
         )
         .await?;
