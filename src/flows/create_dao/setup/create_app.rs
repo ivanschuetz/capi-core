@@ -229,10 +229,8 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
 
-        let approval_template = VersionedTealSourceTemplate::new(
-            load_teal_template("dao_app_approval")?,
-            Version(1),
-        );
+        let approval_template =
+            VersionedTealSourceTemplate::new(load_teal_template("dao_app_approval")?, Version(1));
         let clear_template =
             VersionedTealSourceTemplate::new(load_teal_template("dao_app_clear")?, Version(1));
 

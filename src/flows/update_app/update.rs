@@ -1,10 +1,7 @@
-use crate::{
-    flows::create_dao::storage::load_dao::{DaoAppId, TxId},
-    teal::TealSource,
-};
+use crate::flows::create_dao::storage::load_dao::{DaoAppId, TxId};
 use algonaut::{
     algod::v2::Algod,
-    core::Address,
+    core::{Address, CompiledTeal},
     transaction::{builder::UpdateApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
@@ -14,17 +11,14 @@ pub async fn update(
     algod: &Algod,
     owner: &Address,
     app_id: DaoAppId,
-    approval: TealSource,
-    clear: TealSource,
+    approval: CompiledTeal,
+    clear: CompiledTeal,
 ) -> Result<UpdateAppToSign> {
     let params = algod.suggested_transaction_params().await?;
 
-    let compiled_approval = algod.compile_teal(&approval.0).await?;
-    let compiled_clear = algod.compile_teal(&clear.0).await?;
-
     let update = TxnBuilder::with(
         &params,
-        UpdateApplication::new(*owner, app_id.0, compiled_approval, compiled_clear).build(),
+        UpdateApplication::new(*owner, app_id.0, approval, clear).build(),
     )
     .build()?;
 
