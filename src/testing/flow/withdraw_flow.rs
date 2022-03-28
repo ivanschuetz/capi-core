@@ -64,7 +64,7 @@ pub mod test {
                 amount: amount.to_owned(),
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.central_escrow,
+            &dao.central_escrow.account,
         )
         .await?;
 
@@ -103,7 +103,7 @@ pub mod test {
                 amount: amount.to_owned(),
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.central_escrow,
+            &dao.central_escrow.account,
         )
         .await?;
 
@@ -137,7 +137,7 @@ pub mod test {
                 amount: amount.to_owned(),
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.central_escrow,
+            &dao.central_escrow.account,
         )
         .await?;
 

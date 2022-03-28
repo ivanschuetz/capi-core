@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
+        api::version::{Version, VersionedAddress},
         flows::{
             claim::claim::claimable_dividend, create_dao::share_amount::ShareAmount,
             update_data::update_data::UpdatableDaoData,
@@ -136,10 +137,10 @@ mod tests {
         let new_owner = td.customer.address();
 
         UpdatableDaoData {
-            central_escrow: new_central_escrow_address,
-            customer_escrow: new_customer_escrow_address,
-            investing_escrow: new_investing_escrow_address,
-            locking_escrow: new_locking_escrow_address,
+            central_escrow: VersionedAddress::new(new_central_escrow_address, Version(2)),
+            customer_escrow: VersionedAddress::new(new_customer_escrow_address, Version(2)),
+            investing_escrow: VersionedAddress::new(new_investing_escrow_address, Version(2)),
+            locking_escrow: VersionedAddress::new(new_locking_escrow_address, Version(2)),
             project_name: new_project_name.clone(),
             project_desc: new_project_desc.clone(),
             share_price: new_share_price,

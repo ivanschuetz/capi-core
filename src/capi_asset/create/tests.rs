@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::api::api::LocalApi;
     use crate::capi_asset::capi_app_state::{capi_app_global_state, capi_app_investor_state};
     use crate::capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId};
     use crate::capi_asset::create::test_flow::test_flow::setup_capi_asset_flow;
@@ -21,6 +22,7 @@ mod tests {
 
         // deps
         let algod = dependencies::algod_for_tests();
+        let api = LocalApi {};
         let creator = creator();
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
@@ -29,7 +31,7 @@ mod tests {
 
         // flow
 
-        let flow_res = setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
+        let flow_res = setup_capi_asset_flow(&algod, &api, &creator, capi_supply, funds_asset_id).await?;
 
         // tests
 

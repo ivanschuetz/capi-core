@@ -74,7 +74,7 @@ pub async fn submit_capi_assets_unlock(algod: &Algod, signed: UnlockSigned) -> R
     let txs = vec![signed.capi_app_optout_tx, signed.shares_xfer_tx_signed];
 
     // crate::teal::debug_teal_rendered(&txs, "capi_escrow").unwrap();
-    // crate::teal::debug_teal_rendered(&txs, "app_capi_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "capi_app_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Unlock tx id: {:?}", res.tx_id);

@@ -2,6 +2,7 @@
 use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
+    api::version::{VersionedContractAccount, VersionedTealSourceTemplate},
     capi_asset::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetId},
     flows::create_dao::storage::load_dao::TxId,
     funds::FundsAssetId,
@@ -15,7 +16,7 @@ use algonaut::{
         SignedTransaction, Transaction, TxnBuilder,
     },
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde::Serialize;
 
 // TODO no constants
@@ -25,7 +26,7 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(300_000);
 pub async fn setup_capi_escrow(
     algod: &Algod,
     min_balance_sender: &Address,
-    source: &TealSourceTemplate,
+    source: &VersionedTealSourceTemplate,
     params: &SuggestedTransactionParams,
     capi_asset_id: CapiAssetId,
     funds_asset_id: FundsAssetId,
@@ -35,20 +36,25 @@ pub async fn setup_capi_escrow(
         render_and_compile_capi_escrow(algod, source, capi_asset_id, funds_asset_id, app_id)
             .await?;
 
-    let fund_min_balance_tx =
-        &mut create_payment_tx(min_balance_sender, escrow.address(), MIN_BALANCE, params).await?;
+    let fund_min_balance_tx = &mut create_payment_tx(
+        min_balance_sender,
+        escrow.account.address(),
+        MIN_BALANCE,
+        params,
+    )
+    .await?;
 
     let optin_to_capi_asset_tx = &mut TxnBuilder::with_fee(
         params,
         TxnFee::zero(),
-        AcceptAsset::new(*escrow.address(), capi_asset_id.0).build(),
+        AcceptAsset::new(*escrow.account.address(), capi_asset_id.0).build(),
     )
     .build()?;
 
     let optin_to_funds_asset_tx = &mut TxnBuilder::with_fee(
         params,
         TxnFee::zero(),
-        AcceptAsset::new(*escrow.address(), funds_asset_id.0).build(),
+        AcceptAsset::new(*escrow.account.address(), funds_asset_id.0).build(),
     )
     .build()?;
 
@@ -66,8 +72,8 @@ pub async fn setup_capi_escrow(
         optin_to_funds_asset_tx,
     ])?;
 
-    let optin_to_capi_asset_tx_signed = escrow.sign(optin_to_capi_asset_tx, vec![])?;
-    let optin_to_funds_asset_tx_signed = escrow.sign(optin_to_funds_asset_tx, vec![])?;
+    let optin_to_capi_asset_tx_signed = escrow.account.sign(optin_to_capi_asset_tx, vec![])?;
+    let optin_to_funds_asset_tx_signed = escrow.account.sign(optin_to_funds_asset_tx, vec![])?;
 
     Ok(SetupCentralEscrowToSign {
         optin_to_capi_asset_tx: optin_to_capi_asset_tx_signed,
@@ -79,16 +85,26 @@ pub async fn setup_capi_escrow(
 
 pub async fn render_and_compile_capi_escrow(
     algod: &Algod,
-    source: &TealSourceTemplate,
+    template: &VersionedTealSourceTemplate,
     capi_asset_id: CapiAssetId,
     funds_asset_id: FundsAssetId,
     app_id: CapiAppId,
-) -> Result<ContractAccount> {
-    let source = render_capi_escrow(source, capi_asset_id, funds_asset_id, app_id)?;
-    Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
+) -> Result<VersionedContractAccount> {
+    let source = match template.version.0 {
+        1 => render_capi_escrow_v1(&template.template, capi_asset_id, funds_asset_id, app_id),
+        _ => Err(anyhow!(
+            "Capi escrow version not supported: {:?}",
+            template.version
+        )),
+    }?;
+
+    Ok(VersionedContractAccount {
+        version: template.version,
+        account: ContractAccount::new(algod.compile_teal(&source.0).await?),
+    })
 }
 
-fn render_capi_escrow(
+fn render_capi_escrow_v1(
     source: &TealSourceTemplate,
     capi_asset_id: CapiAssetId,
     funds_asset_id: FundsAssetId,
@@ -137,7 +153,7 @@ pub struct SetupCentralEscrowToSign {
     pub optin_to_capi_asset_tx: SignedTransaction,
     pub optin_to_funds_asset_tx: SignedTransaction,
     pub fund_min_balance_tx: Transaction,
-    pub escrow: ContractAccount,
+    pub escrow: VersionedContractAccount,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

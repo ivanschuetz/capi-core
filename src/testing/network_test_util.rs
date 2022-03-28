@@ -7,6 +7,8 @@ pub use test::{
 #[cfg(test)]
 mod test {
     use crate::algo_helpers::{send_tx_and_wait, send_txs_and_wait};
+    use crate::api::api::{Api, LocalApi};
+    use crate::api::version::VersionedContractAccount;
     use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::CapiAssetId;
@@ -21,11 +23,10 @@ mod test {
     use crate::files::{read_lines, write_to_file};
     use crate::flows::create_dao::create_dao::Programs;
     use crate::flows::create_dao::create_dao_specs::CreateDaoSpecs;
-    use crate::testing::flow::create_dao_flow::{capi_programs, programs};
+    use crate::testing::flow::create_dao_flow::test::{test_capi_programs, test_programs};
     use crate::testing::test_data::{dao_specs, msig_acc1, msig_acc2, msig_acc3};
     use crate::testing::tests_msig::TestsMsig;
     use algonaut::core::Address;
-    use algonaut::transaction::contract_account::ContractAccount;
     use algonaut::{
         algod::v2::Algod,
         core::SuggestedTransactionParams,
@@ -56,10 +57,10 @@ mod test {
         },
     };
 
-    #[derive(Debug)]
     pub struct TestDeps {
         pub algod: Algod,
         pub indexer: Indexer,
+        pub api: Box<dyn Api>,
 
         pub creator: Account,
         pub investor1: Account,
@@ -73,7 +74,7 @@ mod test {
         pub funds_asset_id: FundsAssetId,
 
         pub capi_owner: Account,
-        pub capi_escrow: ContractAccount,
+        pub capi_escrow: VersionedContractAccount,
         pub capi_escrow_percentage: SharesPercentage,
         pub capi_app_id: CapiAppId,
         pub capi_asset_id: CapiAssetId,
@@ -87,7 +88,8 @@ mod test {
     impl TestDeps {
         pub fn dao_deps(&self) -> CapiAssetDaoDeps {
             CapiAssetDaoDeps {
-                escrow: *self.capi_escrow.address(),
+                // TODO: review: what exactly has to be done on Capi app updates / escrow migrations?
+                escrow: *self.capi_escrow.account.address(),
                 escrow_percentage: self.capi_escrow_percentage,
                 app_id: self.capi_app_id,
                 asset_id: self.capi_asset_id,
@@ -104,9 +106,10 @@ mod test {
         test_init()?;
 
         let algod = dependencies::algod_for_tests();
+        let api = LocalApi {};
         let capi_owner = capi_owner();
 
-        let chain_deps = setup_on_chain_deps(&algod, &capi_owner).await?;
+        let chain_deps = setup_on_chain_deps(&algod, &api, &capi_owner).await?;
 
         test_dao_init_with_deps(algod, &chain_deps).await
     }
@@ -124,6 +127,7 @@ mod test {
         Ok(TestDeps {
             algod,
             indexer: dependencies::indexer_for_tests(),
+            api: Box::new(LocalApi {}),
             creator: creator(),
             investor1: investor1(),
             investor2: investor2(),
@@ -134,13 +138,14 @@ mod test {
             // unwrap: we know the owner mnemonic is valid + this is just for tests
             capi_owner: Account::from_mnemonic(&capi_flow_res.owner_mnemonic).unwrap(),
             precision: TESTS_DEFAULT_PRECISION,
-            // unwrap: safe + tests-only
-            programs: programs().unwrap(),
+
             capi_escrow: capi_flow_res.escrow.clone(),
             capi_escrow_percentage: capi_escrow_percentage(),
             capi_app_id: capi_flow_res.app_id,
             capi_asset_id: capi_flow_res.asset_id,
             capi_supply: capi_flow_res.supply,
+
+            programs: test_programs()?,
         })
     }
 
@@ -194,7 +199,11 @@ mod test {
     }
 
     /// Creates the funds asset and capi-token related dependencies
-    pub async fn setup_on_chain_deps(algod: &Algod, capi_owner: &Account) -> Result<OnChainDeps> {
+    pub async fn setup_on_chain_deps(
+        algod: &Algod,
+        api: &dyn Api,
+        capi_owner: &Account,
+    ) -> Result<OnChainDeps> {
         let params = algod.suggested_transaction_params().await?;
         let funds_asset_id = create_and_distribute_funds_asset(algod).await?;
 
@@ -208,7 +217,8 @@ mod test {
         )
         .await?;
 
-        let capi_flow_res = create_capi_asset_and_deps(algod, capi_owner, funds_asset_id).await?;
+        let capi_flow_res =
+            create_capi_asset_and_deps(algod, api, capi_owner, funds_asset_id).await?;
         log::info!("capi_deps: {capi_flow_res:?}, funds_asset_id: {funds_asset_id:?}");
 
         Ok(OnChainDeps {
@@ -267,11 +277,12 @@ mod test {
 
     async fn create_capi_asset_and_deps(
         algod: &Algod,
+        api: &dyn Api,
         capi_owner: &Account,
         funds_asset_id: FundsAssetId,
     ) -> Result<CapiAssetFlowRes> {
         let capi_supply = CapiAssetAmount::new(1_000_000_000);
-        Ok(setup_capi_asset_flow(&algod, &capi_owner, capi_supply, funds_asset_id).await?)
+        Ok(setup_capi_asset_flow(algod, api, &capi_owner, capi_supply, funds_asset_id).await?)
     }
 
     fn capi_escrow_percentage() -> SharesPercentage {
@@ -426,7 +437,7 @@ mod test {
         // This can be any account that has enough assets (funds asset). Normally the funder will be the capi owner.
         let funder = capi_owner();
 
-        let capi_escrow_template = capi_programs()?.escrow;
+        let capi_escrow_template = test_capi_programs()?.escrow;
 
         let escrow = setup_and_submit_capi_escrow(
             &algod,
@@ -474,9 +485,10 @@ mod test {
 
     pub async fn reset_and_fund_network(net: &Network) -> Result<OnChainDeps> {
         let algod = algod_for_net(net);
+        let api = LocalApi {};
         let capi_owner = capi_owner();
 
-        let deps = setup_on_chain_deps(&algod, &capi_owner).await?;
+        let deps = setup_on_chain_deps(&algod, &api, &capi_owner).await?;
         log::info!("Capi deps: {deps:?}");
 
         Ok(deps)

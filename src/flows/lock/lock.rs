@@ -66,7 +66,7 @@ pub async fn submit_lock(algod: &Algod, signed: LockSigned) -> Result<TxId> {
         signed.central_app_call_setup_tx.clone(),
         signed.shares_xfer_tx_signed.clone(),
     ];
-    // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Lock tx id: {:?}", res.tx_id);
     Ok(res.tx_id.parse()?)

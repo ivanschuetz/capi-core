@@ -1,7 +1,7 @@
 use crate::{
+    api::{api::Api, contract::Contract},
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
-        create_dao::Escrows,
         create_dao_specs::CreateDaoSpecs,
         model::{CreateSharesSpecs, Dao},
         setup::{
@@ -25,10 +25,16 @@ use std::{
     str::FromStr,
 };
 
+/// NOTE: this is an expensive function:
+/// - Call to load dao app state
+/// - Calls to retrieve TEAL templates for ALL the escrows (currently local, later this will come from API. Can be parallelized.)
+/// - Call to retrieve asset information (supply etc, using the asset id stored in the app state)
+/// - Calls to render and compile ALL the escrows (parallelized - 2 batches)
+/// TODO parallelize more (and outside of this function, try to cache the dao, etc. to not have to call this often)
 pub async fn load_dao(
     algod: &Algod,
     dao_id: DaoId,
-    escrows: &Escrows,
+    api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Dao> {
     let app_id = dao_id.0;
@@ -37,21 +43,29 @@ pub async fn load_dao(
 
     let dao_state = dao_global_state(algod, app_id).await?;
 
+    // NOTE currently not async - trait doesn't support async out of the box (TODO)
+    // will be needed especially later when fetching the TEAL from a remove location
+    let central_escrow = api.template(Contract::DaoCentral, dao_state.central_escrow.version)?;
+    let customer_escrow = api.template(Contract::DaoCustomer, dao_state.customer_escrow.version)?;
+    let investing_escrow =
+        api.template(Contract::DaoInvesting, dao_state.investing_escrow.version)?;
+    let locking_escrow = api.template(Contract::Daolocking, dao_state.locking_escrow.version)?;
+
     // TODO store this state (redundantly in the same app field), to prevent this call?
     let asset_infos = algod.asset_information(dao_state.shares_asset_id).await?;
 
     // Render and compile the escrows
     let central_escrow_account_fut = render_and_compile_central_escrow(
         algod,
+        &central_escrow,
         &dao_state.owner,
-        &escrows.central_escrow,
         dao_state.funds_asset_id,
         app_id,
     );
     let locking_escrow_account_fut = render_and_compile_locking_escrow(
         algod,
         dao_state.shares_asset_id,
-        &escrows.locking_escrow,
+        &locking_escrow,
         app_id,
     );
     let (central_escrow_account_res, locking_escrow_account_res) =
@@ -60,8 +74,8 @@ pub async fn load_dao(
     let locking_escrow_account = locking_escrow_account_res?;
     let customer_escrow_account_fut = render_and_compile_customer_escrow(
         algod,
-        central_escrow_account.address(),
-        &escrows.customer_escrow,
+        central_escrow_account.account.address(),
+        &customer_escrow,
         &capi_deps.escrow,
         app_id,
     );
@@ -70,9 +84,9 @@ pub async fn load_dao(
         dao_state.shares_asset_id,
         &dao_state.share_price,
         &dao_state.funds_asset_id,
-        locking_escrow_account.address(),
-        central_escrow_account.address(),
-        &escrows.invest_escrow,
+        locking_escrow_account.account.address(),
+        central_escrow_account.account.address(),
+        &investing_escrow,
         app_id,
     );
     let (customer_escrow_account_res, investing_escrow_account_res) =
@@ -81,16 +95,21 @@ pub async fn load_dao(
     let investing_escrow_account = investing_escrow_account_res?;
 
     // validate the generated programs against the addresses stored in the app
-    // TODO versioning: stored addresses need a version + need to pass or be able to fetch the template for this version
-    expect_match(&dao_state.central_escrow, central_escrow_account.address())?;
-    expect_match(&dao_state.locking_escrow, locking_escrow_account.address())?;
     expect_match(
-        &dao_state.customer_escrow,
-        customer_escrow_account.address(),
+        &dao_state.central_escrow.address,
+        central_escrow_account.account.address(),
     )?;
     expect_match(
-        &dao_state.investing_escrow,
-        investing_escrow_account.address(),
+        &dao_state.locking_escrow.address,
+        locking_escrow_account.account.address(),
+    )?;
+    expect_match(
+        &dao_state.customer_escrow.address,
+        customer_escrow_account.account.address(),
+    )?;
+    expect_match(
+        &dao_state.investing_escrow.address,
+        investing_escrow_account.account.address(),
     )?;
 
     let dao = Dao {

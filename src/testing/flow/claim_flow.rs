@@ -92,7 +92,7 @@ pub mod test {
             dao.app_id,
             td.funds_asset_id,
             amount,
-            &dao.central_escrow,
+            &dao.central_escrow.account,
         )
         .await?;
 

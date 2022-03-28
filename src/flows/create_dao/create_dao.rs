@@ -4,6 +4,7 @@ use super::{
     storage::load_dao::DaoAppId,
 };
 use crate::{
+    api::version::VersionedTealSourceTemplate,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
         model::Dao,
@@ -16,7 +17,6 @@ use crate::{
         },
     },
     funds::FundsAssetId,
-    teal::{TealSource, TealSourceTemplate},
 };
 use algonaut::{algod::v2::Algod, core::Address, transaction::tx_group::TxGroup};
 use anyhow::Result;
@@ -57,7 +57,7 @@ pub async fn create_dao_txs(
     let mut customer_to_sign = setup_customer_escrow(
         algod,
         &creator,
-        central_to_sign.escrow.address(),
+        central_to_sign.escrow.account.address(),
         &programs.escrows.customer_escrow,
         &params,
         funds_asset_id,
@@ -83,8 +83,8 @@ pub async fn create_dao_txs(
         &specs.share_price,
         &funds_asset_id,
         &creator,
-        setup_locking_escrow_to_sign.escrow.address(),
-        central_to_sign.escrow.address(),
+        setup_locking_escrow_to_sign.escrow.account.address(),
+        central_to_sign.escrow.account.address(),
         &params,
         app_id,
     )
@@ -95,10 +95,12 @@ pub async fn create_dao_txs(
         &creator,
         &params,
         &DaoInitData {
-            central_escrow: *central_to_sign.escrow.address(),
-            customer_escrow: *customer_to_sign.escrow.address(),
-            investing_escrow: *setup_invest_escrow_to_sign.escrow.address(),
-            locking_escrow: *setup_locking_escrow_to_sign.escrow.address(),
+            central_escrow: central_to_sign.escrow.to_versioned_address(),
+            customer_escrow: customer_to_sign.escrow.to_versioned_address(),
+            investing_escrow: setup_invest_escrow_to_sign.escrow.to_versioned_address(),
+            locking_escrow: setup_locking_escrow_to_sign.escrow.to_versioned_address(),
+            app_approval_version: programs.central_app_approval.version,
+            app_clear_version: programs.central_app_clear.version,
             shares_asset_id,
             funds_asset_id,
             project_name: specs.name.clone(),
@@ -131,16 +133,20 @@ pub async fn create_dao_txs(
     ])?;
 
     let locking_escrow = setup_locking_escrow_to_sign.escrow.clone();
-    let locking_escrow_shares_optin_tx_signed =
-        locking_escrow.sign(&setup_locking_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
+    let locking_escrow_shares_optin_tx_signed = locking_escrow
+        .account
+        .sign(&setup_locking_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
     let invest_escrow = setup_invest_escrow_to_sign.escrow.clone();
-    let invest_escrow_shares_optin_tx_signed =
-        invest_escrow.sign(&setup_invest_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
+    let invest_escrow_shares_optin_tx_signed = invest_escrow
+        .account
+        .sign(&setup_invest_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
     let central_escrow_optin_to_funds_asset_tx_signed = central_to_sign
         .escrow
+        .account
         .sign(&central_to_sign.optin_to_funds_asset_tx, vec![])?;
     let customer_escrow_optin_to_funds_asset_tx_signed = customer_to_sign
         .escrow
+        .account
         .sign(&customer_to_sign.optin_to_funds_asset_tx, vec![])?;
     let optin_txs = vec![
         locking_escrow_shares_optin_tx_signed,
@@ -192,7 +198,7 @@ pub async fn submit_create_dao(
     }
     signed_txs.push(signed.xfer_shares_to_invest_escrow);
 
-    // crate::teal::debug_teal_rendered(&signed_txs, "app_central_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&signed_txs, "dao_app_approval").unwrap();
     // crate::teal::debug_teal_rendered(&signed_txs, "investing_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&signed_txs, "central_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&signed_txs, "locking_escrow").unwrap();
@@ -216,23 +222,23 @@ pub async fn submit_create_dao(
 
 #[derive(Debug)]
 pub struct Programs {
-    pub central_app_approval: TealSourceTemplate,
-    pub central_app_clear: TealSource,
+    pub central_app_approval: VersionedTealSourceTemplate,
+    pub central_app_clear: VersionedTealSourceTemplate,
     pub escrows: Escrows,
 }
 
 #[derive(Debug)]
 pub struct Escrows {
-    pub central_escrow: TealSourceTemplate,
-    pub customer_escrow: TealSourceTemplate,
-    pub invest_escrow: TealSourceTemplate,
-    pub locking_escrow: TealSourceTemplate,
+    pub central_escrow: VersionedTealSourceTemplate,
+    pub customer_escrow: VersionedTealSourceTemplate,
+    pub invest_escrow: VersionedTealSourceTemplate,
+    pub locking_escrow: VersionedTealSourceTemplate,
 }
 
 /// TEAL related to the capi token
 #[derive(Debug)]
 pub struct CapiPrograms {
-    pub app_approval: TealSourceTemplate,
-    pub app_clear: TealSource,
-    pub escrow: TealSourceTemplate,
+    pub app_approval: VersionedTealSourceTemplate,
+    pub app_clear: VersionedTealSourceTemplate,
+    pub escrow: VersionedTealSourceTemplate,
 }

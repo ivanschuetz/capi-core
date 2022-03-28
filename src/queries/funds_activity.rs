@@ -1,10 +1,9 @@
+use super::received_payments::{received_payments, Payment};
 use crate::{
+    api::api::Api,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::{
-        create_dao::{
-            create_dao::Escrows,
-            storage::load_dao::{DaoId, TxId},
-        },
+        create_dao::storage::load_dao::{DaoId, TxId},
         withdraw::withdrawals::withdrawals,
     },
     funds::FundsAmount,
@@ -12,8 +11,6 @@ use crate::{
 use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-
-use super::received_payments::{received_payments, Payment};
 
 #[derive(Debug, Clone)]
 pub struct FundsActivityEntry {
@@ -38,10 +35,10 @@ pub async fn funds_activity(
     dao_id: DaoId,
     customer_escrow_address: &Address,
     central_escrow_address: &Address,
-    escrows: &Escrows,
+    api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<FundsActivityEntry>> {
-    let withdrawals = withdrawals(algod, indexer, creator, dao_id, escrows, capi_deps).await?;
+    let withdrawals = withdrawals(algod, indexer, creator, dao_id, api, capi_deps).await?;
     // payments to the customer escrow
     let customer_escrow_payments = received_payments(indexer, customer_escrow_address).await?;
     // payments to the central escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)

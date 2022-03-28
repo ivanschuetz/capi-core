@@ -1,7 +1,7 @@
 use crate::{
+    api::version::VersionedTealSourceTemplate,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
-        create_dao::Programs,
         create_dao_specs::CreateDaoSpecs,
         model::{CreateAssetsToSign, CreateSharesSpecs},
         storage::load_dao::DaoAppId,
@@ -24,7 +24,8 @@ pub async fn create_assets(
     creator: &Address,
     owner: &Address,
     specs: &CreateDaoSpecs,
-    programs: &Programs,
+    app_approval: &VersionedTealSourceTemplate,
+    app_clear: &VersionedTealSourceTemplate,
     precision: u64,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<CreateAssetsToSign> {
@@ -33,8 +34,8 @@ pub async fn create_assets(
 
     let create_app_tx = &mut create_app_tx(
         algod,
-        &programs.central_app_approval,
-        &programs.central_app_clear,
+        &app_approval,
+        &app_clear,
         creator,
         owner,
         specs.shares.supply,
@@ -57,7 +58,7 @@ pub async fn submit_create_assets(
     signed: &CrateDaoAssetsSigned,
 ) -> Result<CreateAssetsResult> {
     // let txs = vec![signed.create_app.clone()];
-    // crate::teal::debug_teal_rendered(&vec![signed.create_app.clone()], "app_central_approval")
+    // crate::teal::debug_teal_rendered(&vec![signed.create_app.clone()], "dao_app_approval")
     //     .unwrap();
 
     // Note that we don't use a tx group here but send the 2 transactions separately,

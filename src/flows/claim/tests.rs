@@ -3,6 +3,7 @@ mod tests {
     use std::convert::TryInto;
 
     use crate::{
+        api::version::VersionedAddress,
         flows::{
             claim::claim::claimable_dividend,
             create_dao::{
@@ -20,7 +21,7 @@ mod tests {
             network_test_util::{test_dao_init, TestDeps},
         },
     };
-    use algonaut::{algod::v2::Algod, core::Address, transaction::account::Account};
+    use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
     use rust_decimal::Decimal;
     use serial_test::serial;
@@ -67,8 +68,8 @@ mod tests {
             &claimer,
             res.dao.app_id,
             td.funds_asset_id,
-            res.dao.central_escrow.address(),
-            res.dao.customer_escrow.address(),
+            &res.dao.central_escrow.to_versioned_address(),
+            &res.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // claimer got the amount
             res.claimer_balance_before_claiming + res.claimed,
@@ -181,8 +182,8 @@ mod tests {
             &claimer,
             res.dao.app_id,
             td.funds_asset_id,
-            res.dao.central_escrow.address(),
-            res.dao.customer_escrow.address(),
+            &res.dao.central_escrow.to_versioned_address(),
+            &res.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // claimer got the amount
             res.claimer_balance_before_claiming + res.claimed,
@@ -303,8 +304,8 @@ mod tests {
             &claimer,
             res2.dao.app_id,
             td.funds_asset_id,
-            res2.dao.central_escrow.address(),
-            res2.dao.customer_escrow.address(),
+            &res2.dao.central_escrow.to_versioned_address(),
+            &res2.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // 2 claims: asset balance is the total claimed amount
             res1.claimer_balance_before_claiming + total_expected_claimed_amount,
@@ -331,8 +332,8 @@ mod tests {
         claimer: &Account,
         app_id: DaoAppId,
         funds_asset_id: FundsAssetId,
-        central_escrow_address: &Address,
-        customer_escrow_address: &Address,
+        central_escrow_address: &VersionedAddress,
+        customer_escrow_address: &VersionedAddress,
         // this parameter isn't ideal: it assumes that we did a (one) drain before claiming
         // for now letting it there as it's a quick refactoring
         // arguably needed, it tests basically that the total received global state isn't affected by claiming
@@ -346,7 +347,7 @@ mod tests {
     ) -> Result<()> {
         let claim_funds_amount = funds_holdings(algod, &claimer.address(), funds_asset_id).await?;
         let central_escrow_funds_amount =
-            funds_holdings(algod, central_escrow_address, funds_asset_id).await?;
+            funds_holdings(algod, &central_escrow_address.address, funds_asset_id).await?;
 
         assert_eq!(expected_claimer_balance, claim_funds_amount);
         assert_eq!(expected_central_balance, central_escrow_funds_amount);

@@ -23,7 +23,7 @@ pub async fn submit_invest_or_locking_app_optin(
     algod: &Algod,
     signed: SignedTransaction,
 ) -> Result<TxId> {
-    // crate::teal::debug_teal_rendered(&signed, "app_central_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&signed, "dao_app_approval").unwrap();
     let res = algod.broadcast_signed_transaction(&signed).await?;
     log::debug!("Investor app optins tx id: {}", res.tx_id);
     Ok(res.tx_id.parse()?)

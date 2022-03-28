@@ -4,6 +4,7 @@ use super::app_state::{
     ApplicationLocalStateError, ApplicationStateExt,
 };
 use crate::{
+    api::version::{bytes_to_versions, Version, VersionedAddress},
     flows::create_dao::{
         share_amount::ShareAmount,
         storage::load_dao::{DaoAppId, DaoId},
@@ -39,12 +40,14 @@ const GLOBAL_SOCIAL_MEDIA_URL: AppStateKey = AppStateKey("SocialMediaUrl");
 // not sure this is needed
 const GLOBAL_OWNER: AppStateKey = AppStateKey("Owner");
 
+const GLOBAL_VERSIONS: AppStateKey = AppStateKey("Versions");
+
 const LOCAL_CLAIMED_TOTAL: AppStateKey = AppStateKey("ClaimedTotal");
 const LOCAL_CLAIMED_INIT: AppStateKey = AppStateKey("ClaimedInit");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_DAO: AppStateKey = AppStateKey("Dao");
 
-pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 9; // central escrow, customer escrow, investing escrow, locking escrow, dao name, dao descr, logo, social media, owner
+pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 10; // central escrow, customer escrow, investing escrow, locking escrow, dao name, dao descr, logo, social media, owner, versions
 pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 5; // total received, shares asset id, funds asset id, share price, investors part
 
 pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 1; // for investors: "dao"
@@ -54,10 +57,13 @@ pub const LOCAL_SCHEMA_NUM_INTS: u64 = 3; // for investors: "shares", "claimed t
 pub struct CentralAppGlobalState {
     pub received: FundsAmount,
 
-    pub central_escrow: Address,
-    pub customer_escrow: Address,
-    pub investing_escrow: Address,
-    pub locking_escrow: Address,
+    pub central_escrow: VersionedAddress,
+    pub customer_escrow: VersionedAddress,
+    pub investing_escrow: VersionedAddress,
+    pub locking_escrow: VersionedAddress,
+
+    pub app_approval_version: Version,
+    pub app_clear_version: Version,
 
     pub funds_asset_id: FundsAssetId,
     pub shares_asset_id: u64,
@@ -103,12 +109,17 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
 
     let owner = read_address_from_state(&gs, GLOBAL_OWNER)?;
 
+    let versions_bytes = get_bytes_or_err(&GLOBAL_VERSIONS, &gs)?;
+    let versions = bytes_to_versions(&versions_bytes)?;
+
     Ok(CentralAppGlobalState {
         received: total_received,
-        central_escrow,
-        customer_escrow,
-        investing_escrow,
-        locking_escrow,
+        central_escrow: VersionedAddress::new(central_escrow, versions.central_escrow),
+        customer_escrow: VersionedAddress::new(customer_escrow, versions.customer_escrow),
+        investing_escrow: VersionedAddress::new(investing_escrow, versions.investing_escrow),
+        locking_escrow: VersionedAddress::new(locking_escrow, versions.locking_escrow),
+        app_approval_version: versions.app_approval,
+        app_clear_version: versions.app_clear,
         funds_asset_id,
         shares_asset_id,
         project_name,

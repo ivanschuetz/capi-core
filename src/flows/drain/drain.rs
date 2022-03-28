@@ -208,7 +208,7 @@ pub async fn submit_drain_customer_escrow(
     //         signed.drain_tx.clone(),
     //         signed.capi_share_tx.clone(),
     //     ],
-    //     "app_central_approval",
+    //     "dao_app_approval",
     // )
     // .unwrap();
 
@@ -220,7 +220,7 @@ pub async fn submit_drain_customer_escrow(
     //         signed.drain_tx.clone(),
     //         signed.capi_share_tx.clone(),
     //     ],
-    //     "app_capi_approval",
+    //     "capi_app_approval",
     // )
     // .unwrap();
 

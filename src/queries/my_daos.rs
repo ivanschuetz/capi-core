@@ -1,7 +1,7 @@
 use crate::{
+    api::api::Api,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
-        create_dao::Escrows,
         model::Dao,
         storage::load_dao::{load_dao, DaoAppId, DaoId},
     },
@@ -31,11 +31,11 @@ pub async fn my_daos(
     algod: &Algod,
     indexer: &Indexer,
     address: &Address,
-    escrows: &Escrows,
+    api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<MyStoredDao>> {
-    let created = my_created_daos(algod, indexer, address, escrows, capi_deps).await?;
-    let invested = my_current_invested_daos(algod, address, escrows, capi_deps).await?;
+    let created = my_created_daos(algod, indexer, address, api, capi_deps).await?;
+    let invested = my_current_invested_daos(algod, address, api, capi_deps).await?;
 
     let created_map: HashMap<DaoId, Dao> = created
         .iter()
@@ -78,7 +78,7 @@ pub async fn my_daos(
 pub async fn my_current_invested_daos(
     algod: &Algod,
     address: &Address,
-    escrows: &Escrows,
+    api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Dao>> {
     log::debug!("Retrieving my dao from: {:?}", address);
@@ -99,7 +99,7 @@ pub async fn my_current_invested_daos(
     for dao_id in my_dao_ids {
         // If there's a dao id and there are no bugs, there should *always* be a dao - as the ids are on-chain tx ids
         // and these tx should have the properly formatted dao data in the note field
-        let dao = load_dao(algod, dao_id, escrows, capi_deps).await?;
+        let dao = load_dao(algod, dao_id, api, capi_deps).await?;
         my_daos.push(dao);
     }
 
@@ -116,7 +116,7 @@ pub async fn my_created_daos(
     algod: &Algod,
     indexer: &Indexer,
     address: &Address,
-    escrows: &Escrows,
+    api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Dao>> {
     log::debug!("Retrieving my dao from: {:?}", address);
@@ -150,7 +150,7 @@ pub async fn my_created_daos(
                         }
                         let dao_id = DaoId(DaoAppId(app_id));
 
-                        let dao = load_dao(algod, dao_id, escrows, capi_deps).await?;
+                        let dao = load_dao(algod, dao_id, api, capi_deps).await?;
                         my_daos.push(dao);
                     }
                 }

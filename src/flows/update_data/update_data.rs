@@ -1,6 +1,8 @@
 use crate::{
+    api::version::{versions_to_bytes, VersionedAddress, Versions},
     flows::create_dao::storage::load_dao::{DaoAppId, TxId},
     funds::FundsAmount,
+    state::dao_app_state::dao_global_state,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -13,10 +15,10 @@ use serde::{Deserialize, Serialize};
 /// Dao app data that is meant to be updated externally
 #[derive(Debug, Clone)]
 pub struct UpdatableDaoData {
-    pub central_escrow: Address,
-    pub customer_escrow: Address,
-    pub investing_escrow: Address,
-    pub locking_escrow: Address,
+    pub central_escrow: VersionedAddress,
+    pub customer_escrow: VersionedAddress,
+    pub investing_escrow: VersionedAddress,
+    pub locking_escrow: VersionedAddress,
 
     pub project_name: String,
     pub project_desc: String,
@@ -36,22 +38,36 @@ pub async fn update_data(
 ) -> Result<UpdateAppToSign> {
     let params = algod.suggested_transaction_params().await?;
 
+    // fetch the fields that aren't updated manually, for the versions array.
+    // we might optimize this, either by storing these separately or perhaps storing the versions in the same field as the addresses
+    // consider also race conditions (loading state and someone updating it - though given only sender can submit probably not possible?)
+    let current_state = dao_global_state(algod, app_id).await?;
+    let versions = Versions {
+        app_approval: current_state.app_approval_version,
+        app_clear: current_state.app_clear_version,
+        central_escrow: data.central_escrow.version,
+        customer_escrow: data.customer_escrow.version,
+        investing_escrow: data.investing_escrow.version,
+        locking_escrow: data.locking_escrow.version,
+    };
+
     // We might make these updates more granular later. For now everything in 1 call.
     let update = TxnBuilder::with(
         &params,
         CallApplication::new(*owner, app_id.0)
             .app_arguments(vec![
                 "update_data".as_bytes().to_vec(),
-                data.central_escrow.0.to_vec(),
-                data.customer_escrow.0.to_vec(),
-                data.investing_escrow.0.to_vec(),
-                data.locking_escrow.0.to_vec(),
+                data.central_escrow.address.0.to_vec(),
+                data.customer_escrow.address.0.to_vec(),
+                data.investing_escrow.address.0.to_vec(),
+                data.locking_escrow.address.0.to_vec(),
                 data.project_name.as_bytes().to_vec(),
                 data.project_desc.as_bytes().to_vec(),
                 data.share_price.val().to_be_bytes().to_vec(),
                 data.logo_url.as_bytes().to_vec(),
                 data.social_media_url.as_bytes().to_vec(),
                 data.owner.0.to_vec(),
+                versions_to_bytes(versions)?,
             ])
             .build(),
     )
@@ -66,7 +82,7 @@ pub async fn submit_update_data(algod: &Algod, signed: UpdateDaoDataSigned) -> R
 
     let txs = vec![signed.update];
 
-    // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Unlock tx id: {:?}", res.tx_id);

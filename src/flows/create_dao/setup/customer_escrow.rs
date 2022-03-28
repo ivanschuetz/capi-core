@@ -6,13 +6,14 @@ use algonaut::{
         Transaction, TxnBuilder,
     },
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde::Serialize;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
+    api::version::{VersionedContractAccount, VersionedTealSourceTemplate},
     flows::create_dao::storage::load_dao::DaoAppId,
     funds::FundsAssetId,
     teal::{render_template_new, TealSource, TealSourceTemplate},
@@ -27,7 +28,7 @@ pub async fn setup_customer_escrow(
     algod: &Algod,
     dao_creator: &Address,
     central_address: &Address,
-    source: &TealSourceTemplate,
+    source: &VersionedTealSourceTemplate,
     params: &SuggestedTransactionParams,
     funds_asset_id: FundsAssetId,
     capi_escrow_address: &Address,
@@ -45,12 +46,12 @@ pub async fn setup_customer_escrow(
     let mut optin_to_funds_asset_tx = TxnBuilder::with_fee(
         params,
         TxnFee::zero(),
-        AcceptAsset::new(*escrow.address(), funds_asset_id.0).build(),
+        AcceptAsset::new(*escrow.account.address(), funds_asset_id.0).build(),
     )
     .build()?;
 
     let mut fund_min_balance_tx =
-        create_payment_tx(dao_creator, escrow.address(), MIN_BALANCE, params).await?;
+        create_payment_tx(dao_creator, escrow.account.address(), MIN_BALANCE, params).await?;
 
     fund_min_balance_tx.fee = calculate_total_fee(
         params,
@@ -67,17 +68,32 @@ pub async fn setup_customer_escrow(
 pub async fn render_and_compile_customer_escrow(
     algod: &Algod,
     central_address: &Address,
-    source: &TealSourceTemplate,
+    template: &VersionedTealSourceTemplate,
     capi_escrow_address: &Address,
     app_id: DaoAppId,
-) -> Result<ContractAccount> {
-    let source = render_customer_escrow(central_address, source, capi_escrow_address, app_id)?;
-    Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
+) -> Result<VersionedContractAccount> {
+    let source = match template.version.0 {
+        1 => render_customer_escrow_v1(
+            &template.template,
+            central_address,
+            capi_escrow_address,
+            app_id,
+        ),
+        _ => Err(anyhow!(
+            "Customer escrow version not supported: {:?}",
+            template.version
+        )),
+    }?;
+
+    Ok(VersionedContractAccount {
+        version: template.version,
+        account: ContractAccount::new(algod.compile_teal(&source.0).await?),
+    })
 }
 
-pub fn render_customer_escrow(
-    central_address: &Address,
+pub fn render_customer_escrow_v1(
     source: &TealSourceTemplate,
+    central_address: &Address,
     capi_escrow_address: &Address,
     app_id: DaoAppId,
 ) -> Result<TealSource> {
@@ -120,7 +136,7 @@ async fn create_payment_tx(
 pub struct SetupCustomerEscrowToSign {
     pub optin_to_funds_asset_tx: Transaction,
     pub fund_min_balance_tx: Transaction,
-    pub escrow: ContractAccount,
+    pub escrow: VersionedContractAccount,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

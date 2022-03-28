@@ -6,13 +6,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    api::api::Api,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     date_util::timestamp_seconds_to_date,
     flows::{
-        create_dao::{
-            create_dao::Escrows,
-            storage::load_dao::{load_dao, DaoId, TxId},
-        },
+        create_dao::storage::load_dao::{load_dao, DaoId, TxId},
         withdraw::note::base64_withdrawal_note_to_withdrawal_description,
     },
     funds::FundsAmount,
@@ -24,12 +22,12 @@ pub async fn withdrawals(
     indexer: &Indexer,
     creator: &Address,
     dao_id: DaoId,
-    escrows: &Escrows,
+    api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Withdrawal>> {
     log::debug!("Querying withdrawals by: {:?}", creator);
 
-    let dao = load_dao(algod, dao_id, escrows, capi_deps).await?;
+    let dao = load_dao(algod, dao_id, api, capi_deps).await?;
 
     let query = QueryAccountTransaction {
         // For now no prefix filtering

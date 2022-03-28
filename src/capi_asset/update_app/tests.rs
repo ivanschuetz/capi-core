@@ -114,7 +114,7 @@ mod tests {
             dividend,
             td.funds_asset_id,
             td.capi_app_id,
-            &td.capi_escrow,
+            &td.capi_escrow.account,
         )
         .await?;
 

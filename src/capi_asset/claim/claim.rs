@@ -81,7 +81,7 @@ pub async fn submit_claim(algod: &Algod, signed: &ClaimSigned) -> Result<TxId> {
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
     let txs = vec![signed.app_call_tx_signed.clone(), signed.claim_tx.clone()];
-    // crate::teal::debug_teal_rendered(&txs, "app_capi_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "capi_app_approval").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "capi_escrow").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;

@@ -21,9 +21,11 @@ mod tests {
             claim::claim::{submit_claim, ClaimSigned},
             create_dao::{
                 setup::{
-                    create_app::render_central_app,
-                    customer_escrow::{render_and_compile_customer_escrow, render_customer_escrow},
-                    investing_escrow::render_investing_escrow,
+                    create_app::render_central_app_approval_v1,
+                    customer_escrow::{
+                        render_and_compile_customer_escrow, render_customer_escrow_v1,
+                    },
+                    investing_escrow::render_investing_escrow_v1,
                     setup_app,
                 },
                 share_amount::ShareAmount,
@@ -79,8 +81,8 @@ mod tests {
         // update rendered teal if needed - since teal was rendered with WASM,
         // it's possible that the saved teal used here is outdated
 
-        let approval_template = load_teal_template("app_central_approval")?;
-        render_central_app(
+        let approval_template = load_teal_template("dao_app_approval")?;
+        render_central_app_approval_v1(
             &approval_template,
             &owner.address(),
             share_supply,
@@ -93,7 +95,7 @@ mod tests {
         )?;
 
         let investing_escrow_template = load_teal_template("investing_escrow")?;
-        render_investing_escrow(
+        render_investing_escrow_v1(
             &investing_escrow_template,
             shares_asset_id,
             &shares_price,

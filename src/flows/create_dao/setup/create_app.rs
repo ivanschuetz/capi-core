@@ -1,6 +1,6 @@
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, SuggestedTransactionParams},
+    core::{Address, CompiledTeal, SuggestedTransactionParams},
     transaction::{transaction::StateSchema, CreateApplication, Transaction, TxnBuilder},
 };
 use anyhow::{anyhow, Result};
@@ -9,6 +9,7 @@ use serde::Serialize;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
 use crate::{
+    api::version::VersionedTealSourceTemplate,
     capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
     decimal_util::AsDecimal,
     flows::create_dao::{share_amount::ShareAmount, shares_percentage::SharesPercentage},
@@ -23,8 +24,8 @@ use crate::{
 #[allow(clippy::too_many_arguments)]
 pub async fn create_app_tx(
     algod: &Algod,
-    approval_source: &TealSourceTemplate,
-    clear_source: &TealSource,
+    approval_template: &VersionedTealSourceTemplate,
+    clear_template: &VersionedTealSourceTemplate,
     creator: &Address,
     owner: &Address,
     share_supply: ShareAmount,
@@ -35,8 +36,10 @@ pub async fn create_app_tx(
     share_price: FundsAmount,
 ) -> Result<Transaction> {
     log::debug!("Creating central app with asset supply: {}", share_supply);
-    let approval_source = render_central_app(
-        approval_source,
+
+    let compiled_approval_program = render_and_compile_app_approval(
+        algod,
+        approval_template,
         owner,
         share_supply,
         precision,
@@ -45,10 +48,9 @@ pub async fn create_app_tx(
         capi_deps.app_id,
         capi_deps.escrow_percentage,
         share_price,
-    )?;
-
-    let compiled_approval_program = algod.compile_teal(&approval_source.0).await?;
-    let compiled_clear_program = algod.compile_teal(&clear_source.0).await?;
+    )
+    .await?;
+    let compiled_clear_program = render_and_compile_app_clear(algod, clear_template).await?;
 
     let tx = TxnBuilder::with(
         params,
@@ -72,8 +74,41 @@ pub async fn create_app_tx(
     Ok(tx)
 }
 
+pub async fn render_and_compile_app_approval(
+    algod: &Algod,
+    template: &VersionedTealSourceTemplate,
+    owner: &Address,
+    share_supply: ShareAmount,
+    precision: u64,
+    investors_part: ShareAmount,
+    capi_escrow_address: &Address,
+    capi_app_id: CapiAppId,
+    capi_percentage: SharesPercentage,
+    share_price: FundsAmount,
+) -> Result<CompiledTeal> {
+    let source = match template.version.0 {
+        1 => render_central_app_approval_v1(
+            &template.template,
+            owner,
+            share_supply,
+            precision,
+            investors_part,
+            capi_escrow_address,
+            capi_app_id,
+            capi_percentage,
+            share_price,
+        ),
+        _ => Err(anyhow!(
+            "Dao app approval version not supported: {:?}",
+            template.version
+        )),
+    }?;
+
+    Ok(algod.compile_teal(&source.0).await?)
+}
+
 #[allow(clippy::too_many_arguments)]
-pub fn render_central_app(
+pub fn render_central_app_approval_v1(
     source: &TealSourceTemplate,
     owner: &Address,
     share_supply: ShareAmount,
@@ -118,8 +153,27 @@ pub fn render_central_app(
         ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]
-    save_rendered_teal("app_central_approval", source.clone())?; // debugging
+    save_rendered_teal("dao_app_approval", source.clone())?; // debugging
     Ok(source)
+}
+
+pub async fn render_and_compile_app_clear(
+    algod: &Algod,
+    template: &VersionedTealSourceTemplate,
+) -> Result<CompiledTeal> {
+    let source = match template.version.0 {
+        1 => render_central_app_clear_v1(&template.template),
+        _ => Err(anyhow!(
+            "Dao app clear version not supported: {:?}",
+            template.version
+        )),
+    }?;
+
+    Ok(algod.compile_teal(&source.0).await?)
+}
+
+pub fn render_central_app_clear_v1(template: &TealSourceTemplate) -> Result<TealSource> {
+    Ok(TealSource(template.0.clone()))
 }
 
 #[derive(Serialize)]
@@ -139,6 +193,7 @@ mod tests {
     use std::convert::TryInto;
 
     use crate::{
+        api::version::{Version, VersionedTealSourceTemplate},
         capi_asset::{
             capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
             capi_asset_id::CapiAssetId,
@@ -148,7 +203,7 @@ mod tests {
         flows::create_dao::share_amount::ShareAmount,
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,
-        teal::{load_teal, load_teal_template},
+        teal::load_teal_template,
         testing::{
             network_test_util::test_init,
             test_data::{creator, investor1},
@@ -174,8 +229,12 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
 
-        let approval_template = load_teal_template("app_central_approval")?;
-        let clear_source = load_teal("app_central_clear")?;
+        let approval_template = VersionedTealSourceTemplate::new(
+            load_teal_template("dao_app_approval")?,
+            Version(1),
+        );
+        let clear_template =
+            VersionedTealSourceTemplate::new(load_teal_template("dao_app_clear")?, Version(1));
 
         let params = algod.suggested_transaction_params().await?;
 
@@ -183,7 +242,7 @@ mod tests {
         let tx = create_app_tx(
             &algod,
             &approval_template,
-            &clear_source,
+            &clear_template,
             &creator.address(),
             &creator.address(),
             ShareAmount::new(1),

@@ -74,7 +74,7 @@ pub mod test {
             dao.app_id,
             dao.funds_asset_id,
             &td.dao_deps(),
-            &dao.customer_escrow,
+            &dao.customer_escrow.account,
             &dao.central_escrow.address(),
             &drain_amounts,
         )

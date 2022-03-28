@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
+        api::api::LocalApi,
         capi_asset::{
             capi_app_state::capi_app_investor_state_from_acc, capi_asset_id::CapiAssetAmount,
             common_test::lock_unlock::test_shares_locked,
@@ -32,13 +33,14 @@ mod tests {
         // deps
 
         let algod = dependencies::algod_for_tests();
+        let api = LocalApi {};
         let creator = creator();
         let investor = investor1();
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
         let capi_supply = CapiAssetAmount::new(1_000_000_000);
         let capi_deps =
-            setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
+            setup_capi_asset_flow(&algod, &api, &creator, capi_supply, funds_asset_id).await?;
 
         // preconditions
 
@@ -88,7 +90,7 @@ mod tests {
             investor_assets_amount,
             capi_deps.asset_id,
             capi_deps.app_id,
-            &capi_deps.escrow,
+            &capi_deps.escrow.account,
         )
         .await?;
 
@@ -135,6 +137,7 @@ mod tests {
         // deps
 
         let algod = dependencies::algod_for_tests();
+        let api = LocalApi {};
         let creator = creator();
         let investor = investor1();
 
@@ -145,7 +148,7 @@ mod tests {
         // preconditions
 
         let setup_res =
-            setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
+            setup_capi_asset_flow(&algod, &api, &creator, capi_supply, funds_asset_id).await?;
 
         let partial_lock_amount = CapiAssetAmount::new(400);
         let investor_assets_amount = CapiAssetAmount::new(partial_lock_amount.val() + 600);
@@ -194,7 +197,7 @@ mod tests {
             partial_lock_amount,
             setup_res.asset_id,
             setup_res.app_id,
-            &setup_res.escrow,
+            &setup_res.escrow.account,
         )
         .await;
 

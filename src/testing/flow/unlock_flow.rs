@@ -22,7 +22,7 @@ pub mod test {
             shares_to_unlock,
             dao.shares_asset_id,
             dao.app_id,
-            &dao.locking_escrow,
+            &dao.locking_escrow.account,
         )
         .await?;
 

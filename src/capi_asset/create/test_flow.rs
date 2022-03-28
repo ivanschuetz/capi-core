@@ -1,6 +1,9 @@
 #[cfg(test)]
 pub mod test_flow {
     use crate::algo_helpers::send_tx_and_wait;
+    use crate::api::api::Api;
+    use crate::api::contract::Contract;
+    use crate::api::version::{Version, VersionedContractAccount, VersionedTealSourceTemplate};
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId};
     use crate::capi_asset::create::create_capi_app::create_app;
@@ -10,17 +13,15 @@ pub mod test_flow {
     };
     use crate::funds::FundsAssetId;
     use crate::network_util::wait_for_pending_transaction;
-    use crate::teal::TealSourceTemplate;
-    use crate::testing::flow::create_dao_flow::capi_programs;
     use crate::testing::TESTS_DEFAULT_PRECISION;
     use algonaut::algod::v2::Algod;
     use algonaut::core::SuggestedTransactionParams;
     use algonaut::transaction::account::Account;
-    use algonaut::transaction::contract_account::ContractAccount;
     use anyhow::Result;
 
     pub async fn setup_capi_asset_flow(
         algod: &Algod,
+        api: &dyn Api,
         creator: &Account,
         capi_supply: CapiAssetAmount,
         funds_asset_id: FundsAssetId,
@@ -38,11 +39,13 @@ pub mod test_flow {
 
         // create app
 
-        let programs = capi_programs()?;
+        let app_approval_template = api.template(Contract::CapiAppApproval, Version(1))?;
+        let app_clear_template = api.template(Contract::CapiAppClear, Version(1))?;
+
         let to_sign_app = create_app(
             &algod,
-            &programs.app_approval,
-            &programs.app_clear,
+            &app_approval_template,
+            &app_clear_template,
             &creator.address(),
             capi_supply,
             TESTS_DEFAULT_PRECISION,
@@ -54,7 +57,7 @@ pub mod test_flow {
         .await?;
         let signed = creator.sign_transaction(to_sign_app)?;
         log::debug!("Will submit crate capi app..");
-        // crate::teal::debug_teal_rendered(&[signed.clone()], "app_capi_approval").unwrap();
+        // crate::teal::debug_teal_rendered(&[signed.clone()], "capi_app_approval").unwrap();
         let p_tx = send_tx_and_wait(algod, &signed).await?;
         let app_id_opt = p_tx.application_index;
         assert!(app_id_opt.is_some());
@@ -66,6 +69,8 @@ pub mod test_flow {
         // In the DAOs, we do it the other way - it most likely will be changed.
         // It makes more sense for the escrow to know the app than the other way around.
 
+        let escrow_template = api.template(Contract::CapiCentral, Version(1))?;
+
         let escrow = setup_and_submit_capi_escrow(
             &algod,
             &params,
@@ -73,13 +78,13 @@ pub mod test_flow {
             funds_asset_id,
             asset_id,
             app_id,
-            &programs.escrow,
+            &escrow_template,
         )
         .await?;
 
         log::debug!(
             "Created Capi asset, id: {asset_id}, app id: {app_id}, escrow: {}",
-            escrow.address()
+            escrow.account.address()
         );
 
         Ok(CapiAssetFlowRes {
@@ -99,8 +104,8 @@ pub mod test_flow {
         funds_asset_id: FundsAssetId,
         capi_asset_id: CapiAssetId,
         capi_app_id: CapiAppId,
-        template: &TealSourceTemplate,
-    ) -> Result<ContractAccount> {
+        template: &VersionedTealSourceTemplate,
+    ) -> Result<VersionedContractAccount> {
         let to_sign = setup_capi_escrow(
             &algod,
             &funder.address(),
@@ -130,7 +135,7 @@ pub mod test_flow {
     pub struct CapiAssetFlowRes {
         pub asset_id: CapiAssetId,
         pub app_id: CapiAppId,
-        pub escrow: ContractAccount,
+        pub escrow: VersionedContractAccount,
         pub supply: CapiAssetAmount,
         pub owner_mnemonic: String, // for now a string, since Account isn't clonable
     }

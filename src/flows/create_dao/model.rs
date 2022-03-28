@@ -3,7 +3,7 @@ use super::{
     share_amount::ShareAmount,
     storage::load_dao::{DaoAppId, DaoId},
 };
-use crate::funds::FundsAssetId;
+use crate::{api::version::VersionedContractAccount, funds::FundsAssetId};
 use algonaut::{
     core::Address,
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
@@ -17,7 +17,7 @@ pub struct SubmitSetupEscrowRes {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SetupInvestingEscrowToSign {
-    pub escrow: ContractAccount,
+    pub escrow: VersionedContractAccount,
     pub escrow_shares_optin_tx: Transaction,
     pub escrow_funding_algos_tx: Transaction,
     pub escrow_funding_shares_asset_tx: Transaction,
@@ -39,10 +39,10 @@ pub struct CreateDaoToSign {
     pub optin_txs: Vec<SignedTransaction>,
 
     pub specs: CreateDaoSpecs,
-    pub locking_escrow: ContractAccount,
-    pub invest_escrow: ContractAccount,
-    pub central_escrow: ContractAccount,
-    pub customer_escrow: ContractAccount,
+    pub locking_escrow: VersionedContractAccount,
+    pub invest_escrow: VersionedContractAccount,
+    pub central_escrow: VersionedContractAccount,
+    pub customer_escrow: VersionedContractAccount,
     pub creator: Address,
 }
 
@@ -58,10 +58,10 @@ pub struct CreateDaoSigned {
     pub shares_asset_id: u64,
     pub app_id: DaoAppId,
     pub funds_asset_id: FundsAssetId,
-    pub invest_escrow: ContractAccount,
-    pub locking_escrow: ContractAccount,
-    pub central_escrow: ContractAccount,
-    pub customer_escrow: ContractAccount,
+    pub invest_escrow: VersionedContractAccount,
+    pub locking_escrow: VersionedContractAccount,
+    pub central_escrow: VersionedContractAccount,
+    pub customer_escrow: VersionedContractAccount,
 }
 
 /// Note that dao doesn't know its id (DaoId), because it's generated after it's stored (it's the id of the storage tx),
@@ -73,10 +73,10 @@ pub struct Dao {
     pub creator: Address,
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
-    pub invest_escrow: ContractAccount,
-    pub locking_escrow: ContractAccount,
-    pub central_escrow: ContractAccount,
-    pub customer_escrow: ContractAccount,
+    pub invest_escrow: VersionedContractAccount,
+    pub locking_escrow: VersionedContractAccount,
+    pub central_escrow: VersionedContractAccount,
+    pub customer_escrow: VersionedContractAccount,
 }
 
 impl Dao {

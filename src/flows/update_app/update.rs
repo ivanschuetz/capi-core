@@ -37,7 +37,7 @@ pub async fn submit_update(algod: &Algod, signed: UpdateAppSigned) -> Result<TxI
 
     let txs = vec![signed.update];
 
-    // crate::teal::debug_teal_rendered(&txs, "app_central_approval").unwrap();
+    // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Unlock tx id: {:?}", res.tx_id);

@@ -36,7 +36,7 @@ mod test {
 
         // crate::teal::debug_teal_rendered(
         //     &vec![signed_app_call.clone(), signed_xfer.clone()],
-        //     "app_capi_approval",
+        //     "capi_app_approval",
         // )
         // .unwrap();
 

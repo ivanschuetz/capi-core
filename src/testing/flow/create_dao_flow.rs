@@ -1,17 +1,18 @@
 #[cfg(test)]
-pub use test::{capi_programs, create_dao_flow, programs};
-
+pub use test::create_dao_flow;
 #[cfg(test)]
 pub mod test {
-    use crate::flows::create_dao::{
-        create_dao::{create_dao_txs, submit_create_dao, CapiPrograms},
-        model::{CreateDaoSigned, Dao},
-        setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
-    };
+    use crate::api::version::VersionedTealSourceTemplate;
+    use crate::flows::create_dao::create_dao::{Escrows, Programs};
+    use crate::teal::load_teal_template;
+    use crate::testing::network_test_util::TestDeps;
     use crate::{
-        flows::create_dao::create_dao::{Escrows, Programs},
-        teal::{load_teal, load_teal_template},
-        testing::network_test_util::TestDeps,
+        api::version::Version,
+        flows::create_dao::{
+            create_dao::{create_dao_txs, submit_create_dao, CapiPrograms},
+            model::{CreateDaoSigned, Dao},
+            setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
+        },
     };
     use algonaut::core::Address;
     use anyhow::Result;
@@ -30,7 +31,8 @@ pub mod test {
             // in the default test flows, the creator is always the owner
             &td.creator.address(),
             &td.specs,
-            &td.programs,
+            &td.programs.central_app_approval,
+            &td.programs.central_app_clear,
             td.precision,
             &td.dao_deps(),
         )
@@ -105,24 +107,51 @@ pub mod test {
         Ok(create_res.dao)
     }
 
-    pub fn programs() -> Result<Programs> {
+    pub fn test_programs() -> Result<Programs> {
         Ok(Programs {
-            central_app_approval: load_teal_template("app_central_approval")?,
-            central_app_clear: load_teal("app_central_clear")?,
+            central_app_approval: VersionedTealSourceTemplate::new(
+                load_teal_template("dao_app_approval")?,
+                Version(1),
+            ),
+            central_app_clear: VersionedTealSourceTemplate::new(
+                load_teal_template("dao_app_clear")?,
+                Version(1),
+            ),
             escrows: Escrows {
-                central_escrow: load_teal_template("central_escrow")?,
-                customer_escrow: load_teal_template("customer_escrow")?,
-                invest_escrow: load_teal_template("investing_escrow")?,
-                locking_escrow: load_teal_template("locking_escrow")?,
+                central_escrow: VersionedTealSourceTemplate::new(
+                    load_teal_template("central_escrow")?,
+                    Version(1),
+                ),
+                customer_escrow: VersionedTealSourceTemplate::new(
+                    load_teal_template("customer_escrow")?,
+                    Version(1),
+                ),
+                invest_escrow: VersionedTealSourceTemplate::new(
+                    load_teal_template("investing_escrow")?,
+                    Version(1),
+                ),
+                locking_escrow: VersionedTealSourceTemplate::new(
+                    load_teal_template("locking_escrow")?,
+                    Version(1),
+                ),
             },
         })
     }
 
-    pub fn capi_programs() -> Result<CapiPrograms> {
+    pub fn test_capi_programs() -> Result<CapiPrograms> {
         Ok(CapiPrograms {
-            app_approval: load_teal_template("app_capi_approval")?,
-            app_clear: load_teal("app_capi_clear")?,
-            escrow: load_teal_template("capi_escrow")?,
+            app_approval: VersionedTealSourceTemplate::new(
+                load_teal_template("capi_app_approval")?,
+                Version(1),
+            ),
+            app_clear: VersionedTealSourceTemplate::new(
+                load_teal_template("capi_app_clear")?,
+                Version(1),
+            ),
+            escrow: VersionedTealSourceTemplate::new(
+                load_teal_template("capi_escrow")?,
+                Version(1),
+            ),
         })
     }
 }

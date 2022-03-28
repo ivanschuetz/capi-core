@@ -110,7 +110,7 @@ mod tests {
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.central_escrow,
+            &dao.central_escrow.account,
         )
         .await?;
 
@@ -182,7 +182,7 @@ mod tests {
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.central_escrow,
+            &dao.central_escrow.account,
         )
         .await?;
 

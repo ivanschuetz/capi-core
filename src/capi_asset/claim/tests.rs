@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
+        api::api::LocalApi,
         capi_asset::{
             capi_app_state::{
                 capi_app_global_state, capi_app_investor_state, CapiAppGlobalState,
@@ -73,7 +74,7 @@ mod tests {
             dividend,
             td.funds_asset_id,
             td.capi_app_id,
-            &td.capi_escrow,
+            &td.capi_escrow.account,
         )
         .await?;
 
@@ -147,7 +148,7 @@ mod tests {
             dividend + 1,
             td.funds_asset_id,
             td.capi_app_id,
-            &td.capi_escrow,
+            &td.capi_escrow.account,
         )
         .await;
         log::debug!("res: {:?}", res);
@@ -198,7 +199,7 @@ mod tests {
             dividend,
             td.funds_asset_id,
             td.capi_app_id,
-            &td.capi_escrow,
+            &td.capi_escrow.account,
         )
         .await?;
 
@@ -208,7 +209,7 @@ mod tests {
             dividend,
             td.funds_asset_id,
             td.capi_app_id,
-            &td.capi_escrow,
+            &td.capi_escrow.account,
         )
         .await?;
 
@@ -249,11 +250,13 @@ mod tests {
         test_init()?;
 
         let algod = dependencies::algod_for_tests();
+        let api = LocalApi {};
         let capi_owner = capi_owner();
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
         let capi_flow_res = setup_capi_asset_flow(
             &algod,
+            &api,
             &capi_owner,
             CapiAssetAmount::new(300),
             funds_asset_id,
@@ -310,7 +313,7 @@ mod tests {
             dividend,
             td.funds_asset_id,
             td.capi_app_id,
-            &td.capi_escrow,
+            &td.capi_escrow.account,
         )
         .await?;
 
@@ -350,11 +353,13 @@ mod tests {
         test_init()?;
 
         let algod = dependencies::algod_for_tests();
+        let api = LocalApi {};
         let capi_owner = capi_owner();
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
         let capi_flow_res = setup_capi_asset_flow(
             &algod,
+            &api,
             &capi_owner,
             CapiAssetAmount::new(300),
             funds_asset_id,
@@ -406,7 +411,7 @@ mod tests {
             dividend + 1,
             td.funds_asset_id,
             td.capi_app_id,
-            &td.capi_escrow,
+            &td.capi_escrow.account,
         )
         .await;
 
@@ -422,7 +427,6 @@ mod tests {
         investor: &Address,
         investor_capi_amount: CapiAssetAmount,
         dividend: FundsAmount,
-
         expected_global_state: CapiAppGlobalState,
         expected_investor_funds: FundsAmount,
         expected_capi_escrow_funds: FundsAmount,
@@ -434,7 +438,7 @@ mod tests {
         assert_eq!(expected_investor_funds, investor_funds);
 
         let capi_escrow_funds_amount =
-            funds_holdings(algod, td.capi_escrow.address(), td.funds_asset_id).await?;
+            funds_holdings(algod, td.capi_escrow.account.address(), td.funds_asset_id).await?;
         assert_eq!(expected_capi_escrow_funds, capi_escrow_funds_amount);
 
         let capi_app_global_state = capi_app_global_state(&algod, td.capi_app_id).await?;

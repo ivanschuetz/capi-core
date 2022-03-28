@@ -1,24 +1,27 @@
+use crate::{
+    api::version::{versions_to_bytes, Version, VersionedAddress, Versions},
+    flows::create_dao::{share_amount::ShareAmount, storage::load_dao::DaoAppId},
+    funds::{FundsAmount, FundsAssetId},
+    note::dao_setup_prefix,
+};
 use algonaut::{
     core::{Address, SuggestedTransactionParams},
     transaction::{builder::CallApplication, Transaction, TxnBuilder},
 };
 use anyhow::Result;
 
-use crate::{
-    flows::create_dao::{share_amount::ShareAmount, storage::load_dao::DaoAppId},
-    funds::{FundsAmount, FundsAssetId},
-    note::dao_setup_prefix,
-};
-
 /// Data to initialize the app's global state with
 /// NOTE that this doesn't necessarily include *all* the app's state fields,
 /// state initialized to a fixed value can be just set in TEAL / doesn't have to be passed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DaoInitData {
-    pub central_escrow: Address,
-    pub customer_escrow: Address,
-    pub investing_escrow: Address,
-    pub locking_escrow: Address,
+    pub central_escrow: VersionedAddress,
+    pub customer_escrow: VersionedAddress,
+    pub investing_escrow: VersionedAddress,
+    pub locking_escrow: VersionedAddress,
+
+    pub app_approval_version: Version,
+    pub app_clear_version: Version,
 
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
@@ -34,6 +37,19 @@ pub struct DaoInitData {
     pub owner: Address,
 }
 
+impl DaoInitData {
+    pub fn versions(&self) -> Versions {
+        Versions {
+            app_approval: self.app_approval_version,
+            app_clear: self.app_clear_version,
+            central_escrow: self.central_escrow.version,
+            customer_escrow: self.customer_escrow.version,
+            investing_escrow: self.investing_escrow.version,
+            locking_escrow: self.locking_escrow.version,
+        }
+    }
+}
+
 pub async fn setup_app_tx(
     app_id: DaoAppId,
     creator: &Address,
@@ -45,10 +61,10 @@ pub async fn setup_app_tx(
         params,
         CallApplication::new(*creator, app_id.0)
             .app_arguments(vec![
-                data.central_escrow.0.to_vec(),
-                data.customer_escrow.0.to_vec(),
-                data.investing_escrow.0.to_vec(),
-                data.locking_escrow.0.to_vec(),
+                data.central_escrow.address.0.to_vec(),
+                data.customer_escrow.address.0.to_vec(),
+                data.investing_escrow.address.0.to_vec(),
+                data.locking_escrow.address.0.to_vec(),
                 data.shares_asset_id.to_be_bytes().to_vec(),
                 data.funds_asset_id.0.to_be_bytes().to_vec(),
                 data.project_name.as_bytes().to_vec(),
@@ -58,6 +74,7 @@ pub async fn setup_app_tx(
                 data.logo_url.as_bytes().to_vec(),
                 data.social_media_url.as_bytes().to_vec(),
                 data.owner.0.to_vec(),
+                versions_to_bytes(data.versions())?,
             ])
             .build(),
     )

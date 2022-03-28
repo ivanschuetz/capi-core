@@ -6,13 +6,14 @@ use algonaut::{
         Transaction, TxnBuilder,
     },
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde::Serialize;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
+    api::version::{VersionedContractAccount, VersionedTealSourceTemplate},
     flows::create_dao::storage::load_dao::DaoAppId,
     teal::{render_template_new, TealSource, TealSourceTemplate},
 };
@@ -24,25 +25,35 @@ const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 async fn create_locking_escrow(
     algod: &Algod,
     shares_asset_id: u64,
-    source: &TealSourceTemplate,
+    source: &VersionedTealSourceTemplate,
     app_id: DaoAppId,
-) -> Result<ContractAccount> {
+) -> Result<VersionedContractAccount> {
     render_and_compile_locking_escrow(algod, shares_asset_id, source, app_id).await
 }
 
 pub async fn render_and_compile_locking_escrow(
     algod: &Algod,
     shares_asset_id: u64,
-    source: &TealSourceTemplate,
+    template: &VersionedTealSourceTemplate,
     app_id: DaoAppId,
-) -> Result<ContractAccount> {
-    let source = render_locking_escrow(shares_asset_id, source, app_id)?;
-    Ok(ContractAccount::new(algod.compile_teal(&source.0).await?))
+) -> Result<VersionedContractAccount> {
+    let source = match template.version.0 {
+        1 => render_locking_escrow_v1(&template.template, shares_asset_id, app_id),
+        _ => Err(anyhow!(
+            "Locking escrow version not supported: {:?}",
+            template.version
+        )),
+    }?;
+
+    Ok(VersionedContractAccount {
+        version: template.version,
+        account: ContractAccount::new(algod.compile_teal(&source.0).await?),
+    })
 }
 
-fn render_locking_escrow(
-    shares_asset_id: u64,
+fn render_locking_escrow_v1(
     source: &TealSourceTemplate,
+    shares_asset_id: u64,
     app_id: DaoAppId,
 ) -> Result<TealSource> {
     let escrow_source = render_template_new(
@@ -59,7 +70,7 @@ fn render_locking_escrow(
 
 pub async fn setup_locking_escrow_txs(
     algod: &Algod,
-    source: &TealSourceTemplate,
+    source: &VersionedTealSourceTemplate,
     shares_asset_id: u64,
     creator: &Address,
     params: &SuggestedTransactionParams,
@@ -72,19 +83,22 @@ pub async fn setup_locking_escrow_txs(
     );
 
     let escrow = create_locking_escrow(algod, shares_asset_id, source, app_id).await?;
-    log::debug!("Generated locking escrow address: {:?}", *escrow.address());
+    log::debug!(
+        "Generated locking escrow address: {:?}",
+        *escrow.account.address()
+    );
 
     // Send some funds to the escrow (min amount to hold asset, pay for opt in tx fee)
     let fund_algos_tx = &mut TxnBuilder::with(
         params,
-        Pay::new(*creator, *escrow.address(), MIN_BALANCE).build(),
+        Pay::new(*creator, *escrow.account.address(), MIN_BALANCE).build(),
     )
     .build()?;
 
     let shares_optin_tx = &mut TxnBuilder::with_fee(
         params,
         TxnFee::zero(),
-        AcceptAsset::new(*escrow.address(), shares_asset_id).build(),
+        AcceptAsset::new(*escrow.account.address(), shares_asset_id).build(),
     )
     .build()?;
 
@@ -113,7 +127,7 @@ pub async fn submit_locking_setup_escrow(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SetupLockingEscrowToSign {
-    pub escrow: ContractAccount,
+    pub escrow: VersionedContractAccount,
     pub escrow_shares_optin_tx: Transaction,
     // min amount to hold asset (shares) + asset optin tx fee
     pub escrow_funding_algos_tx: Transaction,

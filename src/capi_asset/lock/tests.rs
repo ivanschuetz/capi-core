@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
+        api::api::LocalApi,
         capi_asset::{
             capi_asset_id::CapiAssetAmount, common_test::lock_unlock::test_shares_locked,
             create::test_flow::test_flow::setup_capi_asset_flow,
@@ -29,13 +30,14 @@ mod tests {
         // deps
 
         let algod = dependencies::algod_for_tests();
+        let api = LocalApi {};
         let creator = creator();
         let investor = investor1();
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
         let capi_supply = CapiAssetAmount::new(1_000_000_000);
         let capi_deps =
-            setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
+            setup_capi_asset_flow(&algod, &api, &creator, capi_supply, funds_asset_id).await?;
 
         // preconditions
 
@@ -89,13 +91,14 @@ mod tests {
         test_init()?;
 
         let algod = dependencies::algod_for_tests();
+        let api = LocalApi {};
         let creator = creator();
         let investor = investor1();
 
         let funds_asset_id = create_and_distribute_funds_asset(&algod).await?;
         let capi_supply = CapiAssetAmount::new(1_000_000_000);
         let capi_deps =
-            setup_capi_asset_flow(&algod, &creator, capi_supply, funds_asset_id).await?;
+            setup_capi_asset_flow(&algod, &api, &creator, capi_supply, funds_asset_id).await?;
 
         // preconditions
 

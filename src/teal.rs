@@ -34,6 +34,7 @@ pub fn save_rendered_teal(file_name: &str, teal: TealSource) -> Result<()> {
 
 // file_name without .teal
 pub fn load_teal_template(file_name: &str) -> Result<TealSourceTemplate> {
+    log::debug!("Loading teal template: {file_name}");
     load_file_bytes("teal_template", file_name).map(TealSourceTemplate)
 }
 

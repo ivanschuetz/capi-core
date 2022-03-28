@@ -1,24 +1,24 @@
-use algonaut::{
-    algod::v2::Algod,
-    core::{Address, SuggestedTransactionParams},
-    transaction::{transaction::StateSchema, CreateApplication, Transaction, TxnBuilder},
-};
-use anyhow::Result;
-
 #[cfg(not(target_arch = "wasm32"))]
 use crate::teal::save_rendered_teal;
 use crate::{
+    api::version::VersionedTealSourceTemplate,
     capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId},
     funds::FundsAssetId,
     teal::{render_template_new, TealSource, TealSourceTemplate},
 };
+use algonaut::{
+    algod::v2::Algod,
+    core::{Address, CompiledTeal, SuggestedTransactionParams},
+    transaction::{transaction::StateSchema, CreateApplication, Transaction, TxnBuilder},
+};
+use anyhow::{anyhow, Result};
 
 /// Capi app: remembers total dividend retrieved (global) and already retrieved dividend (local), to prevent double claiming.
 #[allow(clippy::too_many_arguments)]
 pub async fn create_app(
     algod: &Algod,
-    approval_source: &TealSourceTemplate,
-    clear_source: &TealSource,
+    approval_template: &VersionedTealSourceTemplate,
+    clear_template: &VersionedTealSourceTemplate,
     sender: &Address,
     asset_supply: CapiAssetAmount,
     precision: u64,
@@ -29,17 +29,17 @@ pub async fn create_app(
 ) -> Result<Transaction> {
     log::debug!("Creating capi app");
 
-    let approval_rendered = render_app(
-        approval_source,
+    let compiled_approval_program = render_and_compile_app_approval(
+        algod,
+        approval_template,
         asset_supply,
         precision,
         asset_id,
         funds_asset_id,
         capi_owner,
-    )?;
-
-    let compiled_approval_program = algod.compile_teal(&approval_rendered.0).await?;
-    let compiled_clear_program = algod.compile_teal(&clear_source.0).await?;
+    )
+    .await?;
+    let compiled_clear_program = render_and_compile_app_clear(algod, clear_template).await?;
 
     let tx = TxnBuilder::with(
         params,
@@ -63,7 +63,34 @@ pub async fn create_app(
     Ok(tx)
 }
 
-pub fn render_app(
+pub async fn render_and_compile_app_approval(
+    algod: &Algod,
+    template: &VersionedTealSourceTemplate,
+    asset_supply: CapiAssetAmount,
+    precision: u64,
+    asset_id: CapiAssetId,
+    funds_asset_id: FundsAssetId,
+    capi_owner: &Address,
+) -> Result<CompiledTeal> {
+    let source = match template.version.0 {
+        1 => render_app_v1(
+            &template.template,
+            asset_supply,
+            precision,
+            asset_id,
+            funds_asset_id,
+            capi_owner,
+        ),
+        _ => Err(anyhow!(
+            "Dao app approval version not supported: {:?}",
+            template.version
+        )),
+    }?;
+
+    Ok(algod.compile_teal(&source.0).await?)
+}
+
+pub fn render_app_v1(
     source: &TealSourceTemplate,
     asset_supply: CapiAssetAmount,
     precision: u64,
@@ -83,21 +110,41 @@ pub fn render_app(
     )?;
 
     #[cfg(not(target_arch = "wasm32"))]
-    save_rendered_teal("app_capi_approval", source.clone())?; // debugging
+    save_rendered_teal("capi_app_approval", source.clone())?; // debugging
     Ok(source)
+}
+
+pub async fn render_and_compile_app_clear(
+    algod: &Algod,
+    template: &VersionedTealSourceTemplate,
+) -> Result<CompiledTeal> {
+    let source = match template.version.0 {
+        1 => render_central_app_clear_v1(&template.template),
+        _ => Err(anyhow!(
+            "Dao app clear version not supported: {:?}",
+            template.version
+        )),
+    }?;
+
+    Ok(algod.compile_teal(&source.0).await?)
+}
+
+pub fn render_central_app_clear_v1(template: &TealSourceTemplate) -> Result<TealSource> {
+    Ok(TealSource(template.0.clone()))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         algo_helpers::send_tx_and_wait,
+        api::version::{Version, VersionedTealSourceTemplate},
         capi_asset::{
             capi_asset_id::{CapiAssetAmount, CapiAssetId},
             create::create_capi_app::create_app,
         },
         dependencies,
         funds::FundsAssetId,
-        teal::{load_teal, load_teal_template},
+        teal::load_teal_template,
         testing::{network_test_util::test_init, test_data::creator, TESTS_DEFAULT_PRECISION},
     };
     use algonaut::{
@@ -117,8 +164,10 @@ mod tests {
         let algod = dependencies::algod_for_tests();
         let creator = creator();
 
-        let approval_template = load_teal_template("app_capi_approval")?;
-        let clear_source = load_teal("app_capi_clear")?;
+        let approval_template =
+            VersionedTealSourceTemplate::new(load_teal_template("capi_app_approval")?, Version(1));
+        let clear_template =
+            VersionedTealSourceTemplate::new(load_teal_template("capi_app_clear")?, Version(1));
 
         let params = algod.suggested_transaction_params().await?;
 
@@ -126,7 +175,7 @@ mod tests {
         let tx = create_app(
             &algod,
             &approval_template,
-            &clear_source,
+            &clear_template,
             &creator.address(),
             CapiAssetAmount::new(1),
             TESTS_DEFAULT_PRECISION,
