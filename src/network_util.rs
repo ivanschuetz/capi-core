@@ -1,5 +1,5 @@
 use crate::flows::create_dao::storage::load_dao::TxId;
-use algonaut::{algod::v2::Algod, error::AlgonautError, model::algod::v2::PendingTransaction};
+use algonaut::{algod::v2::Algod, error::ServiceError, model::algod::v2::PendingTransaction};
 use instant::Instant;
 use std::time::Duration;
 
@@ -7,7 +7,7 @@ use std::time::Duration;
 pub async fn wait_for_pending_transaction(
     algod: &Algod,
     tx_id: &TxId,
-) -> Result<Option<PendingTransaction>, AlgonautError> {
+) -> Result<Option<PendingTransaction>, ServiceError> {
     let timeout = Duration::from_secs(60);
     let start = Instant::now();
     log::debug!("Start waiting for pending tx confirmation..");
