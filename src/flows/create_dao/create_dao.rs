@@ -135,19 +135,19 @@ pub async fn create_dao_txs(
     let locking_escrow = setup_locking_escrow_to_sign.escrow.clone();
     let locking_escrow_shares_optin_tx_signed = locking_escrow
         .account
-        .sign(&setup_locking_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
+        .sign(setup_locking_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
     let invest_escrow = setup_invest_escrow_to_sign.escrow.clone();
     let invest_escrow_shares_optin_tx_signed = invest_escrow
         .account
-        .sign(&setup_invest_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
+        .sign(setup_invest_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
     let central_escrow_optin_to_funds_asset_tx_signed = central_to_sign
         .escrow
         .account
-        .sign(&central_to_sign.optin_to_funds_asset_tx, vec![])?;
+        .sign(central_to_sign.optin_to_funds_asset_tx, vec![])?;
     let customer_escrow_optin_to_funds_asset_tx_signed = customer_to_sign
         .escrow
         .account
-        .sign(&customer_to_sign.optin_to_funds_asset_tx, vec![])?;
+        .sign(customer_to_sign.optin_to_funds_asset_tx, vec![])?;
     let optin_txs = vec![
         locking_escrow_shares_optin_tx_signed,
         invest_escrow_shares_optin_tx_signed,

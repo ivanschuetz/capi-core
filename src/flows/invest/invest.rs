@@ -44,10 +44,10 @@ pub async fn invest_txs(
         "Share price: {share_price} multiplied by share amount: {share_amount} caused an overflow."
     ))?;
 
-    let central_app_investor_setup_tx =
-        &mut dao_app_investor_setup_tx(&params, app_id, shares_asset_id, *investor, dao.id())?;
+    let mut central_app_investor_setup_tx =
+        dao_app_investor_setup_tx(&params, app_id, shares_asset_id, *investor, dao.id())?;
 
-    let pay_price_tx = &mut TxnBuilder::with(
+    let mut pay_price_tx = TxnBuilder::with(
         &params,
         TransferAsset::new(
             *investor,
@@ -59,13 +59,13 @@ pub async fn invest_txs(
     )
     .build()?;
 
-    let shares_optin_tx = &mut TxnBuilder::with(
+    let mut shares_optin_tx = TxnBuilder::with(
         &params,
         AcceptAsset::new(*investor, dao.shares_asset_id).build(),
     )
     .build()?;
 
-    let receive_shares_asset_tx = &mut TxnBuilder::with_fee(
+    let mut receive_shares_asset_tx = TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),
         TransferAsset::new(
@@ -80,13 +80,13 @@ pub async fn invest_txs(
 
     central_app_investor_setup_tx.fee = calculate_total_fee(
         &params,
-        &[central_app_investor_setup_tx, receive_shares_asset_tx],
+        &[&central_app_investor_setup_tx, &receive_shares_asset_tx],
     )?;
     TxGroup::assign_group_id(&mut [
-        central_app_investor_setup_tx,
-        receive_shares_asset_tx,
-        pay_price_tx,
-        shares_optin_tx,
+        &mut central_app_investor_setup_tx,
+        &mut receive_shares_asset_tx,
+        &mut pay_price_tx,
+        &mut shares_optin_tx,
     ])?;
 
     let receive_shares_asset_signed_tx = dao.invest_escrow.sign(receive_shares_asset_tx, vec![])?;

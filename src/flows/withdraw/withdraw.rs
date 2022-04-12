@@ -56,7 +56,7 @@ pub async fn withdraw(
         calculate_total_fee(&params, &[&mut pay_withdraw_fee_tx, &mut withdraw_tx])?;
     TxGroup::assign_group_id(&mut [&mut pay_withdraw_fee_tx, &mut withdraw_tx])?;
 
-    let signed_withdraw_tx = central_escrow.sign(&withdraw_tx, vec![])?;
+    let signed_withdraw_tx = central_escrow.sign(withdraw_tx, vec![])?;
 
     Ok(WithdrawToSign {
         withdraw_tx: signed_withdraw_tx,

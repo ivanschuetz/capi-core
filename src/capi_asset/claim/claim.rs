@@ -34,7 +34,7 @@ pub async fn claim(
     let params = algod.suggested_transaction_params().await?;
 
     // Funds transfer from escrow to claimer
-    let claim_tx = &mut TxnBuilder::with_fee(
+    let mut claim_tx = TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),
         TransferAsset::new(
@@ -48,10 +48,10 @@ pub async fn claim(
     .build()?;
 
     // App call to update user's local state with claimed amount
-    let app_call_tx = &mut claim_app_call_tx(capi_app_id, &params, claimer)?;
+    let mut app_call_tx = claim_app_call_tx(capi_app_id, &params, claimer)?;
 
-    app_call_tx.fee = calculate_total_fee(&params, &[claim_tx, app_call_tx])?;
-    TxGroup::assign_group_id(&mut [app_call_tx, claim_tx])?;
+    app_call_tx.fee = calculate_total_fee(&params, &[&claim_tx, &app_call_tx])?;
+    TxGroup::assign_group_id(&mut [&mut app_call_tx, &mut claim_tx])?;
 
     let signed_claim_tx = capi_escrow.sign(claim_tx, vec![])?;
 

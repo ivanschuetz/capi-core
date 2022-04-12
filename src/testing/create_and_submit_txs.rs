@@ -41,7 +41,7 @@ mod test {
             Pay::new(
                 fee_payer.address(),
                 *receiver,
-                xfer_tx.estimate_fee_with_params(params)?,
+                xfer_tx.estimate_basic_sig_fee_with_params(params)?,
             )
             .build(),
         )

@@ -116,7 +116,7 @@ impl VersionedContractAccount {
 
     pub fn sign(
         &self,
-        transaction: &Transaction,
+        transaction: Transaction,
         args: Vec<Vec<u8>>,
     ) -> Result<SignedTransaction, TransactionError> {
         self.account.sign(transaction, args)

@@ -37,14 +37,14 @@ pub async fn drain_customer_escrow(
 
     let params = algod.suggested_transaction_params().await?;
 
-    let app_call_tx = &mut drain_app_call_tx(
+    let mut app_call_tx = drain_app_call_tx(
         app_id,
         &params,
         drainer,
         customer_escrow.address(),
         funds_asset_id,
     )?;
-    let capi_app_call_tx = &mut drain_capi_app_call_tx(
+    let mut capi_app_call_tx = drain_capi_app_call_tx(
         capi_deps.app_id,
         &params,
         drainer,
@@ -52,7 +52,7 @@ pub async fn drain_customer_escrow(
         funds_asset_id,
     )?;
 
-    let drain_tx = &mut TxnBuilder::with_fee(
+    let mut drain_tx = TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),
         TransferAsset::new(
@@ -65,7 +65,7 @@ pub async fn drain_customer_escrow(
     )
     .build()?;
 
-    let capi_share_tx = &mut TxnBuilder::with_fee(
+    let mut capi_share_tx = TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),
         TransferAsset::new(
@@ -78,8 +78,13 @@ pub async fn drain_customer_escrow(
     )
     .build()?;
 
-    app_call_tx.fee = calculate_total_fee(&params, &[app_call_tx, drain_tx, capi_share_tx])?;
-    TxGroup::assign_group_id(&mut [app_call_tx, capi_app_call_tx, drain_tx, capi_share_tx])?;
+    app_call_tx.fee = calculate_total_fee(&params, &[&app_call_tx, &drain_tx, &capi_share_tx])?;
+    TxGroup::assign_group_id(&mut [
+        &mut app_call_tx,
+        &mut capi_app_call_tx,
+        &mut drain_tx,
+        &mut capi_share_tx,
+    ])?;
     // TxGroup::assign_group_id(vec![capi_app_call_tx, app_call_tx, drain_tx, capi_share_tx])?;
 
     let signed_drain_tx = customer_escrow.sign(drain_tx, vec![])?;

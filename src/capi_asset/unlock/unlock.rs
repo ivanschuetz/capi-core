@@ -34,7 +34,7 @@ pub async fn unlock_capi_assets(
     let params = algod.suggested_transaction_params().await?;
 
     // App call to validate the retrieved shares count and clear local state
-    let capi_app_optout_tx = &mut TxnBuilder::with_fee(
+    let mut capi_app_optout_tx = TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),
         CloseApplication::new(*investor, capi_app_id.0)
@@ -44,7 +44,7 @@ pub async fn unlock_capi_assets(
     .build()?;
 
     // Retrieve investor's assets from locking escrow
-    let shares_xfer_tx = &mut TxnBuilder::with_fee(
+    let mut shares_xfer_tx = TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),
         TransferAsset::new(
@@ -57,8 +57,8 @@ pub async fn unlock_capi_assets(
     )
     .build()?;
 
-    capi_app_optout_tx.fee = calculate_total_fee(&params, &[capi_app_optout_tx, shares_xfer_tx])?;
-    TxGroup::assign_group_id(&mut [capi_app_optout_tx, shares_xfer_tx])?;
+    capi_app_optout_tx.fee = calculate_total_fee(&params, &[&capi_app_optout_tx, &shares_xfer_tx])?;
+    TxGroup::assign_group_id(&mut [&mut capi_app_optout_tx, &mut shares_xfer_tx])?;
 
     let signed_shares_xfer_tx = capi_escrow.sign(shares_xfer_tx, vec![])?;
 

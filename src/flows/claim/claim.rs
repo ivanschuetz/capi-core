@@ -36,10 +36,10 @@ pub async fn claim(
     let params = algod.suggested_transaction_params().await?;
 
     // App call to update user's local state with claimed amount
-    let app_call_tx = &mut claim_app_call_tx(app_id, &params, claimer)?;
+    let mut app_call_tx = claim_app_call_tx(app_id, &params, claimer)?;
 
     // Funds transfer from escrow to creator
-    let claim_tx = &mut TxnBuilder::with_fee(
+    let mut claim_tx = TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),
         TransferAsset::new(
@@ -52,8 +52,8 @@ pub async fn claim(
     )
     .build()?;
 
-    app_call_tx.fee = calculate_total_fee(&params, &[app_call_tx, claim_tx])?;
-    TxGroup::assign_group_id(&mut [app_call_tx, claim_tx])?;
+    app_call_tx.fee = calculate_total_fee(&params, &[&app_call_tx, &claim_tx])?;
+    TxGroup::assign_group_id(&mut [&mut app_call_tx, &mut claim_tx])?;
 
     let signed_claim_tx = central_escrow.sign(claim_tx, vec![])?;
 

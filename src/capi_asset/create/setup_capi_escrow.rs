@@ -36,7 +36,7 @@ pub async fn setup_capi_escrow(
         render_and_compile_capi_escrow(algod, source, capi_asset_id, funds_asset_id, app_id)
             .await?;
 
-    let fund_min_balance_tx = &mut create_payment_tx(
+    let mut fund_min_balance_tx = create_payment_tx(
         min_balance_sender,
         escrow.account.address(),
         MIN_BALANCE,
@@ -44,14 +44,14 @@ pub async fn setup_capi_escrow(
     )
     .await?;
 
-    let optin_to_capi_asset_tx = &mut TxnBuilder::with_fee(
+    let mut optin_to_capi_asset_tx = TxnBuilder::with_fee(
         params,
         TxnFee::zero(),
         AcceptAsset::new(*escrow.account.address(), capi_asset_id.0).build(),
     )
     .build()?;
 
-    let optin_to_funds_asset_tx = &mut TxnBuilder::with_fee(
+    let mut optin_to_funds_asset_tx = TxnBuilder::with_fee(
         params,
         TxnFee::zero(),
         AcceptAsset::new(*escrow.account.address(), funds_asset_id.0).build(),
@@ -61,15 +61,15 @@ pub async fn setup_capi_escrow(
     fund_min_balance_tx.fee = calculate_total_fee(
         params,
         &[
-            fund_min_balance_tx,
-            optin_to_capi_asset_tx,
-            optin_to_funds_asset_tx,
+            &fund_min_balance_tx,
+            &optin_to_capi_asset_tx,
+            &optin_to_funds_asset_tx,
         ],
     )?;
     TxGroup::assign_group_id(&mut [
-        fund_min_balance_tx,
-        optin_to_capi_asset_tx,
-        optin_to_funds_asset_tx,
+        &mut fund_min_balance_tx,
+        &mut optin_to_capi_asset_tx,
+        &mut optin_to_funds_asset_tx,
     ])?;
 
     let optin_to_capi_asset_tx_signed = escrow.account.sign(optin_to_capi_asset_tx, vec![])?;

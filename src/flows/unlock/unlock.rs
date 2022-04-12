@@ -33,7 +33,7 @@ pub async fn unlock(
     let params = algod.suggested_transaction_params().await?;
 
     // App call to validate the retrieved shares count and clear local state
-    let central_app_optout_tx = &mut TxnBuilder::with(
+    let mut central_app_optout_tx = TxnBuilder::with(
         &params,
         CloseApplication::new(investor, app_id.0)
             .app_arguments(vec!["unlock".as_bytes().to_vec()])
@@ -42,7 +42,7 @@ pub async fn unlock(
     .build()?;
 
     // Retrieve investor's assets from locking escrow
-    let shares_xfer_tx = &mut TxnBuilder::with_fee(
+    let mut shares_xfer_tx = TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),
         TransferAsset::new(
@@ -56,8 +56,8 @@ pub async fn unlock(
     .build()?;
 
     central_app_optout_tx.fee =
-        calculate_total_fee(&params, &[central_app_optout_tx, shares_xfer_tx])?;
-    TxGroup::assign_group_id(&mut [central_app_optout_tx, shares_xfer_tx])?;
+        calculate_total_fee(&params, &[&central_app_optout_tx, &shares_xfer_tx])?;
+    TxGroup::assign_group_id(&mut [&mut central_app_optout_tx, &mut shares_xfer_tx])?;
 
     let signed_shares_xfer_tx = locking_escrow.sign(shares_xfer_tx, vec![])?;
 
