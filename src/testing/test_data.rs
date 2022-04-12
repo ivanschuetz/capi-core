@@ -52,6 +52,8 @@ mod test {
         Account::from_mnemonic("since during average anxiety protect cherry club long lawsuit loan expand embark forum theory winter park twenty ball kangaroo cram burst board host ability left").unwrap()
     }
 
+    // msig address (has to be funded with Algos too): BSAWQANNI3VWCQH3RCJLDHR27XEYTQYVBLTQ3C2MW5GRULCKFQBEWPDV6E
+
     #[test]
     fn print_addresses() {
         println!("creator: {}", creator().address());

@@ -473,6 +473,8 @@ mod test {
     }
 
     /// To be executed only once (unless it's required to re-create the dependencies)
+    /// IMPORTANT: ensure that all the test accounts (found in test_data) are funded with Algos (using the dispenser) - these tests don't do this
+    /// and will be interrupted if the accounts don't have enough funds to pay for setup fees.
     #[test]
     #[ignore]
     async fn reset_and_fund_testnet() -> Result<()> {
@@ -635,6 +637,8 @@ mod test {
         Ok(())
     }
 
+    /// Funds the accounts from the test accounts file with the funds asset.
+    /// This gives us pre-funded accounts to share with testers for quick setup.
     #[test]
     #[ignore]
     async fn do_prepare_test_accounts() -> Result<()> {
@@ -652,7 +656,7 @@ mod test {
         optin_and_fund_accounts_with_asset(
             &algod,
             &params,
-            75503403,
+            81166440,
             FundsAmount::new(10_000_000_000),
             &assets_sender,
             &accounts,

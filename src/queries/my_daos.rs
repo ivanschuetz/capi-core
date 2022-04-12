@@ -81,7 +81,7 @@ pub async fn my_current_invested_daos(
     api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Dao>> {
-    log::debug!("Retrieving my dao from: {:?}", address);
+    log::debug!("Retrieving my current invested daos from: {:?}", address);
 
     let account = algod.account_information(address).await?;
 
@@ -119,7 +119,7 @@ pub async fn my_created_daos(
     api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Dao>> {
-    log::debug!("Retrieving my dao from: {:?}", address);
+    log::debug!("Retrieving my created daos from: {:?}", address);
 
     let response = indexer
         .transactions(&QueryTransaction {
