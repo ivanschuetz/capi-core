@@ -36,6 +36,7 @@ mod test {
             TxnBuilder,
         },
     };
+    use data_encoding::HEXLOWER;
     use rust_decimal::Decimal;
     use std::convert::TryInto;
     use std::str::FromStr;
@@ -678,5 +679,13 @@ mod test {
         }
         log::debug!("Loaded {} accounts", accounts.len());
         Ok(accounts)
+    }
+
+    #[test]
+    async fn hex_to_address() {
+        let hex = "8c025cac37c404934e0066f5407032a6e2294b54026ee39fcd272b23643f5916";
+        let bytes = HEXLOWER.decode(hex.as_bytes()).unwrap();
+        let address = Address(bytes.try_into().unwrap());
+        println!("Hex: {} -> address: {}", hex, address);
     }
 }
