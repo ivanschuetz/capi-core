@@ -198,6 +198,7 @@ pub async fn submit_create_dao(
     }
     signed_txs.push(signed.xfer_shares_to_invest_escrow);
 
+    // crate::dryrun_util::dryrun_all(algod, &signed_txs).await?;
     // crate::teal::debug_teal_rendered(&signed_txs, "dao_app_approval").unwrap();
     // crate::teal::debug_teal_rendered(&signed_txs, "investing_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&signed_txs, "central_escrow").unwrap();

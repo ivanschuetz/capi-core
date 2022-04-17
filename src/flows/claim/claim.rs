@@ -83,6 +83,7 @@ pub async fn submit_claim(algod: &Algod, signed: &ClaimSigned) -> Result<TxId> {
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
     let txs = vec![signed.app_call_tx_signed.clone(), signed.claim_tx.clone()];
+    // crate::dryrun_util::dryrun_all(algod, &txs).await?;
     // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "central_escrow").unwrap();
 
