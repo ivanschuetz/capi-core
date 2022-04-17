@@ -1,3 +1,5 @@
+use std::fs;
+
 use serde::Serialize;
 
 #[cfg(test)]
@@ -131,4 +133,10 @@ where
     log::info!("log_to_msg_pack:");
     // Unwrap: only for debugging
     log::info!("{:?}", rmp_serde::to_vec_named(obj).unwrap());
+}
+
+#[allow(dead_code)]
+pub fn write_bytes_to_tmp_file(bytes: &[u8]) {
+    // just a (gitignore) file in the root directory
+    fs::write(&format!("./some_bytes"), bytes).unwrap();
 }
