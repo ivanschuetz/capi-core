@@ -18,7 +18,6 @@ impl Api for LocalApi {
         Versions {
             app_approval: Version(1),
             app_clear: Version(1),
-            central_escrow: Version(1),
             customer_escrow: Version(1),
             investing_escrow: Version(1),
             locking_escrow: Version(1),
@@ -31,7 +30,6 @@ impl Api for LocalApi {
         version: Version,
     ) -> Result<VersionedTealSourceTemplate> {
         match contract {
-            Contract::DaoCentral => dao_central_teal(version),
             Contract::DaoCustomer => dao_customer_teal(version),
             Contract::DaoInvesting => dao_investing_teal(version),
             Contract::Daolocking => dao_locking_teal(version),
@@ -41,13 +39,6 @@ impl Api for LocalApi {
             Contract::CapiAppApproval => capi_app_approval_teal(version),
             Contract::CapiAppClear => capi_app_clear_teal(version),
         }
-    }
-}
-
-fn dao_central_teal(version: Version) -> Result<VersionedTealSourceTemplate> {
-    match version.0 {
-        1 => load_versioned_teal_template(version, "central_escrow"),
-        _ => not_found_err("dao central", version),
     }
 }
 

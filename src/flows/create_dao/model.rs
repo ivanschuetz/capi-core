@@ -32,6 +32,7 @@ pub struct SetupInvestEscrowSigned {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreateDaoToSign {
     pub escrow_funding_txs: Vec<Transaction>,
+    pub fund_app_tx: Transaction,
     pub setup_app_tx: Transaction,
     pub xfer_shares_to_invest_escrow: Transaction,
 
@@ -41,13 +42,13 @@ pub struct CreateDaoToSign {
     pub specs: CreateDaoSpecs,
     pub locking_escrow: VersionedContractAccount,
     pub invest_escrow: VersionedContractAccount,
-    pub central_escrow: VersionedContractAccount,
     pub customer_escrow: VersionedContractAccount,
     pub creator: Address,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CreateDaoSigned {
+    pub app_funding_tx: SignedTransaction,
     pub escrow_funding_txs: Vec<SignedTransaction>,
     pub xfer_shares_to_invest_escrow: SignedTransaction,
     pub setup_app_tx: SignedTransaction,
@@ -60,7 +61,6 @@ pub struct CreateDaoSigned {
     pub funds_asset_id: FundsAssetId,
     pub invest_escrow: VersionedContractAccount,
     pub locking_escrow: VersionedContractAccount,
-    pub central_escrow: VersionedContractAccount,
     pub customer_escrow: VersionedContractAccount,
 }
 
@@ -75,7 +75,6 @@ pub struct Dao {
     pub funds_asset_id: FundsAssetId,
     pub invest_escrow: VersionedContractAccount,
     pub locking_escrow: VersionedContractAccount,
-    pub central_escrow: VersionedContractAccount,
     pub customer_escrow: VersionedContractAccount,
 }
 
@@ -83,6 +82,10 @@ impl Dao {
     pub fn id(&self) -> DaoId {
         // we can repurpose the app id as dao id, because it's permanent and unique on the blockchain
         DaoId(self.app_id)
+    }
+
+    pub fn app_address(&self) -> Address {
+        self.app_id.address()
     }
 }
 

@@ -139,7 +139,7 @@ mod tests {
         assert_eq!(investor2_entitled_amount, investor_state.claimed);
 
         // renaming for clarity
-        let total_withdrawn_after_locking_setup_call = investor2_entitled_amount;
+        let entitled_amount_after_locking_shares = investor2_entitled_amount;
 
         // locking escrow got assets
         let locking_escrow_infos = algod
@@ -150,15 +150,11 @@ mod tests {
         assert_eq!(traded_shares.0, locking_escrow_assets[0].amount);
 
         // investor2 claims: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
-        // the dividend is the smallest number possible, to show that we can't retrieve anything
-        let claim_flow_res = claim_flow(td, &dao, &td.investor2, FundsAmount::new(1)).await;
-        log::debug!("Expected error claiming: {:?}", claim_flow_res);
-        // If there's nothing to claim, the smart contract fails (transfer amount > allowed)
-        assert!(claim_flow_res.is_err());
+        let _ = claim_flow(td, &dao, &td.investor2).await;
 
         // drain again to generate dividend and be able to claim
         let customer_payment_amount_2 = FundsAmount::new(10 * 1_000_000);
-        let drain_res2 =
+        let _ =
             customer_payment_and_drain_flow(td, &dao, customer_payment_amount_2, drainer).await?;
 
         // claim again: this time there's something to claim and we expect success
@@ -167,23 +163,11 @@ mod tests {
         let investor2_amount_before_claim =
             funds_holdings(algod, &td.investor2.address(), td.funds_asset_id).await?;
 
-        // we'll claim the max possible amount
-        let investor2_entitled_amount = claimable_dividend(
-            drain_res2.drained_amounts.dao,
-            FundsAmount::new(0),
-            dao.specs.shares.supply,
-            traded_shares,
-            td.precision,
-            dao.specs.investors_part(),
-        )?;
-        log::debug!(
-            "Claiming max possible amount (expected to succeed): {:?}",
-            investor2_entitled_amount
-        );
-        let _ = claim_flow(td, &dao, &td.investor2, investor2_entitled_amount).await?;
+        let _ = claim_flow(td, &dao, &td.investor2).await?;
 
         // just a rename to help with clarity a bit
         let expected_claimed_amount = investor2_entitled_amount;
+        println!(">>> expected_claimed_amount: {:?}", expected_claimed_amount);
         let investor2_infos = algod.account_information(&td.investor2.address()).await?;
         let investor2_amount = funds_holdings_from_account(&investor2_infos, td.funds_asset_id)?;
 
@@ -198,9 +182,9 @@ mod tests {
         // the shares haven't changed
         assert_eq!(traded_shares, investor_state.shares);
         // the claimed total was updated:
-        // initial (total_withdrawn_after_locking_setup_call: entitled amount when locking the shares) + just claimed
+        // initial (entitled_amount_after_locking_shares: entitled amount when locking the shares) + just claimed
         assert_eq!(
-            total_withdrawn_after_locking_setup_call + expected_claimed_amount,
+            entitled_amount_after_locking_shares + expected_claimed_amount,
             investor_state.claimed
         );
 

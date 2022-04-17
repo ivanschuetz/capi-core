@@ -49,13 +49,7 @@ pub async fn invest_txs(
 
     let mut pay_price_tx = TxnBuilder::with(
         &params,
-        TransferAsset::new(
-            *investor,
-            funds_asset_id.0,
-            total_price,
-            *dao.central_escrow.address(),
-        )
-        .build(),
+        TransferAsset::new(*investor, funds_asset_id.0, total_price, dao.app_address()).build(),
     )
     .build()?;
 

@@ -10,7 +10,7 @@ use crate::{
 };
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, SuggestedTransactionParams},
+    core::{to_app_address, Address, SuggestedTransactionParams},
     model::algod::v2::PendingTransaction,
     transaction::{CreateAsset, SignedTransaction, Transaction, TxnBuilder},
 };
@@ -70,7 +70,9 @@ pub async fn submit_create_assets(
     let shares_asset_id = shares_asset_id_res?;
     let app_id = app_id_res?;
 
-    log::debug!("Dao assets created. Shares id: {shares_asset_id}, app id: {app_id:?}");
+    let app_address = to_app_address(app_id.0);
+
+    log::debug!("Dao assets created. Shares id: {shares_asset_id}, app id: {app_id:?}, app address: {app_address:?}");
 
     Ok(CreateAssetsResult {
         shares_asset_id,
@@ -115,13 +117,13 @@ pub struct CreateAssetsResult {
 }
 
 async fn create_shares_tx(
-    tx_params: &SuggestedTransactionParams,
+    params: &SuggestedTransactionParams,
     shares_specs: &CreateSharesSpecs,
     creator: Address,
 ) -> Result<Transaction> {
     let unit_and_asset_name = shares_specs.token_name.to_owned();
     Ok(TxnBuilder::with(
-        tx_params,
+        params,
         CreateAsset::new(creator, shares_specs.supply.val(), 0, false)
             .unit_name(unit_and_asset_name.clone())
             .asset_name(unit_and_asset_name)

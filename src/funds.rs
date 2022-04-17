@@ -27,6 +27,10 @@ impl FundsAmount {
     pub fn val(&self) -> u64 {
         self.0 .0
     }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.0.to_bytes()
+    }
 }
 
 // TODO use only checked operations!

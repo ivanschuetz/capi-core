@@ -93,10 +93,6 @@ mod tests {
     ) -> Result<()> {
         let state = dao_global_state(algod, dao.app_id).await?;
         assert_eq!(
-            dao.central_escrow.to_versioned_address(),
-            state.central_escrow
-        );
-        assert_eq!(
             dao.customer_escrow.to_versioned_address(),
             state.customer_escrow
         );

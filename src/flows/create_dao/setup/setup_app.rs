@@ -15,7 +15,6 @@ use anyhow::Result;
 /// state initialized to a fixed value can be just set in TEAL / doesn't have to be passed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DaoInitData {
-    pub central_escrow: VersionedAddress,
     pub customer_escrow: VersionedAddress,
     pub investing_escrow: VersionedAddress,
     pub locking_escrow: VersionedAddress,
@@ -42,7 +41,6 @@ impl DaoInitData {
         Versions {
             app_approval: self.app_approval_version,
             app_clear: self.app_clear_version,
-            central_escrow: self.central_escrow.version,
             customer_escrow: self.customer_escrow.version,
             investing_escrow: self.investing_escrow.version,
             locking_escrow: self.locking_escrow.version,
@@ -61,7 +59,6 @@ pub async fn setup_app_tx(
         params,
         CallApplication::new(*creator, app_id.0)
             .app_arguments(vec![
-                data.central_escrow.address.0.to_vec(),
                 data.customer_escrow.address.0.to_vec(),
                 data.investing_escrow.address.0.to_vec(),
                 data.locking_escrow.address.0.to_vec(),
@@ -76,6 +73,7 @@ pub async fn setup_app_tx(
                 data.owner.0.to_vec(),
                 versions_to_bytes(data.versions())?,
             ])
+            .foreign_assets(vec![data.funds_asset_id.0])
             .build(),
     )
     // TODO: consider enforcing in TEAL that this note is being set

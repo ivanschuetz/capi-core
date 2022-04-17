@@ -63,7 +63,7 @@ pub async fn withdrawals(
 
             // account_transactions returns all the txs "related" to the account, i.e. can be sender or receiver
             // we're interested only in central escrow -> creator
-            if sender_address == *dao.central_escrow.address() && receiver_address == *creator {
+            if sender_address == dao.app_address() && receiver_address == *creator {
                 // for now the only payload is the description
                 let withdrawal_description = match &tx.note {
                     Some(note) => base64_withdrawal_note_to_withdrawal_description(note)?,

@@ -8,7 +8,11 @@ use crate::{
     },
     funds::FundsAmount,
 };
-use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
+use algonaut::{
+    algod::v2::Algod,
+    core::{to_app_address, Address},
+    indexer::v2::Indexer,
+};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
@@ -34,7 +38,6 @@ pub async fn funds_activity(
     creator: &Address,
     dao_id: DaoId,
     customer_escrow_address: &Address,
-    central_escrow_address: &Address,
     api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<FundsActivityEntry>> {
@@ -42,7 +45,8 @@ pub async fn funds_activity(
     // payments to the customer escrow
     let customer_escrow_payments = received_payments(indexer, customer_escrow_address).await?;
     // payments to the central escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)
-    let central_escrow_payments = received_payments(indexer, central_escrow_address).await?;
+    let app_address = to_app_address(dao_id.0 .0);
+    let central_escrow_payments = received_payments(indexer, &app_address).await?;
     // filter out draining (payments from customer escrow to central escrow), which would duplicate payments to the customer escrow
     let filtered_central_escrow_payments: Vec<Payment> = central_escrow_payments
         .into_iter()

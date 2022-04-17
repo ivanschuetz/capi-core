@@ -30,7 +30,6 @@ pub async fn drain_customer_escrow(
     funds_asset_id: FundsAssetId,
     capi_deps: &CapiAssetDaoDeps,
     customer_escrow: &ContractAccount,
-    central_escrow: &Address,
     amounts: &DaoAndCapiDrainAmounts,
 ) -> Result<DrainCustomerEscrowToSign> {
     log::debug!("Will create drain txs, amounts: {amounts:?}");
@@ -59,7 +58,7 @@ pub async fn drain_customer_escrow(
             *customer_escrow.address(),
             funds_asset_id.0,
             amounts.dao.val(),
-            *central_escrow,
+            app_id.address(),
         )
         .build(),
     )
@@ -121,7 +120,6 @@ pub async fn fetch_drain_amount_and_drain(
     funds_asset_id: FundsAssetId,
     capi_deps: &CapiAssetDaoDeps,
     customer_escrow: &ContractAccount,
-    central_escrow: &Address,
 ) -> Result<DrainCustomerEscrowToSign> {
     let amounts = drain_amounts(
         algod,
@@ -138,7 +136,6 @@ pub async fn fetch_drain_amount_and_drain(
         funds_asset_id,
         capi_deps,
         customer_escrow,
-        central_escrow,
         &amounts,
     )
     .await

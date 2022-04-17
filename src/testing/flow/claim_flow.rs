@@ -58,18 +58,14 @@ pub mod test {
         let drain_res =
             customer_payment_and_drain_flow(td, dao, payment_and_drain_amount, &drainer).await?;
 
-        let central_escrow_balance_after_drain = funds_holdings(
-            algod,
-            drain_res.dao.central_escrow.address(),
-            td.funds_asset_id,
-        )
-        .await?;
+        let app_balance_after_drain =
+            funds_holdings(algod, &drain_res.dao.app_address(), td.funds_asset_id).await?;
 
         // end precs
 
         Ok(ClaimTestPrecsRes {
             dao: dao.to_owned(),
-            central_escrow_balance_after_drain,
+            app_balance_after_drain,
             drain_res,
         })
     }
@@ -78,7 +74,6 @@ pub mod test {
         td: &TestDeps,
         dao: &Dao,
         claimer: &Account,
-        amount: FundsAmount,
     ) -> Result<ClaimTestFlowRes> {
         let algod = &td.algod;
 
@@ -86,34 +81,17 @@ pub mod test {
         let claimer_balance_before_claiming =
             funds_holdings(algod, &claimer.address(), td.funds_asset_id).await?;
 
-        let to_sign = claim(
-            &algod,
-            &claimer.address(),
-            dao.app_id,
-            td.funds_asset_id,
-            amount,
-            &dao.central_escrow.account,
-        )
-        .await?;
+        let to_sign = claim(&algod, &claimer.address(), dao.app_id, td.funds_asset_id).await?;
 
         let app_call_tx_signed = claimer.sign_transaction(to_sign.app_call_tx)?;
 
-        let claim_tx_id = submit_claim(
-            &algod,
-            &ClaimSigned {
-                app_call_tx_signed,
-                claim_tx: to_sign.claim_tx,
-            },
-        )
-        .await?;
+        let claim_tx_id = submit_claim(&algod, &ClaimSigned { app_call_tx_signed }).await?;
 
         wait_for_pending_transaction(&algod, &claim_tx_id).await?;
 
         Ok(ClaimTestFlowRes {
             dao: dao.clone(),
             claimer_balance_before_claiming,
-            claimed: amount.to_owned(),
-            // drain_res: precs.drain_res.clone(),
         })
     }
 
@@ -122,14 +100,13 @@ pub mod test {
     pub struct ClaimTestFlowRes {
         pub dao: Dao,
         pub claimer_balance_before_claiming: FundsAmount,
-        pub claimed: FundsAmount,
     }
 
     // Any data we want to return from the flow to the tests
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct ClaimTestPrecsRes {
         pub dao: Dao,
-        pub central_escrow_balance_after_drain: FundsAmount,
+        pub app_balance_after_drain: FundsAmount,
         pub drain_res: CustomerPaymentAndDrainFlowRes,
     }
 }

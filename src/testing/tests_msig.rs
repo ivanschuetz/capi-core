@@ -56,6 +56,7 @@ pub mod test {
             })
         }
 
+        #[allow(dead_code)]
         pub fn sign_incomplete(&self, tx: Transaction) -> Result<SignedTransaction> {
             let address = self.address();
 

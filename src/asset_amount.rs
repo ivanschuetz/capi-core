@@ -14,6 +14,10 @@ impl AssetAmount {
     pub fn as_decimal(&self) -> Decimal {
         self.0.as_decimal()
     }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.0.to_be_bytes().to_vec()
+    }
 }
 
 impl Display for AssetAmount {

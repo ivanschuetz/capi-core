@@ -5,7 +5,6 @@ use crate::{
         create_dao_specs::CreateDaoSpecs,
         model::{CreateSharesSpecs, Dao},
         setup::{
-            central_escrow::render_and_compile_central_escrow,
             customer_escrow::render_and_compile_customer_escrow,
             investing_escrow::render_and_compile_investing_escrow,
             locking_escrow::render_and_compile_locking_escrow,
@@ -14,7 +13,11 @@ use crate::{
     },
     state::dao_app_state::dao_global_state,
 };
-use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
+use algonaut::{
+    algod::v2::Algod,
+    core::{to_app_address, Address},
+    crypto::HashDigest,
+};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE32_NOPAD;
 use futures::join;
@@ -45,7 +48,6 @@ pub async fn load_dao(
 
     // NOTE currently not async - trait doesn't support async out of the box (TODO)
     // will be needed especially later when fetching the TEAL from a remove location
-    let central_escrow = api.template(Contract::DaoCentral, dao_state.central_escrow.version)?;
     let customer_escrow = api.template(Contract::DaoCustomer, dao_state.customer_escrow.version)?;
     let investing_escrow =
         api.template(Contract::DaoInvesting, dao_state.investing_escrow.version)?;
@@ -55,37 +57,21 @@ pub async fn load_dao(
     let asset_infos = algod.asset_information(dao_state.shares_asset_id).await?;
 
     // Render and compile the escrows
-    let central_escrow_account_fut = render_and_compile_central_escrow(
-        algod,
-        &central_escrow,
-        &dao_state.owner,
-        dao_state.funds_asset_id,
-        app_id,
-    );
-    let locking_escrow_account_fut = render_and_compile_locking_escrow(
+    let locking_escrow_account = render_and_compile_locking_escrow(
         algod,
         dao_state.shares_asset_id,
         &locking_escrow,
         app_id,
-    );
-    let (central_escrow_account_res, locking_escrow_account_res) =
-        join!(central_escrow_account_fut, locking_escrow_account_fut);
-    let central_escrow_account = central_escrow_account_res?;
-    let locking_escrow_account = locking_escrow_account_res?;
-    let customer_escrow_account_fut = render_and_compile_customer_escrow(
-        algod,
-        central_escrow_account.account.address(),
-        &customer_escrow,
-        &capi_deps.escrow,
-        app_id,
-    );
+    )
+    .await?;
+    let customer_escrow_account_fut =
+        render_and_compile_customer_escrow(algod, &customer_escrow, &capi_deps.escrow, app_id);
     let investing_escrow_account_fut = render_and_compile_investing_escrow(
         algod,
         dao_state.shares_asset_id,
         &dao_state.share_price,
         &dao_state.funds_asset_id,
         locking_escrow_account.account.address(),
-        central_escrow_account.account.address(),
         &investing_escrow,
         app_id,
     );
@@ -95,10 +81,6 @@ pub async fn load_dao(
     let investing_escrow_account = investing_escrow_account_res?;
 
     // validate the generated programs against the addresses stored in the app
-    expect_match(
-        &dao_state.central_escrow.address,
-        central_escrow_account.account.address(),
-    )?;
     expect_match(
         &dao_state.locking_escrow.address,
         locking_escrow_account.account.address(),
@@ -131,7 +113,6 @@ pub async fn load_dao(
         app_id,
         invest_escrow: investing_escrow_account,
         locking_escrow: locking_escrow_account,
-        central_escrow: central_escrow_account,
         customer_escrow: customer_escrow_account,
     };
 
@@ -194,6 +175,10 @@ impl DaoAppId {
     pub fn bytes(&self) -> [u8; 8] {
         // note: matches to_le_bytes() in DaoId::from()
         self.0.to_le_bytes()
+    }
+
+    pub fn address(&self) -> Address {
+        to_app_address(self.0)
     }
 }
 

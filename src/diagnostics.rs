@@ -20,8 +20,7 @@ pub async fn claim_diagnostics(
         .await
         .map_err(Error::msg)?;
 
-    let central_balance =
-        funds_holdings(algod, dao.central_escrow.address(), dao.funds_asset_id).await?;
+    let app_balance = funds_holdings(algod, &dao.app_address(), dao.funds_asset_id).await?;
 
     let customer_escrow_balance =
         funds_holdings(algod, dao.customer_escrow.address(), dao.funds_asset_id).await?;
@@ -29,7 +28,7 @@ pub async fn claim_diagnostics(
     Ok(ClaimDiagnostics {
         central_total_received,
         already_claimed: central_investor_state.claimed,
-        central_balance,
+        central_balance: app_balance,
         customer_escrow_balance,
         investor_share_amount: central_investor_state.shares,
     })

@@ -2,6 +2,7 @@ pub mod algo_helpers;
 pub mod api;
 mod asset_amount;
 pub mod capi_asset;
+mod common_txs;
 pub mod date_util;
 mod debug_msg_pack_submit_par;
 pub mod decimal_util;

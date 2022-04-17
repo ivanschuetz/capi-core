@@ -61,6 +61,7 @@ fn render_locking_escrow_v1(
         &[
             ("TMPL_SHARES_ASSET_ID", &shares_asset_id.to_string()),
             ("TMPL_CENTRAL_APP_ID", &app_id.to_string()),
+            ("TMPL_APP_ESCROW_ADDRESS", &app_id.address().to_string()),
         ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]

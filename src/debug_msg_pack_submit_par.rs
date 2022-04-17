@@ -63,9 +63,6 @@ mod tests {
         let capi_share = 123u64.as_decimal().try_into()?;
         let owner = creator();
 
-        let central_escrow = "J7RHJEAARYDZZ6QUKH4KKICZK64PS4UTJPVLEI3WN5SNU47GHWD4PTOOIQ"
-            .parse()
-            .map_err(Error::msg)?;
         let locking_escrow: Address = "XAU2GR4AJTOAESPTO77NIKC72TTIXDNCIP3LI67PFRCWQTN35JD26ENO74"
             .parse()
             .map_err(Error::msg)?;
@@ -103,7 +100,6 @@ mod tests {
             &shares_price,
             &funds_asset_id,
             &locking_escrow,
-            &central_escrow,
             app_id,
         )?;
 

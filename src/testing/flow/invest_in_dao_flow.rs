@@ -48,8 +48,8 @@ pub mod test {
         let investor_initial_amount =
             funds_holdings(algod, &investor.address(), td.funds_asset_id).await?;
         // remember initial central escrow's funds
-        let central_escrow_initial_amount =
-            funds_holdings(algod, dao.central_escrow.address(), td.funds_asset_id).await?;
+        let app_initial_amount =
+            funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
 
         let to_sign = invest_txs(
             &algod,
@@ -90,7 +90,7 @@ pub mod test {
 
         Ok(InvestInDaoTestFlowRes {
             investor_initial_amount,
-            central_escrow_initial_amount,
+            central_escrow_initial_amount: app_initial_amount,
             invest_res,
             dao: dao.to_owned(),
         })

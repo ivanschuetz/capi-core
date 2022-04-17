@@ -3,6 +3,7 @@ pub use test::withdraw_precs;
 
 #[cfg(test)]
 pub mod test {
+    use crate::flows::create_dao::storage::load_dao::DaoAppId;
     use crate::funds::{FundsAmount, FundsAssetId};
     use crate::network_util::wait_for_pending_transaction;
     use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
@@ -32,13 +33,13 @@ pub mod test {
 
         let drain_res =
             customer_payment_and_drain_flow(&td, &dao, pay_and_drain_amount, &drainer).await?;
-        let central_escrow_balance_after_drain = algod
-            .account_information(drain_res.dao.central_escrow.address())
+        let app_balance_after_drain = algod
+            .account_information(&drain_res.dao.app_address())
             .await?
             .amount;
 
         Ok(WithdrawTestPrecsRes {
-            central_escrow_balance_after_drain,
+            central_escrow_balance_after_drain: app_balance_after_drain,
             drain_res,
         })
     }
@@ -48,7 +49,7 @@ pub mod test {
         dao: &Dao,
         withdrawer: &Account,
         amount: FundsAmount,
-        funds_asset_id: FundsAssetId,
+        app_id: DaoAppId,
     ) -> Result<WithdrawTestFlowRes> {
         // remember state
         let withdrawer_balance_before_withdrawing = algod
@@ -59,23 +60,21 @@ pub mod test {
         let to_sign = withdraw(
             &algod,
             withdrawer.address(),
-            funds_asset_id,
             &WithdrawalInputs {
                 amount: amount.to_owned(),
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.central_escrow.account,
+            app_id,
+            dao.funds_asset_id,
         )
         .await?;
 
-        let pay_withdraw_fee_tx_signed =
-            withdrawer.sign_transaction(to_sign.pay_withdraw_fee_tx)?;
+        let withdraw_signed = withdrawer.sign_transaction(to_sign.withdraw_tx)?;
 
         let withdraw_tx_id = submit_withdraw(
             &algod,
             &WithdrawSigned {
-                withdraw_tx: to_sign.withdraw_tx,
-                pay_withdraw_fee_tx: pay_withdraw_fee_tx_signed,
+                withdraw_tx: withdraw_signed,
             },
         )
         .await?;
@@ -90,30 +89,29 @@ pub mod test {
 
     pub async fn withdraw_msig_flow(
         algod: &Algod,
-        dao: &Dao,
         withdrawer: &TestsMsig,
         amount: FundsAmount,
-        funds_asset_id: FundsAssetId,
+        app_id: DaoAppId,
+        funds_asset: FundsAssetId,
     ) -> Result<()> {
         let to_sign = withdraw(
             &algod,
             withdrawer.address().address(),
-            funds_asset_id,
             &WithdrawalInputs {
                 amount: amount.to_owned(),
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.central_escrow.account,
+            app_id,
+            funds_asset,
         )
         .await?;
 
-        let pay_withdraw_fee_tx_signed = withdrawer.sign(to_sign.pay_withdraw_fee_tx)?;
+        let withdraw_signed = withdrawer.sign(to_sign.withdraw_tx)?;
 
         let withdraw_tx_id = submit_withdraw(
             &algod,
             &WithdrawSigned {
-                withdraw_tx: to_sign.withdraw_tx,
-                pay_withdraw_fee_tx: pay_withdraw_fee_tx_signed,
+                withdraw_tx: withdraw_signed,
             },
         )
         .await?;
@@ -124,30 +122,29 @@ pub mod test {
 
     pub async fn withdraw_incomplete_msig_flow(
         algod: &Algod,
-        dao: &Dao,
         withdrawer: &TestsMsig,
         amount: FundsAmount,
-        funds_asset_id: FundsAssetId,
+        app_id: DaoAppId,
+        funds_asset: FundsAssetId,
     ) -> Result<()> {
         let to_sign = withdraw(
             &algod,
             withdrawer.address().address(),
-            funds_asset_id,
             &WithdrawalInputs {
                 amount: amount.to_owned(),
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.central_escrow.account,
+            app_id,
+            funds_asset,
         )
         .await?;
 
-        let pay_withdraw_fee_tx_signed = withdrawer.sign_incomplete(to_sign.pay_withdraw_fee_tx)?;
+        let withdraw_signed = withdrawer.sign_incomplete(to_sign.withdraw_tx)?;
 
         let withdraw_tx_id = submit_withdraw(
             &algod,
             &WithdrawSigned {
-                withdraw_tx: to_sign.withdraw_tx,
-                pay_withdraw_fee_tx: pay_withdraw_fee_tx_signed,
+                withdraw_tx: withdraw_signed,
             },
         )
         .await?;

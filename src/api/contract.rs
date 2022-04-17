@@ -1,6 +1,5 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Contract {
-    DaoCentral,
     DaoCustomer,
     DaoInvesting,
     Daolocking,

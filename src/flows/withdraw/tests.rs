@@ -1,10 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use algonaut::{algod::v2::Algod, core::Address};
-    use anyhow::Result;
-    use serial_test::serial;
-    use tokio::test;
-
     use crate::{
         flows::{
             create_dao::share_amount::ShareAmount,
@@ -13,6 +8,7 @@ mod tests {
         funds::{FundsAmount, FundsAssetId},
         state::account_state::funds_holdings,
         testing::{
+            create_and_submit_txs::transfer_tokens_submit,
             flow::{
                 create_dao_flow::create_dao_flow,
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
@@ -23,6 +19,67 @@ mod tests {
             test_data::{dao_specs, investor2},
         },
     };
+    use algonaut::{
+        algod::v2::Algod,
+        core::{to_app_address, Address},
+    };
+    use anyhow::Result;
+    use serial_test::serial;
+    use tokio::test;
+
+    #[test]
+    #[serial]
+    async fn test_basic_withdraw_success() -> Result<()> {
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+
+        // precs
+
+        let withdraw_amount = FundsAmount::new(1_000_000);
+
+        let dao = create_dao_flow(&td).await?;
+
+        let params = algod.suggested_transaction_params().await?;
+        let dao_address = to_app_address(dao.app_id.0);
+        log::debug!("app address: {dao_address}");
+
+        // send asset to the DAO app
+        transfer_tokens_submit(
+            algod,
+            &params,
+            &td.creator,
+            &dao_address,
+            td.funds_asset_id.0,
+            withdraw_amount.0,
+        )
+        .await?;
+
+        // remeber state
+        let app_balance_before_withdrawing =
+            funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
+        let creator_balance_bafore_withdrawing =
+            funds_holdings(&algod, &td.creator.address(), td.funds_asset_id).await?;
+
+        // flow
+
+        withdraw_flow(&algod, &dao, &td.creator, withdraw_amount, dao.app_id).await?;
+
+        // test
+
+        after_withdrawal_success_or_failure_tests(
+            &algod,
+            &td.creator.address(),
+            td.funds_asset_id,
+            &dao.app_address(),
+            // creator got the amount
+            creator_balance_bafore_withdrawing + withdraw_amount,
+            // central lost the withdrawn amount
+            app_balance_before_withdrawing - withdraw_amount,
+        )
+        .await?;
+
+        Ok(())
+    }
 
     #[test]
     #[serial]
@@ -41,21 +98,14 @@ mod tests {
         withdraw_precs(td, drainer, &dao, pay_and_drain_amount).await?;
 
         // remeber state
-        let central_balance_before_withdrawing =
-            funds_holdings(&algod, dao.central_escrow.address(), td.funds_asset_id).await?;
+        let app_balance_before_withdrawing =
+            funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
         let creator_balance_bafore_withdrawing =
             funds_holdings(&algod, &td.creator.address(), td.funds_asset_id).await?;
 
         // flow
 
-        withdraw_flow(
-            &algod,
-            &dao,
-            &td.creator,
-            withdraw_amount,
-            td.funds_asset_id,
-        )
-        .await?;
+        withdraw_flow(&algod, &dao, &td.creator, withdraw_amount, dao.app_id).await?;
 
         // test
 
@@ -63,11 +113,11 @@ mod tests {
             &algod,
             &td.creator.address(),
             td.funds_asset_id,
-            dao.central_escrow.address(),
+            &dao.app_address(),
             // creator got the amount
             creator_balance_bafore_withdrawing + withdraw_amount,
             // central lost the withdrawn amount
-            central_balance_before_withdrawing - withdraw_amount,
+            app_balance_before_withdrawing - withdraw_amount,
         )
         .await
     }
@@ -95,8 +145,8 @@ mod tests {
         invests_flow(td, investor, investor_share_amount, &dao).await?;
 
         // remember state
-        let central_balance_before_withdrawing =
-            funds_holdings(&algod, dao.central_escrow.address(), td.funds_asset_id).await?;
+        let app_balance_before_withdrawing =
+            funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
         let creator_balance_bafore_withdrawing =
             funds_holdings(algod, &td.creator.address(), td.funds_asset_id).await?;
 
@@ -105,23 +155,21 @@ mod tests {
         let to_sign = withdraw(
             algod,
             td.creator.address(),
-            td.funds_asset_id,
             &WithdrawalInputs {
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.central_escrow.account,
+            dao.app_id,
+            dao.funds_asset_id,
         )
         .await?;
 
-        let pay_withdraw_fee_tx_signed =
-            td.creator.sign_transaction(to_sign.pay_withdraw_fee_tx)?;
+        let withdraw_signed = td.creator.sign_transaction(to_sign.withdraw_tx)?;
 
         let withdraw_res = submit_withdraw(
             algod,
             &WithdrawSigned {
-                withdraw_tx: to_sign.withdraw_tx,
-                pay_withdraw_fee_tx: pay_withdraw_fee_tx_signed,
+                withdraw_tx: withdraw_signed,
             },
         )
         .await;
@@ -134,9 +182,9 @@ mod tests {
             algod,
             &td.creator.address(),
             td.funds_asset_id,
-            dao.central_escrow.address(),
+            &dao.app_address(),
             creator_balance_bafore_withdrawing,
-            central_balance_before_withdrawing,
+            app_balance_before_withdrawing,
         )
         .await
     }
@@ -167,8 +215,8 @@ mod tests {
         invests_flow(td, investor, investor_share_amount, &dao).await?;
 
         // remember state
-        let central_balance_before_withdrawing =
-            funds_holdings(algod, dao.central_escrow.address(), td.funds_asset_id).await?;
+        let app_balance_before_withdrawing =
+            funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
         let creator_balance_bafore_withdrawing =
             funds_holdings(algod, &td.creator.address(), td.funds_asset_id).await?;
 
@@ -177,23 +225,21 @@ mod tests {
         let to_sign = withdraw(
             algod,
             not_creator.address(),
-            td.funds_asset_id,
             &WithdrawalInputs {
                 amount: withdraw_amount,
                 description: "Withdrawing from tests".to_owned(),
             },
-            &dao.central_escrow.account,
+            dao.app_id,
+            dao.funds_asset_id,
         )
         .await?;
 
-        let pay_withdraw_fee_tx_signed =
-            not_creator.sign_transaction(to_sign.pay_withdraw_fee_tx)?;
+        let withdraw_signed = not_creator.sign_transaction(to_sign.withdraw_tx)?;
 
         let withdraw_res = submit_withdraw(
             algod,
             &WithdrawSigned {
-                withdraw_tx: to_sign.withdraw_tx,
-                pay_withdraw_fee_tx: pay_withdraw_fee_tx_signed,
+                withdraw_tx: withdraw_signed,
             },
         )
         .await;
@@ -206,9 +252,9 @@ mod tests {
             algod,
             &td.creator.address(),
             td.funds_asset_id,
-            dao.central_escrow.address(),
+            &dao.app_address(),
             creator_balance_bafore_withdrawing,
-            central_balance_before_withdrawing,
+            app_balance_before_withdrawing,
         )
         .await
     }
@@ -217,7 +263,7 @@ mod tests {
         algod: &Algod,
         creator_address: &Address,
         funds_asset_id: FundsAssetId,
-        central_escrow_address: &Address,
+        app_address: &Address,
         creator_balance_before_withdrawing: FundsAmount,
         central_balance_before_withdrawing: FundsAmount,
     ) -> Result<()> {
@@ -225,7 +271,7 @@ mod tests {
             algod,
             creator_address,
             funds_asset_id,
-            central_escrow_address,
+            app_address,
             creator_balance_before_withdrawing,
             central_balance_before_withdrawing,
         )
@@ -236,7 +282,7 @@ mod tests {
         algod: &Algod,
         creator_address: &Address,
         funds_asset_id: FundsAssetId,
-        central_escrow_address: &Address,
+        app_address: &Address,
         expected_withdrawer_amount: FundsAmount,
         expected_central_amount: FundsAmount,
     ) -> Result<()> {
@@ -244,9 +290,8 @@ mod tests {
         let withdrawer_amount = funds_holdings(algod, creator_address, funds_asset_id).await?;
         assert_eq!(expected_withdrawer_amount, withdrawer_amount);
 
-        // check central's balance
-        let central_escrow_amount =
-            funds_holdings(algod, central_escrow_address, funds_asset_id).await?;
+        // check app's balance
+        let central_escrow_amount = funds_holdings(algod, app_address, funds_asset_id).await?;
         assert_eq!(expected_central_amount, central_escrow_amount);
 
         Ok(())

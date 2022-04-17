@@ -55,7 +55,7 @@ mod tests {
             &creator,
             &investor.address(),
             capi_deps.asset_id.0,
-            investor_assets_amount.val(),
+            investor_assets_amount.0,
         )
         .await?;
 
@@ -162,7 +162,7 @@ mod tests {
             &creator,
             &investor.address(),
             setup_res.asset_id.0,
-            investor_assets_amount.val(),
+            investor_assets_amount.0,
         )
         .await?;
 

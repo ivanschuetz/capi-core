@@ -37,18 +37,14 @@ mod tests {
             .account_information(drain_res.dao.customer_escrow.address())
             .await?
             .amount;
-        let central_escrow_amount = funds_holdings(
-            &algod,
-            drain_res.dao.central_escrow.address(),
-            td.funds_asset_id,
-        )
-        .await?;
+        let app_balance =
+            funds_holdings(&algod, &drain_res.dao.app_address(), td.funds_asset_id).await?;
         let drainer_balance = algod.account_information(&drainer.address()).await?.amount;
 
         // account keeps min balance
         assert_eq!(customer_escrow::MIN_BALANCE, customer_escrow_balance);
         // dao central escrow has now the funds from customer escrow
-        assert_eq!(drain_res.drained_amounts.dao, central_escrow_amount);
+        assert_eq!(drain_res.drained_amounts.dao, app_balance);
         // the drainer lost the fees for the app calls and escrows lsig
         assert_eq!(
             drain_res.initial_drainer_balance

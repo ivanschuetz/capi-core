@@ -106,11 +106,10 @@ mod tests {
         // central escrow tests
 
         // central escrow received paid algos
-        let central_escrow_holdings =
-            funds_holdings(&algod, &dao.central_escrow.address(), td.funds_asset_id).await?;
+        let app_holdings = funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
         assert_eq!(
             flow_res.central_escrow_initial_amount + paid_amount,
-            central_escrow_holdings
+            app_holdings
         );
 
         Ok(())

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        flows::{claim::claim::claimable_dividend, create_dao::share_amount::ShareAmount},
+        flows::create_dao::share_amount::ShareAmount,
         funds::FundsAmount,
         state::dao_app_state::{dao_global_state, dao_investor_state},
         teal::TealSource,
@@ -98,15 +98,7 @@ mod tests {
             investor,
         )
         .await?;
-        let dividend = claimable_dividend(
-            precs.drain_res.drained_amounts.dao,
-            FundsAmount::new(0),
-            td.specs.shares.supply,
-            buy_share_amount,
-            td.precision,
-            td.specs.investors_part(),
-        )?;
-        claim_flow(&td, &precs.dao, investor, dividend).await?;
+        claim_flow(&td, &precs.dao, investor).await?;
 
         // flow
 

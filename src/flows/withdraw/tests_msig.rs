@@ -37,14 +37,21 @@ mod tests {
         // remeber state
         let msig_balance_bafore_withdrawing =
             funds_holdings(&algod, &td.msig.address().address(), td.funds_asset_id).await?;
-        let central_balance_before_withdrawing =
-            funds_holdings(&algod, dao.central_escrow.address(), td.funds_asset_id).await?;
+        let app_balance_before_withdrawing =
+            funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
         let creator_balance_bafore_withdrawing =
             funds_holdings(&algod, &td.creator.address(), td.funds_asset_id).await?;
 
         // flow
 
-        withdraw_msig_flow(&algod, &dao, &td.msig, withdraw_amount, td.funds_asset_id).await?;
+        withdraw_msig_flow(
+            &algod,
+            &td.msig,
+            withdraw_amount,
+            dao.app_id,
+            dao.funds_asset_id,
+        )
+        .await?;
 
         // test
 
@@ -57,12 +64,8 @@ mod tests {
         );
 
         // central lost the funds
-        let central_escrow_amount =
-            funds_holdings(algod, dao.central_escrow.address(), td.funds_asset_id).await?;
-        assert_eq!(
-            central_balance_before_withdrawing - withdraw_amount,
-            central_escrow_amount
-        );
+        let app_amount = funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        assert_eq!(app_balance_before_withdrawing - withdraw_amount, app_amount);
 
         // sanity check: the creator's balance didn't change
         let creator_funds = funds_holdings(algod, &td.creator.address(), td.funds_asset_id).await?;
@@ -91,8 +94,8 @@ mod tests {
         // remeber state
         let msig_balance_bafore_withdrawing =
             funds_holdings(&algod, &td.msig.address().address(), td.funds_asset_id).await?;
-        let central_balance_before_withdrawing =
-            funds_holdings(&algod, dao.central_escrow.address(), td.funds_asset_id).await?;
+        let app_balance_before_withdrawing =
+            funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
         let creator_balance_bafore_withdrawing =
             funds_holdings(&algod, &td.creator.address(), td.funds_asset_id).await?;
 
@@ -100,10 +103,10 @@ mod tests {
 
         let res = withdraw_incomplete_msig_flow(
             &algod,
-            &dao,
             &td.msig,
             withdraw_amount,
-            td.funds_asset_id,
+            dao.app_id,
+            dao.funds_asset_id,
         )
         .await;
 
@@ -118,9 +121,8 @@ mod tests {
         assert_eq!(msig_balance_bafore_withdrawing, msig_funds);
 
         // central funds didn't change
-        let central_escrow_amount =
-            funds_holdings(algod, dao.central_escrow.address(), td.funds_asset_id).await?;
-        assert_eq!(central_balance_before_withdrawing, central_escrow_amount);
+        let app_amount = funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        assert_eq!(app_balance_before_withdrawing, app_amount);
 
         // sanity check: the creator's balance didn't change
         let creator_funds = funds_holdings(algod, &td.creator.address(), td.funds_asset_id).await?;

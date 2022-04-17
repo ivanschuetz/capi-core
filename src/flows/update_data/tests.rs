@@ -3,8 +3,7 @@ mod tests {
     use crate::{
         api::version::{Version, VersionedAddress},
         flows::{
-            claim::claim::claimable_dividend, create_dao::share_amount::ShareAmount,
-            update_data::update_data::UpdatableDaoData,
+            create_dao::share_amount::ShareAmount, update_data::update_data::UpdatableDaoData,
         },
         funds::FundsAmount,
         state::dao_app_state::{dao_global_state, dao_investor_state, CentralAppGlobalState},
@@ -77,15 +76,7 @@ mod tests {
             investor,
         )
         .await?;
-        let dividend = claimable_dividend(
-            precs.drain_res.drained_amounts.dao,
-            FundsAmount::new(0),
-            td.specs.shares.supply,
-            buy_share_amount,
-            td.precision,
-            td.specs.investors_part(),
-        )?;
-        claim_flow(&td, &precs.dao, investor, dividend).await?;
+        claim_flow(&td, &precs.dao, investor).await?;
 
         let gs_before_update = dao_global_state(&td.algod, dao.app_id).await?;
         let ls_before_update =
@@ -125,7 +116,6 @@ mod tests {
 
     fn some_data_to_update(td: &TestDeps) -> UpdatableDaoData {
         // arbitrary data different to the existing one
-        let new_central_escrow_address = td.investor1.address();
         let new_customer_escrow_address = td.investor2.address();
         let new_investing_escrow_address = td.creator.address();
         let new_locking_escrow_address = td.capi_owner.address();
@@ -137,7 +127,6 @@ mod tests {
         let new_owner = td.customer.address();
 
         UpdatableDaoData {
-            central_escrow: VersionedAddress::new(new_central_escrow_address, Version(2)),
             customer_escrow: VersionedAddress::new(new_customer_escrow_address, Version(2)),
             investing_escrow: VersionedAddress::new(new_investing_escrow_address, Version(2)),
             locking_escrow: VersionedAddress::new(new_locking_escrow_address, Version(2)),
@@ -151,7 +140,6 @@ mod tests {
     }
 
     fn validate_global_state_with_update_data(gs: &CentralAppGlobalState, data: &UpdatableDaoData) {
-        assert_eq!(gs.central_escrow, data.central_escrow);
         assert_eq!(gs.customer_escrow, data.customer_escrow);
         assert_eq!(gs.investing_escrow, data.investing_escrow);
         assert_eq!(gs.locking_escrow, data.locking_escrow);
@@ -167,7 +155,6 @@ mod tests {
         gs: &CentralAppGlobalState,
         data: &UpdatableDaoData,
     ) {
-        assert_ne!(gs.central_escrow, data.central_escrow);
         assert_ne!(gs.customer_escrow, data.customer_escrow);
         assert_ne!(gs.investing_escrow, data.investing_escrow);
         assert_ne!(gs.locking_escrow, data.locking_escrow);

@@ -15,7 +15,6 @@ use serde::{Deserialize, Serialize};
 /// Dao app data that is meant to be updated externally
 #[derive(Debug, Clone)]
 pub struct UpdatableDaoData {
-    pub central_escrow: VersionedAddress,
     pub customer_escrow: VersionedAddress,
     pub investing_escrow: VersionedAddress,
     pub locking_escrow: VersionedAddress,
@@ -45,7 +44,6 @@ pub async fn update_data(
     let versions = Versions {
         app_approval: current_state.app_approval_version,
         app_clear: current_state.app_clear_version,
-        central_escrow: data.central_escrow.version,
         customer_escrow: data.customer_escrow.version,
         investing_escrow: data.investing_escrow.version,
         locking_escrow: data.locking_escrow.version,
@@ -57,7 +55,6 @@ pub async fn update_data(
         CallApplication::new(*owner, app_id.0)
             .app_arguments(vec![
                 "update_data".as_bytes().to_vec(),
-                data.central_escrow.address.0.to_vec(),
                 data.customer_escrow.address.0.to_vec(),
                 data.investing_escrow.address.0.to_vec(),
                 data.locking_escrow.address.0.to_vec(),

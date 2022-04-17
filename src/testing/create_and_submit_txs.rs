@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub use test::{
-    optin_to_asset_submit, optin_to_capi_app_submit, transfer_tokens_and_pay_fee_submit,
-    transfer_tokens_submit,
+    optin_to_asset_submit, optin_to_capi_app_submit, pay_submit,
+    transfer_tokens_and_pay_fee_submit, transfer_tokens_submit,
 };
 
 // need wrapper module for auto imports to work https://github.com/rust-analyzer/rust-analyzer/issues/9391
@@ -9,16 +9,36 @@ pub use test::{
 mod test {
     use crate::{
         algo_helpers::{send_tx_and_wait, send_txs_and_wait},
+        asset_amount::AssetAmount,
         capi_asset::capi_app_id::CapiAppId,
         flows::shared::app::optin_to_app,
         testing::algorand_checks::test::optin_to_asset,
     };
     use algonaut::{
         algod::v2::Algod,
-        core::{Address, SuggestedTransactionParams},
+        core::{Address, MicroAlgos, SuggestedTransactionParams},
         transaction::{account::Account, tx_group::TxGroup, Pay, TransferAsset, TxnBuilder},
     };
     use anyhow::Result;
+
+    #[allow(dead_code)]
+    pub async fn pay_submit(
+        algod: &Algod,
+        params: &SuggestedTransactionParams,
+        sender: &Account,
+        receiver: &Address,
+        amount: MicroAlgos,
+    ) -> Result<()> {
+        let tx = TxnBuilder::with(
+            &params,
+            Pay::new(sender.address(), *receiver, amount).build(),
+        )
+        .build()?;
+        let signed = sender.sign_transaction(tx)?;
+        log::debug!("Submitting payment");
+        send_tx_and_wait(&algod, &signed).await?;
+        Ok(())
+    }
 
     /// Do an asset transfer and pay the fee for it - usually needed when the asset sender is an escrow
     /// Note that this is used only in some test txs (where we don't necessarily have a tx that can pay for the fee)
@@ -61,11 +81,11 @@ mod test {
         sender: &Account,
         receiver: &Address,
         asset_id: u64,
-        amount: u64,
+        amount: AssetAmount,
     ) -> Result<()> {
         let tx = TxnBuilder::with(
             &params,
-            TransferAsset::new(sender.address(), asset_id, amount, *receiver).build(),
+            TransferAsset::new(sender.address(), asset_id, amount.0, *receiver).build(),
         )
         .build()?;
         let signed = sender.sign_transaction(tx)?;

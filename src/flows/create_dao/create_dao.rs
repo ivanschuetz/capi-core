@@ -6,10 +6,10 @@ use super::{
 use crate::{
     api::version::VersionedTealSourceTemplate,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
+    common_txs::pay,
     flows::create_dao::{
         model::Dao,
         setup::{
-            central_escrow::setup_central_escrow,
             customer_escrow::setup_customer_escrow,
             investing_escrow::setup_investing_escrow_txs,
             locking_escrow::setup_locking_escrow_txs,
@@ -18,7 +18,11 @@ use crate::{
     },
     funds::FundsAssetId,
 };
-use algonaut::{algod::v2::Algod, core::Address, transaction::tx_group::TxGroup};
+use algonaut::{
+    algod::v2::Algod,
+    core::{to_app_address, Address, MicroAlgos},
+    transaction::tx_group::TxGroup,
+};
 use anyhow::Result;
 
 #[allow(clippy::too_many_arguments)]
@@ -43,21 +47,9 @@ pub async fn create_dao_txs(
 
     let params = algod.suggested_transaction_params().await?;
 
-    let mut central_to_sign = setup_central_escrow(
-        algod,
-        &creator,
-        &owner,
-        &programs.escrows.central_escrow,
-        &params,
-        funds_asset_id,
-        app_id,
-    )
-    .await?;
-
     let mut customer_to_sign = setup_customer_escrow(
         algod,
         &creator,
-        central_to_sign.escrow.account.address(),
         &programs.escrows.customer_escrow,
         &params,
         funds_asset_id,
@@ -84,7 +76,6 @@ pub async fn create_dao_txs(
         &funds_asset_id,
         &creator,
         setup_locking_escrow_to_sign.escrow.account.address(),
-        central_to_sign.escrow.account.address(),
         &params,
         app_id,
     )
@@ -95,7 +86,6 @@ pub async fn create_dao_txs(
         &creator,
         &params,
         &DaoInitData {
-            central_escrow: central_to_sign.escrow.to_versioned_address(),
             customer_escrow: customer_to_sign.escrow.to_versioned_address(),
             investing_escrow: setup_invest_escrow_to_sign.escrow.to_versioned_address(),
             locking_escrow: setup_locking_escrow_to_sign.escrow.to_versioned_address(),
@@ -114,11 +104,17 @@ pub async fn create_dao_txs(
     )
     .await?;
 
+    let app_address = to_app_address(app_id.0);
+    let mut fund_app_tx = pay(&params, &creator, &app_address, MicroAlgos(200_000))?;
+    // pay the opt-in inner tx fee (arbitrarily with this tx - could be any other in this group)
+    fund_app_tx.fee = fund_app_tx.fee * 2;
+
     TxGroup::assign_group_id(&mut [
+        // fund app
+        &mut fund_app_tx,
         // setup app
         &mut setup_app_tx,
-        // funding
-        &mut central_to_sign.fund_min_balance_tx,
+        // fund escrows
         &mut customer_to_sign.fund_min_balance_tx,
         &mut setup_locking_escrow_to_sign.escrow_funding_algos_tx,
         &mut setup_invest_escrow_to_sign.escrow_funding_algos_tx,
@@ -126,7 +122,6 @@ pub async fn create_dao_txs(
         &mut setup_locking_escrow_to_sign.escrow_shares_optin_tx,
         &mut setup_invest_escrow_to_sign.escrow_shares_optin_tx,
         // asset (funds asset) opt-ins
-        &mut central_to_sign.optin_to_funds_asset_tx,
         &mut customer_to_sign.optin_to_funds_asset_tx,
         // asset (shares) transfer to investing escrow
         &mut setup_invest_escrow_to_sign.escrow_funding_shares_asset_tx,
@@ -140,10 +135,6 @@ pub async fn create_dao_txs(
     let invest_escrow_shares_optin_tx_signed = invest_escrow
         .account
         .sign(setup_invest_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
-    let central_escrow_optin_to_funds_asset_tx_signed = central_to_sign
-        .escrow
-        .account
-        .sign(central_to_sign.optin_to_funds_asset_tx, vec![])?;
     let customer_escrow_optin_to_funds_asset_tx_signed = customer_to_sign
         .escrow
         .account
@@ -151,7 +142,6 @@ pub async fn create_dao_txs(
     let optin_txs = vec![
         locking_escrow_shares_optin_tx_signed,
         invest_escrow_shares_optin_tx_signed,
-        central_escrow_optin_to_funds_asset_tx_signed,
         customer_escrow_optin_to_funds_asset_tx_signed,
     ];
 
@@ -159,15 +149,14 @@ pub async fn create_dao_txs(
         specs: specs.to_owned(),
         creator,
 
+        fund_app_tx,
         setup_app_tx,
 
         locking_escrow: setup_locking_escrow_to_sign.escrow,
         invest_escrow: setup_invest_escrow_to_sign.escrow,
-        central_escrow: central_to_sign.escrow,
         customer_escrow: customer_to_sign.escrow,
 
         escrow_funding_txs: vec![
-            central_to_sign.fund_min_balance_tx,
             customer_to_sign.fund_min_balance_tx,
             setup_locking_escrow_to_sign.escrow_funding_algos_tx,
             setup_invest_escrow_to_sign.escrow_funding_algos_tx,
@@ -184,12 +173,12 @@ pub async fn submit_create_dao(
 ) -> Result<SubmitCreateDaoResult> {
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
     log::debug!(
-        "Submitting, created dao specs: {:?}, creator: {:?}",
+        "Submitting dao setup, specs: {:?}, creator: {:?}",
         signed.specs,
-        signed.creator
+        signed.creator,
     );
 
-    let mut signed_txs = vec![signed.setup_app_tx];
+    let mut signed_txs = vec![signed.app_funding_tx, signed.setup_app_tx];
     for tx in signed.escrow_funding_txs {
         signed_txs.push(tx)
     }
@@ -201,7 +190,6 @@ pub async fn submit_create_dao(
     // crate::dryrun_util::dryrun_all(algod, &signed_txs).await?;
     // crate::teal::debug_teal_rendered(&signed_txs, "dao_app_approval").unwrap();
     // crate::teal::debug_teal_rendered(&signed_txs, "investing_escrow").unwrap();
-    // crate::teal::debug_teal_rendered(&signed_txs, "central_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&signed_txs, "locking_escrow").unwrap();
 
     algod.broadcast_signed_transactions(&signed_txs).await?;
@@ -215,7 +203,6 @@ pub async fn submit_create_dao(
             invest_escrow: signed.invest_escrow,
             locking_escrow: signed.locking_escrow,
             customer_escrow: signed.customer_escrow,
-            central_escrow: signed.central_escrow,
             creator: signed.creator,
         },
     })
@@ -230,7 +217,6 @@ pub struct Programs {
 
 #[derive(Debug)]
 pub struct Escrows {
-    pub central_escrow: VersionedTealSourceTemplate,
     pub customer_escrow: VersionedTealSourceTemplate,
     pub invest_escrow: VersionedTealSourceTemplate,
     pub locking_escrow: VersionedTealSourceTemplate,

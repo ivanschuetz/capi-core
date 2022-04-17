@@ -50,6 +50,10 @@ mod tests {
         )
         .await?;
 
+        let res = claim_flow(&td, &precs.dao, claimer).await?;
+
+        // test
+
         let dividend = claimable_dividend(
             precs.drain_res.drained_amounts.dao,
             FundsAmount::new(0),
@@ -59,77 +63,25 @@ mod tests {
             td.specs.investors_part(),
         )?;
 
-        let res = claim_flow(&td, &precs.dao, claimer, dividend).await?;
-
-        // test
-
         test_claim_result(
             &algod,
             &claimer,
             res.dao.app_id,
             td.funds_asset_id,
-            &res.dao.central_escrow.to_versioned_address(),
             &res.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // claimer got the amount
-            res.claimer_balance_before_claiming + res.claimed,
+            res.claimer_balance_before_claiming + dividend,
             // central lost the amount
-            precs.central_escrow_balance_after_drain - res.claimed,
+            precs.app_balance_after_drain - dividend,
             // double check shares local state
             buy_share_amount,
             // only one dividend: local state is the claimed amount
-            res.claimed,
+            dividend,
             // invested before first drain: initial entitled dividend is 0
             FundsAmount::new(0),
         )
         .await?;
-
-        Ok(())
-    }
-
-    #[test]
-    #[serial]
-    async fn test_cannot_claim_more_than_max() -> Result<()> {
-        let td = test_dao_init().await?;
-        let algod = &td.algod;
-
-        let drainer = &td.investor1;
-        let claimer = &td.investor2;
-
-        // precs
-
-        let buy_share_amount = ShareAmount::new(10);
-        let pay_and_drain_amount = FundsAmount::new(10_000_000);
-
-        let precs = claim_precs(
-            &td,
-            buy_share_amount,
-            pay_and_drain_amount,
-            drainer,
-            claimer,
-        )
-        .await?;
-
-        let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
-        let claim_amount = claimable_dividend(
-            central_state.received,
-            FundsAmount::new(0),
-            td.specs.shares.supply,
-            buy_share_amount,
-            td.precision,
-            td.specs.investors_part(),
-        )?;
-        log::debug!("Claim amount: {}", claim_amount);
-
-        // flow
-
-        // we claim 1 asset more than max allowed
-        let res = claim_flow(&td, &precs.dao, &claimer, claim_amount + 1).await;
-        log::debug!("res: {:?}", res);
-
-        // test
-
-        assert!(res.is_err());
 
         Ok(())
     }
@@ -161,6 +113,12 @@ mod tests {
         let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
         log::debug!("central_total_received: {:?}", central_state.received);
 
+        // flow
+
+        let res = claim_flow(&td, &precs.dao, &claimer).await?;
+
+        // test
+
         let dividend = claimable_dividend(
             central_state.received,
             FundsAmount::new(0),
@@ -171,82 +129,25 @@ mod tests {
         )?;
         log::debug!("dividend: {}", dividend);
 
-        // flow
-
-        let res = claim_flow(&td, &precs.dao, &claimer, dividend).await?;
-
-        // test
-
         test_claim_result(
             &algod,
             &claimer,
             res.dao.app_id,
             td.funds_asset_id,
-            &res.dao.central_escrow.to_versioned_address(),
             &res.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // claimer got the amount
-            res.claimer_balance_before_claiming + res.claimed,
+            res.claimer_balance_before_claiming + dividend,
             // central lost the amount
-            precs.central_escrow_balance_after_drain - res.claimed,
+            precs.app_balance_after_drain - dividend,
             // double check shares local state
             buy_share_amount,
             // only one claim: local state is the claimed amount
-            res.claimed,
+            dividend,
             // invested before first drain: initial entitled dividend is 0
             FundsAmount::new(0),
         )
         .await?;
-
-        Ok(())
-    }
-
-    #[test]
-    #[serial]
-    async fn test_claim_max_with_repeated_fractional_shares_percentage_plus_1_fails() -> Result<()>
-    {
-        let td = test_fractional_deps().await?;
-        let algod = &td.algod;
-
-        let drainer = &td.investor1;
-        let claimer = &td.investor2;
-
-        // precs
-
-        let buy_share_amount = ShareAmount::new(10);
-        let pay_and_drain_amount = FundsAmount::new(10_000_000);
-        // 10 shares, 300 supply, 100% investor's share, percentage: 0.0333333333
-
-        let precs = claim_precs(
-            &td,
-            buy_share_amount,
-            pay_and_drain_amount,
-            &drainer,
-            &claimer,
-        )
-        .await?;
-
-        let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
-        log::debug!("central_total_received: {:?}", central_state.received);
-
-        let dividend = claimable_dividend(
-            central_state.received,
-            FundsAmount::new(0),
-            td.specs.shares.supply,
-            buy_share_amount,
-            td.precision,
-            td.specs.investors_part(),
-        )?;
-        log::debug!("Dividend: {}", dividend);
-
-        // flow
-
-        // The claimable dividend calculation and TEAL use floor to round the decimal. TEAL will reject + 1
-        let res = claim_flow(&td, &precs.dao, &claimer, dividend + 1).await;
-
-        // test
-
-        assert!(res.is_err());
 
         Ok(())
     }
@@ -279,11 +180,10 @@ mod tests {
         let drainer = &td.investor1;
         let claimer = &td.investor2;
 
-        // flow
+        // flow 1
 
         let buy_share_amount = ShareAmount::new(20);
         let pay_and_drain_amount = FundsAmount::new(10_000_000);
-        let dividend = FundsAmount::new(200_000); // just an amount low enough so we can claim 2x
 
         let precs = claim_precs(
             &td,
@@ -293,29 +193,61 @@ mod tests {
             &claimer,
         )
         .await?;
-        let res1 = claim_flow(&td, &precs.dao, &claimer, dividend).await?;
-        let res2 = claim_flow(&td, &precs.dao, &claimer, dividend).await?;
 
-        // test
+        // test 1
 
-        let total_expected_claimed_amount = res1.claimed + res2.claimed;
+        let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
+
+        let dividend = claimable_dividend(
+            central_state.received,
+            FundsAmount::new(0),
+            td.specs.shares.supply,
+            buy_share_amount,
+            td.precision,
+            td.specs.investors_part(),
+        )?;
+        let res1 = claim_flow(&td, &precs.dao, &claimer).await?;
+
         test_claim_result(
             &algod,
             &claimer,
-            res2.dao.app_id,
+            res1.dao.app_id,
             td.funds_asset_id,
-            &res2.dao.central_escrow.to_versioned_address(),
-            &res2.dao.customer_escrow.to_versioned_address(),
+            &res1.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
-            // 2 claims: asset balance is the total claimed amount
-            res1.claimer_balance_before_claiming + total_expected_claimed_amount,
+            // asset balance is the claimed amount
+            res1.claimer_balance_before_claiming + dividend,
             // central lost the amount
-            precs.central_escrow_balance_after_drain - total_expected_claimed_amount,
+            precs.app_balance_after_drain - dividend,
             // double check shares local state
             buy_share_amount,
-            // 2 claims: local state is the total claimed amount
-            total_expected_claimed_amount,
+            // local state is the claimed amount
+            dividend,
             // invested before first drain: initial entitled dividend is 0
+            FundsAmount::new(0),
+        )
+        .await?;
+
+        // flow 2
+
+        let _ = claim_flow(&td, &precs.dao, &claimer).await?;
+
+        // test 2
+        // nothing new has been drained, we claim 0, and test that all the state is still the same
+
+        let _ = claim_flow(&td, &precs.dao, &claimer).await?;
+
+        test_claim_result(
+            &algod,
+            &claimer,
+            res1.dao.app_id,
+            td.funds_asset_id,
+            &res1.dao.customer_escrow.to_versioned_address(),
+            precs.drain_res.drained_amounts.dao,
+            res1.claimer_balance_before_claiming + dividend,
+            precs.app_balance_after_drain - dividend,
+            buy_share_amount,
+            dividend,
             FundsAmount::new(0),
         )
         .await?;
@@ -332,7 +264,6 @@ mod tests {
         claimer: &Account,
         app_id: DaoAppId,
         funds_asset_id: FundsAssetId,
-        central_escrow_address: &VersionedAddress,
         customer_escrow_address: &VersionedAddress,
         // this parameter isn't ideal: it assumes that we did a (one) drain before claiming
         // for now letting it there as it's a quick refactoring
@@ -347,7 +278,7 @@ mod tests {
     ) -> Result<()> {
         let claim_funds_amount = funds_holdings(algod, &claimer.address(), funds_asset_id).await?;
         let central_escrow_funds_amount =
-            funds_holdings(algod, &central_escrow_address.address, funds_asset_id).await?;
+            funds_holdings(algod, &app_id.address(), funds_asset_id).await?;
 
         assert_eq!(expected_claimer_balance, claim_funds_amount);
         assert_eq!(expected_central_balance, central_escrow_funds_amount);
@@ -358,7 +289,6 @@ mod tests {
         assert_eq!(global_state.received, drained_amount);
 
         // sanity check: global state addresses are set
-        assert_eq!(&global_state.central_escrow, central_escrow_address);
         assert_eq!(&global_state.customer_escrow, customer_escrow_address);
 
         // claimer local state: test that it was incremented by amount claimed

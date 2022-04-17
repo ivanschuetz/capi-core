@@ -1,6 +1,6 @@
 use algonaut::{
     algod::v2::Algod,
-    core::{Address, MicroAlgos, SuggestedTransactionParams},
+    core::{to_app_address, Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{
         builder::TxnFee, contract_account::ContractAccount, AcceptAsset, Pay, SignedTransaction,
         Transaction, TxnBuilder,
@@ -27,21 +27,14 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(200_000);
 pub async fn setup_customer_escrow(
     algod: &Algod,
     dao_creator: &Address,
-    central_address: &Address,
     source: &VersionedTealSourceTemplate,
     params: &SuggestedTransactionParams,
     funds_asset_id: FundsAssetId,
     capi_escrow_address: &Address,
     app_id: DaoAppId,
 ) -> Result<SetupCustomerEscrowToSign> {
-    let escrow = render_and_compile_customer_escrow(
-        algod,
-        central_address,
-        source,
-        capi_escrow_address,
-        app_id,
-    )
-    .await?;
+    let escrow =
+        render_and_compile_customer_escrow(algod, source, capi_escrow_address, app_id).await?;
 
     let mut optin_to_funds_asset_tx = TxnBuilder::with_fee(
         params,
@@ -67,18 +60,12 @@ pub async fn setup_customer_escrow(
 
 pub async fn render_and_compile_customer_escrow(
     algod: &Algod,
-    central_address: &Address,
     template: &VersionedTealSourceTemplate,
     capi_escrow_address: &Address,
     app_id: DaoAppId,
 ) -> Result<VersionedContractAccount> {
     let source = match template.version.0 {
-        1 => render_customer_escrow_v1(
-            &template.template,
-            central_address,
-            capi_escrow_address,
-            app_id,
-        ),
+        1 => render_customer_escrow_v1(&template.template, capi_escrow_address, app_id),
         _ => Err(anyhow!(
             "Customer escrow version not supported: {:?}",
             template.version
@@ -93,16 +80,19 @@ pub async fn render_and_compile_customer_escrow(
 
 pub fn render_customer_escrow_v1(
     source: &TealSourceTemplate,
-    central_address: &Address,
     capi_escrow_address: &Address,
     app_id: DaoAppId,
 ) -> Result<TealSource> {
     let escrow_source = render_template_new(
         source,
         &[
-            ("TMPL_CENTRAL_ESCROW_ADDRESS", &central_address.to_string()),
+            ("TMPL_APP_ESCROW_ADDRESS", &app_id.address().to_string()),
             ("TMPL_CAPI_ESCROW_ADDRESS", &capi_escrow_address.to_string()),
             ("TMPL_CENTRAL_APP_ID", &app_id.to_string()),
+            (
+                "TMPL_APP_ESCROW_ADDRESS",
+                &to_app_address(app_id.0).to_string(),
+            ),
         ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]
