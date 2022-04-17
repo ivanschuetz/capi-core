@@ -179,21 +179,37 @@ mod test {
         let asset_creator = funds_asset_creator();
         let asset_id = create_funds_asset(algod, &params, &asset_creator).await?;
 
+        let accounts = &[
+            creator(),
+            investor1(),
+            investor2(),
+            customer(),
+            msig_acc1(),
+            msig_acc2(),
+            msig_acc3(),
+        ];
+
+        let initial_funds = test_accounts_initial_funds();
+
+        // Log the funded addresses
+        let addresses_str = accounts
+            .into_iter()
+            .map(|a| a.address().to_string())
+            .collect::<Vec<String>>()
+            .join(", ");
+        log::debug!(
+            "Funding accounts: {addresses_str} with: {} of funds asset: {}",
+            initial_funds.0,
+            asset_id.0
+        );
+
         optin_and_fund_accounts_with_asset(
             algod,
             &params,
             asset_id.0,
-            test_accounts_initial_funds(),
+            initial_funds,
             &asset_creator,
-            &vec![
-                creator(),
-                investor1(),
-                investor2(),
-                customer(),
-                msig_acc1(),
-                msig_acc2(),
-                msig_acc3(),
-            ],
+            accounts,
         )
         .await?;
         Ok(asset_id)
