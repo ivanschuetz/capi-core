@@ -135,6 +135,19 @@ where
     log::info!("{:?}", rmp_serde::to_vec_named(obj).unwrap());
 }
 
+/// To import things in SDKs that use signed bytes
+#[allow(dead_code)]
+pub fn log_to_msg_pack_signed<T>(obj: &T)
+where
+    T: Serialize + ?Sized,
+{
+    log::info!("log_to_msg_pack (signed):");
+    // Unwrap: only for debugging
+    let bytes = rmp_serde::to_vec_named(obj).unwrap();
+    let signed_bytes = bytes.into_iter().map(|b| b as i8).collect::<Vec<i8>>();
+    log::info!("{:?}", signed_bytes);
+}
+
 #[allow(dead_code)]
 pub fn write_bytes_to_tmp_file(bytes: &[u8]) {
     // just a (gitignore) file in the root directory
