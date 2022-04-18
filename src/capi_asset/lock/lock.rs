@@ -26,7 +26,6 @@ pub async fn lock_capi_assets(
     asset_amount: CapiAssetAmount,
     capi_asset_id: CapiAssetId,
     capi_app_id: CapiAppId,
-    capi_escrow: &Address,
 ) -> Result<LockToSign> {
     let params = algod.suggested_transaction_params().await?;
 
@@ -39,10 +38,15 @@ pub async fn lock_capi_assets(
     )
     .build()?;
 
-    // Send holder's assets to lock escrow
     let mut shares_xfer_tx = TxnBuilder::with(
         &params,
-        TransferAsset::new(*investor, capi_asset_id.0, asset_amount.val(), *capi_escrow).build(),
+        TransferAsset::new(
+            *investor,
+            capi_asset_id.0,
+            asset_amount.val(),
+            capi_app_id.address(),
+        )
+        .build(),
     )
     .build()?;
 

@@ -15,7 +15,7 @@ pub async fn invest_or_locking_app_optin_tx(
     investor: &Address,
 ) -> Result<Transaction> {
     let params = algod.suggested_transaction_params().await?;
-    let central_optin_tx = optin_to_dao_app(&params, dao.app_id, *investor).await?;
+    let central_optin_tx = optin_to_dao_app(&params, dao.app_id, *investor)?;
     Ok(central_optin_tx)
 }
 

@@ -8,22 +8,21 @@ pub use test::{
 mod test {
     use crate::algo_helpers::{send_tx_and_wait, send_txs_and_wait};
     use crate::api::api::{Api, LocalApi};
-    use crate::api::version::VersionedContractAccount;
     use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::CapiAssetId;
-    use crate::capi_asset::create::test_flow::test_flow::{
-        setup_and_submit_capi_escrow, CapiAssetFlowRes,
+    use crate::capi_asset::create::setup_flow::test_flow::{
+        setup_capi_app, CapiAssetFlowRes,
     };
     use crate::capi_asset::{
         capi_asset_dao_specs::CapiAssetDaoDeps, capi_asset_id::CapiAssetAmount,
-        create::test_flow::test_flow::setup_capi_asset_flow,
+        create::setup_flow::test_flow::setup_capi_asset_flow,
     };
     use crate::dependencies::{algod_for_net, Env};
     use crate::files::{read_lines, write_to_file};
     use crate::flows::create_dao::create_dao::Programs;
     use crate::flows::create_dao::create_dao_specs::CreateDaoSpecs;
-    use crate::testing::flow::create_dao_flow::test::{test_capi_programs, test_programs};
+    use crate::testing::flow::create_dao_flow::test::test_programs;
     use crate::testing::test_data::{dao_specs, msig_acc1, msig_acc2, msig_acc3};
     use crate::testing::tests_msig::TestsMsig;
     use algonaut::core::Address;
@@ -75,7 +74,6 @@ mod test {
         pub funds_asset_id: FundsAssetId,
 
         pub capi_owner: Account,
-        pub capi_escrow: VersionedContractAccount,
         pub capi_escrow_percentage: SharesPercentage,
         pub capi_app_id: CapiAppId,
         pub capi_asset_id: CapiAssetId,
@@ -90,7 +88,6 @@ mod test {
         pub fn dao_deps(&self) -> CapiAssetDaoDeps {
             CapiAssetDaoDeps {
                 // TODO: review: what exactly has to be done on Capi app updates / escrow migrations?
-                escrow: *self.capi_escrow.account.address(),
                 escrow_percentage: self.capi_escrow_percentage,
                 app_id: self.capi_app_id,
                 asset_id: self.capi_asset_id,
@@ -140,7 +137,6 @@ mod test {
             capi_owner: Account::from_mnemonic(&capi_flow_res.owner_mnemonic).unwrap(),
             precision: TESTS_DEFAULT_PRECISION,
 
-            capi_escrow: capi_flow_res.escrow.clone(),
             capi_escrow_percentage: capi_escrow_percentage(),
             capi_app_id: capi_flow_res.app_id,
             capi_asset_id: capi_flow_res.asset_id,
@@ -454,20 +450,17 @@ mod test {
         // This can be any account that has enough assets (funds asset). Normally the funder will be the capi owner.
         let funder = capi_owner();
 
-        let capi_escrow_template = test_capi_programs()?.escrow;
-
-        let escrow = setup_and_submit_capi_escrow(
+        setup_capi_app(
             &algod,
             &params,
             &funder,
             FundsAssetId(75503403), // pre-existing asset id
             CapiAssetId(77428422),  // pre-existing asset id
             CapiAppId(75503537),    // pre-existing app id
-            &capi_escrow_template,
         )
         .await?;
 
-        log::debug!("Finished capi escrow setup: {escrow:?}");
+        log::debug!("Finished capi escrow setup");
 
         Ok(())
     }
@@ -589,10 +582,6 @@ mod test {
             (
                 "FUNDS_ASSET_ID".to_owned(),
                 deps.funds_asset_id.0.to_string(),
-            ),
-            (
-                "CAPI_ESCROW_ADDRESS".to_owned(),
-                deps.capi_flow_res.escrow.address().to_string(),
             ),
             (
                 "CAPI_APP_ID".to_owned(),

@@ -1,10 +1,12 @@
 #[cfg(test)]
 mod tests {
     use crate::api::api::LocalApi;
+    use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_state::{capi_app_global_state, capi_app_investor_state};
     use crate::capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId};
-    use crate::capi_asset::create::test_flow::test_flow::setup_capi_asset_flow;
+    use crate::capi_asset::create::setup_flow::test_flow::setup_capi_asset_flow;
     use crate::funds::FundsAmount;
+    use crate::state::account_state::asset_holdings_if_opted_in;
     use crate::testing::network_test_util::create_and_distribute_funds_asset;
     use crate::{
         dependencies,
@@ -60,6 +62,14 @@ mod tests {
             Err(ApplicationLocalStateError::NotOptedIn),
             app_investor_state_res
         );
+
+        let app_address = flow_res.app_address();
+        // The app escrow opted in to the assets
+        let app_funds = asset_holdings_if_opted_in(&algod, &app_address, funds_asset_id.0).await?;
+        assert_eq!(AssetAmount(0), app_funds);
+        let app_capi_assets =
+            asset_holdings_if_opted_in(&algod, &app_address, flow_res.asset_id.0).await?;
+        assert_eq!(AssetAmount(0), app_capi_assets);
 
         Ok(())
     }

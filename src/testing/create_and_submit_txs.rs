@@ -11,7 +11,7 @@ mod test {
         algo_helpers::{send_tx_and_wait, send_txs_and_wait},
         asset_amount::AssetAmount,
         capi_asset::capi_app_id::CapiAppId,
-        flows::shared::app::optin_to_app,
+        flows::shared::app::optin_to_capi_app,
         testing::algorand_checks::test::optin_to_asset,
     };
     use algonaut::{
@@ -112,7 +112,7 @@ mod test {
         sender: &Account,
         app_id: CapiAppId,
     ) -> Result<()> {
-        let tx = optin_to_app(params, app_id.0, sender.address()).await?;
+        let tx = optin_to_capi_app(params, app_id, sender.address())?;
         let signed = sender.sign_transaction(tx)?;
         log::debug!("Submitting dao app opt in: {app_id:?}");
         send_tx_and_wait(&algod, &signed).await?;

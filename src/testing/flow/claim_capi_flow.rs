@@ -27,10 +27,7 @@ mod test {
             test_data::investor2,
         },
     };
-    use algonaut::{
-        algod::v2::Algod,
-        transaction::{account::Account, contract_account::ContractAccount},
-    };
+    use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
     use rust_decimal::{prelude::ToPrimitive, Decimal};
     use std::{convert::TryInto, str::FromStr};
@@ -38,29 +35,18 @@ mod test {
     pub async fn claim_capi_flow(
         algod: &Algod,
         investor: &Account,
-        amount: FundsAmount,
-        funds_asset_id: FundsAssetId,
         app_id: CapiAppId,
-        capi_escrow: &ContractAccount,
+        funds_asset: FundsAssetId,
     ) -> Result<()> {
-        log::debug!("Calling claim_capi_flow, claim amount: {amount:?}");
+        log::debug!("Calling claim_capi_flow");
 
-        let to_sign = claim(
-            &algod,
-            &investor.address(),
-            app_id,
-            funds_asset_id,
-            amount,
-            capi_escrow,
-        )
-        .await?;
+        let to_sign = claim(&algod, &investor.address(), app_id, funds_asset).await?;
         let signed_app_call_tx = investor.sign_transaction(to_sign.app_call_tx)?;
 
         let submit_lock_tx_id = submit_claim(
             &algod,
             &ClaimSigned {
                 app_call_tx_signed: signed_app_call_tx,
-                claim_tx: to_sign.claim_tx,
             },
         )
         .await?;
@@ -109,7 +95,6 @@ mod test {
             asset_amount,
             td.capi_asset_id,
             td.capi_app_id,
-            &td.capi_escrow.address(),
         )
         .await?;
 
@@ -118,7 +103,6 @@ mod test {
         let drainer = investor2();
 
         let capi_dao_deps = CapiAssetDaoDeps {
-            escrow: *td.capi_escrow.address(),
             // value here has to ensure that we always get an integer result when diving an integer by it
             escrow_percentage: Decimal::from_str("0.1").unwrap().try_into().unwrap(),
             app_id: td.capi_app_id,

@@ -71,7 +71,7 @@ pub async fn drain_customer_escrow(
             *customer_escrow.address(),
             funds_asset_id.0,
             amounts.capi.val(),
-            capi_deps.escrow,
+            capi_deps.app_id.address(),
         )
         .build(),
     )

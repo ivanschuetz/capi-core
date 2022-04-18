@@ -24,7 +24,9 @@ pub async fn update(
 
     let update = TxnBuilder::with(
         &params,
-        UpdateApplication::new(*owner, app_id.0, compiled_approval, compiled_clear).build(),
+        UpdateApplication::new(*owner, app_id.0, compiled_approval, compiled_clear)
+            .app_arguments(vec!["update".as_bytes().to_vec()])
+            .build(),
     )
     .build()?;
 

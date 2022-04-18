@@ -9,6 +9,7 @@ use algonaut::{
 };
 use anyhow::{anyhow, Result};
 
+/// Returns asset holdings. If not opted in, returns 0 holdings.
 pub async fn asset_holdings(
     algod: &Algod,
     address: &Address,
@@ -17,6 +18,7 @@ pub async fn asset_holdings(
     asset_holdings_from_account(&algod.account_information(address).await?, asset_id)
 }
 
+/// Returns asset holdings. If not opted in, returns 0 holdings.
 pub fn asset_holdings_from_account(account: &Account, asset_id: u64) -> Result<AssetAmount> {
     Ok(account
         .assets
@@ -26,6 +28,28 @@ pub fn asset_holdings_from_account(account: &Account, asset_id: u64) -> Result<A
         // asset id not found -> user not opted in -> 0 holdings
         // we don't differentiate here between not opted in or opted in with no holdings
         .unwrap_or(AssetAmount(0)))
+}
+
+/// Returns asset holdings if opted in, otherwise error
+pub async fn asset_holdings_if_opted_in(
+    algod: &Algod,
+    address: &Address,
+    asset_id: u64,
+) -> Result<AssetAmount> {
+    asset_holdings_from_account_if_opted_in(&algod.account_information(address).await?, asset_id)
+}
+
+/// Returns asset holdings if opted in, otherwise error
+pub fn asset_holdings_from_account_if_opted_in(
+    account: &Account,
+    asset_id: u64,
+) -> Result<AssetAmount> {
+    account
+        .assets
+        .iter()
+        .find(|a| a.asset_id == asset_id)
+        .map(|h| AssetAmount(h.amount))
+        .ok_or(anyhow!("Not opted in to asset: {asset_id}"))
 }
 
 pub async fn funds_holdings(

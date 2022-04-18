@@ -63,12 +63,7 @@ mod tests {
         let capi_share = 123u64.as_decimal().try_into()?;
         let owner = creator();
 
-        let capi_escrow_address: Address =
-            "AAU2GR4AJTOAESPTO77NIKC72TTIXDNCIP3LI67PFRCWQTN35JD26ENO75"
-                .parse()
-                .map_err(Error::msg)?;
         // let capi_deps = &CapiAssetDaoDeps {
-        //     escrow: capi_escrow_address,
         //     escrow_percentage: Decimal::from_str("0.1").unwrap().try_into()?,
         //     app_id: CapiAppId(123),
         //     asset_id: CapiAssetId(123),
@@ -84,7 +79,6 @@ mod tests {
             share_supply,
             TESTS_DEFAULT_PRECISION,
             investors_share,
-            &capi_escrow_address,
             capi_app_id,
             capi_share,
             shares_price,

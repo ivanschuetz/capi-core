@@ -4,7 +4,6 @@ mod tests {
         capi_asset::{
             capi_app_state::{capi_app_global_state, capi_app_investor_state},
             capi_asset_id::CapiAssetAmount,
-            claim::claim::claimable_capi_dividend,
         },
         funds::FundsAmount,
         teal::TealSource,
@@ -92,7 +91,7 @@ mod tests {
 
         let investor_capi_amount = CapiAssetAmount::new(100_000);
         let initial_capi_funds_amount = FundsAmount::new(200_000);
-        let precs = claim_capi_precs(
+        let _ = claim_capi_precs(
             td,
             &td.capi_owner,
             investor,
@@ -100,23 +99,7 @@ mod tests {
             initial_capi_funds_amount,
         )
         .await?;
-        let dividend = claimable_capi_dividend(
-            // the calculated capi fee is what's on the capi app (total received state) now
-            precs.drain_res.drained_amounts.capi,
-            FundsAmount::new(0),
-            investor_capi_amount,
-            td.capi_supply,
-            td.precision,
-        )?;
-        claim_capi_flow(
-            algod,
-            investor,
-            dividend,
-            td.funds_asset_id,
-            td.capi_app_id,
-            &td.capi_escrow.account,
-        )
-        .await?;
+        claim_capi_flow(algod, investor, td.capi_app_id, td.funds_asset_id).await?;
 
         // flow
 

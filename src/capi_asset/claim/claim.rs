@@ -1,5 +1,4 @@
 use crate::{
-    algo_helpers::calculate_total_fee,
     capi_asset::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetAmount},
     decimal_util::AsDecimal,
     flows::create_dao::storage::load_dao::TxId,
@@ -8,12 +7,7 @@ use crate::{
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
-    transaction::{
-        builder::{CallApplication, TxnFee},
-        contract_account::ContractAccount,
-        tx_group::TxGroup,
-        SignedTransaction, Transaction, TransferAsset, TxnBuilder,
-    },
+    transaction::{builder::CallApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::{anyhow, Result};
 use rust_decimal::prelude::ToPrimitive;
@@ -26,38 +20,23 @@ pub async fn claim(
     algod: &Algod,
     claimer: &Address,
     capi_app_id: CapiAppId,
-    funds_asset_id: FundsAssetId,
-    amount: FundsAmount,
-    capi_escrow: &ContractAccount,
+    funds_asset: FundsAssetId,
 ) -> Result<ClaimToSign> {
-    log::debug!("Generating capi claim txs, claimer: {:?}, capi_app_id: {:?}, amount: {:?}, central_escrow: {:?}", claimer, capi_app_id, amount, capi_escrow);
+    log::debug!(
+        "Generating capi claim txs, claimer: {:?}, capi_app_id: {:?}",
+        claimer,
+        capi_app_id,
+    );
     let params = algod.suggested_transaction_params().await?;
 
-    // Funds transfer from escrow to claimer
-    let mut claim_tx = TxnBuilder::with_fee(
-        &params,
-        TxnFee::zero(),
-        TransferAsset::new(
-            *capi_escrow.address(),
-            funds_asset_id.0,
-            amount.val(),
-            *claimer,
-        )
-        .build(),
-    )
-    .build()?;
-
     // App call to update user's local state with claimed amount
-    let mut app_call_tx = claim_app_call_tx(capi_app_id, &params, claimer)?;
+    let mut app_call_tx = claim_app_call_tx(capi_app_id, &params, claimer, funds_asset)?;
 
-    app_call_tx.fee = calculate_total_fee(&params, &[&claim_tx, &app_call_tx])?;
-    TxGroup::assign_group_id(&mut [&mut app_call_tx, &mut claim_tx])?;
-
-    let signed_claim_tx = capi_escrow.sign(claim_tx, vec![])?;
+    // pay the fee for the dividend xfer inner tx
+    app_call_tx.fee = app_call_tx.fee * 2;
 
     Ok(ClaimToSign {
         app_call_tx: app_call_tx.clone(),
-        claim_tx: signed_claim_tx,
     })
 }
 
@@ -65,11 +44,13 @@ pub fn claim_app_call_tx(
     app_id: CapiAppId,
     params: &SuggestedTransactionParams,
     sender: &Address,
+    funds_asset: FundsAssetId,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
         params,
         CallApplication::new(*sender, app_id.0)
             .app_arguments(vec!["claim".as_bytes().to_vec()])
+            .foreign_assets(vec![funds_asset.0])
             .build(),
     )
     .build()?;
@@ -80,9 +61,8 @@ pub async fn submit_claim(algod: &Algod, signed: &ClaimSigned) -> Result<TxId> {
     log::debug!("Submit capi claim..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
-    let txs = vec![signed.app_call_tx_signed.clone(), signed.claim_tx.clone()];
+    let txs = vec![signed.app_call_tx_signed.clone()];
     // crate::teal::debug_teal_rendered(&txs, "capi_app_approval").unwrap();
-    // crate::teal::debug_teal_rendered(&txs, "capi_escrow").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Claim tx id: {:?}", res.tx_id);
@@ -155,11 +135,9 @@ pub fn claimable_capi_dividend(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClaimToSign {
     pub app_call_tx: Transaction,
-    pub claim_tx: SignedTransaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimSigned {
     pub app_call_tx_signed: SignedTransaction,
-    pub claim_tx: SignedTransaction,
 }

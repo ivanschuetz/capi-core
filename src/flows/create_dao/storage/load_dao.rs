@@ -54,9 +54,11 @@ pub async fn load_dao(
     // TODO store this state (redundantly in the same app field), to prevent this call?
     let asset_infos = algod.asset_information(dao_state.shares_asset_id).await?;
 
+    let capi_escrow_address = capi_deps.app_id.address();
+
     // Render and compile the escrows
     let customer_escrow_account_fut =
-        render_and_compile_customer_escrow(algod, &customer_escrow, &capi_deps.escrow, app_id);
+        render_and_compile_customer_escrow(algod, &customer_escrow, &capi_escrow_address, app_id);
     let investing_escrow_account_fut = render_and_compile_investing_escrow(
         algod,
         dao_state.shares_asset_id,

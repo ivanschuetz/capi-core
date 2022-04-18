@@ -4,7 +4,7 @@ mod tests {
         api::api::LocalApi,
         capi_asset::{
             capi_asset_id::CapiAssetAmount, common_test::lock_unlock::test_shares_locked,
-            create::test_flow::test_flow::setup_capi_asset_flow,
+            create::setup_flow::test_flow::setup_capi_asset_flow,
         },
         dependencies,
         testing::{
@@ -65,7 +65,6 @@ mod tests {
             investor_assets_amount,
             capi_deps.asset_id,
             capi_deps.app_id,
-            &capi_deps.escrow.address(),
         )
         .await?;
 
@@ -78,7 +77,7 @@ mod tests {
             capi_deps.app_id,
             investor_assets_amount,
             CapiAssetAmount::new(0), // the investor locked everything
-            &capi_deps.escrow.address(),
+            &capi_deps.app_address(),
         )
         .await?;
 
@@ -127,7 +126,6 @@ mod tests {
             partial_lock_amount,
             capi_deps.asset_id,
             capi_deps.app_id,
-            &capi_deps.escrow.address(),
         )
         .await?;
 
@@ -140,7 +138,7 @@ mod tests {
             capi_deps.app_id,
             partial_lock_amount,
             CapiAssetAmount::new(investor_assets_amount.val() - partial_lock_amount.val()),
-            &capi_deps.escrow.address(),
+            &capi_deps.app_address(),
         )
         .await?;
 

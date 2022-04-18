@@ -54,7 +54,7 @@ mod tests {
         );
         // capi escrow received its part
         let capi_escrow_amount =
-            funds_holdings(&algod, &td.capi_escrow.address(), td.funds_asset_id).await?;
+            funds_holdings(&algod, &td.capi_app_id.address(), td.funds_asset_id).await?;
         assert_eq!(drain_res.drained_amounts.capi, capi_escrow_amount);
 
         // dao app received global state set to what was drained (to the dao)

@@ -52,7 +52,7 @@ pub async fn create_dao_txs(
         &programs.escrows.customer_escrow,
         &params,
         funds_asset_id,
-        &capi_deps.escrow,
+        &capi_deps.app_id.address(),
         app_id,
     )
     .await?;
@@ -204,5 +204,4 @@ pub struct Escrows {
 pub struct CapiPrograms {
     pub app_approval: VersionedTealSourceTemplate,
     pub app_clear: VersionedTealSourceTemplate,
-    pub escrow: VersionedTealSourceTemplate,
 }

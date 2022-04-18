@@ -9,7 +9,7 @@ pub mod test {
     use crate::{
         api::version::Version,
         flows::create_dao::{
-            create_dao::{create_dao_txs, submit_create_dao, CapiPrograms},
+            create_dao::{create_dao_txs, submit_create_dao},
             model::{CreateDaoSigned, Dao},
             setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
         },
@@ -126,23 +126,6 @@ pub mod test {
                     Version(1),
                 ),
             },
-        })
-    }
-
-    pub fn test_capi_programs() -> Result<CapiPrograms> {
-        Ok(CapiPrograms {
-            app_approval: VersionedTealSourceTemplate::new(
-                load_teal_template("capi_app_approval")?,
-                Version(1),
-            ),
-            app_clear: VersionedTealSourceTemplate::new(
-                load_teal_template("capi_app_clear")?,
-                Version(1),
-            ),
-            escrow: VersionedTealSourceTemplate::new(
-                load_teal_template("capi_escrow")?,
-                Version(1),
-            ),
         })
     }
 }
