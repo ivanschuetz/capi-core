@@ -35,6 +35,8 @@ const GLOBAL_INVESTORS_PART: AppStateKey = AppStateKey("InvestorsPart");
 const GLOBAL_LOGO_URL: AppStateKey = AppStateKey("LogoUrl");
 const GLOBAL_SOCIAL_MEDIA_URL: AppStateKey = AppStateKey("SocialMediaUrl");
 
+const GLOBAL_SHARES_LOCKED: AppStateKey = AppStateKey("LockedShares");
+
 // not sure this is needed
 const GLOBAL_OWNER: AppStateKey = AppStateKey("Owner");
 
@@ -46,7 +48,7 @@ const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_DAO: AppStateKey = AppStateKey("Dao");
 
 pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 8; // customer escrow, investing escrow, dao name, dao descr, logo, social media, owner, versions
-pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 5; // total received, shares asset id, funds asset id, share price, investors part
+pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 6; // total received, shares asset id, funds asset id, share price, investors part, shares locked
 
 pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 1; // for investors: "dao"
 pub const LOCAL_SCHEMA_NUM_INTS: u64 = 3; // for investors: "shares", "claimed total", "claimed init"
@@ -73,6 +75,8 @@ pub struct CentralAppGlobalState {
     pub social_media_url: String,
 
     pub owner: Address,
+
+    pub locked_shares: ShareAmount,
 }
 
 /// Returns Ok only if called after dao setup (branch_setup_dao), where all the global state is initialized.
@@ -106,6 +110,8 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
     let versions_bytes = get_bytes_or_err(&GLOBAL_VERSIONS, &gs)?;
     let versions = bytes_to_versions(&versions_bytes)?;
 
+    let shares_locked = ShareAmount::new(get_int_or_err(&GLOBAL_SHARES_LOCKED, &gs)?);
+
     Ok(CentralAppGlobalState {
         received: total_received,
         customer_escrow: VersionedAddress::new(customer_escrow, versions.customer_escrow),
@@ -121,6 +127,7 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
         logo_url,
         social_media_url,
         owner,
+        locked_shares: shares_locked,
     })
 }
 

@@ -11,7 +11,7 @@ mod tests {
         network_util::wait_for_pending_transaction,
         state::{
             account_state::{asset_holdings, find_asset_holding_or_err},
-            dao_app_state::central_investor_state_from_acc,
+            dao_app_state::{central_investor_state_from_acc, dao_global_state},
         },
         testing::{
             flow::{
@@ -46,6 +46,13 @@ mod tests {
 
         let unlock_tx_id = unlock_flow(algod, &dao, investor, dao.shares_asset_id).await?;
         wait_for_pending_transaction(algod, &unlock_tx_id).await?;
+
+        // test
+
+        // global state decremented
+        let gs = dao_global_state(algod, dao.app_id).await?;
+        // complete unlock and no one else has locked shares - we expect 0 locked shares in global state
+        assert_eq!(ShareAmount::new(0), gs.locked_shares);
 
         // shares not anymore in app escrow
         let app_escrow_infos = algod.account_information(&dao.app_address()).await?;
@@ -102,6 +109,10 @@ mod tests {
         let share_holdings =
             asset_holdings(&algod, &dao.app_address(), dao.shares_asset_id).await?;
         assert_eq!(buy_share_amount.0, share_holdings.0);
+
+        // check locked global state (assumes only share amount has been locked)
+        let gs = dao_global_state(algod, dao.app_id).await?;
+        assert_eq!(buy_share_amount, gs.locked_shares);
 
         Ok(())
     }

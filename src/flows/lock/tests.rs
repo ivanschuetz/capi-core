@@ -22,7 +22,9 @@ mod tests {
                 funds_holdings_from_account,
             },
             app_state::ApplicationLocalStateError,
-            dao_app_state::{central_investor_state_from_acc, dao_investor_state},
+            dao_app_state::{
+                central_investor_state_from_acc, dao_global_state, dao_investor_state,
+            },
         },
         testing::{
             flow::{
@@ -110,6 +112,10 @@ mod tests {
         lock_flow(algod, &dao, &td.investor2, traded_shares).await?;
 
         // tests
+
+        // global state set to locked shares
+        let gs = dao_global_state(algod, dao.app_id).await?;
+        assert_eq!(traded_shares, gs.locked_shares);
 
         // investor2 lost locked assets
 
@@ -243,6 +249,10 @@ mod tests {
         lock_flow(algod, &dao, investor, partial_lock_amount).await?;
 
         // tests
+
+        // global state set to locked shares
+        let gs = dao_global_state(algod, dao.app_id).await?;
+        assert_eq!(partial_lock_amount, gs.locked_shares);
 
         // investor locked the shares
         let investor_state = dao_investor_state(&algod, &investor.address(), dao.app_id).await?;

@@ -45,6 +45,10 @@ mod tests {
 
         let flow_res = invests_flow(&td, &investor, buy_share_amount, &dao).await?;
 
+        // locked shares global state set to bought shares
+        let gs = dao_global_state(algod, dao.app_id).await?;
+        assert_eq!(buy_share_amount, gs.locked_shares);
+
         // app escrow tests
 
         // app escrow received the shares
@@ -139,12 +143,15 @@ mod tests {
 
         // tests
 
+        let total_shares = ShareAmount::new(buy_share_amount.val() + buy_share_amount2.val());
+
+        // locked shares global state set to bought shares
+        let gs = dao_global_state(algod, dao.app_id).await?;
+        assert_eq!(total_shares, gs.locked_shares);
+
         // investor has shares for both investments
         let investor_state = dao_investor_state(&algod, &investor.address(), dao.app_id).await?;
-        assert_eq!(
-            buy_share_amount.val() + buy_share_amount2.val(),
-            investor_state.shares.val()
-        );
+        assert_eq!(total_shares, investor_state.shares);
 
         Ok(())
     }
@@ -183,12 +190,15 @@ mod tests {
 
         // tests
 
+        let total_shares = ShareAmount::new(lock_amount.val() + invest_amount.val());
+
+        // locked shares global state set to investment + locking
+        let gs = dao_global_state(algod, dao.app_id).await?;
+        assert_eq!(total_shares, gs.locked_shares);
+
         // investor has shares for investment + locking
         let investor_state = dao_investor_state(algod, &investor.address(), dao.app_id).await?;
-        assert_eq!(
-            lock_amount.val() + invest_amount.val(),
-            investor_state.shares.val()
-        );
+        assert_eq!(total_shares, investor_state.shares);
 
         Ok(())
     }
@@ -227,12 +237,15 @@ mod tests {
 
         // tests
 
+        let total_shares = ShareAmount::new(lock_amount.val() + invest_amount.val());
+
+        // locked shares global state set to investment + locking
+        let gs = dao_global_state(algod, dao.app_id).await?;
+        assert_eq!(total_shares, gs.locked_shares);
+
         // investor has shares for investment + locking
         let investor_state = dao_investor_state(algod, &investor.address(), dao.app_id).await?;
-        assert_eq!(
-            lock_amount.val() + invest_amount.val(),
-            investor_state.shares.val()
-        );
+        assert_eq!(total_shares, investor_state.shares);
 
         Ok(())
     }
@@ -281,12 +294,15 @@ mod tests {
 
         // tests
 
+        let total_shares = ShareAmount::new(lock_amount1.val() + lock_amount2.val());
+
+        // locked shares global state set to total
+        let gs = dao_global_state(algod, dao.app_id).await?;
+        assert_eq!(total_shares, gs.locked_shares);
+
         // investor has shares for investment + locking
         let investor_state = dao_investor_state(algod, &investor.address(), dao.app_id).await?;
-        assert_eq!(
-            lock_amount1.val() + lock_amount2.val(),
-            investor_state.shares.val()
-        );
+        assert_eq!(total_shares, investor_state.shares);
 
         Ok(())
     }
