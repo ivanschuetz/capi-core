@@ -40,7 +40,6 @@ pub struct CreateDaoToSign {
     pub optin_txs: Vec<SignedTransaction>,
 
     pub specs: CreateDaoSpecs,
-    pub locking_escrow: VersionedContractAccount,
     pub invest_escrow: VersionedContractAccount,
     pub customer_escrow: VersionedContractAccount,
     pub creator: Address,
@@ -60,7 +59,6 @@ pub struct CreateDaoSigned {
     pub app_id: DaoAppId,
     pub funds_asset_id: FundsAssetId,
     pub invest_escrow: VersionedContractAccount,
-    pub locking_escrow: VersionedContractAccount,
     pub customer_escrow: VersionedContractAccount,
 }
 
@@ -74,7 +72,6 @@ pub struct Dao {
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
     pub invest_escrow: VersionedContractAccount,
-    pub locking_escrow: VersionedContractAccount,
     pub customer_escrow: VersionedContractAccount,
 }
 

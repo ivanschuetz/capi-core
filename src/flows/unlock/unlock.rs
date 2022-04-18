@@ -1,19 +1,8 @@
-use crate::{
-    algo_helpers::calculate_total_fee,
-    flows::create_dao::{
-        share_amount::ShareAmount,
-        storage::load_dao::{DaoAppId, TxId},
-    },
-};
+use crate::flows::create_dao::storage::load_dao::{DaoAppId, TxId};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
-    transaction::{
-        builder::{CloseApplication, TxnFee},
-        contract_account::ContractAccount,
-        tx_group::TxGroup,
-        SignedTransaction, Transaction, TransferAsset, TxnBuilder,
-    },
+    transaction::{builder::CloseApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -24,11 +13,8 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 pub async fn unlock(
     algod: &Algod,
     investor: Address,
-    // required to be === held shares (otherwise central app rejects the tx)
-    share_amount: ShareAmount,
-    shares_asset_id: u64,
     app_id: DaoAppId,
-    locking_escrow: &ContractAccount,
+    shares_asset_id: u64,
 ) -> Result<UnlockToSign> {
     let params = algod.suggested_transaction_params().await?;
 
@@ -37,33 +23,16 @@ pub async fn unlock(
         &params,
         CloseApplication::new(investor, app_id.0)
             .app_arguments(vec!["unlock".as_bytes().to_vec()])
+            .foreign_assets(vec![shares_asset_id])
             .build(),
     )
     .build()?;
 
-    // Retrieve investor's assets from locking escrow
-    let mut shares_xfer_tx = TxnBuilder::with_fee(
-        &params,
-        TxnFee::zero(),
-        TransferAsset::new(
-            *locking_escrow.address(),
-            shares_asset_id,
-            share_amount.val(),
-            investor,
-        )
-        .build(),
-    )
-    .build()?;
-
-    central_app_optout_tx.fee =
-        calculate_total_fee(&params, &[&central_app_optout_tx, &shares_xfer_tx])?;
-    TxGroup::assign_group_id(&mut [&mut central_app_optout_tx, &mut shares_xfer_tx])?;
-
-    let signed_shares_xfer_tx = locking_escrow.sign(shares_xfer_tx, vec![])?;
+    // pay for the xfer inner tx
+    central_app_optout_tx.fee = central_app_optout_tx.fee * 2;
 
     Ok(UnlockToSign {
         central_app_optout_tx: central_app_optout_tx.clone(),
-        shares_xfer_tx: signed_shares_xfer_tx,
     })
 }
 
@@ -71,9 +40,8 @@ pub async fn submit_unlock(algod: &Algod, signed: UnlockSigned) -> Result<TxId> 
     log::debug!("calling submit unlock..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
-    let txs = vec![signed.central_app_optout_tx, signed.shares_xfer_tx_signed];
+    let txs = vec![signed.central_app_optout_tx];
 
-    // crate::teal::debug_teal_rendered(&txs, "locking_escrow").unwrap();
     // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
@@ -84,11 +52,9 @@ pub async fn submit_unlock(algod: &Algod, signed: UnlockSigned) -> Result<TxId> 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnlockToSign {
     pub central_app_optout_tx: Transaction,
-    pub shares_xfer_tx: SignedTransaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UnlockSigned {
     pub central_app_optout_tx: SignedTransaction,
-    pub shares_xfer_tx_signed: SignedTransaction,
 }

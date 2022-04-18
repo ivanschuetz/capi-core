@@ -35,7 +35,6 @@ pub async fn create_investing_escrow(
     shares_asset_id: u64,
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
-    locking_escrow_address: &Address,
     source: &VersionedTealSourceTemplate,
     app_id: DaoAppId,
 ) -> Result<VersionedContractAccount> {
@@ -44,7 +43,6 @@ pub async fn create_investing_escrow(
         shares_asset_id,
         share_price,
         funds_asset_id,
-        locking_escrow_address,
         source,
         app_id,
     )
@@ -57,7 +55,6 @@ pub async fn render_and_compile_investing_escrow(
     shares_asset_id: u64,
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
-    locking_escrow_address: &Address,
     template: &VersionedTealSourceTemplate,
     app_id: DaoAppId,
 ) -> Result<VersionedContractAccount> {
@@ -67,11 +64,10 @@ pub async fn render_and_compile_investing_escrow(
             shares_asset_id,
             share_price,
             funds_asset_id,
-            locking_escrow_address,
             app_id,
         ),
         _ => Err(anyhow!(
-            "Locking escrow version not supported: {:?}",
+            "Investing escrow version not supported: {:?}",
             template.version
         )),
     }?;
@@ -88,7 +84,6 @@ pub fn render_investing_escrow_v1(
     shares_asset_id: u64,
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
-    locking_escrow_address: &Address,
     app_id: DaoAppId,
 ) -> Result<TealSource> {
     let escrow_source = render_template_new(
@@ -97,10 +92,6 @@ pub fn render_investing_escrow_v1(
             ("TMPL_SHARES_ASSET_ID", &shares_asset_id.to_string()),
             ("TMPL_SHARE_PRICE", &share_price.0.to_string()),
             ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
-            (
-                "TMPL_LOCKING_ESCROW_ADDRESS",
-                &locking_escrow_address.to_string(),
-            ),
             ("TMPL_APP_ESCROW_ADDRESS", &app_id.address().to_string()),
             ("TMPL_CENTRAL_APP_ID", &app_id.0.to_string()),
         ],
@@ -119,12 +110,11 @@ pub async fn setup_investing_escrow_txs(
     share_price: &FundsAmount,
     funds_asset_id: &FundsAssetId,
     creator: &Address,
-    locking_escrow_address: &Address,
     params: &SuggestedTransactionParams,
     app_id: DaoAppId,
 ) -> Result<SetupInvestingEscrowToSign> {
     log::debug!(
-        "Setting up investing escrow with asset id: {shares_asset_id}, transfer_share_amount: {share_supply}, creator: {creator}, locking_escrow_address: {locking_escrow_address}"
+        "Setting up investing escrow with asset id: {shares_asset_id}, transfer_share_amount: {share_supply}, creator: {creator}"
     );
 
     let escrow = create_investing_escrow(
@@ -132,7 +122,6 @@ pub async fn setup_investing_escrow_txs(
         shares_asset_id,
         share_price,
         funds_asset_id,
-        locking_escrow_address,
         source,
         app_id,
     )
@@ -198,7 +187,6 @@ struct EditTemplateContext {
     shares_asset_id: String,
     share_price: String,
     funds_asset_id: String,
-    locking_escrow_address: String,
     app_id: String,
 }
 
@@ -212,7 +200,6 @@ mod tests {
         funds::{FundsAmount, FundsAssetId},
         teal::load_teal_template,
     };
-    use algonaut::core::Address;
     use anyhow::Result;
     use tokio::test;
 
@@ -226,7 +213,6 @@ mod tests {
             123,
             &FundsAmount::new(1_000_000),
             &FundsAssetId(123),
-            &Address::new([0; 32]),
             DaoAppId(123),
         )?;
         let source_str = String::from_utf8(source.0)?;
@@ -243,7 +229,6 @@ mod tests {
             123,
             &FundsAmount::new(1_000_000),
             &FundsAssetId(123),
-            &Address::new([0; 32]),
             DaoAppId(123),
         )?;
 

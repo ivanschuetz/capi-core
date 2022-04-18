@@ -16,14 +16,13 @@ use anyhow::Result;
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 
 /// Note that this is only for shares that have been bought in the market
-/// The investing flow doesn't use this: there's an xfer from the investing account to the locking escrow in the investing tx group
+/// The investing flow doesn't use this: there's an xfer from the investing account to the app escrow in the investing tx group
 pub async fn lock(
     algod: &Algod,
     investor: Address,
     share_amount: ShareAmount,
     shares_asset_id: u64,
     app_id: DaoAppId,
-    locking_escrow: &Address,
     dao_id: DaoId,
 ) -> Result<LockToSign> {
     let params = algod.suggested_transaction_params().await?;
@@ -37,14 +36,14 @@ pub async fn lock(
     )
     .build()?;
 
-    // Send investor's assets to lock escrow
+    // Send investor's assets to app escrow
     let mut shares_xfer_tx = TxnBuilder::with(
         &params,
         TransferAsset::new(
             investor,
             shares_asset_id,
             share_amount.val(),
-            *locking_escrow,
+            app_id.address(),
         )
         .build(),
     )

@@ -18,7 +18,8 @@ mod tests {
         network_util::wait_for_pending_transaction,
         state::{
             account_state::{
-                find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
+                asset_holdings, find_asset_holding_or_err, funds_holdings,
+                funds_holdings_from_account,
             },
             app_state::ApplicationLocalStateError,
             dao_app_state::{central_investor_state_from_acc, dao_investor_state},
@@ -60,7 +61,7 @@ mod tests {
 
         // investor1 unlocks
         let traded_shares = buy_share_amount;
-        let unlock_tx_id = unlock_flow(algod, &dao, &td.investor1, traded_shares).await?;
+        let unlock_tx_id = unlock_flow(algod, &dao, &td.investor1, dao.shares_asset_id).await?;
         wait_for_pending_transaction(algod, &unlock_tx_id).await?;
 
         // investor2 gets shares from investor1 externally
@@ -141,13 +142,10 @@ mod tests {
         // renaming for clarity
         let entitled_amount_after_locking_shares = investor2_entitled_amount;
 
-        // locking escrow got assets
-        let locking_escrow_infos = algod
-            .account_information(dao.locking_escrow.address())
-            .await?;
-        let locking_escrow_assets = locking_escrow_infos.assets;
-        assert_eq!(1, locking_escrow_assets.len()); // opted in to shares
-        assert_eq!(traded_shares.0, locking_escrow_assets[0].amount);
+        // app escrow got assets
+        let app_escrow_shares =
+            asset_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
+        assert_eq!(traded_shares.0, app_escrow_shares);
 
         // investor2 claims: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         let _ = claim_flow(td, &dao, &td.investor2).await;
@@ -210,7 +208,7 @@ mod tests {
 
         // investor unlocks - note that partial unlocking isn't possible, only locking
 
-        let unlock_tx_id = unlock_flow(algod, &dao, &investor, buy_share_amount).await?;
+        let unlock_tx_id = unlock_flow(algod, &dao, &investor, dao.shares_asset_id).await?;
         wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
 
         // sanity checks

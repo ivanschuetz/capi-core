@@ -7,7 +7,7 @@ mod tests {
     use crate::network_util::wait_for_pending_transaction;
     use crate::queries::my_daos::my_current_invested_daos;
     use crate::state::account_state::{
-        find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
+        asset_holdings, find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
     };
     use crate::state::dao_app_state::{
         central_investor_state_from_acc, dao_global_state, dao_investor_state,
@@ -45,16 +45,12 @@ mod tests {
 
         let flow_res = invests_flow(&td, &investor, buy_share_amount, &dao).await?;
 
-        // locking escrow tests
+        // app escrow tests
 
-        let locking_escrow_infos = algod
-            .account_information(dao.locking_escrow.address())
-            .await?;
-        // locking escrow received the shares
-        let locking_escrow_assets = locking_escrow_infos.assets;
-        assert_eq!(1, locking_escrow_assets.len());
-        assert_eq!(buy_share_amount.0, locking_escrow_assets[0].amount);
-        // locking escrow doesn't send any transactions so not testing balances (we could "double check" though)
+        // app escrow received the shares
+        let app_shares = asset_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
+        assert_eq!(buy_share_amount.0, app_shares.0);
+        // app escrow doesn't send any transactions so not testing balances (we could "double check" though)
 
         // investor tests
 
@@ -430,7 +426,7 @@ mod tests {
         let algod = &td.algod;
 
         invests_flow(td, investor, share_amount, &dao).await?;
-        let unlock_tx_id = unlock_flow(algod, &dao, investor, share_amount).await?;
+        let unlock_tx_id = unlock_flow(algod, &dao, investor, dao.shares_asset_id).await?;
         wait_for_pending_transaction(algod, &unlock_tx_id).await?;
         Ok(())
     }

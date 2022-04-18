@@ -95,7 +95,6 @@ pub mod test {
                 setup_app_tx: signed_setup_app_tx,
                 xfer_shares_to_invest_escrow: signed_xfer_shares_to_invest_escrow,
                 invest_escrow: to_sign.invest_escrow,
-                locking_escrow: to_sign.locking_escrow,
                 customer_escrow: to_sign.customer_escrow,
                 app_id: create_assets_res.app_id,
             },
@@ -124,10 +123,6 @@ pub mod test {
                 ),
                 invest_escrow: VersionedTealSourceTemplate::new(
                     load_teal_template("investing_escrow")?,
-                    Version(1),
-                ),
-                locking_escrow: VersionedTealSourceTemplate::new(
-                    load_teal_template("locking_escrow")?,
                     Version(1),
                 ),
             },

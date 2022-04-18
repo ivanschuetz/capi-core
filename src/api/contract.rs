@@ -2,7 +2,6 @@
 pub enum Contract {
     DaoCustomer,
     DaoInvesting,
-    Daolocking,
     DaoAppApproval,
     DaoAppClear,
     CapiCentral,

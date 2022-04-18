@@ -43,7 +43,7 @@ pub async fn unlock_capi_assets(
     )
     .build()?;
 
-    // Retrieve investor's assets from locking escrow
+    // Retrieve investor's assets from app escrow
     let mut shares_xfer_tx = TxnBuilder::with_fee(
         &params,
         TxnFee::zero(),

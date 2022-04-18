@@ -23,7 +23,6 @@ const GLOBAL_TOTAL_RECEIVED: AppStateKey = AppStateKey("CentralReceivedTotal");
 
 const GLOBAL_CUSTOMER_ESCROW_ADDRESS: AppStateKey = AppStateKey("CustomerEscrowAddress");
 const GLOBAL_INVESTING_ESCROW_ADDRESS: AppStateKey = AppStateKey("InvestingEscrowAddress");
-const GLOBAL_LOCKING_ESCROW_ADDRESS: AppStateKey = AppStateKey("LockingEscrowAddress");
 
 const GLOBAL_FUNDS_ASSET_ID: AppStateKey = AppStateKey("FundsAssetId");
 const GLOBAL_SHARES_ASSET_ID: AppStateKey = AppStateKey("SharesAssetId");
@@ -46,7 +45,7 @@ const LOCAL_CLAIMED_INIT: AppStateKey = AppStateKey("ClaimedInit");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_DAO: AppStateKey = AppStateKey("Dao");
 
-pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 9; // customer escrow, investing escrow, locking escrow, dao name, dao descr, logo, social media, owner, versions
+pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 8; // customer escrow, investing escrow, dao name, dao descr, logo, social media, owner, versions
 pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 5; // total received, shares asset id, funds asset id, share price, investors part
 
 pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 1; // for investors: "dao"
@@ -58,7 +57,6 @@ pub struct CentralAppGlobalState {
 
     pub customer_escrow: VersionedAddress,
     pub investing_escrow: VersionedAddress,
-    pub locking_escrow: VersionedAddress,
 
     pub app_approval_version: Version,
     pub app_clear_version: Version,
@@ -90,7 +88,6 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
 
     let customer_escrow = read_address_from_state(&gs, GLOBAL_CUSTOMER_ESCROW_ADDRESS)?;
     let investing_escrow = read_address_from_state(&gs, GLOBAL_INVESTING_ESCROW_ADDRESS)?;
-    let locking_escrow = read_address_from_state(&gs, GLOBAL_LOCKING_ESCROW_ADDRESS)?;
 
     let funds_asset_id = FundsAssetId(get_int_or_err(&GLOBAL_FUNDS_ASSET_ID, &gs)?);
     let shares_asset_id = get_int_or_err(&GLOBAL_SHARES_ASSET_ID, &gs)?;
@@ -113,7 +110,6 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
         received: total_received,
         customer_escrow: VersionedAddress::new(customer_escrow, versions.customer_escrow),
         investing_escrow: VersionedAddress::new(investing_escrow, versions.investing_escrow),
-        locking_escrow: VersionedAddress::new(locking_escrow, versions.locking_escrow),
         app_approval_version: versions.app_approval,
         app_clear_version: versions.app_clear,
         funds_asset_id,

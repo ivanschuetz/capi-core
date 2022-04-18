@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use algonaut::{
     algod::v2::Algod,
-    core::Address,
+    core::{to_app_address, Address},
     indexer::v2::Indexer,
     model::indexer::v2::{Account, AssetHolding, QueryAccount},
 };
@@ -25,17 +25,8 @@ pub async fn shares_holders_distribution(
     app_id: DaoAppId,
     asset_supply: u64,
     investing_escrow: &Address,
-    locking_escrow: &Address,
 ) -> Result<Vec<ShareHoldingPercentage>> {
-    let holdings = share_sholders(
-        algod,
-        indexer,
-        asset_id,
-        app_id,
-        investing_escrow,
-        locking_escrow,
-    )
-    .await?;
+    let holdings = share_sholders(algod, indexer, asset_id, app_id, investing_escrow).await?;
     let asset_supply_decimal: Decimal = asset_supply.into();
 
     if asset_supply_decimal.is_zero() {
@@ -66,17 +57,21 @@ pub async fn shares_holders_distribution(
     Ok(holding_percentages)
 }
 
-/// Addresses holding shares (either the asset directly or local state (locked)). Excluding the investing and locking escrow.
+/// Addresses holding shares (either the asset directly or local state (locked)). Excluding the investing and app escrow.
 async fn share_sholders(
     algod: &Algod,
     indexer: &Indexer,
     asset_id: u64,
     app_id: DaoAppId,
     investing_escrow: &Address,
-    locking_escrow: &Address,
 ) -> Result<Vec<ShareHolding>> {
-    let free_holders =
-        free_assets_holdings(indexer, asset_id, investing_escrow, locking_escrow).await?;
+    let free_holders = free_assets_holdings(
+        indexer,
+        asset_id,
+        investing_escrow,
+        &to_app_address(app_id.0),
+    )
+    .await?;
     let lockers = lockers_holdings(algod, indexer, app_id).await?;
     let mut merged = merge(free_holders, lockers);
     // sort descendingly by amount
@@ -163,7 +158,7 @@ async fn free_assets_holdings(
     indexer: &Indexer,
     asset_id: u64,
     investing_escrow: &Address,
-    locking_escrow: &Address,
+    app_escrow: &Address,
 ) -> Result<Vec<ShareHolding>> {
     let accounts = indexer
         .accounts(&QueryAccount {
@@ -179,9 +174,9 @@ async fn free_assets_holdings(
         let asset_amount = find_amount(asset_id, &holder.assets)?;
 
         if asset_amount > 0 // if accounts have no assets but are opted in, we get 0 count - filter those out
-            // the investing or locking escrow shouldn't show up on the holders list
+            // the investing or app escrow shouldn't show up on the holders list
             && &holder.address != investing_escrow
-            && &holder.address != locking_escrow
+            && &holder.address != app_escrow
         {
             holdings.push(ShareHolding {
                 amount: find_amount(asset_id, &holder.assets)?.into(),
@@ -197,10 +192,10 @@ pub async fn holders_count(
     indexer: &Indexer,
     asset_id: u64,
     investing_escrow: &Address,
-    locking_escrow: &Address,
+    app_escrow: &Address,
 ) -> Result<usize> {
     let holders_holdings =
-        free_assets_holdings(indexer, asset_id, investing_escrow, locking_escrow).await?;
+        free_assets_holdings(indexer, asset_id, investing_escrow, app_escrow).await?;
     Ok(holders_holdings.len())
 }
 

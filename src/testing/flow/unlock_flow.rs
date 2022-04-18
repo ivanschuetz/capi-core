@@ -4,7 +4,7 @@ pub use test::unlock_flow;
 #[cfg(test)]
 pub mod test {
     use crate::flows::create_dao::model::Dao;
-    use crate::flows::create_dao::{share_amount::ShareAmount, storage::load_dao::TxId};
+    use crate::flows::create_dao::storage::load_dao::TxId;
     use crate::flows::unlock::unlock::unlock;
     use crate::flows::unlock::unlock::{submit_unlock, UnlockSigned};
     use algonaut::{algod::v2::Algod, transaction::account::Account};
@@ -14,17 +14,9 @@ pub mod test {
         algod: &Algod,
         dao: &Dao,
         investor: &Account,
-        shares_to_unlock: ShareAmount,
+        shares_asset_id: u64,
     ) -> Result<TxId> {
-        let to_sign = unlock(
-            &algod,
-            investor.address(),
-            shares_to_unlock,
-            dao.shares_asset_id,
-            dao.app_id,
-            &dao.locking_escrow.account,
-        )
-        .await?;
+        let to_sign = unlock(&algod, investor.address(), dao.app_id, shares_asset_id).await?;
 
         let signed_central_app_optout = investor.sign_transaction(to_sign.central_app_optout_tx)?;
 
@@ -32,7 +24,6 @@ pub mod test {
             algod,
             UnlockSigned {
                 central_app_optout_tx: signed_central_app_optout,
-                shares_xfer_tx_signed: to_sign.shares_xfer_tx,
             },
         )
         .await?;

@@ -17,7 +17,6 @@ use anyhow::Result;
 pub struct DaoInitData {
     pub customer_escrow: VersionedAddress,
     pub investing_escrow: VersionedAddress,
-    pub locking_escrow: VersionedAddress,
 
     pub app_approval_version: Version,
     pub app_clear_version: Version,
@@ -43,7 +42,6 @@ impl DaoInitData {
             app_clear: self.app_clear_version,
             customer_escrow: self.customer_escrow.version,
             investing_escrow: self.investing_escrow.version,
-            locking_escrow: self.locking_escrow.version,
         }
     }
 }
@@ -61,7 +59,6 @@ pub async fn setup_app_tx(
             .app_arguments(vec![
                 data.customer_escrow.address.0.to_vec(),
                 data.investing_escrow.address.0.to_vec(),
-                data.locking_escrow.address.0.to_vec(),
                 data.shares_asset_id.to_be_bytes().to_vec(),
                 data.funds_asset_id.0.to_be_bytes().to_vec(),
                 data.project_name.as_bytes().to_vec(),
@@ -73,7 +70,7 @@ pub async fn setup_app_tx(
                 data.owner.0.to_vec(),
                 versions_to_bytes(data.versions())?,
             ])
-            .foreign_assets(vec![data.funds_asset_id.0])
+            .foreign_assets(vec![data.funds_asset_id.0, data.shares_asset_id])
             .build(),
     )
     // TODO: consider enforcing in TEAL that this note is being set

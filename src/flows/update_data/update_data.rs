@@ -17,7 +17,6 @@ use serde::{Deserialize, Serialize};
 pub struct UpdatableDaoData {
     pub customer_escrow: VersionedAddress,
     pub investing_escrow: VersionedAddress,
-    pub locking_escrow: VersionedAddress,
 
     pub project_name: String,
     pub project_desc: String,
@@ -46,7 +45,6 @@ pub async fn update_data(
         app_clear: current_state.app_clear_version,
         customer_escrow: data.customer_escrow.version,
         investing_escrow: data.investing_escrow.version,
-        locking_escrow: data.locking_escrow.version,
     };
 
     // We might make these updates more granular later. For now everything in 1 call.
@@ -57,7 +55,6 @@ pub async fn update_data(
                 "update_data".as_bytes().to_vec(),
                 data.customer_escrow.address.0.to_vec(),
                 data.investing_escrow.address.0.to_vec(),
-                data.locking_escrow.address.0.to_vec(),
                 data.project_name.as_bytes().to_vec(),
                 data.project_desc.as_bytes().to_vec(),
                 data.share_price.val().to_be_bytes().to_vec(),

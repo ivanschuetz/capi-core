@@ -33,9 +33,9 @@ pub mod test {
 
         // escrow got capi assets
 
-        let locking_escrow_infos = algod.account_information(capi_escrow).await?;
-        let locking_escrow_assets = locking_escrow_infos.assets;
-        assert_eq!(2, locking_escrow_assets.len()); // opted in to shares and capi token
+        let app_escrow_infos = algod.account_information(capi_escrow).await?;
+        let app_escrow_assets = app_escrow_infos.assets;
+        assert_eq!(2, app_escrow_assets.len()); // opted in to shares and capi token
         let capi_asset_holdings = asset_holdings(&algod, capi_escrow, capi_asset_id.0).await?;
         assert_eq!(locked_amount, CapiAssetAmount::new(capi_asset_holdings.0));
 

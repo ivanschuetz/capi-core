@@ -19,7 +19,7 @@ use anyhow::Result;
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 
 /// Note that this is only for shares that have been bought in the market
-/// The investing flow doesn't use this: there's an xfer from the investing account to the locking escrow in the investing tx group
+/// The investing flow doesn't use this: there's an xfer from the investing account to the app escrow in the investing tx group
 pub async fn lock_capi_assets(
     algod: &Algod,
     investor: &Address,

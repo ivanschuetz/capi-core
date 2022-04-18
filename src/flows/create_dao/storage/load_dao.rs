@@ -7,7 +7,6 @@ use crate::{
         setup::{
             customer_escrow::render_and_compile_customer_escrow,
             investing_escrow::render_and_compile_investing_escrow,
-            locking_escrow::render_and_compile_locking_escrow,
         },
         share_amount::ShareAmount,
     },
@@ -51,19 +50,11 @@ pub async fn load_dao(
     let customer_escrow = api.template(Contract::DaoCustomer, dao_state.customer_escrow.version)?;
     let investing_escrow =
         api.template(Contract::DaoInvesting, dao_state.investing_escrow.version)?;
-    let locking_escrow = api.template(Contract::Daolocking, dao_state.locking_escrow.version)?;
 
     // TODO store this state (redundantly in the same app field), to prevent this call?
     let asset_infos = algod.asset_information(dao_state.shares_asset_id).await?;
 
     // Render and compile the escrows
-    let locking_escrow_account = render_and_compile_locking_escrow(
-        algod,
-        dao_state.shares_asset_id,
-        &locking_escrow,
-        app_id,
-    )
-    .await?;
     let customer_escrow_account_fut =
         render_and_compile_customer_escrow(algod, &customer_escrow, &capi_deps.escrow, app_id);
     let investing_escrow_account_fut = render_and_compile_investing_escrow(
@@ -71,7 +62,6 @@ pub async fn load_dao(
         dao_state.shares_asset_id,
         &dao_state.share_price,
         &dao_state.funds_asset_id,
-        locking_escrow_account.account.address(),
         &investing_escrow,
         app_id,
     );
@@ -81,10 +71,6 @@ pub async fn load_dao(
     let investing_escrow_account = investing_escrow_account_res?;
 
     // validate the generated programs against the addresses stored in the app
-    expect_match(
-        &dao_state.locking_escrow.address,
-        locking_escrow_account.account.address(),
-    )?;
     expect_match(
         &dao_state.customer_escrow.address,
         customer_escrow_account.account.address(),
@@ -112,7 +98,6 @@ pub async fn load_dao(
         shares_asset_id: dao_state.shares_asset_id,
         app_id,
         invest_escrow: investing_escrow_account,
-        locking_escrow: locking_escrow_account,
         customer_escrow: customer_escrow_account,
     };
 

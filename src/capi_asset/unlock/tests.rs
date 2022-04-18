@@ -110,11 +110,11 @@ mod tests {
 
         // escrow lost the assets
 
-        let locking_escrow_infos = algod
+        let app_escrow_infos = algod
             .account_information(capi_deps.escrow.address())
             .await?;
-        let locking_escrow_assets = locking_escrow_infos.assets;
-        assert_eq!(2, locking_escrow_assets.len()); // opted in to shares and capi token
+        let app_escrow_assets = app_escrow_infos.assets;
+        assert_eq!(2, app_escrow_assets.len()); // opted in to shares and capi token
         let capi_asset_holdings =
             asset_holdings(&algod, capi_deps.escrow.address(), capi_deps.asset_id.0).await?;
         assert_eq!(0, capi_asset_holdings.0);

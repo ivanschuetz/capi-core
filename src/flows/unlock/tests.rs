@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use algonaut::{algod::v2::Algod, transaction::account::Account};
+    use algonaut::{algod::v2::Algod, core::to_app_address, transaction::account::Account};
     use anyhow::Result;
     use serial_test::serial;
     use tokio::test;
@@ -10,7 +10,7 @@ mod tests {
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         state::{
-            account_state::find_asset_holding_or_err,
+            account_state::{asset_holdings, find_asset_holding_or_err},
             dao_app_state::central_investor_state_from_acc,
         },
         testing::{
@@ -44,19 +44,16 @@ mod tests {
 
         // flow
 
-        // in the real application, unlock_share_amount is retrieved from indexer
-        let unlock_share_amount = buy_share_amount;
-
-        let unlock_tx_id = unlock_flow(algod, &dao, investor, unlock_share_amount).await?;
+        let unlock_tx_id = unlock_flow(algod, &dao, investor, dao.shares_asset_id).await?;
         wait_for_pending_transaction(algod, &unlock_tx_id).await?;
 
-        // shares not anymore in locking escrow
-        let locking_escrow_infos = algod
-            .account_information(dao.locking_escrow.address())
-            .await?;
-        let locking_escrow_assets = locking_escrow_infos.assets;
-        assert_eq!(1, locking_escrow_assets.len()); // still opted in to shares
-        assert_eq!(0, locking_escrow_assets[0].amount); // lost shares
+        // shares not anymore in app escrow
+        let app_escrow_infos = algod.account_information(&dao.app_address()).await?;
+        let app_escrow_assets = app_escrow_infos.assets;
+        assert_eq!(2, app_escrow_assets.len()); // still opted in to shares (and funds asset)
+        let share_holdings =
+            asset_holdings(&algod, &dao.app_address(), dao.shares_asset_id).await?;
+        assert_eq!(0, share_holdings.0); // lost shares
 
         // investor got shares
         let investor_infos = algod.account_information(&investor.address()).await?;
@@ -69,70 +66,6 @@ mod tests {
 
         // investor local state cleared (opted out)
         assert_eq!(0, investor_infos.apps_local_state.len());
-
-        Ok(())
-    }
-
-    // TODO think how to implement partial unlocking: it should be common that investors want to sell only a part of their shares
-    // currently we require opt-out to prevent double claiming, REVIEW
-    #[test]
-    #[serial]
-    async fn test_partial_unlock_not_allowed() -> Result<()> {
-        let td = &test_dao_init().await?;
-        let algod = &td.algod;
-        let investor = &td.investor1;
-
-        let partial_amount = ShareAmount::new(2);
-        let buy_asset_amount = ShareAmount::new(partial_amount.val() + 8);
-
-        // precs
-
-        let dao = create_dao_flow(&td).await?;
-
-        invests_optins_flow(algod, investor, &dao).await?;
-        let _ = invests_flow(td, investor, buy_asset_amount, &dao).await?;
-
-        pre_unlock_flow_sanity_tests(algod, investor, &dao, buy_asset_amount).await?;
-
-        // remember state
-        let investor_infos = algod.account_information(&investor.address()).await?;
-        let investor_balance_before_unlocking = investor_infos.amount;
-
-        // flow
-
-        let unlock_share_amount = partial_amount;
-
-        let unlock_result = unlock_flow(algod, &dao, investor, unlock_share_amount).await;
-
-        assert!(unlock_result.is_err());
-
-        // shares still in locking escrow
-        let locking_escrow_infos = algod
-            .account_information(dao.locking_escrow.address())
-            .await?;
-        let locking_escrow_assets = locking_escrow_infos.assets;
-        assert_eq!(1, locking_escrow_assets.len()); // still opted in to shares
-        assert_eq!(buy_asset_amount.0, locking_escrow_assets[0].amount); // lost shares
-
-        // investor didn't get anything
-
-        let investor_infos = algod.account_information(&investor.address()).await?;
-        let investor_assets = &investor_infos.assets;
-        // funds asset + shares asset
-        assert_eq!(2, investor_assets.len());
-        let shares_asset = find_asset_holding_or_err(&investor_assets, dao.shares_asset_id)?;
-        // no shares
-        assert_eq!(0, shares_asset.amount);
-
-        let investor_state = central_investor_state_from_acc(&investor_infos, dao.app_id)?;
-        // investor local state not changed
-        // shares set to bought asset amount
-        assert_eq!(buy_asset_amount, investor_state.shares);
-        // claimed total is 0 (hasn't claimed yet)
-        assert_eq!(FundsAmount::new(0), investor_state.claimed);
-
-        // investor didn't pay fees (unlock txs failed)
-        assert_eq!(investor_balance_before_unlocking, investor_infos.amount);
 
         Ok(())
     }
@@ -150,7 +83,7 @@ mod tests {
         // funds asset + shares asset
         assert_eq!(2, investor_assets.len());
         let shares_asset = find_asset_holding_or_err(&investor_assets, dao.shares_asset_id)?;
-        // doesn't have shares (they're sent directly to locking escrow)
+        // doesn't have shares (they're sent directly to app escrow)
         assert_eq!(0, shares_asset.amount);
 
         let investor_state = central_investor_state_from_acc(&investor_infos, dao.app_id)?;
@@ -160,14 +93,15 @@ mod tests {
         //  claimed total is 0 (hasn't claimed yet)
         assert_eq!(FundsAmount::new(0), investor_state.claimed);
 
-        // double check locking escrow's assets
-        let locking_escrow_infos = algod
-            .account_information(dao.locking_escrow.address())
+        // double check app's assets
+        let app_escrow_infos = algod
+            .account_information(&to_app_address(dao.app_id.0))
             .await?;
-        let locking_escrow_assets = locking_escrow_infos.assets;
-
-        assert_eq!(1, locking_escrow_assets.len()); // opted in to shares
-        assert_eq!(buy_share_amount.0, locking_escrow_assets[0].amount);
+        let app_escrow_assets = app_escrow_infos.assets;
+        assert_eq!(2, app_escrow_assets.len()); // opted in to shares
+        let share_holdings =
+            asset_holdings(&algod, &dao.app_address(), dao.shares_asset_id).await?;
+        assert_eq!(buy_share_amount.0, share_holdings.0);
 
         Ok(())
     }
