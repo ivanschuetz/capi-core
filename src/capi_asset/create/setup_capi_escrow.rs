@@ -1,4 +1,3 @@
-#[cfg(not(target_arch = "wasm32"))]
 use crate::{
     capi_asset::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetId},
     flows::create_dao::storage::load_dao::TxId,
