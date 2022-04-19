@@ -126,7 +126,7 @@ mod tests {
     fn always_accept_teal() -> TealSource {
         TealSource(
             r#"
-        #pragma version 5
+        #pragma version 6
         int 1
         "#
             .as_bytes()
@@ -137,7 +137,7 @@ mod tests {
     fn always_rejects_teal() -> TealSource {
         TealSource(
             r#"
-        #pragma version 5
+        #pragma version 6
         int 0
         "#
             .as_bytes()
