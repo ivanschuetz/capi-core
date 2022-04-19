@@ -12,6 +12,7 @@ mod tests {
     use crate::state::dao_app_state::{
         central_investor_state_from_acc, dao_global_state, dao_investor_state,
     };
+    use crate::state::dao_shares::dao_shares;
     use crate::testing::flow::create_dao_flow::create_dao_flow;
     use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
     use crate::testing::flow::invest_in_dao_flow::{invests_flow, invests_optins_flow};
@@ -52,9 +53,10 @@ mod tests {
         // app escrow tests
 
         // app escrow received the shares
-        let app_shares = asset_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
-        assert_eq!(buy_share_amount.0, app_shares.0);
-        // app escrow doesn't send any transactions so not testing balances (we could "double check" though)
+        let app_shares =
+            ShareAmount(asset_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?);
+        // the dao's escrow has all the supply
+        assert_eq!(dao.specs.shares.supply, app_shares);
 
         // investor tests
 
@@ -87,30 +89,20 @@ mod tests {
             investor_holdings
         );
 
-        // invest escrow tests
+        // app escrow tests
 
-        let invest_escrow = flow_res.dao.invest_escrow;
-        let invest_escrow_infos = algod.account_information(invest_escrow.address()).await?;
-        let invest_escrow_held_assets = invest_escrow_infos.assets;
-        // investing escrow lost the bought assets
-        assert_eq!(invest_escrow_held_assets.len(), 1);
-        assert_eq!(
-            invest_escrow_held_assets[0].asset_id,
-            flow_res.dao.shares_asset_id
-        );
-        assert_eq!(
-            invest_escrow_held_assets[0].amount,
-            flow_res.dao.specs.shares.supply.val() - buy_share_amount.val()
-        );
-
-        // central escrow tests
-
-        // central escrow received paid algos
         let app_holdings = funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
+        // app escrow received paid algos
         assert_eq!(
             flow_res.central_escrow_initial_amount + paid_amount,
             app_holdings
         );
+        let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
+        assert_eq!(buy_share_amount, dao_shares.locked); // bought shares added to locked shares
+        assert_eq!(
+            ShareAmount::new(flow_res.dao.specs.shares.supply.val() - buy_share_amount.val()),
+            dao_shares.available
+        ); // bought shares subtracted from available shares
 
         Ok(())
     }
@@ -400,6 +392,9 @@ mod tests {
 
         Ok(())
     }
+
+    // TODO test (other file) investing with price that doesn't lead to a whole share amount (to check that TEAL floors it correctly / rejects if amount is wrong)
+    // these are not happy path tests - thus different test location - our app prevents sending this (paid price is derived from bought shares)
 
     #[test]
     #[serial] // reset network (cmd)

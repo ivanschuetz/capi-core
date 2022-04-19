@@ -1,20 +1,14 @@
 use super::model::{InvestResult, InvestSigned, InvestToSign};
 use crate::{
-    algo_helpers::calculate_total_fee,
-    flows::create_dao::{
-        model::Dao,
-        share_amount::ShareAmount,
-        storage::load_dao::{DaoAppId, DaoId},
-    },
+    flows::create_dao::{model::Dao, share_amount::ShareAmount, storage::load_dao::DaoAppId},
     funds::{FundsAmount, FundsAssetId},
 };
 use algonaut::{
     algod::v2::Algod,
     core::{Address, SuggestedTransactionParams},
     transaction::{
-        builder::{CallApplication, TxnFee},
-        tx_group::TxGroup,
-        AcceptAsset, Transaction, TransferAsset, TxnBuilder,
+        builder::CallApplication, tx_group::TxGroup, AcceptAsset, Transaction, TransferAsset,
+        TxnBuilder,
     },
 };
 use anyhow::{anyhow, Result};
@@ -44,13 +38,7 @@ pub async fn invest_txs(
     ))?;
 
     let mut central_app_investor_setup_tx =
-        dao_app_investor_setup_tx(&params, app_id, shares_asset_id, *investor, dao.id())?;
-
-    let mut pay_price_tx = TxnBuilder::with(
-        &params,
-        TransferAsset::new(*investor, funds_asset_id.0, total_price, dao.app_address()).build(),
-    )
-    .build()?;
+        dao_app_investor_setup_tx(&params, app_id, shares_asset_id, *investor, share_amount)?;
 
     let mut shares_optin_tx = TxnBuilder::with(
         &params,
@@ -58,38 +46,26 @@ pub async fn invest_txs(
     )
     .build()?;
 
-    let mut receive_shares_asset_tx = TxnBuilder::with_fee(
+    let mut pay_price_tx = TxnBuilder::with(
         &params,
-        TxnFee::zero(),
-        TransferAsset::new(
-            *dao.invest_escrow.address(),
-            dao.shares_asset_id,
-            share_amount.val(),
-            dao.app_address(),
-        )
-        .build(),
+        TransferAsset::new(*investor, funds_asset_id.0, total_price, dao.app_address()).build(),
     )
     .build()?;
 
-    central_app_investor_setup_tx.fee = calculate_total_fee(
-        &params,
-        &[&central_app_investor_setup_tx, &receive_shares_asset_tx],
-    )?;
+    // pay for the inner xfer (shares to investor) fee
+    // note that we don't pay for the rest of the tx's fees as they are regular txs signed by the user
+    central_app_investor_setup_tx.fee = central_app_investor_setup_tx.fee * 2;
     TxGroup::assign_group_id(&mut [
-        &mut central_app_investor_setup_tx,
-        &mut receive_shares_asset_tx,
-        &mut pay_price_tx,
         &mut shares_optin_tx,
+        &mut central_app_investor_setup_tx,
+        &mut pay_price_tx,
     ])?;
-
-    let receive_shares_asset_signed_tx = dao.invest_escrow.sign(receive_shares_asset_tx, vec![])?;
 
     Ok(InvestToSign {
         dao: dao.to_owned(),
         central_app_setup_tx: central_app_investor_setup_tx.clone(),
         payment_tx: pay_price_tx.clone(),
         shares_asset_optin_tx: shares_optin_tx.clone(),
-        shares_xfer_tx: receive_shares_asset_signed_tx,
     })
 }
 
@@ -98,13 +74,16 @@ pub fn dao_app_investor_setup_tx(
     app_id: DaoAppId,
     shares_asset_id: u64,
     investor: Address,
-    dao_id: DaoId,
+    share_amount: ShareAmount,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
         params,
         CallApplication::new(investor, app_id.0)
             .foreign_assets(vec![shares_asset_id])
-            .app_arguments(vec!["invest".as_bytes().to_vec(), dao_id.bytes().to_vec()])
+            .app_arguments(vec![
+                "invest".as_bytes().to_vec(),
+                share_amount.val().to_be_bytes().to_vec(),
+            ])
             .build(),
     )
     .build()?;
@@ -116,14 +95,12 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
     let txs = vec![
-        signed.central_app_setup_tx.clone(),
-        signed.shares_xfer_tx.clone(),
-        signed.payment_tx.clone(),
         signed.shares_asset_optin_tx.clone(),
+        signed.central_app_setup_tx.clone(),
+        signed.payment_tx.clone(),
     ];
 
     // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
-    // crate::teal::debug_teal_rendered(&txs, "investing_escrow").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     Ok(InvestResult {
@@ -132,6 +109,5 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
         central_app_investor_setup_tx: signed.central_app_setup_tx.clone(),
         payment_tx: signed.payment_tx.clone(),
         shares_asset_optin_tx: signed.shares_asset_optin_tx.clone(),
-        shares_xfer_tx: signed.shares_xfer_tx.clone(),
     })
 }

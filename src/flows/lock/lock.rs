@@ -1,6 +1,6 @@
 use crate::flows::create_dao::{
     share_amount::ShareAmount,
-    storage::load_dao::{DaoAppId, DaoId, TxId},
+    storage::load_dao::{DaoAppId, TxId},
 };
 use algonaut::{
     algod::v2::Algod,
@@ -23,7 +23,6 @@ pub async fn lock(
     share_amount: ShareAmount,
     shares_asset_id: u64,
     app_id: DaoAppId,
-    dao_id: DaoId,
 ) -> Result<LockToSign> {
     let params = algod.suggested_transaction_params().await?;
 
@@ -31,7 +30,7 @@ pub async fn lock(
     let mut app_call_tx = TxnBuilder::with(
         &params,
         CallApplication::new(investor, app_id.0)
-            .app_arguments(vec!["lock".as_bytes().to_vec(), dao_id.bytes().to_vec()])
+            .app_arguments(vec!["lock".as_bytes().to_vec()])
             .build(),
     )
     .build()?;

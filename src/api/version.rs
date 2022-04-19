@@ -16,7 +16,6 @@ pub struct Versions {
     pub app_approval: Version,
     pub app_clear: Version,
     pub customer_escrow: Version,
-    pub investing_escrow: Version,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,17 +26,16 @@ pub struct CapiVersions {
 }
 
 pub fn bytes_to_versions(state: &[u8]) -> Result<Versions> {
-    let array: &[u8; 16] = state.try_into()?;
+    let array: &[u8; 12] = state.try_into()?;
     bytes_array_to_versions(array)
 }
 
-pub fn bytes_array_to_versions(state: &[u8; 16]) -> Result<Versions> {
+pub fn bytes_array_to_versions(state: &[u8; 12]) -> Result<Versions> {
     // try_into() could be unwrap - this should always succeed, just being careful+
     Ok(Versions {
         app_approval: to_version(state[0..4].try_into()?),
         app_clear: to_version(state[4..8].try_into()?),
         customer_escrow: to_version(state[8..12].try_into()?),
-        investing_escrow: to_version(state[12..16].try_into()?),
     })
 }
 
@@ -45,12 +43,11 @@ pub fn versions_to_bytes(versions: Versions) -> Result<Vec<u8>> {
     Ok(versions_to_bytes_array(versions)?.to_vec())
 }
 
-fn versions_to_bytes_array(versions: Versions) -> Result<[u8; 16]> {
+fn versions_to_bytes_array(versions: Versions) -> Result<[u8; 12]> {
     Ok([
         to_bytes(versions.app_approval),
         to_bytes(versions.app_clear),
         to_bytes(versions.customer_escrow),
-        to_bytes(versions.investing_escrow),
     ]
     .concat()
     // this should always succeed, just being careful+

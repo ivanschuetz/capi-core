@@ -18,13 +18,13 @@ mod tests {
         network_util::wait_for_pending_transaction,
         state::{
             account_state::{
-                asset_holdings, find_asset_holding_or_err, funds_holdings,
-                funds_holdings_from_account,
+                find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
             },
             app_state::ApplicationLocalStateError,
             dao_app_state::{
                 central_investor_state_from_acc, dao_global_state, dao_investor_state,
             },
+            dao_shares::dao_shares,
         },
         testing::{
             flow::{
@@ -148,10 +148,11 @@ mod tests {
         // renaming for clarity
         let entitled_amount_after_locking_shares = investor2_entitled_amount;
 
-        // app escrow got assets
-        let app_escrow_shares =
-            asset_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
-        assert_eq!(traded_shares.0, app_escrow_shares);
+        let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
+        // the traded shares were locked and we've no more locked shares, to we expect them in the locked global state
+        assert_eq!(traded_shares, dao_shares.locked);
+        // with the now "returned" shares the holdings are back to the asset total supply
+        assert_eq!(dao.specs.shares.supply, dao_shares.total());
 
         // investor2 claims: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         let _ = claim_flow(td, &dao, &td.investor2).await;

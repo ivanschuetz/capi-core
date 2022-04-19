@@ -4,10 +4,7 @@ use crate::{
     flows::create_dao::{
         create_dao_specs::CreateDaoSpecs,
         model::{CreateSharesSpecs, Dao},
-        setup::{
-            customer_escrow::render_and_compile_customer_escrow,
-            investing_escrow::render_and_compile_investing_escrow,
-        },
+        setup::customer_escrow::render_and_compile_customer_escrow,
         share_amount::ShareAmount,
     },
     state::dao_app_state::dao_global_state,
@@ -19,7 +16,6 @@ use algonaut::{
 };
 use anyhow::{anyhow, Result};
 use data_encoding::BASE32_NOPAD;
-use futures::join;
 use serde::{Deserialize, Serialize};
 use std::{
     convert::{TryFrom, TryInto},
@@ -48,38 +44,21 @@ pub async fn load_dao(
     // NOTE currently not async - trait doesn't support async out of the box (TODO)
     // will be needed especially later when fetching the TEAL from a remove location
     let customer_escrow = api.template(Contract::DaoCustomer, dao_state.customer_escrow.version)?;
-    let investing_escrow =
-        api.template(Contract::DaoInvesting, dao_state.investing_escrow.version)?;
 
     // TODO store this state (redundantly in the same app field), to prevent this call?
     let asset_infos = algod.asset_information(dao_state.shares_asset_id).await?;
 
     let capi_escrow_address = capi_deps.app_id.address();
 
-    // Render and compile the escrows
-    let customer_escrow_account_fut =
-        render_and_compile_customer_escrow(algod, &customer_escrow, &capi_escrow_address, app_id);
-    let investing_escrow_account_fut = render_and_compile_investing_escrow(
-        algod,
-        dao_state.shares_asset_id,
-        &dao_state.share_price,
-        &dao_state.funds_asset_id,
-        &investing_escrow,
-        app_id,
-    );
-    let (customer_escrow_account_res, investing_escrow_account_res) =
-        join!(customer_escrow_account_fut, investing_escrow_account_fut);
-    let customer_escrow_account = customer_escrow_account_res?;
-    let investing_escrow_account = investing_escrow_account_res?;
+    // Render and compile escrows
+    let customer_escrow_account =
+        render_and_compile_customer_escrow(algod, &customer_escrow, &capi_escrow_address, app_id)
+            .await?;
 
     // validate the generated programs against the addresses stored in the app
     expect_match(
         &dao_state.customer_escrow.address,
         customer_escrow_account.account.address(),
-    )?;
-    expect_match(
-        &dao_state.investing_escrow.address,
-        investing_escrow_account.account.address(),
     )?;
 
     let dao = Dao {
@@ -99,7 +78,6 @@ pub async fn load_dao(
         creator: dao_state.owner,
         shares_asset_id: dao_state.shares_asset_id,
         app_id,
-        invest_escrow: investing_escrow_account,
         customer_escrow: customer_escrow_account,
     };
 

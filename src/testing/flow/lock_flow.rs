@@ -22,7 +22,6 @@ pub mod test {
             amount,
             dao.shares_asset_id,
             dao.app_id,
-            dao.id(),
         )
         .await?;
 

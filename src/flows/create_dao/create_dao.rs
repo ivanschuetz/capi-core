@@ -11,7 +11,6 @@ use crate::{
         model::Dao,
         setup::{
             customer_escrow::setup_customer_escrow,
-            investing_escrow::setup_investing_escrow_txs,
             setup_app::{setup_app_tx, DaoInitData},
         },
     },
@@ -20,7 +19,7 @@ use crate::{
 use algonaut::{
     algod::v2::Algod,
     core::{to_app_address, Address, MicroAlgos},
-    transaction::tx_group::TxGroup,
+    transaction::{tx_group::TxGroup, TransferAsset, TxnBuilder},
 };
 use anyhow::Result;
 
@@ -57,18 +56,17 @@ pub async fn create_dao_txs(
     )
     .await?;
 
-    let mut setup_invest_escrow_to_sign = setup_investing_escrow_txs(
-        algod,
-        &programs.escrows.invest_escrow,
-        shares_asset_id,
-        specs.shares.supply,
-        &specs.share_price,
-        &funds_asset_id,
-        &creator,
+    let mut transfer_shares_to_app_tx = TxnBuilder::with(
         &params,
-        app_id,
+        TransferAsset::new(
+            creator,
+            shares_asset_id,
+            specs.shares.supply.val(),
+            app_id.address(),
+        )
+        .build(),
     )
-    .await?;
+    .build()?;
 
     let mut setup_app_tx = setup_app_tx(
         app_id,
@@ -76,7 +74,6 @@ pub async fn create_dao_txs(
         &params,
         &DaoInitData {
             customer_escrow: customer_to_sign.escrow.to_versioned_address(),
-            investing_escrow: setup_invest_escrow_to_sign.escrow.to_versioned_address(),
             app_approval_version: programs.central_app_approval.version,
             app_clear_version: programs.central_app_clear.version,
             shares_asset_id,
@@ -99,33 +96,17 @@ pub async fn create_dao_txs(
     fund_app_tx.fee = fund_app_tx.fee * 3;
 
     TxGroup::assign_group_id(&mut [
-        // fund app
         &mut fund_app_tx,
-        // setup app
         &mut setup_app_tx,
-        // fund escrows
         &mut customer_to_sign.fund_min_balance_tx,
-        &mut setup_invest_escrow_to_sign.escrow_funding_algos_tx,
-        // asset (shares) opt-ins
-        &mut setup_invest_escrow_to_sign.escrow_shares_optin_tx,
-        // asset (funds asset) opt-ins
         &mut customer_to_sign.optin_to_funds_asset_tx,
-        // asset (shares) transfer to investing escrow
-        &mut setup_invest_escrow_to_sign.escrow_funding_shares_asset_tx,
+        &mut transfer_shares_to_app_tx,
     ])?;
 
-    let invest_escrow = setup_invest_escrow_to_sign.escrow.clone();
-    let invest_escrow_shares_optin_tx_signed = invest_escrow
-        .account
-        .sign(setup_invest_escrow_to_sign.escrow_shares_optin_tx, vec![])?;
     let customer_escrow_optin_to_funds_asset_tx_signed = customer_to_sign
         .escrow
         .account
         .sign(customer_to_sign.optin_to_funds_asset_tx, vec![])?;
-    let optin_txs = vec![
-        invest_escrow_shares_optin_tx_signed,
-        customer_escrow_optin_to_funds_asset_tx_signed,
-    ];
 
     Ok(CreateDaoToSign {
         specs: specs.to_owned(),
@@ -134,16 +115,12 @@ pub async fn create_dao_txs(
         fund_app_tx,
         setup_app_tx,
 
-        invest_escrow: setup_invest_escrow_to_sign.escrow,
         customer_escrow: customer_to_sign.escrow,
 
-        escrow_funding_txs: vec![
-            customer_to_sign.fund_min_balance_tx,
-            setup_invest_escrow_to_sign.escrow_funding_algos_tx,
-        ],
-        optin_txs,
+        customer_escrow_funding_tx: customer_to_sign.fund_min_balance_tx,
+        customer_escrow_optin_to_funds_asset_tx: customer_escrow_optin_to_funds_asset_tx_signed,
 
-        xfer_shares_to_invest_escrow: setup_invest_escrow_to_sign.escrow_funding_shares_asset_tx,
+        transfer_shares_to_app_tx,
     })
 }
 
@@ -158,18 +135,16 @@ pub async fn submit_create_dao(
         signed.creator,
     );
 
-    let mut signed_txs = vec![signed.app_funding_tx, signed.setup_app_tx];
-    for tx in signed.escrow_funding_txs {
-        signed_txs.push(tx)
-    }
-    for tx in signed.optin_txs {
-        signed_txs.push(tx)
-    }
-    signed_txs.push(signed.xfer_shares_to_invest_escrow);
+    let signed_txs = vec![
+        signed.app_funding_tx,
+        signed.setup_app_tx,
+        signed.fund_customer_escrow_tx,
+        signed.customer_escrow_optin_to_funds_asset_tx,
+        signed.transfer_shares_to_app_tx,
+    ];
 
     // crate::dryrun_util::dryrun_all(algod, &signed_txs).await?;
     // crate::teal::debug_teal_rendered(&signed_txs, "dao_app_approval").unwrap();
-    // crate::teal::debug_teal_rendered(&signed_txs, "investing_escrow").unwrap();
 
     algod.broadcast_signed_transactions(&signed_txs).await?;
 
@@ -179,7 +154,6 @@ pub async fn submit_create_dao(
             shares_asset_id: signed.shares_asset_id,
             funds_asset_id: signed.funds_asset_id,
             app_id: signed.app_id,
-            invest_escrow: signed.invest_escrow,
             customer_escrow: signed.customer_escrow,
             creator: signed.creator,
         },
@@ -196,7 +170,6 @@ pub struct Programs {
 #[derive(Debug)]
 pub struct Escrows {
     pub customer_escrow: VersionedTealSourceTemplate,
-    pub invest_escrow: VersionedTealSourceTemplate,
 }
 
 /// TEAL related to the capi token

@@ -31,16 +31,14 @@ pub struct SetupInvestEscrowSigned {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreateDaoToSign {
-    pub escrow_funding_txs: Vec<Transaction>,
+    pub customer_escrow_funding_tx: Transaction,
     pub fund_app_tx: Transaction,
     pub setup_app_tx: Transaction,
-    pub xfer_shares_to_invest_escrow: Transaction,
+    pub transfer_shares_to_app_tx: Transaction,
 
-    // (note that "to sign" in struct's name means that there are _some_ txs to sign. this is just passtrough data)
-    pub optin_txs: Vec<SignedTransaction>,
+    pub customer_escrow_optin_to_funds_asset_tx: SignedTransaction, // lsig
 
     pub specs: CreateDaoSpecs,
-    pub invest_escrow: VersionedContractAccount,
     pub customer_escrow: VersionedContractAccount,
     pub creator: Address,
 }
@@ -48,17 +46,16 @@ pub struct CreateDaoToSign {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CreateDaoSigned {
     pub app_funding_tx: SignedTransaction,
-    pub escrow_funding_txs: Vec<SignedTransaction>,
-    pub xfer_shares_to_invest_escrow: SignedTransaction,
+    pub fund_customer_escrow_tx: SignedTransaction,
     pub setup_app_tx: SignedTransaction,
-    pub optin_txs: Vec<SignedTransaction>,
+    pub customer_escrow_optin_to_funds_asset_tx: SignedTransaction, // lsig
+    pub transfer_shares_to_app_tx: SignedTransaction,
 
     pub specs: CreateDaoSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
     pub app_id: DaoAppId,
     pub funds_asset_id: FundsAssetId,
-    pub invest_escrow: VersionedContractAccount,
     pub customer_escrow: VersionedContractAccount,
 }
 
@@ -71,7 +68,6 @@ pub struct Dao {
     pub creator: Address,
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
-    pub invest_escrow: VersionedContractAccount,
     pub customer_escrow: VersionedContractAccount,
 }
 

@@ -56,7 +56,7 @@ pub struct AppStateKey<'a>(pub &'a str);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Just a wrapper equivalent to ApplicationLocalState (provided by the SDK), to offer a similar interface
-pub struct ApplicationGlobalState(Vec<TealKeyValue>);
+pub struct ApplicationGlobalState(pub Vec<TealKeyValue>);
 
 pub trait ApplicationStateExt {
     fn find(&self, key: &AppStateKey) -> Option<TealValue>;

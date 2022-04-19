@@ -10,8 +10,9 @@ mod tests {
         funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         state::{
-            account_state::{asset_holdings, find_asset_holding_or_err},
+            account_state::find_asset_holding_or_err,
             dao_app_state::{central_investor_state_from_acc, dao_global_state},
+            dao_shares::dao_shares,
         },
         testing::{
             flow::{
@@ -58,9 +59,8 @@ mod tests {
         let app_escrow_infos = algod.account_information(&dao.app_address()).await?;
         let app_escrow_assets = app_escrow_infos.assets;
         assert_eq!(2, app_escrow_assets.len()); // still opted in to shares (and funds asset)
-        let share_holdings =
-            asset_holdings(&algod, &dao.app_address(), dao.shares_asset_id).await?;
-        assert_eq!(0, share_holdings.0); // lost shares
+        let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
+        assert_eq!(ShareAmount::new(0), dao_shares.locked); // lost shares
 
         // investor got shares
         let investor_infos = algod.account_information(&investor.address()).await?;
@@ -105,10 +105,10 @@ mod tests {
             .account_information(&to_app_address(dao.app_id.0))
             .await?;
         let app_escrow_assets = app_escrow_infos.assets;
-        assert_eq!(2, app_escrow_assets.len()); // opted in to shares
-        let share_holdings =
-            asset_holdings(&algod, &dao.app_address(), dao.shares_asset_id).await?;
-        assert_eq!(buy_share_amount.0, share_holdings.0);
+        assert_eq!(2, app_escrow_assets.len()); // opted in to shares and funds asset
+
+        let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
+        assert_eq!(buy_share_amount, dao_shares.locked);
 
         // check locked global state (assumes only share amount has been locked)
         let gs = dao_global_state(algod, dao.app_id).await?;

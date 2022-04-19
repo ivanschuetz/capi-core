@@ -2,12 +2,13 @@
 mod tests {
     use crate::{
         asset_amount::AssetAmount,
-        flows::create_dao::model::Dao,
+        flows::create_dao::{model::Dao, share_amount::ShareAmount},
         funds::FundsAmount,
         state::{
             account_state::{asset_holdings, find_asset_holding_or_err},
             app_state::ApplicationLocalStateError,
             dao_app_state::{dao_global_state, dao_investor_state},
+            dao_shares::dao_shares,
         },
         testing::{
             flow::create_dao_flow::create_dao_flow,
@@ -56,24 +57,20 @@ mod tests {
         let shares_asset = find_asset_holding_or_err(&creator_assets, dao.shares_asset_id)?;
         assert_eq!(0, shares_asset.amount);
 
-        // investing escrow funding checks
-        let escrow = &dao.invest_escrow;
-        let escrow_infos = algod.account_information(escrow.address()).await?;
-        // TODO refactor and check min algos balance
-        let escrow_held_assets = escrow_infos.assets;
-        assert_eq!(escrow_held_assets.len(), 1);
-        assert_eq!(escrow_held_assets[0].asset_id, dao.shares_asset_id);
-        assert_eq!(escrow_held_assets[0].amount, dao.specs.shares.supply.val());
-
         // app escrow funding checks
         let app_escrow = &dao.app_address();
         let app_escrow_infos = algod.account_information(app_escrow).await?;
         let app_escrow_held_assets = app_escrow_infos.assets;
         assert_eq!(app_escrow_held_assets.len(), 2);
-        let app_escrow_shares = asset_holdings(algod, app_escrow, dao.shares_asset_id).await?;
+        let app_escrow_shares =
+            ShareAmount(asset_holdings(algod, app_escrow, dao.shares_asset_id).await?);
         let app_funds = asset_holdings(algod, app_escrow, dao.funds_asset_id.0).await?;
-        assert_eq!(app_escrow_shares, AssetAmount(0)); // nothing locked yet
-        assert_eq!(app_funds, AssetAmount(0)); // no funds yet
+        assert_eq!(td.specs.shares.supply, app_escrow_shares); // the app's escrow has the share supply
+        assert_eq!(AssetAmount(0), app_funds); // no funds yet
+
+        let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
+        assert_eq!(ShareAmount::new(0), dao_shares.locked); // there are no locked shares
+        assert_eq!(td.specs.shares.supply, dao_shares.available); // all the shares on the app's escrow are available (not locked)
 
         test_global_app_state_setup_correctly(algod, &dao, td).await?;
 

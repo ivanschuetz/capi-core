@@ -68,16 +68,14 @@ pub mod test {
         )
         .await?;
 
-        let mut signed_funding_txs = vec![];
-        for tx in to_sign.escrow_funding_txs {
-            signed_funding_txs.push(td.creator.sign_transaction(tx)?);
-        }
+        let fund_customer_escrow_tx = td
+            .creator
+            .sign_transaction(to_sign.customer_escrow_funding_tx)?;
         let signed_fund_app_tx = td.creator.sign_transaction(to_sign.fund_app_tx)?;
         let signed_setup_app_tx = td.creator.sign_transaction(to_sign.setup_app_tx)?;
-
-        let signed_xfer_shares_to_invest_escrow = td
+        let signed_transfer_shares_to_app_tx = td
             .creator
-            .sign_transaction(to_sign.xfer_shares_to_invest_escrow)?;
+            .sign_transaction(to_sign.transfer_shares_to_app_tx)?;
 
         // Create the asset (submit signed tx) and generate escrow funding tx
         // Note that the escrow is generated after the asset, because it uses the asset id (in teal, inserted with template)
@@ -89,14 +87,14 @@ pub mod test {
                 creator: td.creator.address(),
                 shares_asset_id: create_assets_res.shares_asset_id,
                 funds_asset_id: td.funds_asset_id.clone(),
-                escrow_funding_txs: signed_funding_txs,
-                optin_txs: to_sign.optin_txs,
+                fund_customer_escrow_tx,
+                customer_escrow_optin_to_funds_asset_tx: to_sign
+                    .customer_escrow_optin_to_funds_asset_tx,
                 app_funding_tx: signed_fund_app_tx,
                 setup_app_tx: signed_setup_app_tx,
-                xfer_shares_to_invest_escrow: signed_xfer_shares_to_invest_escrow,
-                invest_escrow: to_sign.invest_escrow,
                 customer_escrow: to_sign.customer_escrow,
                 app_id: create_assets_res.app_id,
+                transfer_shares_to_app_tx: signed_transfer_shares_to_app_tx,
             },
         )
         .await?;
@@ -119,10 +117,6 @@ pub mod test {
             escrows: Escrows {
                 customer_escrow: VersionedTealSourceTemplate::new(
                     load_teal_template("customer_escrow")?,
-                    Version(1),
-                ),
-                invest_escrow: VersionedTealSourceTemplate::new(
-                    load_teal_template("investing_escrow")?,
                     Version(1),
                 ),
             },

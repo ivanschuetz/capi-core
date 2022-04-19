@@ -75,7 +75,6 @@ pub mod test {
                 central_app_setup_tx: signed_central_app_setup_tx,
                 shares_asset_optin_tx: signed_shares_optin_tx,
                 payment_tx: signed_payment_tx,
-                shares_xfer_tx: to_sign.shares_xfer_tx,
             },
         )
         .await?;

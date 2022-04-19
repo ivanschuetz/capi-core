@@ -16,7 +16,6 @@ use anyhow::Result;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DaoInitData {
     pub customer_escrow: VersionedAddress,
-    pub investing_escrow: VersionedAddress,
 
     pub app_approval_version: Version,
     pub app_clear_version: Version,
@@ -41,7 +40,6 @@ impl DaoInitData {
             app_approval: self.app_approval_version,
             app_clear: self.app_clear_version,
             customer_escrow: self.customer_escrow.version,
-            investing_escrow: self.investing_escrow.version,
         }
     }
 }
@@ -58,7 +56,6 @@ pub async fn setup_app_tx(
         CallApplication::new(*creator, app_id.0)
             .app_arguments(vec![
                 data.customer_escrow.address.0.to_vec(),
-                data.investing_escrow.address.0.to_vec(),
                 data.shares_asset_id.to_be_bytes().to_vec(),
                 data.funds_asset_id.0.to_be_bytes().to_vec(),
                 data.project_name.as_bytes().to_vec(),

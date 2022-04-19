@@ -1,7 +1,7 @@
 use super::app_state::{
-    get_bytes_value_or_error, get_uint_value_or_error, global_state, local_state,
-    local_state_from_account, read_address_from_state, AppStateKey, ApplicationGlobalState,
-    ApplicationLocalStateError, ApplicationStateExt,
+    get_uint_value_or_error, global_state, local_state, local_state_from_account,
+    read_address_from_state, AppStateKey, ApplicationGlobalState, ApplicationLocalStateError,
+    ApplicationStateExt,
 };
 use crate::{
     api::version::{bytes_to_versions, Version, VersionedAddress},
@@ -14,15 +14,15 @@ use crate::{
 use algonaut::{
     algod::v2::Algod,
     core::Address,
-    model::algod::v2::{Account, ApplicationLocalState},
+    model::algod::v2::{Account, ApplicationLocalState, TealKeyValue, TealValue},
 };
 use anyhow::{anyhow, Result};
-use std::convert::TryInto;
+use data_encoding::{BASE64, HEXLOWER};
+use std::{collections::BTreeMap, convert::TryInto};
 
 const GLOBAL_TOTAL_RECEIVED: AppStateKey = AppStateKey("CentralReceivedTotal");
 
 const GLOBAL_CUSTOMER_ESCROW_ADDRESS: AppStateKey = AppStateKey("CustomerEscrowAddress");
-const GLOBAL_INVESTING_ESCROW_ADDRESS: AppStateKey = AppStateKey("InvestingEscrowAddress");
 
 const GLOBAL_FUNDS_ASSET_ID: AppStateKey = AppStateKey("FundsAssetId");
 const GLOBAL_SHARES_ASSET_ID: AppStateKey = AppStateKey("SharesAssetId");
@@ -47,18 +47,18 @@ const LOCAL_CLAIMED_INIT: AppStateKey = AppStateKey("ClaimedInit");
 const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_DAO: AppStateKey = AppStateKey("Dao");
 
-pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 8; // customer escrow, investing escrow, dao name, dao descr, logo, social media, owner, versions
+pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 7; // customer escrow, dao name, dao descr, logo, social media, owner, versions
 pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 6; // total received, shares asset id, funds asset id, share price, investors part, shares locked
 
-pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 1; // for investors: "dao"
-pub const LOCAL_SCHEMA_NUM_INTS: u64 = 3; // for investors: "shares", "claimed total", "claimed init"
+pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 0;
+pub const LOCAL_SCHEMA_NUM_INTS: u64 = 4; // for investors: "shares", "claimed total", "claimed init", "dao"
 
+// TODO rename in DaoGlobalState
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CentralAppGlobalState {
     pub received: FundsAmount,
 
     pub customer_escrow: VersionedAddress,
-    pub investing_escrow: VersionedAddress,
 
     pub app_approval_version: Version,
     pub app_clear_version: Version,
@@ -82,16 +82,20 @@ pub struct CentralAppGlobalState {
 /// Returns Ok only if called after dao setup (branch_setup_dao), where all the global state is initialized.
 pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<CentralAppGlobalState> {
     let gs = global_state(algod, app_id.0).await?;
-    if gs.len() != ((GLOBAL_SCHEMA_NUM_BYTE_SLICES + GLOBAL_SCHEMA_NUM_INTS) as usize) {
+
+    let expected_gs_len = GLOBAL_SCHEMA_NUM_BYTE_SLICES + GLOBAL_SCHEMA_NUM_INTS;
+    if gs.len() != expected_gs_len as usize {
+        println!("DAO global state:");
+        print_state(&gs.0)?;
         return Err(anyhow!(
-            "Unexpected global state length: {}, state: {gs:?}. Was the DAO setup performed already?",
+            "Unexpected global state length: {}. Expected: {expected_gs_len}. Was the DAO setup performed already?",
             gs.len(),
         ));
     }
+
     let total_received = FundsAmount::new(get_int_or_err(&GLOBAL_TOTAL_RECEIVED, &gs)?);
 
     let customer_escrow = read_address_from_state(&gs, GLOBAL_CUSTOMER_ESCROW_ADDRESS)?;
-    let investing_escrow = read_address_from_state(&gs, GLOBAL_INVESTING_ESCROW_ADDRESS)?;
 
     let funds_asset_id = FundsAssetId(get_int_or_err(&GLOBAL_FUNDS_ASSET_ID, &gs)?);
     let shares_asset_id = get_int_or_err(&GLOBAL_SHARES_ASSET_ID, &gs)?;
@@ -115,7 +119,6 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
     Ok(CentralAppGlobalState {
         received: total_received,
         customer_escrow: VersionedAddress::new(customer_escrow, versions.customer_escrow),
-        investing_escrow: VersionedAddress::new(investing_escrow, versions.investing_escrow),
         app_approval_version: versions.app_approval,
         app_clear_version: versions.app_clear,
         funds_asset_id,
@@ -129,6 +132,45 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
         owner,
         locked_shares: shares_locked,
     })
+}
+
+fn print_state(values: &[TealKeyValue]) -> Result<()> {
+    let mut key_values = BTreeMap::new();
+    for kv in values {
+        let key_bytes = BASE64.decode(kv.key.as_bytes())?;
+        key_values.insert(String::from_utf8(key_bytes)?, value_to_str(&kv.value)?);
+    }
+
+    // separate step in case we split the fn
+    for (k, v) in key_values {
+        println!("{k} => {v:?}")
+    }
+
+    Ok(())
+}
+
+fn value_to_str(value: &TealValue) -> Result<String> {
+    match &value.value_type {
+        1 => Ok(value
+            .bytes
+            .clone()
+            .try_into()
+            // try first to interpret bytes as address
+            .map(|array| Address(array).to_string())
+            // if not address, display as hex
+            .unwrap_or_else(|_| to_hex_str(&value.bytes.clone()))),
+        2 => Ok(value.uint.to_string()),
+        _ => {
+            return Err(anyhow!(
+                "Unexpected global value type: {}",
+                value.value_type
+            ))
+        }
+    }
+}
+
+fn to_hex_str(bytes: &[u8]) -> String {
+    format!("0x{}", HEXLOWER.encode(bytes))
 }
 
 fn get_int_or_err(key: &AppStateKey, gs: &ApplicationGlobalState) -> Result<u64> {
@@ -184,6 +226,10 @@ fn central_investor_state_from_local_state(
     state: &ApplicationLocalState,
 ) -> Result<CentralAppInvestorState, ApplicationLocalStateError<'static>> {
     if state.len() != ((LOCAL_SCHEMA_NUM_BYTE_SLICES + LOCAL_SCHEMA_NUM_INTS) as usize) {
+        println!("Investor local state:");
+        print_state(&state.key_value).map_err(|e| {
+            ApplicationLocalStateError::Msg(format!("Error printing local state: {e}"))
+        })?;
         return Err(ApplicationLocalStateError::Msg(format!(
             "Unexpected investor local state length: {}, state: {state:?}",
             state.len(),
@@ -193,12 +239,7 @@ fn central_investor_state_from_local_state(
     let shares = get_uint_value_or_error(state, &LOCAL_SHARES)?;
     let claimed = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_CLAIMED_TOTAL)?);
     let claimed_init = FundsAmount::new(get_uint_value_or_error(state, &LOCAL_CLAIMED_INIT)?);
-    let dao_id_bytes = get_bytes_value_or_error(state, &LOCAL_DAO)?;
-
-    let dao_id: DaoId = dao_id_bytes
-        .as_slice()
-        .try_into()
-        .map_err(|e: anyhow::Error| ApplicationLocalStateError::Msg(e.to_string()))?;
+    let dao_id = DaoId(DaoAppId(get_uint_value_or_error(state, &LOCAL_DAO)?));
 
     Ok(CentralAppInvestorState {
         shares: ShareAmount::new(shares),
@@ -212,12 +253,9 @@ fn central_investor_state_from_local_state(
 pub fn find_state_with_a_capi_dao_id(
     app_local_state: &ApplicationLocalState,
 ) -> Result<Option<DaoId>> {
-    let maybe_bytes = app_local_state.find_bytes(&LOCAL_DAO);
-    match maybe_bytes {
-        Some(bytes) => {
-            let dao_id: DaoId = bytes.as_slice().try_into()?;
-            Ok(Some(dao_id))
-        }
+    let maybe_int_value = app_local_state.find_uint(&LOCAL_DAO);
+    match maybe_int_value {
+        Some(value) => Ok(Some(DaoId(DaoAppId(value)))),
         // Not found is Ok: we just didn't find a matching key value
         None => Ok(None),
     }

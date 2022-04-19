@@ -5,13 +5,6 @@ use serde::Serialize;
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use std::{convert::TryInto, str::FromStr};
-
-    use algonaut::core::Address;
-    use anyhow::{Error, Result};
-    use rust_decimal::Decimal;
-    use tokio::test;
-
     use crate::{
         capi_asset::{
             capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
@@ -27,7 +20,6 @@ mod tests {
                     customer_escrow::{
                         render_and_compile_customer_escrow, render_customer_escrow_v1,
                     },
-                    investing_escrow::render_investing_escrow_v1,
                     setup_app,
                 },
                 share_amount::ShareAmount,
@@ -42,6 +34,11 @@ mod tests {
         teal::load_teal_template,
         testing::{test_data::creator, TESTS_DEFAULT_PRECISION},
     };
+    use algonaut::core::Address;
+    use anyhow::{Error, Result};
+    use rust_decimal::Decimal;
+    use std::{convert::TryInto, str::FromStr};
+    use tokio::test;
 
     // helper for environments that don't allow to open directly the TEAL debugger (e.g. WASM)
     // Copy the parameters, serialized to msg pack, here and run the test
@@ -53,12 +50,12 @@ mod tests {
 
         // Set parameters to match current environment
 
-        let shares_asset_id = 20;
+        // let shares_asset_id = 20;
         let shares_price = FundsAmount::new(10000000);
-        let funds_asset_id = FundsAssetId(6);
+        // let funds_asset_id = FundsAssetId(6);
         let share_supply = ShareAmount::new(100);
         let investors_share = ShareAmount::new(40);
-        let app_id = DaoAppId(123);
+        // let app_id = DaoAppId(123);
         let capi_app_id = CapiAppId(123);
         let capi_share = 123u64.as_decimal().try_into()?;
         let owner = creator();
@@ -82,15 +79,6 @@ mod tests {
             capi_app_id,
             capi_share,
             shares_price,
-        )?;
-
-        let investing_escrow_template = load_teal_template("investing_escrow")?;
-        render_investing_escrow_v1(
-            &investing_escrow_template,
-            shares_asset_id,
-            &shares_price,
-            &funds_asset_id,
-            app_id,
         )?;
 
         // insert msg pack serialized bytes

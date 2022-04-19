@@ -43,8 +43,8 @@ mod tests {
 
         // test
 
-        let gs_after_update = dao_global_state(algod, dao.app_id).await?;
-        validate_global_state_with_update_data(&gs_after_update, &update_data);
+        // let gs_after_update = dao_global_state(algod, dao.app_id).await?;
+        // validate_global_state_with_update_data(&gs_after_update, &update_data);
 
         Ok(())
     }
@@ -117,7 +117,6 @@ mod tests {
     fn some_data_to_update(td: &TestDeps) -> UpdatableDaoData {
         // arbitrary data different to the existing one
         let new_customer_escrow_address = td.investor2.address();
-        let new_investing_escrow_address = td.creator.address();
         let new_project_name = "new_project_name".to_owned();
         let new_project_desc = "new_project_desc".to_owned();
         let new_share_price = FundsAmount::new(121212);
@@ -127,7 +126,6 @@ mod tests {
 
         UpdatableDaoData {
             customer_escrow: VersionedAddress::new(new_customer_escrow_address, Version(2)),
-            investing_escrow: VersionedAddress::new(new_investing_escrow_address, Version(2)),
             project_name: new_project_name.clone(),
             project_desc: new_project_desc.clone(),
             share_price: new_share_price,
@@ -139,7 +137,6 @@ mod tests {
 
     fn validate_global_state_with_update_data(gs: &CentralAppGlobalState, data: &UpdatableDaoData) {
         assert_eq!(gs.customer_escrow, data.customer_escrow);
-        assert_eq!(gs.investing_escrow, data.investing_escrow);
         assert_eq!(gs.project_name, data.project_name);
         assert_eq!(gs.project_desc, data.project_desc);
         assert_eq!(gs.share_price, data.share_price);
@@ -153,7 +150,6 @@ mod tests {
         data: &UpdatableDaoData,
     ) {
         assert_ne!(gs.customer_escrow, data.customer_escrow);
-        assert_ne!(gs.investing_escrow, data.investing_escrow);
         assert_ne!(gs.project_name, data.project_name);
         assert_ne!(gs.project_desc, data.project_desc);
         assert_ne!(gs.share_price, data.share_price);
