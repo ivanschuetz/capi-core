@@ -3,12 +3,17 @@ use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 
 use crate::{
-    date_util::timestamp_seconds_to_date, flows::create_dao::storage::load_dao::TxId,
-    funds::FundsAmount,
+    date_util::timestamp_seconds_to_date,
+    flows::create_dao::storage::load_dao::TxId,
+    funds::{FundsAmount, FundsAssetId},
 };
 
-/// Dao payments, i.e. funds asset transfers
-pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<Vec<Payment>> {
+/// Payments (funds xfer) to the Dao
+pub async fn received_payments(
+    indexer: &Indexer,
+    address: &Address,
+    funds_asset: FundsAssetId,
+) -> Result<Vec<Payment>> {
     log::debug!("Retrieving payment to: {:?}", address);
 
     let response = indexer
@@ -28,7 +33,7 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
         if let Some(payment_tx) = &tx.asset_transfer_transaction {
             let receiver_address = payment_tx.receiver.parse::<Address>().map_err(Error::msg)?;
 
-            if &receiver_address == address {
+            if &receiver_address == address && payment_tx.asset_id == funds_asset.0 {
                 // Skip asset opt-ins
                 if sender_address == receiver_address && payment_tx.amount == 0 {
                     continue;
