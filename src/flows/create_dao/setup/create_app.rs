@@ -27,7 +27,6 @@ pub async fn create_app_tx(
     approval_template: &VersionedTealSourceTemplate,
     clear_template: &VersionedTealSourceTemplate,
     creator: &Address,
-    owner: &Address,
     share_supply: ShareAmount,
     precision: u64,
     investors_share: ShareAmount,
@@ -40,7 +39,6 @@ pub async fn create_app_tx(
     let compiled_approval_program = render_and_compile_app_approval(
         algod,
         approval_template,
-        owner,
         share_supply,
         precision,
         investors_share,
@@ -76,7 +74,6 @@ pub async fn create_app_tx(
 pub async fn render_and_compile_app_approval(
     algod: &Algod,
     template: &VersionedTealSourceTemplate,
-    owner: &Address,
     share_supply: ShareAmount,
     precision: u64,
     investors_part: ShareAmount,
@@ -87,7 +84,6 @@ pub async fn render_and_compile_app_approval(
     let source = match template.version.0 {
         1 => render_central_app_approval_v1(
             &template.template,
-            owner,
             share_supply,
             precision,
             investors_part,
@@ -107,7 +103,6 @@ pub async fn render_and_compile_app_approval(
 #[allow(clippy::too_many_arguments)]
 pub fn render_central_app_approval_v1(
     source: &TealSourceTemplate,
-    owner: &Address,
     share_supply: ShareAmount,
     precision: u64,
     investors_part: ShareAmount,
@@ -139,7 +134,6 @@ pub fn render_central_app_approval_v1(
                 "TMPL_INVESTORS_SHARE",
                 &investors_part_percentage.to_string(),
             ),
-            ("TMPL_OWNER", &owner.to_string()),
             ("TMPL_PRECISION__", &precision.to_string()),
             ("TMPL_PRECISION_SQUARE", &precision_square.to_string()),
             (
@@ -236,7 +230,6 @@ mod tests {
             &algod,
             &approval_template,
             &clear_template,
-            &creator.address(),
             &creator.address(),
             ShareAmount::new(1),
             TESTS_DEFAULT_PRECISION,

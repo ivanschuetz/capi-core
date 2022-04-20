@@ -28,7 +28,6 @@ pub mod test {
         let create_assets_txs = create_assets(
             &algod,
             &td.creator.address(),
-            owner,
             &td.specs,
             &td.programs.central_app_approval,
             &td.programs.central_app_clear,

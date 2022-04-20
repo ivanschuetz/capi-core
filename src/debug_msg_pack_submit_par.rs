@@ -58,7 +58,6 @@ mod tests {
         // let app_id = DaoAppId(123);
         let capi_app_id = CapiAppId(123);
         let capi_share = 123u64.as_decimal().try_into()?;
-        let owner = creator();
 
         // let capi_deps = &CapiAssetDaoDeps {
         //     escrow_percentage: Decimal::from_str("0.1").unwrap().try_into()?,
@@ -72,7 +71,6 @@ mod tests {
         let approval_template = load_teal_template("dao_app_approval")?;
         render_central_app_approval_v1(
             &approval_template,
-            &owner.address(),
             share_supply,
             TESTS_DEFAULT_PRECISION,
             investors_share,

@@ -54,7 +54,6 @@ pub mod test_flow {
             &params,
             asset_id,
             funds_asset_id,
-            &creator.address(),
         )
         .await?;
         let signed = creator.sign_transaction(to_sign_app)?;

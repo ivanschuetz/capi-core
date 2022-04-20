@@ -37,7 +37,6 @@ pub async fn create_assets(
         &app_approval,
         &app_clear,
         creator,
-        owner,
         specs.shares.supply,
         precision,
         specs.investors_part(),

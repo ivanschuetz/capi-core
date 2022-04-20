@@ -25,7 +25,6 @@ pub async fn create_app(
     params: &SuggestedTransactionParams,
     asset_id: CapiAssetId,
     funds_asset_id: FundsAssetId,
-    capi_owner: &Address,
 ) -> Result<Transaction> {
     log::debug!("Creating capi app");
 
@@ -36,7 +35,6 @@ pub async fn create_app(
         precision,
         asset_id,
         funds_asset_id,
-        capi_owner,
     )
     .await?;
     let compiled_clear_program = render_and_compile_app_clear(algod, clear_template).await?;
@@ -70,7 +68,6 @@ pub async fn render_and_compile_app_approval(
     precision: u64,
     asset_id: CapiAssetId,
     funds_asset_id: FundsAssetId,
-    capi_owner: &Address,
 ) -> Result<CompiledTeal> {
     let source = match template.version.0 {
         1 => render_app_v1(
@@ -79,7 +76,6 @@ pub async fn render_and_compile_app_approval(
             precision,
             asset_id,
             funds_asset_id,
-            capi_owner,
         ),
         _ => Err(anyhow!(
             "Dao app approval version not supported: {:?}",
@@ -96,7 +92,6 @@ pub fn render_app_v1(
     precision: u64,
     asset_id: CapiAssetId,
     funds_asset_id: FundsAssetId,
-    capi_owner: &Address,
 ) -> Result<TealSource> {
     let source = render_template_new(
         source,
@@ -105,7 +100,6 @@ pub fn render_app_v1(
             ("TMPL_FUNDS_ASSET_ID", &funds_asset_id.0.to_string()),
             ("TMPL_SHARE_SUPPLY", &asset_supply.0.to_string()),
             ("TMPL_PRECISION", &precision.to_string()),
-            ("TMPL_CAPI_OWNER", &capi_owner.to_string()),
         ],
     )?;
 
@@ -182,7 +176,6 @@ mod tests {
             &params,
             CapiAssetId(0),
             FundsAssetId(0),
-            &creator.address(),
         )
         .await?;
 
