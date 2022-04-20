@@ -46,8 +46,13 @@ pub async fn get_roadmap(
                     if let Some(roadmap_item) =
                         base64_maybe_roadmap_note_to_roadmap_item(&note, dao_id)?
                     {
+                        let id = tx
+                            .id
+                            .clone()
+                            .ok_or_else(|| anyhow!("Unexpected: tx has no id: {:?}", tx))?;
+
                         let saved_roadmap_item =
-                            to_saved_roadmap_item(&roadmap_item, &tx.id.parse()?, round_time)?;
+                            to_saved_roadmap_item(&roadmap_item, &id.parse()?, round_time)?;
                         roadmap_items.push(saved_roadmap_item);
                     }
                 }

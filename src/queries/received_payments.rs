@@ -40,8 +40,13 @@ pub async fn received_payments(indexer: &Indexer, address: &Address) -> Result<V
                     .round_time
                     .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
 
+                let id = tx
+                    .id
+                    .clone()
+                    .ok_or_else(|| anyhow!("Unexpected: tx has no id: {:?}", tx))?;
+
                 payments.push(Payment {
-                    tx_id: tx.id.parse()?,
+                    tx_id: id.parse()?,
                     amount: FundsAmount::new(payment_tx.amount),
                     sender: tx.sender.parse().map_err(Error::msg)?,
                     date: timestamp_seconds_to_date(round_time)?,

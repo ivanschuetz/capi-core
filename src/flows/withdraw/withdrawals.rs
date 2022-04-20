@@ -1,6 +1,8 @@
 use algonaut::{
-    algod::v2::Algod, core::Address, indexer::v2::Indexer,
-    model::indexer::v2::QueryAccountTransaction,
+    algod::v2::Algod,
+    core::Address,
+    indexer::v2::Indexer,
+    model::indexer::v2::{QueryAccountTransaction, TransactionType},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -30,6 +32,7 @@ pub async fn withdrawals(
     let dao = load_dao(algod, dao_id, api, capi_deps).await?;
 
     let query = QueryAccountTransaction {
+        tx_type: Some(TransactionType::ApplicationTransaction),
         // For now no prefix filtering
         // Algorand's indexer has performance problems with note-prefix and it doesn't work at all with AlgoExplorer or PureStake currently:
         // https://github.com/algorand/indexer/issues/358
@@ -56,32 +59,49 @@ pub async fn withdrawals(
     let mut withdrawals = vec![];
 
     for tx in &txs {
-        // withdrawals are xfers - ignore other txs
-        if let Some(payment) = tx.asset_transfer_transaction.clone() {
-            let sender_address = tx.sender.parse::<Address>().map_err(Error::msg)?;
-            let receiver_address = payment.receiver.parse::<Address>().map_err(Error::msg)?;
+        if let Some(app_call) = tx.application_transaction.clone() {
+            if app_call.application_id == dao.app_id.0 {
+                for inner_tx in &tx.inner_txns {
+                    // withdrawals are xfers from the app to the owner
+                    if let Some(xfer) = inner_tx.asset_transfer_transaction.clone() {
+                        // not sure that we need to check the sender here - it's probably always the app? but it doesn't hurt
+                        let sender_address =
+                            inner_tx.sender.parse::<Address>().map_err(Error::msg)?;
+                        let receiver_address =
+                            xfer.receiver.parse::<Address>().map_err(Error::msg)?;
 
-            // account_transactions returns all the txs "related" to the account, i.e. can be sender or receiver
-            // we're interested only in central escrow -> creator
-            if sender_address == dao.app_address() && receiver_address == *owner {
-                // for now the only payload is the description
-                let withdrawal_description = match &tx.note {
-                    Some(note) => base64_withdrawal_note_to_withdrawal_description(note)?,
-                    None => "".to_owned(),
-                };
 
-                // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
-                // Unclear when it's None. For now we just reject it.
-                let round_time = tx
-                    .round_time
-                    .ok_or_else(|| anyhow!("Unexpected: tx has no round time: {:?}", tx))?;
+                        // account_transactions returns all the txs "related" to the account, i.e. can be sender or receiver
+                        // we're interested only in central escrow -> creator
+                        if sender_address == dao.app_address() && receiver_address == *owner {
+                            // for now the only payload is the description
+                            let withdrawal_description = match &tx.note {
+                                Some(note) => {
+                                    base64_withdrawal_note_to_withdrawal_description(note)?
+                                }
+                                None => "".to_owned(),
+                            };
 
-                withdrawals.push(Withdrawal {
-                    amount: FundsAmount::new(payment.amount),
-                    description: withdrawal_description,
-                    date: timestamp_seconds_to_date(round_time)?,
-                    tx_id: tx.id.clone().parse()?,
-                })
+                            // Round time is documented as optional (https://developer.algorand.org/docs/rest-apis/indexer/#transaction)
+                            // Unclear when it's None. For now we just reject it.
+                            let round_time = tx.round_time.ok_or_else(|| {
+                                anyhow!("Unexpected: tx has no round time: {:?}", tx)
+                            })?;
+
+                            let id = tx
+                                .id
+                                .clone()
+                                .ok_or_else(|| anyhow!("Unexpected: tx has no id: {:?}", tx))?;
+
+                            withdrawals.push(Withdrawal {
+                                amount: FundsAmount::new(xfer.amount),
+                                description: withdrawal_description,
+                                date: timestamp_seconds_to_date(round_time)?,
+                                tx_id: id.parse()?,
+                            })
+                        }
+                    }
+                }
             }
         }
     }
