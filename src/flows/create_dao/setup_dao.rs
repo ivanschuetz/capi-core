@@ -155,7 +155,7 @@ pub async fn submit_setup_dao(
             funds_asset_id: signed.funds_asset_id,
             app_id: signed.app_id,
             customer_escrow: signed.customer_escrow,
-            creator: signed.creator,
+            owner: signed.creator,
         },
     })
 }

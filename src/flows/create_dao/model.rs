@@ -66,7 +66,7 @@ pub struct SetupDaoSigned {
 pub struct Dao {
     pub app_id: DaoAppId,
     pub specs: SetupDaoSpecs,
-    pub creator: Address,
+    pub owner: Address,
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
     pub customer_escrow: VersionedContractAccount,
@@ -90,7 +90,7 @@ impl Debug for Dao {
             .field("app_id", &self.app_id)
             .field("app_address()", &self.app_address())
             .field("specs", &self.specs)
-            .field("creator", &self.creator)
+            .field("creator", &self.owner)
             .field("shares_asset_id", &self.shares_asset_id)
             .field("funds_asset_id", &self.funds_asset_id)
             .field("customer_escrow", &self.customer_escrow)
