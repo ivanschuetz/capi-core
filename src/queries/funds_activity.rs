@@ -1,4 +1,4 @@
-use super::received_payments::{received_payments, Payment};
+use super::received_payments::all_received_payments;
 use crate::{
     api::api::Api,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
@@ -8,11 +8,7 @@ use crate::{
     },
     funds::{FundsAmount, FundsAssetId},
 };
-use algonaut::{
-    algod::v2::Algod,
-    core::{to_app_address, Address},
-    indexer::v2::Indexer,
-};
+use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
@@ -44,16 +40,13 @@ pub async fn funds_activity(
 ) -> Result<Vec<FundsActivityEntry>> {
     let withdrawals = withdrawals(algod, indexer, owner, dao_id, api, capi_deps).await?;
     // payments to the customer escrow
-    let customer_escrow_payments =
-        received_payments(indexer, customer_escrow_address, funds_asset).await?;
-    // payments to the central escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)
-    let app_address = to_app_address(dao_id.0 .0);
-    let central_escrow_payments = received_payments(indexer, &app_address, funds_asset).await?;
-    // filter out draining (payments from customer escrow to central escrow), which would duplicate payments to the customer escrow
-    let filtered_central_escrow_payments: Vec<Payment> = central_escrow_payments
-        .into_iter()
-        .filter(|p| &p.sender != customer_escrow_address)
-        .collect();
+    let payments = all_received_payments(
+        indexer,
+        &dao_id.0.address(),
+        customer_escrow_address,
+        funds_asset,
+    )
+    .await?;
 
     let mut funds_activity = vec![];
 
@@ -67,19 +60,7 @@ pub async fn funds_activity(
         })
     }
 
-    for payment in customer_escrow_payments {
-        funds_activity.push(FundsActivityEntry {
-            date: payment.date,
-            type_: FundsActivityEntryType::Income,
-            description: payment
-                .note
-                .unwrap_or_else(|| "No description provided".to_owned()),
-            amount: payment.amount,
-            tx_id: payment.tx_id.clone(),
-        })
-    }
-
-    for payment in filtered_central_escrow_payments {
+    for payment in payments {
         funds_activity.push(FundsActivityEntry {
             date: payment.date,
             type_: FundsActivityEntryType::Income,

@@ -8,6 +8,32 @@ use crate::{
     funds::{FundsAmount, FundsAssetId},
 };
 
+/// All the payments (funds xfer) made to the Dao
+/// This combines payments to 2 escrows: the customer and the app's escrow
+/// The payments to the app escrow coming from the customer escrow are removed, in order to not duplicate the customer escrow's payments
+/// (note that we need to query both escrows, as there can be funds in the customer escrow that haven't been drained yet)
+/// this way dates also make sense: customer payments have the date of the actual payment (xfer to customer escrow), not the draining date.
+/// (and investors buying shares, expectedly also have the date of when the share was bought)
+pub async fn all_received_payments(
+    indexer: &Indexer,
+    dao_address: &Address,
+    customer_escrow_address: &Address,
+    funds_asset: FundsAssetId,
+) -> Result<Vec<Payment>> {
+    // payments to the customer escrow
+    let mut customer_escrow_payments =
+        received_payments(indexer, customer_escrow_address, funds_asset).await?;
+    // payments to the central escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)
+    let central_escrow_payments = received_payments(indexer, &dao_address, funds_asset).await?;
+    // filter out draining (payments from customer escrow to central escrow), which would duplicate payments to the customer escrow
+    let filtered_central_escrow_payments: Vec<Payment> = central_escrow_payments
+        .into_iter()
+        .filter(|p| &p.sender != customer_escrow_address)
+        .collect();
+    customer_escrow_payments.extend(filtered_central_escrow_payments);
+    Ok(customer_escrow_payments)
+}
+
 /// Payments (funds xfer) to the Dao
 pub async fn received_payments(
     indexer: &Indexer,
