@@ -35,13 +35,13 @@ pub enum FundsActivityEntryType {
 pub async fn funds_activity(
     algod: &Algod,
     indexer: &Indexer,
-    creator: &Address,
+    owner: &Address,
     dao_id: DaoId,
     customer_escrow_address: &Address,
     api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<FundsActivityEntry>> {
-    let withdrawals = withdrawals(algod, indexer, creator, dao_id, api, capi_deps).await?;
+    let withdrawals = withdrawals(algod, indexer, owner, dao_id, api, capi_deps).await?;
     // payments to the customer escrow
     let customer_escrow_payments = received_payments(indexer, customer_escrow_address).await?;
     // payments to the central escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)

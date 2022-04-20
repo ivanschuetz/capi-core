@@ -20,12 +20,12 @@ use anyhow::{anyhow, Error, Result};
 pub async fn withdrawals(
     algod: &Algod,
     indexer: &Indexer,
-    creator: &Address,
+    owner: &Address,
     dao_id: DaoId,
     api: &dyn Api,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Withdrawal>> {
-    log::debug!("Querying withdrawals by: {:?}", creator);
+    log::debug!("Querying withdrawals by: {:?}", owner);
 
     let dao = load_dao(algod, dao_id, api, capi_deps).await?;
 
@@ -40,7 +40,7 @@ pub async fn withdrawals(
 
     // TODO filter txs by receiver (creator) - this returns everything associated with creator
     let txs = indexer
-        .account_transactions(creator, &query)
+        .account_transactions(owner, &query)
         .await?
         .transactions;
 
@@ -56,14 +56,14 @@ pub async fn withdrawals(
     let mut withdrawals = vec![];
 
     for tx in &txs {
-        // withdrawals are payments - ignore other txs
+        // withdrawals are xfers - ignore other txs
         if let Some(payment) = tx.asset_transfer_transaction.clone() {
             let sender_address = tx.sender.parse::<Address>().map_err(Error::msg)?;
             let receiver_address = payment.receiver.parse::<Address>().map_err(Error::msg)?;
 
             // account_transactions returns all the txs "related" to the account, i.e. can be sender or receiver
             // we're interested only in central escrow -> creator
-            if sender_address == dao.app_address() && receiver_address == *creator {
+            if sender_address == dao.app_address() && receiver_address == *owner {
                 // for now the only payload is the description
                 let withdrawal_description = match &tx.note {
                     Some(note) => base64_withdrawal_note_to_withdrawal_description(note)?,
