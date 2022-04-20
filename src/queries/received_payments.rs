@@ -23,14 +23,14 @@ pub async fn all_received_payments(
     // payments to the customer escrow
     let mut customer_escrow_payments =
         received_payments(indexer, customer_escrow_address, funds_asset).await?;
-    // payments to the central escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)
-    let central_escrow_payments = received_payments(indexer, &dao_address, funds_asset).await?;
-    // filter out draining (payments from customer escrow to central escrow), which would duplicate payments to the customer escrow
-    let filtered_central_escrow_payments: Vec<Payment> = central_escrow_payments
+    // payments to the app escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)
+    let app_escrow_payments = received_payments(indexer, &dao_address, funds_asset).await?;
+    // filter out draining (payments from customer escrow to app escrow), which would duplicate payments to the customer escrow
+    let filtered_app_escrow_payments: Vec<Payment> = app_escrow_payments
         .into_iter()
         .filter(|p| &p.sender != customer_escrow_address)
         .collect();
-    customer_escrow_payments.extend(filtered_central_escrow_payments);
+    customer_escrow_payments.extend(filtered_app_escrow_payments);
     Ok(customer_escrow_payments)
 }
 
