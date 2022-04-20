@@ -7,7 +7,7 @@ mod tests {
         flows::{
             claim::claim::claimable_dividend,
             create_dao::{
-                create_dao_specs::CreateDaoSpecs, model::CreateSharesSpecs,
+                setup_dao_specs::SetupDaoSpecs, model::CreateSharesSpecs,
                 share_amount::ShareAmount, storage::load_dao::DaoAppId,
             },
         },
@@ -156,7 +156,7 @@ mod tests {
         let mut td = test_dao_init().await?;
         // set capi percentage to 0 - we're not testing this here and it eases calculations (drained amount == amount that ends on central escrow)
         td.capi_escrow_percentage = Decimal::new(0, 0).try_into().unwrap();
-        td.specs = CreateDaoSpecs::new(
+        td.specs = SetupDaoSpecs::new(
             "Pancakes ltd".to_owned(),
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
             CreateSharesSpecs {

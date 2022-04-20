@@ -1,5 +1,5 @@
 use super::{
-    create_dao_specs::CreateDaoSpecs,
+    setup_dao_specs::SetupDaoSpecs,
     share_amount::ShareAmount,
     storage::load_dao::{DaoAppId, DaoId},
 };
@@ -30,7 +30,7 @@ pub struct SetupInvestEscrowSigned {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CreateDaoToSign {
+pub struct SetupDaoToSign {
     pub customer_escrow_funding_tx: Transaction,
     pub fund_app_tx: Transaction,
     pub setup_app_tx: Transaction,
@@ -38,20 +38,20 @@ pub struct CreateDaoToSign {
 
     pub customer_escrow_optin_to_funds_asset_tx: SignedTransaction, // lsig
 
-    pub specs: CreateDaoSpecs,
+    pub specs: SetupDaoSpecs,
     pub customer_escrow: VersionedContractAccount,
     pub creator: Address,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct CreateDaoSigned {
+pub struct SetupDaoSigned {
     pub app_funding_tx: SignedTransaction,
     pub fund_customer_escrow_tx: SignedTransaction,
     pub setup_app_tx: SignedTransaction,
     pub customer_escrow_optin_to_funds_asset_tx: SignedTransaction, // lsig
     pub transfer_shares_to_app_tx: SignedTransaction,
 
-    pub specs: CreateDaoSpecs,
+    pub specs: SetupDaoSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
     pub app_id: DaoAppId,
@@ -64,7 +64,7 @@ pub struct CreateDaoSigned {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dao {
     pub app_id: DaoAppId,
-    pub specs: CreateDaoSpecs,
+    pub specs: SetupDaoSpecs,
     pub creator: Address,
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
@@ -83,7 +83,7 @@ impl Dao {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SubmitCreateDaoResult {
+pub struct SubmitSetupDaoResult {
     pub dao: Dao,
 }
 

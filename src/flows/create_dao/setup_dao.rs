@@ -1,6 +1,6 @@
 use super::{
-    create_dao_specs::CreateDaoSpecs,
-    model::{CreateDaoSigned, CreateDaoToSign, SubmitCreateDaoResult},
+    setup_dao_specs::SetupDaoSpecs,
+    model::{SetupDaoSigned, SetupDaoToSign, SubmitSetupDaoResult},
     storage::load_dao::DaoAppId,
 };
 use crate::{
@@ -24,9 +24,9 @@ use algonaut::{
 use anyhow::Result;
 
 #[allow(clippy::too_many_arguments)]
-pub async fn create_dao_txs(
+pub async fn setup_dao_txs(
     algod: &Algod,
-    specs: &CreateDaoSpecs,
+    specs: &SetupDaoSpecs,
     creator: Address,
     owner: Address,
     shares_asset_id: u64,
@@ -35,7 +35,7 @@ pub async fn create_dao_txs(
     precision: u64,
     app_id: DaoAppId,
     capi_deps: &CapiAssetDaoDeps,
-) -> Result<CreateDaoToSign> {
+) -> Result<SetupDaoToSign> {
     log::debug!(
         "Creating dao with specs: {:?}, shares_asset_id: {}, precision: {}",
         specs,
@@ -108,7 +108,7 @@ pub async fn create_dao_txs(
         .account
         .sign(customer_to_sign.optin_to_funds_asset_tx, vec![])?;
 
-    Ok(CreateDaoToSign {
+    Ok(SetupDaoToSign {
         specs: specs.to_owned(),
         creator,
 
@@ -124,10 +124,10 @@ pub async fn create_dao_txs(
     })
 }
 
-pub async fn submit_create_dao(
+pub async fn submit_setup_dao(
     algod: &Algod,
-    signed: CreateDaoSigned,
-) -> Result<SubmitCreateDaoResult> {
+    signed: SetupDaoSigned,
+) -> Result<SubmitSetupDaoResult> {
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
     log::debug!(
         "Submitting dao setup, specs: {:?}, creator: {:?}",
@@ -148,7 +148,7 @@ pub async fn submit_create_dao(
 
     algod.broadcast_signed_transactions(&signed_txs).await?;
 
-    Ok(SubmitCreateDaoResult {
+    Ok(SubmitSetupDaoResult {
         dao: Dao {
             specs: signed.specs,
             shares_asset_id: signed.shares_asset_id,

@@ -20,8 +20,8 @@ mod test {
     };
     use crate::dependencies::{algod_for_net, Env};
     use crate::files::{read_lines, write_to_file};
-    use crate::flows::create_dao::create_dao::Programs;
-    use crate::flows::create_dao::create_dao_specs::CreateDaoSpecs;
+    use crate::flows::create_dao::setup_dao::Programs;
+    use crate::flows::create_dao::setup_dao_specs::SetupDaoSpecs;
     use crate::testing::flow::create_dao_flow::test::test_programs;
     use crate::testing::test_data::{dao_specs, msig_acc1, msig_acc2, msig_acc3};
     use crate::testing::tests_msig::TestsMsig;
@@ -67,7 +67,7 @@ mod test {
         pub investor2: Account,
         pub customer: Account,
 
-        pub specs: CreateDaoSpecs,
+        pub specs: SetupDaoSpecs,
 
         pub msig: TestsMsig,
 

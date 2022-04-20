@@ -2,7 +2,7 @@ use crate::{
     api::{api::Api, contract::Contract},
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
-        create_dao_specs::CreateDaoSpecs,
+        setup_dao_specs::SetupDaoSpecs,
         model::{CreateSharesSpecs, Dao},
         setup::customer_escrow::render_and_compile_customer_escrow,
         share_amount::ShareAmount,
@@ -62,7 +62,7 @@ pub async fn load_dao(
     )?;
 
     let dao = Dao {
-        specs: CreateDaoSpecs::new(
+        specs: SetupDaoSpecs::new(
             dao_state.project_name.clone(),
             dao_state.project_desc.clone(),
             CreateSharesSpecs {

@@ -2,7 +2,7 @@ use crate::{
     api::version::VersionedTealSourceTemplate,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
-        create_dao_specs::CreateDaoSpecs,
+        setup_dao_specs::SetupDaoSpecs,
         model::{CreateAssetsToSign, CreateSharesSpecs},
         storage::load_dao::DaoAppId,
     },
@@ -22,8 +22,7 @@ use super::create_app::create_app_tx;
 pub async fn create_assets(
     algod: &Algod,
     creator: &Address,
-    owner: &Address,
-    specs: &CreateDaoSpecs,
+    specs: &SetupDaoSpecs,
     app_approval: &VersionedTealSourceTemplate,
     app_clear: &VersionedTealSourceTemplate,
     precision: u64,

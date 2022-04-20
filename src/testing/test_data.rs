@@ -7,7 +7,7 @@ pub use test::{
 #[cfg(test)]
 mod test {
     use crate::flows::create_dao::share_amount::ShareAmount;
-    use crate::flows::create_dao::{create_dao_specs::CreateDaoSpecs, model::CreateSharesSpecs};
+    use crate::flows::create_dao::{setup_dao_specs::SetupDaoSpecs, model::CreateSharesSpecs};
     use crate::funds::FundsAmount;
     use algonaut::transaction::account::Account;
 
@@ -66,8 +66,8 @@ mod test {
         println!("msig3: {}", msig_acc3().address());
     }
 
-    pub fn dao_specs() -> CreateDaoSpecs {
-        CreateDaoSpecs::new(
+    pub fn dao_specs() -> SetupDaoSpecs {
+        SetupDaoSpecs::new(
         "Pancakes ltd".to_owned(),
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
         shares_specs(),

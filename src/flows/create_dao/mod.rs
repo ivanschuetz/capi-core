@@ -1,6 +1,6 @@
 #[allow(clippy::module_inception)]
-pub mod create_dao;
-pub mod create_dao_specs;
+pub mod setup_dao;
+pub mod setup_dao_specs;
 pub mod model;
 pub mod setup;
 pub mod share_amount;

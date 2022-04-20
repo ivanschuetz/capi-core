@@ -3,14 +3,14 @@ pub use test::create_dao_flow;
 #[cfg(test)]
 pub mod test {
     use crate::api::version::VersionedTealSourceTemplate;
-    use crate::flows::create_dao::create_dao::{Escrows, Programs};
+    use crate::flows::create_dao::setup_dao::{Escrows, Programs};
     use crate::teal::load_teal_template;
     use crate::testing::network_test_util::TestDeps;
     use crate::{
         api::version::Version,
         flows::create_dao::{
-            create_dao::{create_dao_txs, submit_create_dao},
-            model::{CreateDaoSigned, Dao},
+            setup_dao::{setup_dao_txs, submit_setup_dao},
+            model::{SetupDaoSigned, Dao},
             setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
         },
     };
@@ -53,7 +53,7 @@ pub mod test {
         .await?;
 
         // Rest of create dao txs
-        let to_sign = create_dao_txs(
+        let to_sign = setup_dao_txs(
             algod,
             &td.specs,
             td.creator.address(),
@@ -79,9 +79,9 @@ pub mod test {
         // Create the asset (submit signed tx) and generate escrow funding tx
         // Note that the escrow is generated after the asset, because it uses the asset id (in teal, inserted with template)
 
-        let create_res = submit_create_dao(
+        let create_res = submit_setup_dao(
             &algod,
-            CreateDaoSigned {
+            SetupDaoSigned {
                 specs: to_sign.specs,
                 creator: td.creator.address(),
                 shares_asset_id: create_assets_res.shares_asset_id,
