@@ -30,12 +30,12 @@ pub async fn received_payments(
     for tx in &response.transactions {
         let sender_address = tx.sender.parse::<Address>().map_err(Error::msg)?;
 
-        if let Some(payment_tx) = &tx.asset_transfer_transaction {
-            let receiver_address = payment_tx.receiver.parse::<Address>().map_err(Error::msg)?;
+        if let Some(xfer_tx) = &tx.asset_transfer_transaction {
+            let receiver_address = xfer_tx.receiver.parse::<Address>().map_err(Error::msg)?;
 
-            if &receiver_address == address && payment_tx.asset_id == funds_asset.0 {
+            if &receiver_address == address && xfer_tx.asset_id == funds_asset.0 {
                 // Skip asset opt-ins
-                if sender_address == receiver_address && payment_tx.amount == 0 {
+                if sender_address == receiver_address && xfer_tx.amount == 0 {
                     continue;
                 }
 
@@ -52,7 +52,7 @@ pub async fn received_payments(
 
                 payments.push(Payment {
                     tx_id: id.parse()?,
-                    amount: FundsAmount::new(payment_tx.amount),
+                    amount: FundsAmount::new(xfer_tx.amount),
                     sender: tx.sender.parse().map_err(Error::msg)?,
                     date: timestamp_seconds_to_date(round_time)?,
                     note: tx.note.clone(),
