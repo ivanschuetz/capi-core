@@ -9,6 +9,7 @@ use algonaut::{
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
 };
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubmitSetupEscrowRes {
@@ -61,7 +62,7 @@ pub struct SetupDaoSigned {
 
 /// Note that dao doesn't know its id (DaoId), because it's generated after it's stored (it's the id of the storage tx),
 /// TODO it probably makes sense to nane the id "StoredDaoId" to be more accurate.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dao {
     pub app_id: DaoAppId,
     pub specs: SetupDaoSpecs,
@@ -79,6 +80,21 @@ impl Dao {
 
     pub fn app_address(&self) -> Address {
         self.app_id.address()
+    }
+}
+
+// Implemented manually to show the app address too (which is derived from the id)
+impl Debug for Dao {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Dao")
+            .field("app_id", &self.app_id)
+            .field("app_address()", &self.app_address())
+            .field("specs", &self.specs)
+            .field("creator", &self.creator)
+            .field("shares_asset_id", &self.shares_asset_id)
+            .field("funds_asset_id", &self.funds_asset_id)
+            .field("customer_escrow", &self.customer_escrow)
+            .finish()
     }
 }
 
