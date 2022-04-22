@@ -11,14 +11,12 @@ mod test {
     use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::CapiAssetId;
-    use crate::capi_asset::create::setup_flow::test_flow::{
-        setup_capi_app, CapiAssetFlowRes,
-    };
+    use crate::capi_asset::create::setup_flow::test_flow::{setup_capi_app, CapiAssetFlowRes};
     use crate::capi_asset::{
         capi_asset_dao_specs::CapiAssetDaoDeps, capi_asset_id::CapiAssetAmount,
         create::setup_flow::test_flow::setup_capi_asset_flow,
     };
-    use crate::dependencies::{algod_for_net, Env};
+    use crate::dependencies::{algod_for_net, DataType, Env};
     use crate::files::{read_lines, write_to_file};
     use crate::flows::create_dao::setup_dao::Programs;
     use crate::flows::create_dao::setup_dao_specs::SetupDaoSpecs;
@@ -477,6 +475,7 @@ mod test {
             WasmBuildConfig::Debug,
             &Network::SandboxPrivate,
             &Env::Local,
+            &DataType::Real,
         )?;
 
         Ok(())
@@ -527,6 +526,7 @@ mod test {
         build_config: WasmBuildConfig,
         network: &Network,
         env: &Env,
+        data_type: &DataType,
     ) -> Result<()> {
         let build_config_str = match build_config {
             WasmBuildConfig::Debug => "debug",
@@ -538,7 +538,7 @@ mod test {
 
         let wasm_local_build_script_path = format!("{wasm_scrits_path}/build_local.sh");
 
-        let mut vars = generate_env_vars_for_config(&network, &env);
+        let mut vars = generate_env_vars_for_config(network, env, data_type);
         let deps_vars = generate_env_vars_for_deps(deps);
         vars.extend(deps_vars);
         let vars_str = vars
@@ -561,7 +561,11 @@ mod test {
         Ok(())
     }
 
-    fn generate_env_vars_for_config(network: &Network, env: &Env) -> Vec<(String, String)> {
+    fn generate_env_vars_for_config(
+        network: &Network,
+        env: &Env,
+        data_type: &DataType,
+    ) -> Vec<(String, String)> {
         let network_str = match network {
             Network::SandboxPrivate => "sandbox_private",
             Network::Test => "test",
@@ -571,9 +575,14 @@ mod test {
             Env::Test => "test",
             Env::Local => "local",
         };
+        let data_type_str = match data_type {
+            DataType::Real => "real",
+            DataType::Mock => "mock",
+        };
         vec![
             ("NETWORK".to_owned(), network_str.to_owned()),
             ("ENV".to_owned(), env_str.to_owned()),
+            ("DATA_TYPE".to_owned(), data_type_str.to_owned()),
         ]
     }
 

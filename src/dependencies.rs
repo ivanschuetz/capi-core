@@ -13,6 +13,16 @@ pub enum Env {
     Test,
 }
 
+/// This is WASM-only as mock data is only for the frontend
+/// Here as we have a test here to generate the WASM script, which needs this - this should be refactored
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DataType {
+    /// WASM uses regular providers, which interact normally with a network
+    Real,
+    /// WASM uses mock providers, which return fake UI data
+    Mock,
+}
+
 pub fn network() -> Network {
     let str = option_env!("NETWORK");
     log::debug!("Network str: {:?}", str);
