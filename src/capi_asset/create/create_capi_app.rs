@@ -191,7 +191,7 @@ mod tests {
         assert_eq!(1, apps.len());
 
         let app = &apps[0];
-        assert!(!app.params.approval_program.is_none());
+        assert!(!app.params.approval_program.is_empty());
         assert!(!app.params.clear_state_program.is_empty());
         // assert_eq!(creator.address(), app.params.creator); // TODO crator field
         assert_eq!(Vec::<TealKeyValue>::new(), app.params.global_state);
