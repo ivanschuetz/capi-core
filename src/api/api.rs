@@ -5,7 +5,9 @@ use super::{
 use crate::teal::load_teal_template;
 use anyhow::{anyhow, Result};
 
-pub trait Api {
+// Send + sync assumess the implementations to be stateless
+// (also: we currently use this only in WASM, which is single threaded)
+pub trait Api: Send + Sync {
     fn last_versions(&self) -> Versions;
     fn template(&self, contract: Contract, version: Version)
         -> Result<VersionedTealSourceTemplate>;
