@@ -27,7 +27,7 @@ instant = { version = "0.1", features = [ "now", "wasm-bindgen" ] }
 chrono = { version = "0.4.19", features = ["serde"] }
 
 futures-timer = "3.0.2"
-gloo-timers = { version = "=0.2.1", features = ["futures"] }
+gloo-timers = { version = "0.2.4", features = ["futures"] }
 
 rust_decimal = "1.15"
 
