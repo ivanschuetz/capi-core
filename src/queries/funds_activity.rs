@@ -38,7 +38,8 @@ pub async fn funds_activity(
     capi_deps: &CapiAssetDaoDeps,
     funds_asset: FundsAssetId,
 ) -> Result<Vec<FundsActivityEntry>> {
-    let withdrawals = withdrawals(algod, indexer, owner, dao_id, api, capi_deps).await?;
+    let withdrawals =
+        withdrawals(algod, indexer, owner, dao_id, api, funds_asset, capi_deps).await?;
     // payments to the customer escrow
     let payments = all_received_payments(
         indexer,

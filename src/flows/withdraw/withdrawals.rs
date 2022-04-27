@@ -15,7 +15,7 @@ use crate::{
         create_dao::storage::load_dao::{load_dao, DaoId, TxId},
         withdraw::note::base64_withdrawal_note_to_withdrawal_description,
     },
-    funds::FundsAmount,
+    funds::{FundsAmount, FundsAssetId},
 };
 use anyhow::{anyhow, Error, Result};
 
@@ -25,6 +25,7 @@ pub async fn withdrawals(
     owner: &Address,
     dao_id: DaoId,
     api: &dyn Api,
+    funds_asset: FundsAssetId,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Withdrawal>> {
     log::debug!("Querying withdrawals by: {:?}", owner);
@@ -70,10 +71,12 @@ pub async fn withdrawals(
                         let receiver_address =
                             xfer.receiver.parse::<Address>().map_err(Error::msg)?;
 
-
                         // account_transactions returns all the txs "related" to the account, i.e. can be sender or receiver
                         // we're interested only in central escrow -> creator
-                        if sender_address == dao.app_address() && receiver_address == *owner {
+                        if FundsAssetId(xfer.asset_id) == funds_asset
+                            && sender_address == dao.app_address()
+                            && receiver_address == *owner
+                        {
                             // for now the only payload is the description
                             let withdrawal_description = match &tx.note {
                                 Some(note) => {
