@@ -1,6 +1,5 @@
-use super::{model::CreateSharesSpecs, share_amount::ShareAmount};
+use super::{model::CreateSharesSpecs, shares_percentage::SharesPercentage};
 use crate::funds::FundsAmount;
-use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -8,45 +7,8 @@ pub struct SetupDaoSpecs {
     pub name: String,
     pub description: String,
     pub shares: CreateSharesSpecs,
-    investors_part: ShareAmount, // one private field, to prevent raw initialization
+    pub investors_part: SharesPercentage,
     pub share_price: FundsAmount,
     pub logo_url: String, // TODO limit size (this is stored in note) - maybe use newtype
     pub social_media_url: String, // this can be later in an extension (possibly with more links)
-}
-
-impl SetupDaoSpecs {
-    pub fn new(
-        name: String,
-        description: String,
-        shares: CreateSharesSpecs,
-        investors_part: ShareAmount,
-        share_price: FundsAmount,
-        logo_url: String,
-        social_media_url: String,
-    ) -> Result<SetupDaoSpecs> {
-        if investors_part > shares.supply {
-            return Err(anyhow!(
-                "Investor's part: {investors_part} must be less than shares supply: {}",
-                shares.supply
-            ));
-        }
-        Ok(SetupDaoSpecs {
-            name,
-            description,
-            shares,
-            investors_part,
-            share_price,
-            logo_url,
-            social_media_url,
-        })
-    }
-
-    pub fn creator_part(&self) -> ShareAmount {
-        // we check in the initializer that count >= investors.count, so this is safe
-        ShareAmount::new(self.shares.supply.val() - self.investors_part.val())
-    }
-
-    pub fn investors_part(&self) -> ShareAmount {
-        self.investors_part
-    }
 }

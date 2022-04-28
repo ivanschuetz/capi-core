@@ -6,10 +6,14 @@ pub use test::{
 
 #[cfg(test)]
 mod test {
+    use std::convert::TryInto;
+    use std::str::FromStr;
+
     use crate::flows::create_dao::share_amount::ShareAmount;
-    use crate::flows::create_dao::{setup_dao_specs::SetupDaoSpecs, model::CreateSharesSpecs};
+    use crate::flows::create_dao::{model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs};
     use crate::funds::FundsAmount;
     use algonaut::transaction::account::Account;
+    use rust_decimal::Decimal;
 
     pub fn creator() -> Account {
         // STOUDMINSIPP7JMJMGXVJYVS6HHD3TT5UODCDPYGV6KBGP7UYNTLJVJJME
@@ -67,16 +71,16 @@ mod test {
     }
 
     pub fn dao_specs() -> SetupDaoSpecs {
-        SetupDaoSpecs::new(
-        "Pancakes ltd".to_owned(),
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
-        shares_specs(),
-        ShareAmount::new(40),
-        FundsAmount::new(5_000_000),
-        "https://placekitten.com/200/300".to_string(),
-        "https://twitter.com/capi_fin".to_owned(),
-    // unwrap: hardcoded (test) data, we know it's correct
-    ).unwrap()
+        SetupDaoSpecs {
+            name: "Pancakes ltd".to_owned(),
+            description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
+            shares: shares_specs(),
+            // unwrap: hardcoded (test) data, we know it's correct
+            investors_part: Decimal::from_str("0.4").unwrap().try_into().unwrap(),
+            share_price: FundsAmount::new(5_000_000),
+            logo_url: "https://placekitten.com/200/300".to_string(),
+            social_media_url: "https://twitter.com/capi_fin".to_owned(),
+        }
     }
 
     pub fn shares_specs() -> CreateSharesSpecs {

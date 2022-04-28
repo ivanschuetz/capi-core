@@ -62,18 +62,18 @@ pub async fn load_dao(
     )?;
 
     let dao = Dao {
-        specs: SetupDaoSpecs::new(
-            dao_state.project_name.clone(),
-            dao_state.project_desc.clone(),
-            CreateSharesSpecs {
+        specs: SetupDaoSpecs {
+            name: dao_state.project_name.clone(),
+            description: dao_state.project_desc.clone(),
+            shares: CreateSharesSpecs {
                 token_name: asset_infos.params.name.unwrap_or("".to_owned()),
                 supply: ShareAmount::new(asset_infos.params.total),
             },
-            dao_state.investors_part,
-            dao_state.share_price,
-            dao_state.logo_url.clone(),
-            dao_state.social_media_url.clone(),
-        )?,
+            investors_part: dao_state.investors_part,
+            share_price: dao_state.share_price,
+            logo_url: dao_state.logo_url.clone(),
+            social_media_url: dao_state.social_media_url.clone(),
+        },
         funds_asset_id: dao_state.funds_asset_id,
         owner: dao_state.owner,
         shares_asset_id: dao_state.shares_asset_id,

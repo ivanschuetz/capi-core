@@ -2,8 +2,8 @@ use crate::{
     api::version::VersionedTealSourceTemplate,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
-        setup_dao_specs::SetupDaoSpecs,
         model::{CreateAssetsToSign, CreateSharesSpecs},
+        setup_dao_specs::SetupDaoSpecs,
         storage::load_dao::DaoAppId,
     },
     network_util::wait_for_pending_transaction,
@@ -38,7 +38,7 @@ pub async fn create_assets(
         creator,
         specs.shares.supply,
         precision,
-        specs.investors_part(),
+        specs.investors_part,
         &params,
         capi_deps,
         specs.share_price,

@@ -2,6 +2,7 @@ use crate::{
     decimal_util::AsDecimal,
     flows::create_dao::{
         share_amount::ShareAmount,
+        shares_percentage::SharesPercentage,
         storage::load_dao::{DaoAppId, TxId},
     },
     funds::{FundsAmount, FundsAssetId},
@@ -80,18 +81,11 @@ fn total_entitled_dividend(
     share_supply: ShareAmount,
     locked_amount: ShareAmount,
     precision: u64,
-    investors_part: ShareAmount,
+    investors_part: SharesPercentage,
 ) -> Result<FundsAmount> {
     log::debug!("Calculating entitled claim, central_received_total: {central_received_total:?}, share_supply: {share_supply:?}, locked_amount: {locked_amount:?}, precision: {precision:?}, investors_part: {investors_part:?}");
 
     // for easier understanding we use the same arithmetic as in TEAL
-
-    let investors_share_fractional_percentage = investors_part
-        .as_decimal()
-        .checked_div(share_supply.as_decimal())
-        .ok_or_else(|| {
-            anyhow!("investors_part: {investors_part} / share_supply: {share_supply} errored")
-        })?;
 
     ///////////////////////////////////////////////////
     // Calculate entitled_total
@@ -102,9 +96,9 @@ fn total_entitled_dividend(
     })?)
     .as_decimal();
 
-    let percentage_mul_precision = investors_share_fractional_percentage
+    let percentage_mul_precision = investors_part.value()
             .checked_mul(precision.as_decimal())
-            .ok_or_else(|| anyhow!("investors_share_fractional_percentage: {investors_share_fractional_percentage} * precision: {precision} errored"))?;
+            .ok_or_else(|| anyhow!("investors_share_fractional_percentage: {investors_part:?} * precision: {precision} errored"))?;
 
     let mul2 = mul1.checked_mul(percentage_mul_precision).ok_or_else(|| {
         anyhow!("mul1: {mul1} * percentage_mul_precision: {percentage_mul_precision} errored")
@@ -143,7 +137,7 @@ pub fn claimable_dividend(
     share_supply: ShareAmount,
     share_amount: ShareAmount,
     precision: u64,
-    investors_part: ShareAmount,
+    investors_part: SharesPercentage,
 ) -> Result<FundsAmount> {
     // Note that this assumes that investor can't unlock only a part of their shares
     // otherwise, the smaller share count would render a small entitled_total_count which would take a while to catch up with claimed_total, which remains unchanged.

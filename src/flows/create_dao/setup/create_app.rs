@@ -4,6 +4,7 @@ use algonaut::{
     transaction::{transaction::StateSchema, CreateApplication, Transaction, TxnBuilder},
 };
 use anyhow::{anyhow, Result};
+use rust_decimal::prelude::ToPrimitive;
 use serde::Serialize;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -29,7 +30,7 @@ pub async fn create_app_tx(
     creator: &Address,
     share_supply: ShareAmount,
     precision: u64,
-    investors_share: ShareAmount,
+    investors_share: SharesPercentage,
     params: &SuggestedTransactionParams,
     capi_deps: &CapiAssetDaoDeps,
     share_price: FundsAmount,
@@ -76,7 +77,7 @@ pub async fn render_and_compile_app_approval(
     template: &VersionedTealSourceTemplate,
     share_supply: ShareAmount,
     precision: u64,
-    investors_part: ShareAmount,
+    investors_part: SharesPercentage,
     capi_app_id: CapiAppId,
     capi_percentage: SharesPercentage,
     share_price: FundsAmount,
@@ -105,7 +106,7 @@ pub fn render_central_app_approval_v1(
     source: &TealSourceTemplate,
     share_supply: ShareAmount,
     precision: u64,
-    investors_part: ShareAmount,
+    investors_part: SharesPercentage,
     capi_app_id: CapiAppId,
     capi_percentage: SharesPercentage,
     share_price: FundsAmount,
@@ -114,11 +115,10 @@ pub fn render_central_app_approval_v1(
         .checked_pow(2)
         .ok_or_else(|| anyhow!("Precision squared overflow: {}", precision))?;
 
-    // TODO checked div
     // TODO write tests that catch incorrect/variable supply - previously it was hardcoded to 100 and everything was passing
-    let investors_part_percentage = ((investors_part.as_decimal() / share_supply.as_decimal())
-        * precision.as_decimal())
-    .floor();
+    let investors_part_percentage = (investors_part.value() * precision.as_decimal().floor())
+        .to_u64()
+        .ok_or(anyhow!("Unexpected: couldn't convert decimal to u64"))?;
 
     let capi_share = (capi_percentage
         .value()
@@ -183,7 +183,7 @@ struct RenderCentralAppContext {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::TryInto;
+    use std::{convert::TryInto, str::FromStr};
 
     use crate::{
         api::version::{Version, VersionedTealSourceTemplate},
@@ -204,6 +204,7 @@ mod tests {
         transaction::{transaction::StateSchema, Transaction, TransactionType},
     };
     use anyhow::{anyhow, Result};
+    use rust_decimal::Decimal;
     use serial_test::serial;
     use tokio::test;
 
@@ -233,7 +234,7 @@ mod tests {
             &creator.address(),
             ShareAmount::new(1),
             TESTS_DEFAULT_PRECISION,
-            ShareAmount::new(40),
+            Decimal::from_str("0.4")?.try_into()?,
             &params,
             // Arbitrary - not used
             &CapiAssetDaoDeps {

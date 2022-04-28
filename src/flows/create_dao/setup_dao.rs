@@ -1,6 +1,6 @@
 use super::{
-    setup_dao_specs::SetupDaoSpecs,
     model::{SetupDaoSigned, SetupDaoToSign, SubmitSetupDaoResult},
+    setup_dao_specs::SetupDaoSpecs,
     storage::load_dao::DaoAppId,
 };
 use crate::{
@@ -81,7 +81,7 @@ pub async fn setup_dao_txs(
             project_name: specs.name.clone(),
             project_description: specs.description.clone(),
             share_price: specs.share_price,
-            investors_part: specs.investors_part(),
+            investors_part: specs.investors_part,
             logo_url: specs.logo_url.clone(),
             social_media_url: specs.social_media_url.clone(),
             owner,

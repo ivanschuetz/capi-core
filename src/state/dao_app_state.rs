@@ -7,6 +7,7 @@ use crate::{
     api::version::{bytes_to_versions, Version, VersionedAddress},
     flows::create_dao::{
         share_amount::ShareAmount,
+        shares_percentage::SharesPercentage,
         storage::load_dao::{DaoAppId, DaoId},
     },
     funds::{FundsAmount, FundsAssetId},
@@ -69,7 +70,7 @@ pub struct CentralAppGlobalState {
     pub project_name: String,
     pub project_desc: String,
     pub share_price: FundsAmount,
-    pub investors_part: ShareAmount,
+    pub investors_part: SharesPercentage,
 
     pub logo_url: String,
     pub social_media_url: String,
@@ -104,7 +105,7 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
     let project_desc = String::from_utf8(get_bytes_or_err(&GLOBAL_DAO_DESC, &gs)?)?;
 
     let share_price = FundsAmount::new(get_int_or_err(&GLOBAL_SHARE_PRICE, &gs)?);
-    let investors_part = ShareAmount::new(get_int_or_err(&GLOBAL_INVESTORS_PART, &gs)?);
+    let investors_part = get_int_or_err(&GLOBAL_INVESTORS_PART, &gs)?.try_into()?;
 
     let logo_url = String::from_utf8(get_bytes_or_err(&GLOBAL_LOGO_URL, &gs)?)?;
     let social_media_url = String::from_utf8(get_bytes_or_err(&GLOBAL_SOCIAL_MEDIA_URL, &gs)?)?;

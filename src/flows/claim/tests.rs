@@ -1,13 +1,13 @@
 #[cfg(test)]
 mod tests {
-    use std::convert::TryInto;
+    use std::{convert::TryInto, str::FromStr};
 
     use crate::{
         api::version::VersionedAddress,
         flows::{
             claim::claim::claimable_dividend,
             create_dao::{
-                setup_dao_specs::SetupDaoSpecs, model::CreateSharesSpecs,
+                model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs,
                 share_amount::ShareAmount, storage::load_dao::DaoAppId,
             },
         },
@@ -60,7 +60,7 @@ mod tests {
             td.specs.shares.supply,
             buy_share_amount,
             td.precision,
-            td.specs.investors_part(),
+            td.specs.investors_part,
         )?;
 
         test_claim_result(
@@ -125,7 +125,7 @@ mod tests {
             td.specs.shares.supply,
             buy_share_amount,
             td.precision,
-            td.specs.investors_part(),
+            td.specs.investors_part,
         )?;
         log::debug!("dividend: {}", dividend);
 
@@ -156,18 +156,18 @@ mod tests {
         let mut td = test_dao_init().await?;
         // set capi percentage to 0 - we're not testing this here and it eases calculations (drained amount == amount that ends on central escrow)
         td.capi_escrow_percentage = Decimal::new(0, 0).try_into().unwrap();
-        td.specs = SetupDaoSpecs::new(
-            "Pancakes ltd".to_owned(),
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
-            CreateSharesSpecs {
+        td.specs = SetupDaoSpecs {
+            name: "Pancakes ltd".to_owned(),
+            description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
+            shares: CreateSharesSpecs {
                 token_name: "PCK".to_owned(),
                 supply: ShareAmount::new(300),
             },
-            ShareAmount::new(300),
-            FundsAmount::new(5_000_000),
-            "https://placekitten.com/200/300".to_owned(),
-            "https://twitter.com/capi_fin".to_owned(),
-        )?;
+            investors_part: Decimal::from_str("0.4")?.try_into()?,
+            share_price: FundsAmount::new(5_000_000),
+            logo_url: "https://placekitten.com/200/300".to_owned(),
+            social_media_url: "https://twitter.com/capi_fin".to_owned(),
+        };
         Ok(td)
     }
 
@@ -204,7 +204,7 @@ mod tests {
             td.specs.shares.supply,
             buy_share_amount,
             td.precision,
-            td.specs.investors_part(),
+            td.specs.investors_part,
         )?;
         let res1 = claim_flow(&td, &precs.dao, &claimer).await?;
 

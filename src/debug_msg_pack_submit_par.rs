@@ -54,7 +54,7 @@ mod tests {
         let shares_price = FundsAmount::new(10000000);
         // let funds_asset_id = FundsAssetId(6);
         let share_supply = ShareAmount::new(100);
-        let investors_share = ShareAmount::new(40);
+        let investors_share = Decimal::from_str("0.4")?.try_into()?;
         // let app_id = DaoAppId(123);
         let capi_app_id = CapiAppId(123);
         let capi_share = 123u64.as_decimal().try_into()?;
