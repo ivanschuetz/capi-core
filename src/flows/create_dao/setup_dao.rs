@@ -81,7 +81,7 @@ pub async fn setup_dao_txs(
             project_name: specs.name.clone(),
             project_description: specs.description.clone(),
             share_price: specs.share_price,
-            investors_part: specs.investors_part,
+            investors_share: specs.investors_share,
             logo_url: specs.logo_url.clone(),
             social_media_url: specs.social_media_url.clone(),
             owner,

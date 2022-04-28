@@ -136,7 +136,7 @@ mod tests {
             dao.specs.shares.supply,
             traded_shares,
             td.precision,
-            dao.specs.investors_part,
+            dao.specs.investors_share,
         )?;
 
         let investor_state = central_investor_state_from_acc(&investor2_infos, dao.app_id)?;

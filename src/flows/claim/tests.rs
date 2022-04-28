@@ -60,7 +60,7 @@ mod tests {
             td.specs.shares.supply,
             buy_share_amount,
             td.precision,
-            td.specs.investors_part,
+            td.specs.investors_share,
         )?;
 
         test_claim_result(
@@ -125,7 +125,7 @@ mod tests {
             td.specs.shares.supply,
             buy_share_amount,
             td.precision,
-            td.specs.investors_part,
+            td.specs.investors_share,
         )?;
         log::debug!("dividend: {}", dividend);
 
@@ -163,7 +163,7 @@ mod tests {
                 token_name: "PCK".to_owned(),
                 supply: ShareAmount::new(300),
             },
-            investors_part: Decimal::from_str("0.4")?.try_into()?,
+            investors_share: Decimal::from_str("0.4")?.try_into()?,
             share_price: FundsAmount::new(5_000_000),
             logo_url: "https://placekitten.com/200/300".to_owned(),
             social_media_url: "https://twitter.com/capi_fin".to_owned(),
@@ -204,7 +204,7 @@ mod tests {
             td.specs.shares.supply,
             buy_share_amount,
             td.precision,
-            td.specs.investors_part,
+            td.specs.investors_share,
         )?;
         let res1 = claim_flow(&td, &precs.dao, &claimer).await?;
 

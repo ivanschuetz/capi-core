@@ -76,7 +76,7 @@ mod test {
             description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
             shares: shares_specs(),
             // unwrap: hardcoded (test) data, we know it's correct
-            investors_part: Decimal::from_str("0.4").unwrap().try_into().unwrap(),
+            investors_share: Decimal::from_str("0.4").unwrap().try_into().unwrap(),
             share_price: FundsAmount::new(5_000_000),
             logo_url: "https://placekitten.com/200/300".to_string(),
             social_media_url: "https://twitter.com/capi_fin".to_owned(),

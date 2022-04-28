@@ -333,7 +333,7 @@ mod tests {
             dao.specs.shares.supply,
             buy_share_amount,
             td.precision,
-            dao.specs.investors_part,
+            dao.specs.investors_share,
         )?;
 
         // investing inits the "claimed" amount to entitled amount (to prevent double claiming)
@@ -382,7 +382,7 @@ mod tests {
             dao.specs.shares.supply,
             buy_share_amount,
             td.precision,
-            dao.specs.investors_part,
+            dao.specs.investors_share,
         )?;
 
         // locking inits the "claimed" amount to entitled amount (to prevent double claiming)

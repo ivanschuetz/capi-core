@@ -77,7 +77,7 @@ pub async fn render_and_compile_app_approval(
     template: &VersionedTealSourceTemplate,
     share_supply: ShareAmount,
     precision: u64,
-    investors_part: SharesPercentage,
+    investors_share: SharesPercentage,
     capi_app_id: CapiAppId,
     capi_percentage: SharesPercentage,
     share_price: FundsAmount,
@@ -87,7 +87,7 @@ pub async fn render_and_compile_app_approval(
             &template.template,
             share_supply,
             precision,
-            investors_part,
+            investors_share,
             capi_app_id,
             capi_percentage,
             share_price,
@@ -106,7 +106,7 @@ pub fn render_central_app_approval_v1(
     source: &TealSourceTemplate,
     share_supply: ShareAmount,
     precision: u64,
-    investors_part: SharesPercentage,
+    investors_share: SharesPercentage,
     capi_app_id: CapiAppId,
     capi_percentage: SharesPercentage,
     share_price: FundsAmount,
@@ -116,7 +116,7 @@ pub fn render_central_app_approval_v1(
         .ok_or_else(|| anyhow!("Precision squared overflow: {}", precision))?;
 
     // TODO write tests that catch incorrect/variable supply - previously it was hardcoded to 100 and everything was passing
-    let investors_part_percentage = (investors_part.value() * precision.as_decimal().floor())
+    let investors_share_percentage = (investors_share.value() * precision.as_decimal().floor())
         .to_u64()
         .ok_or(anyhow!("Unexpected: couldn't convert decimal to u64"))?;
 
@@ -132,7 +132,7 @@ pub fn render_central_app_approval_v1(
             ("TMPL_SHARE_SUPPLY", &share_supply.to_string()),
             (
                 "TMPL_INVESTORS_SHARE",
-                &investors_part_percentage.to_string(),
+                &investors_share_percentage.to_string(),
             ),
             ("TMPL_PRECISION__", &precision.to_string()),
             ("TMPL_PRECISION_SQUARE", &precision_square.to_string()),

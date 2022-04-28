@@ -69,7 +69,7 @@ pub async fn load_dao(
                 token_name: asset_infos.params.name.unwrap_or("".to_owned()),
                 supply: ShareAmount::new(asset_infos.params.total),
             },
-            investors_part: dao_state.investors_part,
+            investors_share: dao_state.investors_share,
             share_price: dao_state.share_price,
             logo_url: dao_state.logo_url.clone(),
             social_media_url: dao_state.social_media_url.clone(),

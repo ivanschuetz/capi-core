@@ -7,7 +7,7 @@ pub struct SetupDaoSpecs {
     pub name: String,
     pub description: String,
     pub shares: CreateSharesSpecs,
-    pub investors_part: SharesPercentage,
+    pub investors_share: SharesPercentage,
     pub share_price: FundsAmount,
     pub logo_url: String, // TODO limit size (this is stored in note) - maybe use newtype
     pub social_media_url: String, // this can be later in an extension (possibly with more links)

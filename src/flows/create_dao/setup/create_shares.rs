@@ -38,7 +38,7 @@ pub async fn create_assets(
         creator,
         specs.shares.supply,
         precision,
-        specs.investors_part,
+        specs.investors_share,
         &params,
         capi_deps,
         specs.share_price,

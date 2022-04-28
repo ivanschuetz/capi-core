@@ -31,7 +31,7 @@ const GLOBAL_SHARES_ASSET_ID: AppStateKey = AppStateKey("SharesAssetId");
 const GLOBAL_DAO_NAME: AppStateKey = AppStateKey("DaoName");
 const GLOBAL_DAO_DESC: AppStateKey = AppStateKey("DaoDesc");
 const GLOBAL_SHARE_PRICE: AppStateKey = AppStateKey("SharePrice");
-const GLOBAL_INVESTORS_PART: AppStateKey = AppStateKey("InvestorsPart");
+const GLOBAL_INVESTORS_SHARE: AppStateKey = AppStateKey("InvestorsPart");
 
 const GLOBAL_LOGO_URL: AppStateKey = AppStateKey("LogoUrl");
 const GLOBAL_SOCIAL_MEDIA_URL: AppStateKey = AppStateKey("SocialMediaUrl");
@@ -70,7 +70,7 @@ pub struct CentralAppGlobalState {
     pub project_name: String,
     pub project_desc: String,
     pub share_price: FundsAmount,
-    pub investors_part: SharesPercentage,
+    pub investors_share: SharesPercentage,
 
     pub logo_url: String,
     pub social_media_url: String,
@@ -105,7 +105,7 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
     let project_desc = String::from_utf8(get_bytes_or_err(&GLOBAL_DAO_DESC, &gs)?)?;
 
     let share_price = FundsAmount::new(get_int_or_err(&GLOBAL_SHARE_PRICE, &gs)?);
-    let investors_part = get_int_or_err(&GLOBAL_INVESTORS_PART, &gs)?.try_into()?;
+    let investors_share = get_int_or_err(&GLOBAL_INVESTORS_SHARE, &gs)?.try_into()?;
 
     let logo_url = String::from_utf8(get_bytes_or_err(&GLOBAL_LOGO_URL, &gs)?)?;
     let social_media_url = String::from_utf8(get_bytes_or_err(&GLOBAL_SOCIAL_MEDIA_URL, &gs)?)?;
@@ -127,7 +127,7 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
         project_name,
         project_desc,
         share_price,
-        investors_part,
+        investors_share: investors_share,
         logo_url,
         social_media_url,
         owner,
