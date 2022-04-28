@@ -71,16 +71,17 @@ mod test {
     }
 
     pub fn dao_specs() -> SetupDaoSpecs {
-        SetupDaoSpecs {
-            name: "Pancakes ltd".to_owned(),
-            description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
-            shares: shares_specs(),
-            // unwrap: hardcoded (test) data, we know it's correct
-            investors_share: Decimal::from_str("0.4").unwrap().try_into().unwrap(),
-            share_price: FundsAmount::new(5_000_000),
-            logo_url: "https://placekitten.com/200/300".to_string(),
-            social_media_url: "https://twitter.com/capi_fin".to_owned(),
-        }
+        // unwrap: tests, and we know hardcoded data is correct
+        SetupDaoSpecs::new(
+            "Pancakes ltd".to_owned(),
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
+            shares_specs(),
+            Decimal::from_str("0.4").unwrap().try_into().unwrap(),
+            FundsAmount::new(5_000_000),
+            "https://placekitten.com/200/300".to_string(),
+            "https://twitter.com/capi_fin".to_owned(),
+            ShareAmount::new(80) // unwrap: assumes a higher supply
+        ).unwrap()
     }
 
     pub fn shares_specs() -> CreateSharesSpecs {

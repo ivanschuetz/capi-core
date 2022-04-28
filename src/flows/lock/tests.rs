@@ -152,7 +152,7 @@ mod tests {
         // the traded shares were locked and we've no more locked shares, to we expect them in the locked global state
         assert_eq!(traded_shares, dao_shares.locked);
         // with the now "returned" shares the holdings are back to the asset total supply
-        assert_eq!(dao.specs.shares.supply, dao_shares.total());
+        assert_eq!(dao.specs.shares_for_investors(), dao_shares.total());
 
         // investor2 claims: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         let _ = claim_flow(td, &dao, &td.investor2).await;

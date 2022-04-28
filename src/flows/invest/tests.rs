@@ -52,11 +52,10 @@ mod tests {
 
         // app escrow tests
 
-        // app escrow received the shares
+        // app escrow still has all the shares
         let app_shares =
             ShareAmount(asset_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?);
-        // the dao's escrow has all the supply
-        assert_eq!(dao.specs.shares.supply, app_shares);
+        assert_eq!(dao.specs.shares_for_investors(), app_shares);
 
         // investor tests
 
@@ -100,7 +99,9 @@ mod tests {
         let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
         assert_eq!(buy_share_amount, dao_shares.locked); // bought shares added to locked shares
         assert_eq!(
-            ShareAmount::new(flow_res.dao.specs.shares.supply.val() - buy_share_amount.val()),
+            ShareAmount::new(
+                flow_res.dao.specs.shares_for_investors().val() - buy_share_amount.val()
+            ),
             dao_shares.available
         ); // bought shares subtracted from available shares
 

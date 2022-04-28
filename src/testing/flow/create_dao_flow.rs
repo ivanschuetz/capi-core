@@ -9,9 +9,9 @@ pub mod test {
     use crate::{
         api::version::Version,
         flows::create_dao::{
-            setup_dao::{setup_dao_txs, submit_setup_dao},
-            model::{SetupDaoSigned, Dao},
+            model::{Dao, SetupDaoSigned},
             setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
+            setup_dao::{setup_dao_txs, submit_setup_dao},
         },
     };
     use algonaut::core::Address;

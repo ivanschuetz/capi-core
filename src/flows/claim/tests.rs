@@ -156,18 +156,19 @@ mod tests {
         let mut td = test_dao_init().await?;
         // set capi percentage to 0 - we're not testing this here and it eases calculations (drained amount == amount that ends on central escrow)
         td.capi_escrow_percentage = Decimal::new(0, 0).try_into().unwrap();
-        td.specs = SetupDaoSpecs {
-            name: "Pancakes ltd".to_owned(),
-            description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
-            shares: CreateSharesSpecs {
-                token_name: "PCK".to_owned(),
+        td.specs = SetupDaoSpecs::new(
+            "Pancakes ltd".to_owned(),
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(), 
+            CreateSharesSpecs { 
+                token_name: "PCK".to_owned(), 
                 supply: ShareAmount::new(300),
             },
-            investors_share: Decimal::from_str("0.4")?.try_into()?,
-            share_price: FundsAmount::new(5_000_000),
-            logo_url: "https://placekitten.com/200/300".to_owned(),
-            social_media_url: "https://twitter.com/capi_fin".to_owned(),
-        };
+            Decimal::from_str("0.4")?.try_into()?,
+            FundsAmount::new(5_000_000),
+            "https://placekitten.com/200/300".to_owned(),
+            "https://twitter.com/capi_fin".to_owned(),
+            ShareAmount::new(250) // assumes a higher supply number
+        )?;
         Ok(td)
     }
 

@@ -38,6 +38,12 @@ const GLOBAL_SOCIAL_MEDIA_URL: AppStateKey = AppStateKey("SocialMediaUrl");
 
 const GLOBAL_SHARES_LOCKED: AppStateKey = AppStateKey("LockedShares");
 
+// this doesn't seem needed, but needed to re-create Dao struct from state
+// TODO different structs for creation inputs and Dao?,
+// the number of shares initially reserved to investors seems useless other than when creating the dao,
+// and if it were to be needed it can be calculated with indexer (supply - xfer to app escrow when setting the dao up)
+const SHARES_FOR_INVESTORS: AppStateKey = AppStateKey("SharesForInvestors");
+
 // not sure this is needed
 const GLOBAL_OWNER: AppStateKey = AppStateKey("Owner");
 
@@ -49,7 +55,7 @@ const LOCAL_SHARES: AppStateKey = AppStateKey("Shares");
 const LOCAL_DAO: AppStateKey = AppStateKey("Dao");
 
 pub const GLOBAL_SCHEMA_NUM_BYTE_SLICES: u64 = 7; // customer escrow, dao name, dao descr, logo, social media, owner, versions
-pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 6; // total received, shares asset id, funds asset id, share price, investors part, shares locked
+pub const GLOBAL_SCHEMA_NUM_INTS: u64 = 7; // total received, shares asset id, funds asset id, share price, investors part, shares locked, shares for investors
 
 pub const LOCAL_SCHEMA_NUM_BYTE_SLICES: u64 = 0;
 pub const LOCAL_SCHEMA_NUM_INTS: u64 = 4; // for investors: "shares", "claimed total", "claimed init", "dao"
@@ -71,6 +77,7 @@ pub struct CentralAppGlobalState {
     pub project_desc: String,
     pub share_price: FundsAmount,
     pub investors_share: SharesPercentage,
+    pub shares_for_investors: ShareAmount,
 
     pub logo_url: String,
     pub social_media_url: String,
@@ -117,6 +124,8 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
 
     let shares_locked = ShareAmount::new(get_int_or_err(&GLOBAL_SHARES_LOCKED, &gs)?);
 
+    let shares_for_investors = ShareAmount::new(get_int_or_err(&SHARES_FOR_INVESTORS, &gs)?);
+
     Ok(CentralAppGlobalState {
         received: total_received,
         customer_escrow: VersionedAddress::new(customer_escrow, versions.customer_escrow),
@@ -132,6 +141,7 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
         social_media_url,
         owner,
         locked_shares: shares_locked,
+        shares_for_investors,
     })
 }
 

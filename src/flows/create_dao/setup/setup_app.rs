@@ -1,6 +1,8 @@
 use crate::{
     api::version::{versions_to_bytes, Version, VersionedAddress, Versions},
-    flows::create_dao::{shares_percentage::SharesPercentage, storage::load_dao::DaoAppId},
+    flows::create_dao::{
+        share_amount::ShareAmount, shares_percentage::SharesPercentage, storage::load_dao::DaoAppId,
+    },
     funds::{FundsAmount, FundsAssetId},
     note::dao_setup_prefix,
 };
@@ -32,6 +34,8 @@ pub struct DaoInitData {
     pub social_media_url: String,
 
     pub owner: Address,
+
+    pub shares_for_investors: ShareAmount,
 }
 
 impl DaoInitData {
@@ -66,6 +70,7 @@ pub async fn setup_app_tx(
                 data.social_media_url.as_bytes().to_vec(),
                 data.owner.0.to_vec(),
                 versions_to_bytes(data.versions())?,
+                data.shares_for_investors.val().to_be_bytes().to_vec(),
             ])
             .foreign_assets(vec![data.funds_asset_id.0, data.shares_asset_id])
             .build(),

@@ -56,12 +56,13 @@ pub async fn setup_dao_txs(
     )
     .await?;
 
+    // The non-investor shares currently just stay in the creator's wallet
     let mut transfer_shares_to_app_tx = TxnBuilder::with(
         &params,
         TransferAsset::new(
             creator,
             shares_asset_id,
-            specs.shares.supply.val(),
+            specs.shares_for_investors().val(),
             app_id.address(),
         )
         .build(),
@@ -85,6 +86,7 @@ pub async fn setup_dao_txs(
             logo_url: specs.logo_url.clone(),
             social_media_url: specs.social_media_url.clone(),
             owner,
+            shares_for_investors: specs.shares_for_investors(),
         },
     )
     .await?;

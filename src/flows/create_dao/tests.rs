@@ -53,9 +53,12 @@ mod tests {
         let creator_assets = creator_infos.assets;
         // funds asset + not opted-out from shares (TODO maybe do this, no reason for creator to be opted in in the investor assets) so still there
         assert_eq!(2, creator_assets.len());
-        // creator sent all the shares to the escrow (during dao creation): has 0
+        // creator sent all the investor shares to the escrow (during dao creation): has the remaining ones
         let shares_asset = find_asset_holding_or_err(&creator_assets, dao.shares_asset_id)?;
-        assert_eq!(0, shares_asset.amount);
+        assert_eq!(
+            td.specs.shares_for_creator(),
+            ShareAmount::new(shares_asset.amount)
+        );
 
         // app escrow funding checks
         let app_escrow = &dao.app_address();
@@ -65,12 +68,12 @@ mod tests {
         let app_escrow_shares =
             ShareAmount(asset_holdings(algod, app_escrow, dao.shares_asset_id).await?);
         let app_funds = asset_holdings(algod, app_escrow, dao.funds_asset_id.0).await?;
-        assert_eq!(td.specs.shares.supply, app_escrow_shares); // the app's escrow has the share supply
+        assert_eq!(td.specs.shares_for_investors(), app_escrow_shares); // the app's escrow has the share supply for investors
         assert_eq!(AssetAmount(0), app_funds); // no funds yet
 
         let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
         assert_eq!(ShareAmount::new(0), dao_shares.locked); // there are no locked shares
-        assert_eq!(td.specs.shares.supply, dao_shares.available); // all the shares on the app's escrow are available (not locked)
+        assert_eq!(td.specs.shares_for_investors(), dao_shares.available); // all the shares on the app's escrow are available (not locked)
 
         test_global_app_state_setup_correctly(algod, &dao, td).await?;
 
