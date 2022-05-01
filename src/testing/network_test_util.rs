@@ -7,7 +7,7 @@ pub use test::{
 #[cfg(test)]
 mod test {
     use crate::algo_helpers::{send_tx_and_wait, send_txs_and_wait};
-    use crate::api::api::{Api, LocalApi};
+    use crate::api::teal_api::{TealApi, LocalTealApi};
     use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::CapiAssetId;
@@ -58,7 +58,7 @@ mod test {
     pub struct TestDeps {
         pub algod: Algod,
         pub indexer: Indexer,
-        pub api: Box<dyn Api>,
+        pub api: Box<dyn TealApi>,
 
         pub creator: Account,
         pub investor1: Account,
@@ -102,7 +102,7 @@ mod test {
         test_init()?;
 
         let algod = dependencies::algod_for_tests();
-        let api = LocalApi {};
+        let api = LocalTealApi {};
         let capi_owner = capi_owner();
 
         let chain_deps = setup_on_chain_deps(&algod, &api, &capi_owner).await?;
@@ -123,7 +123,7 @@ mod test {
         Ok(TestDeps {
             algod,
             indexer: dependencies::indexer_for_tests(),
-            api: Box::new(LocalApi {}),
+            api: Box::new(LocalTealApi {}),
             creator: creator(),
             investor1: investor1(),
             investor2: investor2(),
@@ -212,7 +212,7 @@ mod test {
     /// Creates the funds asset and capi-token related dependencies
     pub async fn setup_on_chain_deps(
         algod: &Algod,
-        api: &dyn Api,
+        api: &dyn TealApi,
         capi_owner: &Account,
     ) -> Result<OnChainDeps> {
         let params = algod.suggested_transaction_params().await?;
@@ -288,7 +288,7 @@ mod test {
 
     async fn create_capi_asset_and_deps(
         algod: &Algod,
-        api: &dyn Api,
+        api: &dyn TealApi,
         capi_owner: &Account,
         funds_asset_id: FundsAssetId,
     ) -> Result<CapiAssetFlowRes> {
@@ -496,7 +496,7 @@ mod test {
 
     pub async fn reset_and_fund_network(net: &Network) -> Result<OnChainDeps> {
         let algod = algod_for_net(net);
-        let api = LocalApi {};
+        let api = LocalTealApi {};
         let capi_owner = capi_owner();
 
         let deps = setup_on_chain_deps(&algod, &api, &capi_owner).await?;

@@ -1,5 +1,5 @@
 use crate::{
-    api::{api::Api, contract::Contract},
+    api::{teal_api::TealApi, contract::Contract},
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
         model::{CreateSharesSpecs, Dao},
@@ -32,7 +32,7 @@ use std::{
 pub async fn load_dao(
     algod: &Algod,
     dao_id: DaoId,
-    api: &dyn Api,
+    api: &dyn TealApi,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Dao> {
     let app_id = dao_id.0;

@@ -7,15 +7,15 @@ use anyhow::{anyhow, Result};
 
 // Send + sync assumess the implementations to be stateless
 // (also: we currently use this only in WASM, which is single threaded)
-pub trait Api: Send + Sync {
+pub trait TealApi: Send + Sync {
     fn last_versions(&self) -> Versions;
     fn template(&self, contract: Contract, version: Version)
         -> Result<VersionedTealSourceTemplate>;
 }
 
-pub struct LocalApi {}
+pub struct LocalTealApi {}
 
-impl Api for LocalApi {
+impl TealApi for LocalTealApi {
     fn last_versions(&self) -> Versions {
         Versions {
             app_approval: Version(1),

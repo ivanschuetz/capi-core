@@ -1,5 +1,5 @@
 use crate::{
-    api::api::Api,
+    api::teal_api::TealApi,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
         model::Dao,
@@ -31,7 +31,7 @@ pub async fn my_daos(
     algod: &Algod,
     indexer: &Indexer,
     address: &Address,
-    api: &dyn Api,
+    api: &dyn TealApi,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<MyStoredDao>> {
     let created = my_created_daos(algod, indexer, address, api, capi_deps).await?;
@@ -78,7 +78,7 @@ pub async fn my_daos(
 pub async fn my_current_invested_daos(
     algod: &Algod,
     address: &Address,
-    api: &dyn Api,
+    api: &dyn TealApi,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Dao>> {
     log::debug!("Retrieving my current invested daos from: {:?}", address);
@@ -116,7 +116,7 @@ pub async fn my_created_daos(
     algod: &Algod,
     indexer: &Indexer,
     address: &Address,
-    api: &dyn Api,
+    api: &dyn TealApi,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Dao>> {
     log::debug!("Retrieving my created daos from: {:?}", address);

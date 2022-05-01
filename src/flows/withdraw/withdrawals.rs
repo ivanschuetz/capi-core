@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    api::api::Api,
+    api::teal_api::TealApi,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     date_util::timestamp_seconds_to_date,
     flows::{
@@ -24,7 +24,7 @@ pub async fn withdrawals(
     indexer: &Indexer,
     owner: &Address,
     dao_id: DaoId,
-    api: &dyn Api,
+    api: &dyn TealApi,
     funds_asset: FundsAssetId,
     capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Withdrawal>> {

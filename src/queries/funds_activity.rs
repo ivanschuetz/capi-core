@@ -1,6 +1,6 @@
 use super::received_payments::all_received_payments;
 use crate::{
-    api::api::Api,
+    api::teal_api::TealApi,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::{
         create_dao::storage::load_dao::{DaoId, TxId},
@@ -34,7 +34,7 @@ pub async fn funds_activity(
     owner: &Address,
     dao_id: DaoId,
     customer_escrow_address: &Address,
-    api: &dyn Api,
+    api: &dyn TealApi,
     capi_deps: &CapiAssetDaoDeps,
     funds_asset: FundsAssetId,
 ) -> Result<Vec<FundsActivityEntry>> {

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        api::api::LocalApi,
+        api::teal_api::LocalTealApi,
         capi_asset::{
             capi_app_state::capi_app_investor_state_from_acc, capi_asset_id::CapiAssetAmount,
             common_test::lock_unlock::test_shares_locked,
@@ -33,7 +33,7 @@ mod tests {
         // deps
 
         let algod = dependencies::algod_for_tests();
-        let api = LocalApi {};
+        let api = LocalTealApi {};
         let creator = creator();
         let investor = investor1();
 

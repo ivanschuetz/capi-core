@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod test_flow {
     use crate::algo_helpers::send_tx_and_wait;
-    use crate::api::api::Api;
+    use crate::api::teal_api::TealApi;
     use crate::api::contract::Contract;
     use crate::api::version::Version;
     use crate::capi_asset::capi_app_id::CapiAppId;
@@ -23,7 +23,7 @@ pub mod test_flow {
     /// creates capi asset and app and setups app
     pub async fn setup_capi_asset_flow(
         algod: &Algod,
-        api: &dyn Api,
+        api: &dyn TealApi,
         creator: &Account,
         capi_supply: CapiAssetAmount,
         funds_asset_id: FundsAssetId,
