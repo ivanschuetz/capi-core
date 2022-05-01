@@ -7,7 +7,7 @@ mod tests {
         flows::{
             claim::claim::claimable_dividend,
             create_dao::{
-                model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs,
+                model::CreateSharesSpecs, setup_dao_specs::{SetupDaoSpecs, ImageHash},
                 share_amount::ShareAmount, storage::load_dao::DaoAppId,
             },
         },
@@ -165,7 +165,7 @@ mod tests {
             },
             Decimal::from_str("0.4")?.try_into()?,
             FundsAmount::new(5_000_000),
-            "https://placekitten.com/200/300".to_owned(),
+            Some(ImageHash("test_hash".to_owned())),
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(250) // assumes a higher supply number
         )?;

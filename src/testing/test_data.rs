@@ -9,6 +9,7 @@ mod test {
     use std::convert::TryInto;
     use std::str::FromStr;
 
+    use crate::flows::create_dao::setup_dao_specs::ImageHash;
     use crate::flows::create_dao::share_amount::ShareAmount;
     use crate::flows::create_dao::{model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs};
     use crate::funds::FundsAmount;
@@ -78,7 +79,7 @@ mod test {
             shares_specs(),
             Decimal::from_str("0.4").unwrap().try_into().unwrap(),
             FundsAmount::new(5_000_000),
-            "https://placekitten.com/200/300".to_string(),
+            Some(ImageHash("test_hash".to_owned())),
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(80) // unwrap: assumes a higher supply
         ).unwrap()

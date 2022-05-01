@@ -1,5 +1,5 @@
 use crate::{
-    api::{teal_api::TealApi, contract::Contract},
+    api::{contract::Contract, teal_api::TealApi},
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
         model::{CreateSharesSpecs, Dao},
@@ -71,7 +71,7 @@ pub async fn load_dao(
             },
             dao_state.investors_share,
             dao_state.share_price,
-            dao_state.logo_url.clone(),
+            dao_state.image_hash.clone(),
             dao_state.social_media_url.clone(),
             dao_state.shares_for_investors,
         )?,

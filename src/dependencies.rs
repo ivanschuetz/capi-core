@@ -1,5 +1,7 @@
 use algonaut::{algod::v2::Algod, indexer::v2::Indexer};
 
+use crate::api::image_api::{ImageApi, ImageApiImpl};
+
 #[derive(Debug)]
 pub enum Network {
     Private,
@@ -73,6 +75,10 @@ pub fn indexer() -> Indexer {
     indexer_for_net(&network())
 }
 
+pub fn image_api() -> impl ImageApi {
+    image_api_for_env(&env())
+}
+
 pub fn algod_for_tests() -> Algod {
     // for tests there's no need to pass an environment - network is hardcoded
     algod_for_net(&Network::SandboxPrivate)
@@ -103,6 +109,15 @@ fn indexer_for_net(network: &Network) -> Indexer {
         }
         Network::Test => testnet_indexer(),
     }
+}
+
+pub fn image_api_for_env(env: &Env) -> impl ImageApi {
+    let host = match env {
+        Env::Local => "http://localhost:3000",
+        // TODO
+        Env::Test => "http://localhost:3000",
+    };
+    ImageApiImpl::new(host)
 }
 
 #[allow(dead_code)]

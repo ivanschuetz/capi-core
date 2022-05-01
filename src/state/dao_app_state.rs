@@ -6,6 +6,7 @@ use super::app_state::{
 use crate::{
     api::version::{bytes_to_versions, Version, VersionedAddress},
     flows::create_dao::{
+        setup_dao_specs::ImageHash,
         share_amount::ShareAmount,
         shares_percentage::SharesPercentage,
         storage::load_dao::{DaoAppId, DaoId},
@@ -79,7 +80,7 @@ pub struct CentralAppGlobalState {
     pub investors_share: SharesPercentage,
     pub shares_for_investors: ShareAmount,
 
-    pub logo_url: String,
+    pub image_hash: Option<ImageHash>,
     pub social_media_url: String,
 
     pub owner: Address,
@@ -114,7 +115,11 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
     let share_price = FundsAmount::new(get_int_or_err(&GLOBAL_SHARE_PRICE, &gs)?);
     let investors_share = get_int_or_err(&GLOBAL_INVESTORS_SHARE, &gs)?.try_into()?;
 
-    let logo_url = String::from_utf8(get_bytes_or_err(&GLOBAL_LOGO_URL, &gs)?)?;
+    let image_hash = match gs.find_bytes(&GLOBAL_LOGO_URL) {
+        Some(bytes) => Some(ImageHash::from_bytes(bytes)?),
+        None => None,
+    };
+
     let social_media_url = String::from_utf8(get_bytes_or_err(&GLOBAL_SOCIAL_MEDIA_URL, &gs)?)?;
 
     let owner = read_address_from_state(&gs, GLOBAL_OWNER)?;
@@ -137,7 +142,7 @@ pub async fn dao_global_state(algod: &Algod, app_id: DaoAppId) -> Result<Central
         project_desc,
         share_price,
         investors_share: investors_share,
-        logo_url,
+        image_hash,
         social_media_url,
         owner,
         locked_shares: shares_locked,

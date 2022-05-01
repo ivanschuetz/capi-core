@@ -1,6 +1,9 @@
 use crate::{
     api::version::{versions_to_bytes, VersionedAddress, Versions},
-    flows::create_dao::storage::load_dao::{DaoAppId, TxId},
+    flows::create_dao::{
+        setup_dao_specs::ImageHash,
+        storage::load_dao::{DaoAppId, TxId},
+    },
     funds::FundsAmount,
     state::dao_app_state::dao_global_state,
 };
@@ -21,7 +24,7 @@ pub struct UpdatableDaoData {
     pub project_desc: String,
     pub share_price: FundsAmount,
 
-    pub logo_url: String,
+    pub image_hash: Option<ImageHash>,
     pub social_media_url: String,
 
     pub owner: Address,
@@ -55,7 +58,10 @@ pub async fn update_data(
                 data.project_name.as_bytes().to_vec(),
                 data.project_desc.as_bytes().to_vec(),
                 data.share_price.val().to_be_bytes().to_vec(),
-                data.logo_url.as_bytes().to_vec(),
+                data.image_hash
+                    .as_ref()
+                    .map(|h| h.bytes())
+                    .unwrap_or(vec![]),
                 data.social_media_url.as_bytes().to_vec(),
                 data.owner.0.to_vec(),
                 versions_to_bytes(versions)?,

@@ -1,7 +1,7 @@
 use super::{
     setup_dao_specs::SetupDaoSpecs,
     share_amount::ShareAmount,
-    storage::load_dao::{DaoAppId, DaoId},
+    storage::load_dao::{DaoAppId, DaoId, TxId},
 };
 use crate::{api::version::VersionedContractAccount, funds::FundsAssetId};
 use algonaut::{
@@ -100,6 +100,7 @@ impl Debug for Dao {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubmitSetupDaoResult {
+    pub tx_id: TxId,
     pub dao: Dao,
 }
 

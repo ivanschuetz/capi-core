@@ -3,7 +3,8 @@ mod tests {
     use crate::{
         api::version::{Version, VersionedAddress},
         flows::{
-            create_dao::share_amount::ShareAmount, update_data::update_data::UpdatableDaoData,
+            create_dao::{setup_dao_specs::ImageHash, share_amount::ShareAmount},
+            update_data::update_data::UpdatableDaoData,
         },
         funds::FundsAmount,
         state::dao_app_state::{dao_global_state, dao_investor_state, CentralAppGlobalState},
@@ -120,7 +121,7 @@ mod tests {
         let new_project_name = "new_project_name".to_owned();
         let new_project_desc = "new_project_desc".to_owned();
         let new_share_price = FundsAmount::new(121212);
-        let new_logo_url = "new_logo_url".to_owned();
+        let new_image_hash = Some(ImageHash("new_test_image_hash".to_owned()));
         let new_social_media_url = "new_social_media_url".to_owned();
         let new_owner = td.customer.address();
 
@@ -129,7 +130,7 @@ mod tests {
             project_name: new_project_name.clone(),
             project_desc: new_project_desc.clone(),
             share_price: new_share_price,
-            logo_url: new_logo_url.clone(),
+            image_hash: new_image_hash,
             social_media_url: new_social_media_url.clone(),
             owner: new_owner,
         }
@@ -140,7 +141,7 @@ mod tests {
         assert_eq!(gs.project_name, data.project_name);
         assert_eq!(gs.project_desc, data.project_desc);
         assert_eq!(gs.share_price, data.share_price);
-        assert_eq!(gs.logo_url, data.logo_url);
+        assert_eq!(gs.image_hash, data.image_hash);
         assert_eq!(gs.social_media_url, data.social_media_url);
         assert_eq!(gs.owner, data.owner);
     }
@@ -153,7 +154,7 @@ mod tests {
         assert_ne!(gs.project_name, data.project_name);
         assert_ne!(gs.project_desc, data.project_desc);
         assert_ne!(gs.share_price, data.share_price);
-        assert_ne!(gs.logo_url, data.logo_url);
+        assert_ne!(gs.image_hash, data.image_hash);
         assert_ne!(gs.social_media_url, data.social_media_url);
         assert_ne!(gs.owner, data.owner);
     }

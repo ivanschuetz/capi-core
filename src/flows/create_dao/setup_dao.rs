@@ -69,6 +69,8 @@ pub async fn setup_dao_txs(
     )
     .build()?;
 
+    // TODO image hash
+
     let mut setup_app_tx = setup_app_tx(
         app_id,
         &creator,
@@ -83,7 +85,7 @@ pub async fn setup_dao_txs(
             project_description: specs.description.clone(),
             share_price: specs.share_price,
             investors_share: specs.investors_share,
-            logo_url: specs.logo_url.clone(),
+            image_hash: specs.image_hash.clone(),
             social_media_url: specs.social_media_url.clone(),
             owner,
             shares_for_investors: specs.shares_for_investors(),
@@ -148,9 +150,13 @@ pub async fn submit_setup_dao(
     // crate::dryrun_util::dryrun_all(algod, &signed_txs).await?;
     // crate::teal::debug_teal_rendered(&signed_txs, "dao_app_approval").unwrap();
 
-    algod.broadcast_signed_transactions(&signed_txs).await?;
+    let tx_id = algod
+        .broadcast_signed_transactions(&signed_txs)
+        .await?
+        .tx_id;
 
     Ok(SubmitSetupDaoResult {
+        tx_id: tx_id.parse()?,
         dao: Dao {
             specs: signed.specs,
             shares_asset_id: signed.shares_asset_id,
