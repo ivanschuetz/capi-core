@@ -34,6 +34,10 @@ rust_decimal = "1.15"
 sha2 = "0.10.1"
 futures = "0.3.19"
 url = "2.2.2"
+urlencoding = "2.0.0"
+
+reqwest = "0.11.10"
+async-trait = "0.1.51"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 log4rs = "1.0.0"

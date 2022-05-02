@@ -32,27 +32,51 @@ impl ImageApiImpl {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl ImageApi for ImageApiImpl {
     async fn upload_image(&self, app_id: DaoAppId, image: Vec<u8>) -> Result<()> {
+        let url = format!("{}/image/{}", self.host, app_id.0);
+        log::debug!("Uploading image to: {}", url);
         self.client
-            .post(format!("{}/{}", self.host, app_id.0))
+            .post(url)
+            .header("Content-Type", "application/octet-stream")
             .body(image)
             .send()
             .await?;
-
         Ok(())
     }
 
     async fn get_image(&self, id: &str) -> Result<Vec<u8>> {
-        Ok(self
-            .client
-            .get(self.image_url(id))
-            .send()
-            .await?
-            .bytes()
-            .await?
-            .to_vec())
+        let url = self.image_url(id);
+        log::debug!("Fetching image from: {}", url);
+        Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
     }
 
     fn image_url(&self, id: &str) -> String {
-        format!("{}/{}", self.host, id)
+        let encoded_id = urlencoding::encode(&id).to_string();
+        format!("{}/image/{}", self.host, encoded_id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ImageApi;
+    use crate::{dependencies::image_api, flows::create_dao::storage::load_dao::DaoAppId};
+    use anyhow::Result;
+    use tokio::test;
+
+    #[test]
+    #[ignore]
+    async fn upload_image() -> Result<()> {
+        let image_api = image_api();
+        image_api.upload_image(DaoAppId(123), vec![1, 2, 3]).await?;
+        Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    async fn get_image() -> Result<()> {
+        let image_api = image_api();
+        let image = image_api.get_image("abc").await?;
+        println!("image: {:?}", image);
+
+        Ok(())
     }
 }
