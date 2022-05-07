@@ -27,13 +27,17 @@ pub async fn withdrawals(
     api: &dyn TealApi,
     funds_asset: FundsAssetId,
     capi_deps: &CapiAssetDaoDeps,
+    after_time: &Option<DateTime<Utc>>,
 ) -> Result<Vec<Withdrawal>> {
     log::debug!("Querying withdrawals by: {:?}", owner);
 
     let dao = load_dao(algod, dao_id, api, capi_deps).await?;
 
+    let after_time_formatted = after_time.map(|t| t.to_rfc3339());
+
     let query = QueryAccountTransaction {
         tx_type: Some(TransactionType::ApplicationTransaction),
+        after_time: after_time_formatted,
         // For now no prefix filtering
         // Algorand's indexer has performance problems with note-prefix and it doesn't work at all with AlgoExplorer or PureStake currently:
         // https://github.com/algorand/indexer/issues/358

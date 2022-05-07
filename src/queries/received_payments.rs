@@ -19,12 +19,14 @@ pub async fn all_received_payments(
     dao_address: &Address,
     customer_escrow_address: &Address,
     funds_asset: FundsAssetId,
+    after_time: &Option<DateTime<Utc>>,
 ) -> Result<Vec<Payment>> {
     // payments to the customer escrow
     let mut customer_escrow_payments =
-        received_payments(indexer, customer_escrow_address, funds_asset).await?;
+        received_payments(indexer, customer_escrow_address, funds_asset, after_time).await?;
     // payments to the app escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)
-    let app_escrow_payments = received_payments(indexer, &dao_address, funds_asset).await?;
+    let app_escrow_payments =
+        received_payments(indexer, &dao_address, funds_asset, after_time).await?;
     // filter out draining (payments from customer escrow to app escrow), which would duplicate payments to the customer escrow
     let filtered_app_escrow_payments: Vec<Payment> = app_escrow_payments
         .into_iter()
@@ -39,12 +41,16 @@ pub async fn received_payments(
     indexer: &Indexer,
     address: &Address,
     funds_asset: FundsAssetId,
+    after_time: &Option<DateTime<Utc>>,
 ) -> Result<Vec<Payment>> {
     log::debug!("Retrieving payment to: {:?}", address);
+
+    let after_time_formatted = after_time.map(|t| t.to_rfc3339());
 
     let response = indexer
         .transactions(&QueryTransaction {
             address: Some(address.to_string()),
+            after_time: after_time_formatted,
             // indexer disabled this, for performance apparently https://github.com/algorand/indexer/commit/1216e7957d5fba7c6a858e244a2aaf7e99412e5d
             // so we filter locally
             // address_role: Some(Role::Receiver),
