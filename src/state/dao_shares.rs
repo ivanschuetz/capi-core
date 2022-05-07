@@ -48,7 +48,7 @@ pub async fn dao_shares_with_dao_state(
     algod: &Algod,
     app_id: DaoAppId,
     shares_id: u64,
-    dao_state: CentralAppGlobalState,
+    dao_state: &CentralAppGlobalState,
 ) -> Result<DaoShareHoldings> {
     let holdings = ShareAmount(asset_holdings(algod, &to_app_address(app_id.0), shares_id).await?);
     dao_shares_all_pars(holdings, dao_state).await
@@ -60,12 +60,12 @@ pub async fn dao_shares_with_holdings(
     dao_holdings: ShareAmount,
 ) -> Result<DaoShareHoldings> {
     let global_state = dao_global_state(algod, app_id).await?;
-    dao_shares_all_pars(dao_holdings, global_state).await
+    dao_shares_all_pars(dao_holdings, &global_state).await
 }
 
 async fn dao_shares_all_pars(
     dao_holdings: ShareAmount,
-    dao_state: CentralAppGlobalState,
+    dao_state: &CentralAppGlobalState,
 ) -> Result<DaoShareHoldings> {
     let locked_shares = dao_state.locked_shares;
 
