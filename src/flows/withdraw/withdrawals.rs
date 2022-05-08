@@ -105,6 +105,8 @@ pub async fn withdrawals(
                                 description: withdrawal_description,
                                 date: timestamp_seconds_to_date(round_time)?,
                                 tx_id: id.parse()?,
+                                // this should be always the owner - we return it for the UI, which currently shows addresses for all the activity entries
+                                address: receiver_address,
                             })
                         }
                     }
@@ -122,4 +124,5 @@ pub struct Withdrawal {
     pub description: String,
     pub date: DateTime<Utc>,
     pub tx_id: TxId,
+    pub address: Address,
 }

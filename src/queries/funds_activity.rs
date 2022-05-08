@@ -19,6 +19,7 @@ pub struct FundsActivityEntry {
     pub description: String,
     pub amount: FundsAmount,
     pub tx_id: TxId,
+    pub address: Address,
 }
 
 #[derive(Debug, Clone)]
@@ -68,6 +69,7 @@ pub async fn funds_activity(
             description: withdrawal.description,
             amount: withdrawal.amount,
             tx_id: withdrawal.tx_id.clone(),
+            address: withdrawal.address,
         })
     }
 
@@ -80,6 +82,7 @@ pub async fn funds_activity(
                 .unwrap_or_else(|| "No description provided".to_owned()),
             amount: payment.amount,
             tx_id: payment.tx_id.clone(),
+            address: payment.sender,
         })
     }
 
