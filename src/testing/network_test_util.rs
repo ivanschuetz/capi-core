@@ -7,7 +7,7 @@ pub use test::{
 #[cfg(test)]
 mod test {
     use crate::algo_helpers::{send_tx_and_wait, send_txs_and_wait};
-    use crate::api::teal_api::{TealApi, LocalTealApi};
+    use crate::api::teal_api::{LocalTealApi, TealApi};
     use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::CapiAssetId;
@@ -16,7 +16,7 @@ mod test {
         capi_asset_dao_specs::CapiAssetDaoDeps, capi_asset_id::CapiAssetAmount,
         create::setup_flow::test_flow::setup_capi_asset_flow,
     };
-    use crate::dependencies::{algod_for_net, DataType, Env};
+    use crate::dependencies::{algod, algod_for_net, DataType, Env};
     use crate::files::{read_lines, write_to_file};
     use crate::flows::create_dao::setup_dao::Programs;
     use crate::flows::create_dao::setup_dao_specs::SetupDaoSpecs;
@@ -701,5 +701,33 @@ mod test {
         let bytes = HEXLOWER.decode(hex.as_bytes()).unwrap();
         let address = Address(bytes.try_into().unwrap());
         println!("Hex: {} -> address: {}", hex, address);
+    }
+
+    #[test]
+    async fn send_payment() -> Result<()> {
+        let receiver = "XDIWDG6EAAEIKMNK64VVSRLFLDYNCRJ2LWHNCZXUY7DJV5RFPYHI4GJGVU"
+            .parse()
+            .unwrap();
+        let funds_asset_id = FundsAssetId(11);
+
+        let amount = FundsAmount::new(100_000_000);
+
+        let algod = algod(); // environment network - if using from WASM scripts, the net passed in build script
+        let sender = capi_owner(); // arbitrary account we know has enough assets
+
+        let params = algod.suggested_transaction_params().await?;
+        let tx = TxnBuilder::with(
+            &params,
+            TransferAsset::new(sender.address(), funds_asset_id.0, amount.val(), receiver).build(),
+        )
+        .build()?;
+
+        let fund_tx_signed = sender.sign_transaction(tx)?;
+
+        send_txs_and_wait(&algod, &[fund_tx_signed]).await?;
+
+        println!("Funded!");
+
+        Ok(())
     }
 }
