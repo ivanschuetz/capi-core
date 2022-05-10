@@ -27,7 +27,7 @@ appenders:
 #     - file
 
 loggers:
-  core:
+  base:
     level: trace
     appenders:
       - console
