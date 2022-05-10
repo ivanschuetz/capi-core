@@ -97,7 +97,7 @@ fn merge(
 
 // TODO paginate? but clarify first whether we'll actually use this, it's quite expensive either way
 // we've to fetch the local state for each account to get the share count
-async fn lockers(indexer: &Indexer, app_id: DaoAppId) -> Result<Vec<Account>> {
+async fn opted_in_to_app(indexer: &Indexer, app_id: DaoAppId) -> Result<Vec<Account>> {
     // get all the accounts opted in to the app (lockers/investors)
     let accounts = indexer
         .accounts(&QueryAccount {
@@ -114,12 +114,12 @@ async fn lockers_holdings(
     indexer: &Indexer,
     app_id: DaoAppId,
 ) -> Result<Vec<ShareHolding>> {
-    let lockers = lockers(indexer, app_id).await?;
+    let opted_in_accounts = opted_in_to_app(indexer, app_id).await?;
     let mut holdings = vec![];
-    for locker in lockers {
+    for opted_in_account in opted_in_accounts {
         // TODO (low prio) small optimization: read only the shares amount
         // TODO consider using join to parallelize these requests
-        let state_res = dao_investor_state(algod, &locker.address, app_id).await;
+        let state_res = dao_investor_state(algod, &opted_in_account.address, app_id).await;
         let amount = match state_res {
             Ok(state) => {
                 log::trace!("Share locker state: {:?}", state);
@@ -136,7 +136,7 @@ async fn lockers_holdings(
         };
 
         holdings.push(ShareHolding {
-            address: locker.address,
+            address: opted_in_account.address,
             amount,
         })
     }
