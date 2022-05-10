@@ -705,7 +705,7 @@ mod test {
 
     #[test]
     async fn send_payment() -> Result<()> {
-        let receiver = "XDIWDG6EAAEIKMNK64VVSRLFLDYNCRJ2LWHNCZXUY7DJV5RFPYHI4GJGVU"
+        let receiver = "5SU5QMNXI4I33PAYXJSRBZCQFWYU6OWPRPYH5EK57DM3JBNGAYMLIUXXNY"
             .parse()
             .unwrap();
         let funds_asset_id = FundsAssetId(11);

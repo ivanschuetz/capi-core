@@ -22,21 +22,22 @@ use anyhow::{anyhow, Error, Result};
 pub async fn withdrawals(
     algod: &Algod,
     indexer: &Indexer,
-    owner: &Address,
     dao_id: DaoId,
     api: &dyn TealApi,
     funds_asset: FundsAssetId,
     capi_deps: &CapiAssetDaoDeps,
+    before_time: &Option<DateTime<Utc>>,
     after_time: &Option<DateTime<Utc>>,
 ) -> Result<Vec<Withdrawal>> {
-    log::debug!("Querying withdrawals by: {:?}", owner);
-
     let dao = load_dao(algod, dao_id, api, capi_deps).await?;
 
+    let before_time_formatted = before_time.map(|t| t.to_rfc3339());
     let after_time_formatted = after_time.map(|t| t.to_rfc3339());
 
     let query = QueryAccountTransaction {
+        // TODO filter by application id here?
         tx_type: Some(TransactionType::ApplicationTransaction),
+        before_time: before_time_formatted,
         after_time: after_time_formatted,
         // For now no prefix filtering
         // Algorand's indexer has performance problems with note-prefix and it doesn't work at all with AlgoExplorer or PureStake currently:
@@ -48,7 +49,7 @@ pub async fn withdrawals(
 
     // TODO filter txs by receiver (creator) - this returns everything associated with creator
     let txs = indexer
-        .account_transactions(owner, &query)
+        .account_transactions(&dao.owner, &query)
         .await?
         .transactions;
 
@@ -79,7 +80,7 @@ pub async fn withdrawals(
                         // we're interested only in central escrow -> creator
                         if FundsAssetId(xfer.asset_id) == funds_asset
                             && sender_address == dao.app_address()
-                            && receiver_address == *owner
+                            && receiver_address == dao.owner
                         {
                             // for now the only payload is the description
                             let withdrawal_description = match &tx.note {

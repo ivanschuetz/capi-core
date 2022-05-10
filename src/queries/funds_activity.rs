@@ -32,7 +32,6 @@ pub enum FundsActivityEntryType {
 pub async fn funds_activity(
     algod: &Algod,
     indexer: &Indexer,
-    owner: &Address,
     dao_id: DaoId,
     customer_escrow_address: &Address,
     api: &dyn TealApi,
@@ -42,11 +41,11 @@ pub async fn funds_activity(
     let withdrawals = withdrawals(
         algod,
         indexer,
-        owner,
         dao_id,
         api,
         funds_asset,
         capi_deps,
+        &None,
         &None,
     )
     .await?;
@@ -56,6 +55,7 @@ pub async fn funds_activity(
         &dao_id.0.address(),
         customer_escrow_address,
         funds_asset,
+        &None,
         &None,
     )
     .await?;
