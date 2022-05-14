@@ -1,19 +1,19 @@
 #[cfg(test)]
 mod tests {
     use crate::api::teal_api::LocalTealApi;
-    use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_state::{capi_app_global_state, capi_app_investor_state};
     use crate::capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId};
     use crate::capi_asset::create::setup_flow::test_flow::setup_capi_asset_flow;
-    use crate::funds::FundsAmount;
     use crate::state::account_state::asset_holdings_if_opted_in;
     use crate::testing::network_test_util::create_and_distribute_funds_asset;
     use crate::{
-        dependencies,
         state::app_state::ApplicationLocalStateError,
         testing::{network_test_util::test_init, test_data::creator},
     };
     use anyhow::Result;
+    use mbase::dependencies::algod_for_tests;
+    use mbase::models::asset_amount::AssetAmount;
+    use mbase::models::funds::FundsAmount;
     use serial_test::serial;
     use tokio::test;
 
@@ -23,7 +23,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod_for_tests();
+        let algod = algod_for_tests();
         let api = LocalTealApi {};
         let creator = creator();
 

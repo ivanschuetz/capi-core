@@ -1,8 +1,8 @@
 #[cfg(test)]
 pub mod test_flow {
     use crate::algo_helpers::send_tx_and_wait;
-    use crate::api::teal_api::TealApi;
     use crate::api::contract::Contract;
+    use crate::api::teal_api::TealApi;
     use crate::api::version::Version;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId};
@@ -11,7 +11,6 @@ pub mod test_flow {
     use crate::capi_asset::create::setup_capi_escrow::{
         setup_capi_escrow, submit_setup_capi_escrow, SetupCentralEscrowSigned, MIN_BALANCE,
     };
-    use crate::funds::FundsAssetId;
     use crate::network_util::wait_for_pending_transaction;
     use crate::testing::TESTS_DEFAULT_PRECISION;
     use algonaut::algod::v2::Algod;
@@ -19,6 +18,7 @@ pub mod test_flow {
     use algonaut::transaction::account::Account;
     use algonaut::transaction::{Pay, TxnBuilder};
     use anyhow::Result;
+    use mbase::models::funds::FundsAssetId;
 
     /// creates capi asset and app and setups app
     pub async fn setup_capi_asset_flow(

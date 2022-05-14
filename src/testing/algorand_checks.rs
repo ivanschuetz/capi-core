@@ -5,7 +5,6 @@
 pub mod test {
     use crate::{
         algo_helpers::{send_tx_and_wait, send_txs_and_wait},
-        dependencies::algod_for_tests,
         network_util::wait_for_pending_transaction,
         teal::load_teal,
         testing::{
@@ -22,6 +21,7 @@ pub mod test {
         },
     };
     use anyhow::Result;
+    use mbase::dependencies::algod_for_tests;
     use tokio::test;
 
     pub async fn create_always_approves_app(

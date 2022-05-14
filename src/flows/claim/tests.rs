@@ -1,17 +1,14 @@
 #[cfg(test)]
 mod tests {
     use std::{convert::TryInto, str::FromStr};
-
     use crate::{
         api::version::VersionedAddress,
         flows::{
             claim::claim::claimable_dividend,
             create_dao::{
-                model::CreateSharesSpecs, setup_dao_specs::{SetupDaoSpecs, ImageHash},
-                share_amount::ShareAmount, storage::load_dao::DaoAppId,
+                model::CreateSharesSpecs, setup_dao_specs::{SetupDaoSpecs},
             },
         },
-        funds::{FundsAmount, FundsAssetId},
         state::{
             account_state::funds_holdings,
             dao_app_state::{central_investor_state_from_acc, dao_global_state},
@@ -23,6 +20,7 @@ mod tests {
     };
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
+    use mbase::models::{share_amount::ShareAmount, funds::{FundsAmount, FundsAssetId}, image_hash::ImageHash, dao_app_id::DaoAppId};
     use rust_decimal::Decimal;
     use serial_test::serial;
     use tokio::test;

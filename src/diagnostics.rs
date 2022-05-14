@@ -1,9 +1,9 @@
 use algonaut::{algod::v2::Algod, core::Address};
 use anyhow::{Error, Result};
+use mbase::models::{funds::FundsAmount, share_amount::ShareAmount};
 
 use crate::{
-    flows::create_dao::{model::Dao, share_amount::ShareAmount},
-    funds::FundsAmount,
+    flows::create_dao::model::Dao,
     state::{
         account_state::funds_holdings,
         dao_app_state::{dao_global_state, dao_investor_state},

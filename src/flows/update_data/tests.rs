@@ -2,11 +2,7 @@
 mod tests {
     use crate::{
         api::version::{Version, VersionedAddress},
-        flows::{
-            create_dao::{setup_dao_specs::ImageHash, share_amount::ShareAmount},
-            update_data::update_data::UpdatableDaoData,
-        },
-        funds::FundsAmount,
+        flows::update_data::update_data::UpdatableDaoData,
         state::dao_app_state::{dao_global_state, dao_investor_state, CentralAppGlobalState},
         testing::{
             flow::{
@@ -18,6 +14,7 @@ mod tests {
         },
     };
     use anyhow::Result;
+    use mbase::models::{funds::FundsAmount, image_hash::ImageHash, share_amount::ShareAmount};
     use serial_test::serial;
     use tokio::test;
 

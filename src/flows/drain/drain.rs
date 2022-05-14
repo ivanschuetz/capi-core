@@ -1,11 +1,7 @@
 use crate::{
     algo_helpers::calculate_total_fee,
     capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
-    flows::create_dao::{
-        shares_percentage::SharesPercentage,
-        storage::load_dao::{DaoAppId, TxId},
-    },
-    funds::{FundsAmount, FundsAssetId},
+    flows::create_dao::storage::load_dao::TxId,
     state::account_state::funds_holdings,
 };
 use algonaut::{
@@ -19,6 +15,11 @@ use algonaut::{
     },
 };
 use anyhow::{anyhow, Result};
+use mbase::models::{
+    dao_app_id::DaoAppId,
+    funds::{FundsAmount, FundsAssetId},
+    shares_percentage::SharesPercentage,
+};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 

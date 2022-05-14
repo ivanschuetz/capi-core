@@ -2,12 +2,12 @@
 mod tests {
     use algonaut::{algod::v2::Algod, core::to_app_address, transaction::account::Account};
     use anyhow::Result;
+    use mbase::models::{funds::FundsAmount, share_amount::ShareAmount};
     use serial_test::serial;
     use tokio::test;
 
     use crate::{
-        flows::create_dao::{model::Dao, share_amount::ShareAmount},
-        funds::FundsAmount,
+        flows::create_dao::model::Dao,
         network_util::wait_for_pending_transaction,
         state::{
             account_state::find_asset_holding_or_err,

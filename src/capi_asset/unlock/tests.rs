@@ -7,7 +7,6 @@ mod tests {
             common_test::lock_unlock::test_shares_locked,
             create::setup_flow::test_flow::setup_capi_asset_flow,
         },
-        dependencies,
         state::account_state::{asset_holdings, find_asset_holding_or_err},
         testing::{
             create_and_submit_txs::{
@@ -22,6 +21,7 @@ mod tests {
         },
     };
     use anyhow::Result;
+    use mbase::dependencies::algod_for_tests;
     use serial_test::serial;
     use tokio::test;
 
@@ -32,7 +32,7 @@ mod tests {
 
         // deps
 
-        let algod = dependencies::algod_for_tests();
+        let algod = algod_for_tests();
         let api = LocalTealApi {};
         let creator = creator();
         let investor = investor1();

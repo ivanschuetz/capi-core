@@ -4,11 +4,11 @@ pub use test::lock_flow;
 #[cfg(test)]
 pub mod test {
     use crate::flows::create_dao::model::Dao;
-    use crate::flows::create_dao::share_amount::ShareAmount;
     use crate::flows::lock::lock::{lock, submit_lock, LockSigned};
     use crate::network_util::wait_for_pending_transaction;
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
+    use mbase::models::share_amount::ShareAmount;
 
     pub async fn lock_flow(
         algod: &Algod,

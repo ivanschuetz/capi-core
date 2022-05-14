@@ -3,8 +3,6 @@ pub use test::{customer_payment_and_drain_flow, drain_flow, CustomerPaymentAndDr
 
 #[cfg(test)]
 pub mod test {
-    use crate::funds::FundsAmount;
-    use crate::funds::FundsAssetId;
     use crate::{
         flows::create_dao::model::Dao,
         flows::create_dao::storage::load_dao::TxId,
@@ -23,6 +21,7 @@ pub mod test {
         transaction::{account::Account, Transaction},
     };
     use anyhow::Result;
+    use mbase::models::funds::{FundsAmount, FundsAssetId};
 
     pub async fn customer_payment_and_drain_flow(
         td: &TestDeps,

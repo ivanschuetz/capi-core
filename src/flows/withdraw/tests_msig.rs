@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        funds::FundsAmount,
         state::account_state::funds_holdings,
         testing::{
             flow::{
@@ -15,6 +14,7 @@ mod tests {
         },
     };
     use anyhow::Result;
+    use mbase::models::funds::FundsAmount;
     use serial_test::serial;
     use tokio::test;
 

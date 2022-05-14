@@ -4,7 +4,6 @@ use crate::{
     flows::create_dao::{
         model::{CreateAssetsToSign, CreateSharesSpecs},
         setup_dao_specs::SetupDaoSpecs,
-        storage::load_dao::DaoAppId,
     },
     network_util::wait_for_pending_transaction,
 };
@@ -16,6 +15,7 @@ use algonaut::{
 };
 use anyhow::{anyhow, Result};
 use futures::join;
+use mbase::models::dao_app_id::DaoAppId;
 
 use super::create_app::create_app_tx;
 

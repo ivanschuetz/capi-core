@@ -3,7 +3,6 @@ mod tests {
     use crate::{
         capi_asset::capi_app_state::capi_app_global_state,
         flows::create_dao::setup::customer_escrow,
-        funds::FundsAmount,
         state::{account_state::funds_holdings, dao_app_state::dao_global_state},
         testing::{
             flow::{
@@ -14,6 +13,7 @@ mod tests {
         },
     };
     use anyhow::Result;
+    use mbase::models::funds::FundsAmount;
     use serial_test::serial;
     use tokio::test;
 

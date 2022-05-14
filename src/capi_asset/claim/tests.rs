@@ -11,8 +11,6 @@ mod tests {
             claim::claim::claimable_capi_dividend,
             create::setup_flow::test_flow::setup_capi_asset_flow,
         },
-        dependencies,
-        funds::FundsAmount,
         state::account_state::funds_holdings,
         testing::{
             flow::claim_capi_flow::{claim_capi_flow, claim_capi_precs},
@@ -25,6 +23,7 @@ mod tests {
     };
     use algonaut::core::Address;
     use anyhow::Result;
+    use mbase::{dependencies::algod_for_tests, models::funds::FundsAmount};
     use serial_test::serial;
     use tokio::test;
 
@@ -208,7 +207,7 @@ mod tests {
     async fn test_claim_max_with_repeated_fractional_shares_percentage() -> Result<()> {
         test_init()?;
 
-        let algod = dependencies::algod_for_tests();
+        let algod = algod_for_tests();
         let api = LocalTealApi {};
         let capi_owner = capi_owner();
 

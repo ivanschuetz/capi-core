@@ -1,11 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        flows::{
-            create_dao::share_amount::ShareAmount,
-            withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs},
-        },
-        funds::{FundsAmount, FundsAssetId},
+        flows::withdraw::withdraw::{submit_withdraw, withdraw, WithdrawSigned, WithdrawalInputs},
         state::account_state::funds_holdings,
         testing::{
             create_and_submit_txs::transfer_tokens_submit,
@@ -24,6 +20,10 @@ mod tests {
         core::{to_app_address, Address},
     };
     use anyhow::Result;
+    use mbase::models::{
+        funds::{FundsAmount, FundsAssetId},
+        share_amount::ShareAmount,
+    };
     use serial_test::serial;
     use tokio::test;
 

@@ -1,9 +1,10 @@
-use super::{
-    model::CreateSharesSpecs, share_amount::ShareAmount, shares_percentage::SharesPercentage,
-};
-use crate::{api::image_api::ImageApi, funds::FundsAmount};
+use super::model::CreateSharesSpecs;
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
+use mbase::models::{
+    funds::FundsAmount, image_hash::ImageHash, share_amount::ShareAmount,
+    shares_percentage::SharesPercentage,
+};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
@@ -24,33 +25,6 @@ impl CompressedImage {
 
     pub fn bytes(&self) -> Vec<u8> {
         self.0.clone()
-    }
-}
-
-/// Assumes string to be base64 encoded hash bytes
-/// we might change this in the future to store and handle directly the hash bytes (similar to Algonaut's HashDigest struct)
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ImageHash(pub String);
-
-impl ImageHash {
-    pub fn bytes(&self) -> Vec<u8> {
-        self.0.as_bytes().to_vec()
-    }
-
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<ImageHash> {
-        Ok(ImageHash(String::from_utf8(bytes)?))
-    }
-
-    pub fn as_str(&self) -> String {
-        self.0.clone()
-    }
-
-    pub fn as_api_id(&self) -> String {
-        self.0.clone()
-    }
-
-    pub fn as_api_url(&self, image_api: &dyn ImageApi) -> String {
-        image_api.image_url(&self.as_api_id())
     }
 }
 

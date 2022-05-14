@@ -1,14 +1,14 @@
 use crate::{
-    api::teal_api::TealApi,
-    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
-    flows::{create_dao::storage::load_dao::DaoId, withdraw::withdrawals::withdrawals},
-    funds::{FundsAmount, FundsAssetId},
-    queries::received_payments::all_received_payments,
+    api::teal_api::TealApi, capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
+    flows::withdraw::withdrawals::withdrawals, queries::received_payments::all_received_payments,
 };
-
 use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
+use mbase::models::{
+    dao_id::DaoId,
+    funds::{FundsAmount, FundsAssetId},
+};
 
 /// The balance of an account at some date
 /// it's determined by fetching all the transactions involving the address before date
@@ -80,14 +80,15 @@ mod tests {
             capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
             capi_asset_id::CapiAssetId,
         },
-        dependencies::{algod, indexer},
-        flows::create_dao::storage::load_dao::{DaoAppId, DaoId},
-        funds::FundsAssetId,
         logger::init_logger,
         queries::historic::historic_dao_funds_balance,
     };
     use anyhow::Result;
     use chrono::Utc;
+    use mbase::{
+        dependencies::{algod, indexer},
+        models::{dao_app_id::DaoAppId, dao_id::DaoId, funds::FundsAssetId},
+    };
     use rust_decimal::Decimal;
     use tokio::test;
 

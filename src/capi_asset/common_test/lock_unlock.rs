@@ -9,11 +9,11 @@ pub mod test {
             capi_app_state::capi_app_investor_state_from_acc,
             capi_asset_id::{CapiAssetAmount, CapiAssetId},
         },
-        funds::FundsAmount,
         state::account_state::{asset_holdings, find_asset_holding_or_err},
     };
     use algonaut::{algod::v2::Algod, core::Address};
     use anyhow::Result;
+    use mbase::models::funds::FundsAmount;
 
     pub async fn test_shares_locked(
         algod: &Algod,

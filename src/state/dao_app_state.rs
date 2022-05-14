@@ -3,16 +3,7 @@ use super::app_state::{
     read_address_from_state, AppStateKey, ApplicationGlobalState, ApplicationLocalStateError,
     ApplicationStateExt,
 };
-use crate::{
-    api::version::{bytes_to_versions, Version, VersionedAddress},
-    flows::create_dao::{
-        setup_dao_specs::ImageHash,
-        share_amount::ShareAmount,
-        shares_percentage::SharesPercentage,
-        storage::load_dao::{DaoAppId, DaoId},
-    },
-    funds::{FundsAmount, FundsAssetId},
-};
+use crate::api::version::{bytes_to_versions, Version, VersionedAddress};
 use algonaut::{
     algod::v2::Algod,
     core::Address,
@@ -20,6 +11,12 @@ use algonaut::{
 };
 use anyhow::{anyhow, Result};
 use data_encoding::{BASE64, HEXLOWER};
+use mbase::models::{
+    funds::{FundsAmount, FundsAssetId},
+    image_hash::ImageHash,
+    share_amount::ShareAmount,
+    shares_percentage::SharesPercentage, dao_app_id::DaoAppId, dao_id::DaoId,
+};
 use std::{collections::BTreeMap, convert::TryInto};
 
 const GLOBAL_TOTAL_RECEIVED: AppStateKey = AppStateKey("CentralReceivedTotal");

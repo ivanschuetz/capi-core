@@ -7,19 +7,20 @@ pub mod test {
         invest_or_locking_app_optin_tx, submit_invest_or_locking_app_optin,
     };
     use crate::flows::{
-        create_dao::{model::Dao, share_amount::ShareAmount},
+        create_dao::model::Dao,
         invest::model::InvestResult,
         invest::{
             invest::{invest_txs, submit_invest},
             model::InvestSigned,
         },
     };
-    use crate::funds::FundsAmount;
     use crate::network_util::wait_for_pending_transaction;
     use crate::state::account_state::funds_holdings;
     use crate::testing::network_test_util::TestDeps;
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::{anyhow, Result};
+    use mbase::models::funds::FundsAmount;
+    use mbase::models::share_amount::ShareAmount;
 
     pub async fn invests_optins_flow(algod: &Algod, investor: &Account, dao: &Dao) -> Result<()> {
         // app optins (have to happen before invest_txs, which initializes investor's local state)

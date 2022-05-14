@@ -2,8 +2,7 @@
 pub use test::{claim_flow, claim_precs, ClaimTestFlowRes, ClaimTestPrecsRes};
 #[cfg(test)]
 pub mod test {
-    use crate::flows::create_dao::{model::Dao, share_amount::ShareAmount};
-    use crate::funds::FundsAmount;
+    use crate::flows::create_dao::model::Dao;
     use crate::state::account_state::funds_holdings;
     use crate::testing::flow::customer_payment_and_drain_flow::CustomerPaymentAndDrainFlowRes;
     use crate::testing::flow::invest_in_dao_flow::invests_optins_flow;
@@ -19,6 +18,8 @@ pub mod test {
     };
     use algonaut::transaction::account::Account;
     use anyhow::Result;
+    use mbase::models::funds::FundsAmount;
+    use mbase::models::share_amount::ShareAmount;
 
     pub async fn claim_precs(
         td: &TestDeps,

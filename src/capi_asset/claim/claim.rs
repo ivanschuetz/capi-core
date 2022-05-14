@@ -1,8 +1,6 @@
 use crate::{
     capi_asset::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetAmount},
-    decimal_util::AsDecimal,
     flows::create_dao::storage::load_dao::TxId,
-    funds::{FundsAmount, FundsAssetId},
 };
 use algonaut::{
     algod::v2::Algod,
@@ -10,6 +8,7 @@ use algonaut::{
     transaction::{builder::CallApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::{anyhow, Result};
+use mbase::{models::funds::{FundsAmount, FundsAssetId}, util::decimal_util::AsDecimal};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 

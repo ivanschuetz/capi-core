@@ -1,18 +1,19 @@
-use crate::{
-    decimal_util::AsDecimal,
-    flows::create_dao::{
-        share_amount::ShareAmount,
-        shares_percentage::SharesPercentage,
-        storage::load_dao::{DaoAppId, TxId},
-    },
-    funds::{FundsAmount, FundsAssetId},
-};
+use crate::flows::create_dao::storage::load_dao::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
     transaction::{builder::CallApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::{anyhow, Result};
+use mbase::{
+    models::{
+        dao_app_id::DaoAppId,
+        funds::{FundsAmount, FundsAssetId},
+        share_amount::ShareAmount,
+        shares_percentage::SharesPercentage,
+    },
+    util::decimal_util::AsDecimal,
+};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 

@@ -1,10 +1,5 @@
 use crate::{
     api::version::{versions_to_bytes, Version, VersionedAddress, Versions},
-    flows::create_dao::{
-        setup_dao_specs::ImageHash, share_amount::ShareAmount, shares_percentage::SharesPercentage,
-        storage::load_dao::DaoAppId,
-    },
-    funds::{FundsAmount, FundsAssetId},
     note::dao_setup_prefix,
 };
 use algonaut::{
@@ -12,6 +7,13 @@ use algonaut::{
     transaction::{builder::CallApplication, Transaction, TxnBuilder},
 };
 use anyhow::Result;
+use mbase::models::{
+    dao_app_id::DaoAppId,
+    funds::{FundsAmount, FundsAssetId},
+    image_hash::ImageHash,
+    share_amount::ShareAmount,
+    shares_percentage::SharesPercentage,
+};
 
 /// Data to initialize the app's global state with
 /// NOTE that this doesn't necessarily include *all* the app's state fields,

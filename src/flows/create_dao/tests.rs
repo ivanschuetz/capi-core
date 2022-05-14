@@ -1,9 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        asset_amount::AssetAmount,
-        flows::create_dao::{model::Dao, share_amount::ShareAmount},
-        funds::FundsAmount,
+        flows::create_dao::model::Dao,
         state::{
             account_state::{asset_holdings, find_asset_holding_or_err},
             app_state::ApplicationLocalStateError,
@@ -17,6 +15,7 @@ mod tests {
     };
     use algonaut::algod::v2::Algod;
     use anyhow::Result;
+    use mbase::models::{asset_amount::AssetAmount, funds::FundsAmount, share_amount::ShareAmount};
     use serial_test::serial;
     use tokio::test;
 

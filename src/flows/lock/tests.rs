@@ -2,6 +2,7 @@
 mod tests {
     use algonaut::transaction::{AcceptAsset, TransferAsset, TxnBuilder};
     use anyhow::Result;
+    use mbase::models::{share_amount::ShareAmount, funds::FundsAmount};
     use serial_test::serial;
     use tokio::test;
 
@@ -9,12 +10,10 @@ mod tests {
         algo_helpers::send_tx_and_wait,
         flows::{
             claim::claim::claimable_dividend,
-            create_dao::share_amount::ShareAmount,
             invest::app_optins::{
                 invest_or_locking_app_optin_tx, submit_invest_or_locking_app_optin,
             },
         },
-        funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         state::{
             account_state::{

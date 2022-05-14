@@ -7,6 +7,7 @@ use algonaut::{
     },
 };
 use anyhow::{anyhow, Result};
+use mbase::models::{funds::FundsAssetId, dao_app_id::DaoAppId};
 use serde::Serialize;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -14,8 +15,6 @@ use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
     api::version::{VersionedContractAccount, VersionedTealSourceTemplate},
-    flows::create_dao::storage::load_dao::DaoAppId,
-    funds::FundsAssetId,
     teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 

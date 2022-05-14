@@ -1,10 +1,7 @@
 use crate::{
     api::teal_api::TealApi,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
-    flows::create_dao::{
-        model::Dao,
-        storage::load_dao::{load_dao, DaoAppId, DaoId},
-    },
+    flows::create_dao::{model::Dao, storage::load_dao::load_dao},
     note::dao_setup_prefix_base64,
     state::dao_app_state::find_state_with_a_capi_dao_id,
 };
@@ -16,6 +13,7 @@ use algonaut::{
 };
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
+use mbase::models::{dao_app_id::DaoAppId, dao_id::DaoId};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]

@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        flows::create_dao::share_amount::ShareAmount,
-        funds::FundsAmount,
         state::dao_app_state::{dao_global_state, dao_investor_state},
         teal::TealSource,
         testing::{
@@ -15,6 +13,7 @@ mod tests {
         },
     };
     use anyhow::Result;
+    use mbase::models::{funds::FundsAmount, share_amount::ShareAmount};
     use serial_test::serial;
     use tokio::test;
 

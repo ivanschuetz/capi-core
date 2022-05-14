@@ -1,6 +1,6 @@
-use crate::flows::create_dao::storage::load_dao::DaoAppId;
 use anyhow::Result;
 use async_trait::async_trait;
+use mbase::models::dao_app_id::DaoAppId;
 use reqwest::Client;
 
 // Send + sync assumess the implementations to be stateless
@@ -58,8 +58,9 @@ impl ImageApi for ImageApiImpl {
 #[cfg(test)]
 mod tests {
     use super::ImageApi;
-    use crate::{dependencies::image_api, flows::create_dao::storage::load_dao::DaoAppId};
+    use crate::dependencies::image_api;
     use anyhow::Result;
+    use mbase::models::dao_app_id::DaoAppId;
     use tokio::test;
 
     #[test]

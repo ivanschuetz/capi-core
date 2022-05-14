@@ -1,9 +1,10 @@
-use crate::{capi_asset::capi_app_id::CapiAppId, flows::create_dao::storage::load_dao::DaoAppId};
+use crate::capi_asset::capi_app_id::CapiAppId;
 use algonaut::{
     core::{Address, SuggestedTransactionParams},
     transaction::{builder::OptInApplication, Transaction, TxnBuilder},
 };
 use anyhow::Result;
+use mbase::models::dao_app_id::DaoAppId;
 
 pub fn optin_to_capi_app(
     params: &SuggestedTransactionParams,

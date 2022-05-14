@@ -1,13 +1,11 @@
-use crate::{
-    flows::create_dao::storage::load_dao::TxId,
-    funds::{FundsAmount, FundsAssetId},
-};
+use crate::flows::create_dao::storage::load_dao::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     transaction::{SignedTransaction, Transaction, TransferAsset, TxnBuilder},
 };
 use anyhow::Result;
+use mbase::models::funds::{FundsAmount, FundsAssetId};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);

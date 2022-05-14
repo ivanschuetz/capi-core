@@ -1,7 +1,4 @@
-use crate::flows::create_dao::{
-    share_amount::ShareAmount,
-    storage::load_dao::{DaoAppId, TxId},
-};
+use crate::flows::create_dao::storage::load_dao::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
@@ -11,6 +8,7 @@ use algonaut::{
     },
 };
 use anyhow::Result;
+use mbase::models::{share_amount::ShareAmount, dao_app_id::DaoAppId};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);

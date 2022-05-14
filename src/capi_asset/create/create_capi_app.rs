@@ -3,7 +3,6 @@ use crate::teal::save_rendered_teal;
 use crate::{
     api::version::VersionedTealSourceTemplate,
     capi_asset::capi_asset_id::{CapiAssetAmount, CapiAssetId},
-    funds::FundsAssetId,
     teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 use algonaut::{
@@ -12,6 +11,7 @@ use algonaut::{
     transaction::{transaction::StateSchema, CreateApplication, Transaction, TxnBuilder},
 };
 use anyhow::{anyhow, Result};
+use mbase::models::funds::FundsAssetId;
 
 /// Capi app: remembers total dividend retrieved (global) and already retrieved dividend (local), to prevent double claiming.
 #[allow(clippy::too_many_arguments)]
@@ -136,8 +136,6 @@ mod tests {
             capi_asset_id::{CapiAssetAmount, CapiAssetId},
             create::create_capi_app::create_app,
         },
-        dependencies,
-        funds::FundsAssetId,
         teal::load_teal_template,
         testing::{network_test_util::test_init, test_data::creator, TESTS_DEFAULT_PRECISION},
     };
@@ -146,6 +144,7 @@ mod tests {
         transaction::{transaction::StateSchema, Transaction, TransactionType},
     };
     use anyhow::{anyhow, Result};
+    use mbase::{dependencies::algod_for_tests, models::funds::FundsAssetId};
     use serial_test::serial;
     use tokio::test;
 
@@ -155,7 +154,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod_for_tests();
+        let algod = algod_for_tests();
         let creator = creator();
 
         let approval_template =

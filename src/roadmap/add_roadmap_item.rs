@@ -1,5 +1,4 @@
 use super::note::roadmap_item_to_note;
-use crate::flows::create_dao::storage::load_dao::DaoId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
@@ -8,6 +7,7 @@ use algonaut::{
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use mbase::models::dao_id::DaoId;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 

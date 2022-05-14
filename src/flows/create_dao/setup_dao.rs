@@ -1,7 +1,6 @@
 use super::{
     model::{SetupDaoSigned, SetupDaoToSign, SubmitSetupDaoResult},
     setup_dao_specs::SetupDaoSpecs,
-    storage::load_dao::DaoAppId,
 };
 use crate::{
     api::version::VersionedTealSourceTemplate,
@@ -14,7 +13,6 @@ use crate::{
             setup_app::{setup_app_tx, DaoInitData},
         },
     },
-    funds::FundsAssetId,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -22,6 +20,7 @@ use algonaut::{
     transaction::{tx_group::TxGroup, TransferAsset, TxnBuilder},
 };
 use anyhow::Result;
+use mbase::models::{dao_app_id::DaoAppId, funds::FundsAssetId};
 
 #[allow(clippy::too_many_arguments)]
 pub async fn setup_dao_txs(

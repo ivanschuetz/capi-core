@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 algonaut = { git = "https://github.com/manuelmauro/algonaut", branch = "main", features = ["rustls"], default-features = false }
 # algonaut = { path = "../../algonaut", features = ["rustls"], default-features = false }
+mbase = { path = "../mbase" }
 
 anyhow = "1.0"
 rmp-serde = "1.0.0"

@@ -1,7 +1,6 @@
 use crate::{
     capi_asset::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetId},
     flows::create_dao::storage::load_dao::TxId,
-    funds::FundsAssetId,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -9,6 +8,7 @@ use algonaut::{
     transaction::{builder::CallApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
+use mbase::models::funds::FundsAssetId;
 use serde::Serialize;
 
 // TODO no constants

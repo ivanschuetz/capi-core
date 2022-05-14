@@ -3,8 +3,6 @@ pub use test::withdraw_precs;
 
 #[cfg(test)]
 pub mod test {
-    use crate::flows::create_dao::storage::load_dao::DaoAppId;
-    use crate::funds::{FundsAmount, FundsAssetId};
     use crate::network_util::wait_for_pending_transaction;
     use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
     use crate::testing::network_test_util::TestDeps;
@@ -18,6 +16,8 @@ pub mod test {
     };
     use algonaut::{algod::v2::Algod, core::MicroAlgos, transaction::account::Account};
     use anyhow::Result;
+    use mbase::models::dao_app_id::DaoAppId;
+    use mbase::models::funds::{FundsAmount, FundsAssetId};
 
     /// dao creation,
     /// customer payment + draining to central, to have something to withdraw.

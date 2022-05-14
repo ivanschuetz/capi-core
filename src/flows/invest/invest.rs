@@ -1,8 +1,6 @@
+use crate::flows::create_dao::model::Dao;
+
 use super::model::{InvestResult, InvestSigned, InvestToSign};
-use crate::{
-    flows::create_dao::{model::Dao, share_amount::ShareAmount, storage::load_dao::DaoAppId},
-    funds::{FundsAmount, FundsAssetId},
-};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, SuggestedTransactionParams},
@@ -12,6 +10,11 @@ use algonaut::{
     },
 };
 use anyhow::{anyhow, Result};
+use mbase::models::{
+    dao_app_id::DaoAppId,
+    funds::{FundsAmount, FundsAssetId},
+    share_amount::ShareAmount,
+};
 
 /// Requires investor to opt in to the app first,
 /// we can't do it here: setting local state errors if during opt-in

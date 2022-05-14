@@ -1,16 +1,14 @@
-use crate::{
-    flows::{
-        create_dao::storage::load_dao::{DaoAppId, TxId},
-        withdraw::note::withdrawal_to_note,
-    },
-    funds::{FundsAmount, FundsAssetId},
-};
+use crate::flows::{create_dao::storage::load_dao::TxId, withdraw::note::withdrawal_to_note};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     transaction::{builder::CallApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
+use mbase::models::{
+    dao_app_id::DaoAppId,
+    funds::{FundsAmount, FundsAssetId},
+};
 use serde::{Deserialize, Serialize};
 
 // TODO no constants

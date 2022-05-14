@@ -1,10 +1,11 @@
-use crate::flows::create_dao::storage::load_dao::{DaoAppId, TxId};
+use crate::flows::create_dao::storage::load_dao::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, CompiledTeal},
     transaction::{builder::UpdateApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
+use mbase::models::dao_app_id::DaoAppId;
 use serde::{Deserialize, Serialize};
 
 pub async fn update(

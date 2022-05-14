@@ -1,12 +1,8 @@
+use crate::{date_util::timestamp_seconds_to_date, flows::create_dao::storage::load_dao::TxId};
 use algonaut::{core::Address, indexer::v2::Indexer, model::indexer::v2::QueryTransaction};
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
-
-use crate::{
-    date_util::timestamp_seconds_to_date,
-    flows::create_dao::storage::load_dao::TxId,
-    funds::{FundsAmount, FundsAssetId},
-};
+use mbase::models::funds::{FundsAmount, FundsAssetId};
 
 /// All the payments (funds xfer) made to the Dao
 /// This combines payments to 2 escrows: the customer and the app's escrow

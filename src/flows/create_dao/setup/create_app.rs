@@ -4,6 +4,10 @@ use algonaut::{
     transaction::{transaction::StateSchema, CreateApplication, Transaction, TxnBuilder},
 };
 use anyhow::{anyhow, Result};
+use mbase::{
+    models::{funds::FundsAmount, share_amount::ShareAmount, shares_percentage::SharesPercentage},
+    util::decimal_util::AsDecimal,
+};
 use rust_decimal::prelude::ToPrimitive;
 use serde::Serialize;
 
@@ -12,9 +16,6 @@ use crate::teal::save_rendered_teal;
 use crate::{
     api::version::VersionedTealSourceTemplate,
     capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
-    decimal_util::AsDecimal,
-    flows::create_dao::{share_amount::ShareAmount, shares_percentage::SharesPercentage},
-    funds::FundsAmount,
     state::dao_app_state::{
         GLOBAL_SCHEMA_NUM_BYTE_SLICES, GLOBAL_SCHEMA_NUM_INTS, LOCAL_SCHEMA_NUM_BYTE_SLICES,
         LOCAL_SCHEMA_NUM_INTS,
@@ -183,18 +184,12 @@ struct RenderCentralAppContext {
 
 #[cfg(test)]
 mod tests {
-    use std::{convert::TryInto, str::FromStr};
-
     use crate::{
         api::version::{Version, VersionedTealSourceTemplate},
         capi_asset::{
             capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
             capi_asset_id::CapiAssetId,
         },
-        decimal_util::AsDecimal,
-        dependencies,
-        flows::create_dao::share_amount::ShareAmount,
-        funds::FundsAmount,
         network_util::wait_for_pending_transaction,
         teal::load_teal_template,
         testing::{network_test_util::test_init, test_data::creator, TESTS_DEFAULT_PRECISION},
@@ -204,8 +199,14 @@ mod tests {
         transaction::{transaction::StateSchema, Transaction, TransactionType},
     };
     use anyhow::{anyhow, Result};
+    use mbase::{
+        dependencies::algod_for_tests,
+        models::{funds::FundsAmount, share_amount::ShareAmount},
+        util::decimal_util::AsDecimal,
+    };
     use rust_decimal::Decimal;
     use serial_test::serial;
+    use std::{convert::TryInto, str::FromStr};
     use tokio::test;
 
     use super::create_app_tx;
@@ -216,7 +217,7 @@ mod tests {
         test_init()?;
 
         // deps
-        let algod = dependencies::algod_for_tests();
+        let algod = algod_for_tests();
         let creator = creator();
 
         let approval_template =

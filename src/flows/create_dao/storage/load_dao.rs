@@ -5,17 +5,13 @@ use crate::{
         model::{CreateSharesSpecs, Dao},
         setup::customer_escrow::render_and_compile_customer_escrow,
         setup_dao_specs::SetupDaoSpecs,
-        share_amount::ShareAmount,
     },
     state::dao_app_state::dao_global_state,
 };
-use algonaut::{
-    algod::v2::Algod,
-    core::{to_app_address, Address},
-    crypto::HashDigest,
-};
+use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE32_NOPAD;
+use mbase::models::{dao_id::DaoId, share_amount::ShareAmount};
 use serde::{Deserialize, Serialize};
 use std::{
     convert::{TryFrom, TryInto},
@@ -90,77 +86,6 @@ fn expect_match(stored_address: &Address, generated_address: &Address) -> Result
         return Err(anyhow!("Stored address: {stored_address:?} doesn't match with generated address: {generated_address:?}"));
     }
     Ok(())
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub struct DaoId(pub DaoAppId);
-impl DaoId {
-    pub fn bytes(&self) -> [u8; 8] {
-        self.0.bytes()
-    }
-}
-
-impl FromStr for DaoId {
-    type Err = anyhow::Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let app_id: DaoAppId = s.parse()?;
-        Ok(DaoId(app_id))
-    }
-}
-impl ToString for DaoId {
-    fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-}
-
-impl TryFrom<&[u8]> for DaoId {
-    type Error = anyhow::Error;
-    fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
-        let app_id: DaoAppId = slice.try_into()?;
-        Ok(DaoId(app_id))
-    }
-}
-
-// TODO consider smart initializer: return error if id is 0 (invalid dao/app id)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub struct DaoAppId(pub u64);
-
-impl FromStr for DaoAppId {
-    type Err = anyhow::Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(DaoAppId(s.parse()?))
-    }
-}
-impl ToString for DaoAppId {
-    fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-}
-
-impl DaoAppId {
-    pub fn bytes(&self) -> [u8; 8] {
-        // note: matches to_le_bytes() in DaoId::from()
-        self.0.to_le_bytes()
-    }
-
-    pub fn address(&self) -> Address {
-        to_app_address(self.0)
-    }
-}
-
-impl From<[u8; 8]> for DaoAppId {
-    fn from(slice: [u8; 8]) -> Self {
-        // note: matches to_le_bytes() in DaoId::bytes()
-        DaoAppId(u64::from_le_bytes(slice))
-    }
-}
-
-impl TryFrom<&[u8]> for DaoAppId {
-    type Error = anyhow::Error;
-    fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
-        let array: [u8; 8] = slice.try_into()?;
-        Ok(array.into())
-    }
 }
 
 #[derive(Debug, Clone, Eq, Serialize, Deserialize)]

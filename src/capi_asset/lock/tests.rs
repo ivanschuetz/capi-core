@@ -6,7 +6,6 @@ mod tests {
             capi_asset_id::CapiAssetAmount, common_test::lock_unlock::test_shares_locked,
             create::setup_flow::test_flow::setup_capi_asset_flow,
         },
-        dependencies,
         testing::{
             create_and_submit_txs::{
                 optin_to_asset_submit, optin_to_capi_app_submit, transfer_tokens_and_pay_fee_submit,
@@ -17,6 +16,7 @@ mod tests {
         },
     };
     use anyhow::Result;
+    use mbase::dependencies::algod_for_tests;
     use serial_test::serial;
     use tokio::test;
 
@@ -29,7 +29,7 @@ mod tests {
 
         // deps
 
-        let algod = dependencies::algod_for_tests();
+        let algod = algod_for_tests();
         let api = LocalTealApi {};
         let creator = creator();
         let investor = investor1();
@@ -89,7 +89,7 @@ mod tests {
     async fn test_partial_lock() -> Result<()> {
         test_init()?;
 
-        let algod = dependencies::algod_for_tests();
+        let algod = algod_for_tests();
         let api = LocalTealApi {};
         let creator = creator();
         let investor = investor1();

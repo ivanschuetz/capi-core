@@ -9,7 +9,6 @@ pub use test::{
 mod test {
     use crate::{
         algo_helpers::{send_tx_and_wait, send_txs_and_wait},
-        asset_amount::AssetAmount,
         capi_asset::capi_app_id::CapiAppId,
         flows::shared::app::optin_to_capi_app,
         testing::algorand_checks::test::optin_to_asset,
@@ -20,6 +19,7 @@ mod test {
         transaction::{account::Account, tx_group::TxGroup, Pay, TransferAsset, TxnBuilder},
     };
     use anyhow::Result;
+    use mbase::models::asset_amount::AssetAmount;
 
     #[allow(dead_code)]
     pub async fn pay_submit(

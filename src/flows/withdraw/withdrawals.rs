@@ -5,6 +5,10 @@ use algonaut::{
     model::indexer::v2::{QueryAccountTransaction, TransactionType},
 };
 use chrono::{DateTime, Utc};
+use mbase::models::{
+    dao_id::DaoId,
+    funds::{FundsAmount, FundsAssetId},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -12,10 +16,9 @@ use crate::{
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     date_util::timestamp_seconds_to_date,
     flows::{
-        create_dao::storage::load_dao::{load_dao, DaoId, TxId},
+        create_dao::storage::load_dao::{load_dao, TxId},
         withdraw::note::base64_withdrawal_note_to_withdrawal_description,
     },
-    funds::{FundsAmount, FundsAssetId},
 };
 use anyhow::{anyhow, Error, Result};
 

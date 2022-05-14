@@ -1,10 +1,6 @@
 use crate::{
     api::version::{versions_to_bytes, VersionedAddress, Versions},
-    flows::create_dao::{
-        setup_dao_specs::ImageHash,
-        storage::load_dao::{DaoAppId, TxId},
-    },
-    funds::FundsAmount,
+    flows::create_dao::storage::load_dao::TxId,
     state::dao_app_state::dao_global_state,
 };
 use algonaut::{
@@ -13,6 +9,7 @@ use algonaut::{
     transaction::{builder::CallApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
+use mbase::models::{funds::FundsAmount, image_hash::ImageHash, dao_app_id::DaoAppId};
 use serde::{Deserialize, Serialize};
 
 /// Dao app data that is meant to be updated externally

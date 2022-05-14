@@ -1,5 +1,6 @@
+use mbase::models::shares_percentage::SharesPercentage;
+
 use super::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetId};
-use crate::flows::create_dao::shares_percentage::SharesPercentage;
 
 /// Capi asset environment relevant to the DAOs
 #[derive(Debug, Clone, PartialEq, Eq)]

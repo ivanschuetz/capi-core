@@ -10,32 +10,28 @@ mod tests {
             capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
             capi_asset_id::CapiAssetId,
         },
-        decimal_util::AsDecimal,
         dependencies,
         flows::{
             claim::claim::{submit_claim, ClaimSigned},
-            create_dao::{
-                setup::{
-                    create_app::render_central_app_approval_v1,
-                    customer_escrow::{
-                        render_and_compile_customer_escrow, render_customer_escrow_v1,
-                    },
-                    setup_app,
-                },
-                share_amount::ShareAmount,
-                shares_percentage::SharesPercentage,
-                storage::load_dao::DaoAppId,
+            create_dao::setup::{
+                create_app::render_central_app_approval_v1,
+                customer_escrow::{render_and_compile_customer_escrow, render_customer_escrow_v1},
+                setup_app,
             },
             drain::drain::{submit_drain_customer_escrow, DrainCustomerEscrowSigned},
             invest::{invest::submit_invest, model::InvestSigned},
             withdraw::withdraw::{submit_withdraw, WithdrawSigned},
         },
-        funds::{FundsAmount, FundsAssetId},
         teal::load_teal_template,
         testing::{test_data::creator, TESTS_DEFAULT_PRECISION},
     };
     use algonaut::core::Address;
     use anyhow::{Error, Result};
+    use mbase::{
+        dependencies::algod_for_tests,
+        models::{funds::FundsAmount, share_amount::ShareAmount},
+        util::decimal_util::AsDecimal,
+    };
     use rust_decimal::Decimal;
     use std::{convert::TryInto, str::FromStr};
     use tokio::test;
@@ -46,7 +42,7 @@ mod tests {
     #[test]
     #[ignore]
     async fn debug_msg_pack_submit_par() -> Result<()> {
-        let algod = dependencies::algod_for_tests();
+        let algod = algod_for_tests();
 
         // Set parameters to match current environment
 

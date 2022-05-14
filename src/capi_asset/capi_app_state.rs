@@ -1,10 +1,7 @@
 use super::{capi_app_id::CapiAppId, capi_asset_id::CapiAssetAmount};
-use crate::{
-    funds::FundsAmount,
-    state::app_state::{
-        get_uint_value_or_error, global_state, local_state, local_state_from_account, AppStateKey,
-        ApplicationLocalStateError, ApplicationStateExt,
-    },
+use crate::state::app_state::{
+    get_uint_value_or_error, global_state, local_state, local_state_from_account, AppStateKey,
+    ApplicationLocalStateError, ApplicationStateExt,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -12,6 +9,7 @@ use algonaut::{
     model::algod::v2::{Account, ApplicationLocalState},
 };
 use anyhow::Result;
+use mbase::models::funds::FundsAmount;
 
 const TOTAL_RECEIVED: AppStateKey = AppStateKey("ReceivedTotal");
 

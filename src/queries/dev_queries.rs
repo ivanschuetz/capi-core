@@ -2,14 +2,14 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::dependencies;
     use anyhow::Result;
+    use mbase::dependencies::indexer_for_tests;
     use tokio::test;
 
     #[ignore]
     #[test]
     async fn tx_infos() -> Result<()> {
-        let indexer = dependencies::indexer_for_tests();
+        let indexer = indexer_for_tests();
 
         let infos = indexer
             .transaction_info("JALJLV4VPV73NZHRF6KN2DGRTUAYDFDKQDOO6RYS77X77FOUDH3A")

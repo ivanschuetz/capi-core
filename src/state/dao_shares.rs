@@ -2,9 +2,9 @@ use super::{
     account_state::asset_holdings,
     dao_app_state::{dao_global_state, CentralAppGlobalState},
 };
-use crate::flows::create_dao::{share_amount::ShareAmount, storage::load_dao::DaoAppId};
 use algonaut::{algod::v2::Algod, core::to_app_address};
 use anyhow::{anyhow, Result};
+use mbase::models::{dao_app_id::DaoAppId, share_amount::ShareAmount};
 
 /// Shares on the DAO's app escrow
 pub struct DaoShareHoldings {

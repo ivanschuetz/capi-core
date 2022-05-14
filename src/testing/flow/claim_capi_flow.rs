@@ -10,7 +10,6 @@ mod test {
             capi_asset_id::CapiAssetAmount,
             claim::claim::{claim, submit_claim, ClaimSigned},
         },
-        funds::{FundsAmount, FundsAssetId},
         network_util::wait_for_pending_transaction,
         testing::{
             create_and_submit_txs::{
@@ -29,6 +28,7 @@ mod test {
     };
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
+    use mbase::models::funds::{FundsAssetId, FundsAmount};
     use rust_decimal::{prelude::ToPrimitive, Decimal};
     use std::{convert::TryInto, str::FromStr};
 

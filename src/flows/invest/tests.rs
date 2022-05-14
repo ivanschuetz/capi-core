@@ -2,8 +2,6 @@
 mod tests {
     use crate::flows::claim::claim::claimable_dividend;
     use crate::flows::create_dao::model::Dao;
-    use crate::flows::create_dao::share_amount::ShareAmount;
-    use crate::funds::FundsAmount;
     use crate::network_util::wait_for_pending_transaction;
     use crate::queries::my_daos::my_current_invested_daos;
     use crate::state::account_state::{
@@ -23,6 +21,8 @@ mod tests {
     use crate::testing::test_data::investor2;
     use algonaut::transaction::account::Account;
     use anyhow::Result;
+    use mbase::models::funds::FundsAmount;
+    use mbase::models::share_amount::ShareAmount;
     use serial_test::serial;
     use tokio::test;
 

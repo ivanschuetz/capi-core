@@ -1,9 +1,7 @@
-use crate::{
-    flows::create_dao::storage::load_dao::DaoId, note::capi_note_prefix,
-    roadmap::add_roadmap_item::RoadmapItem,
-};
+use crate::{note::capi_note_prefix, roadmap::add_roadmap_item::RoadmapItem};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
+use mbase::models::dao_id::DaoId;
 use std::convert::TryInto;
 
 fn roadmap_note_identifier() -> [u8; 4] {

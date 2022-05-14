@@ -1,13 +1,10 @@
-use crate::{
-    asset_amount::AssetAmount,
-    funds::{FundsAmount, FundsAssetId},
-};
 use algonaut::{
     algod::v2::Algod,
     core::Address,
     model::algod::v2::{Account, AssetHolding},
 };
 use anyhow::{anyhow, Result};
+use mbase::models::{asset_amount::AssetAmount, funds::{FundsAssetId, FundsAmount}};
 
 /// Returns asset holdings. If not opted in, returns 0 holdings.
 pub async fn asset_holdings(

@@ -1,13 +1,11 @@
 use super::{add_roadmap_item::RoadmapItem, note::base64_maybe_roadmap_note_to_roadmap_item};
-use crate::{
-    date_util::timestamp_seconds_to_date,
-    flows::create_dao::storage::load_dao::{DaoId, TxId},
-};
+use crate::{date_util::timestamp_seconds_to_date, flows::create_dao::storage::load_dao::TxId};
 use algonaut::{
     core::Address, crypto::HashDigest, indexer::v2::Indexer, model::indexer::v2::QueryTransaction,
 };
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
+use mbase::models::dao_id::DaoId;
 use serde::Serialize;
 
 pub async fn get_roadmap(

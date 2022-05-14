@@ -1,4 +1,4 @@
-use crate::{asset_amount::AssetAmount, decimal_util::AsDecimal};
+use mbase::{models::asset_amount::AssetAmount, util::decimal_util::AsDecimal};
 use rust_decimal::Decimal;
 use std::fmt::Display;
 

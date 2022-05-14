@@ -2,15 +2,15 @@ use super::received_payments::all_received_payments;
 use crate::{
     api::teal_api::TealApi,
     capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
-    flows::{
-        create_dao::storage::load_dao::{DaoId, TxId},
-        withdraw::withdrawals::withdrawals,
-    },
-    funds::{FundsAmount, FundsAssetId},
+    flows::{create_dao::storage::load_dao::TxId, withdraw::withdrawals::withdrawals},
 };
 use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use mbase::models::{
+    dao_id::DaoId,
+    funds::{FundsAmount, FundsAssetId},
+};
 
 #[derive(Debug, Clone)]
 pub struct FundsActivityEntry {

@@ -9,11 +9,9 @@ mod test {
     use std::convert::TryInto;
     use std::str::FromStr;
 
-    use crate::flows::create_dao::setup_dao_specs::ImageHash;
-    use crate::flows::create_dao::share_amount::ShareAmount;
     use crate::flows::create_dao::{model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs};
-    use crate::funds::FundsAmount;
     use algonaut::transaction::account::Account;
+    use mbase::models::{funds::FundsAmount, share_amount::ShareAmount, image_hash::ImageHash};
     use rust_decimal::Decimal;
 
     pub fn creator() -> Account {

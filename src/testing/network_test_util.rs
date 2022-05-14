@@ -8,7 +8,6 @@ pub use test::{
 mod test {
     use crate::algo_helpers::{send_tx_and_wait, send_txs_and_wait};
     use crate::api::teal_api::{LocalTealApi, TealApi};
-    use crate::asset_amount::AssetAmount;
     use crate::capi_asset::capi_app_id::CapiAppId;
     use crate::capi_asset::capi_asset_id::CapiAssetId;
     use crate::capi_asset::create::setup_flow::test_flow::{setup_capi_app, CapiAssetFlowRes};
@@ -16,7 +15,6 @@ mod test {
         capi_asset_dao_specs::CapiAssetDaoDeps, capi_asset_id::CapiAssetAmount,
         create::setup_flow::test_flow::setup_capi_asset_flow,
     };
-    use crate::dependencies::{algod, algod_for_net, DataType, Env};
     use crate::files::{read_lines, write_to_file};
     use crate::flows::create_dao::setup_dao::Programs;
     use crate::flows::create_dao::setup_dao_specs::SetupDaoSpecs;
@@ -34,14 +32,17 @@ mod test {
         },
     };
     use data_encoding::HEXLOWER;
+    use mbase::dependencies::{
+        algod, algod_for_net, algod_for_tests, indexer_for_tests, network, DataType, Env, Network,
+    };
+    use mbase::models::asset_amount::AssetAmount;
+    use mbase::models::funds::{FundsAmount, FundsAssetId};
+    use mbase::models::shares_percentage::SharesPercentage;
     use rust_decimal::Decimal;
     use std::convert::TryInto;
     use std::str::FromStr;
     use tokio::test;
     use {
-        crate::dependencies::{self, network, Network},
-        crate::flows::create_dao::shares_percentage::SharesPercentage,
-        crate::funds::{FundsAmount, FundsAssetId},
         crate::logger::init_logger,
         crate::testing::test_data::{capi_owner, creator, customer, investor1, investor2},
         crate::testing::TESTS_DEFAULT_PRECISION,
@@ -101,7 +102,7 @@ mod test {
     pub async fn test_dao_init() -> Result<TestDeps> {
         test_init()?;
 
-        let algod = dependencies::algod_for_tests();
+        let algod = algod_for_tests();
         let api = LocalTealApi {};
         let capi_owner = capi_owner();
 
@@ -122,7 +123,7 @@ mod test {
 
         Ok(TestDeps {
             algod,
-            indexer: dependencies::indexer_for_tests(),
+            indexer: indexer_for_tests(),
             api: Box::new(LocalTealApi {}),
             creator: creator(),
             investor1: investor1(),
