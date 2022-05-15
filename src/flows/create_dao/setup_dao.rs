@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     api::version::VersionedTealSourceTemplate,
-    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
+    capi_deps::CapiAssetDaoDeps,
     common_txs::pay,
     flows::create_dao::{
         model::Dao,
@@ -50,7 +50,7 @@ pub async fn setup_dao_txs(
         &programs.escrows.customer_escrow,
         &params,
         funds_asset_id,
-        &capi_deps.app_id.address(),
+        &capi_deps.address,
         app_id,
     )
     .await?;

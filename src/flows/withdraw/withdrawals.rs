@@ -13,12 +13,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     api::teal_api::TealApi,
-    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     date_util::timestamp_seconds_to_date,
     flows::{
         create_dao::storage::load_dao::{load_dao, TxId},
         withdraw::note::base64_withdrawal_note_to_withdrawal_description,
-    },
+    }, capi_deps::CapiAssetDaoDeps,
 };
 use anyhow::{anyhow, Error, Result};
 

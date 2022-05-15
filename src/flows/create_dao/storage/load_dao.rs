@@ -1,6 +1,6 @@
 use crate::{
     api::{contract::Contract, teal_api::TealApi},
-    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
+    capi_deps::CapiAssetDaoDeps,
     flows::create_dao::{
         model::{CreateSharesSpecs, Dao},
         setup::customer_escrow::render_and_compile_customer_escrow,
@@ -44,11 +44,9 @@ pub async fn load_dao(
     // TODO store this state (redundantly in the same app field), to prevent this call?
     let asset_infos = algod.asset_information(dao_state.shares_asset_id).await?;
 
-    let capi_escrow_address = capi_deps.app_id.address();
-
     // Render and compile escrows
     let customer_escrow_account =
-        render_and_compile_customer_escrow(algod, &customer_escrow, &capi_escrow_address, app_id)
+        render_and_compile_customer_escrow(algod, &customer_escrow, &capi_deps.address, app_id)
             .await?;
 
     // validate the generated programs against the addresses stored in the app

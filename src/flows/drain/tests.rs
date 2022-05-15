@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        capi_asset::capi_app_state::capi_app_global_state,
         flows::create_dao::setup::customer_escrow,
         state::{account_state::funds_holdings, dao_app_state::dao_global_state},
         testing::{
@@ -47,23 +46,17 @@ mod tests {
         assert_eq!(drain_res.drained_amounts.dao, app_balance);
         // the drainer lost the fees for the app calls and escrows lsig
         assert_eq!(
-            drain_res.initial_drainer_balance
-                - drain_res.app_call_tx.fee // the app call pays its own fee and the escrow fees
-                - drain_res.capi_app_call_tx.fee,
+            drain_res.initial_drainer_balance - drain_res.app_call_tx.fee, // the app call pays its own fee and the escrow fees
             drainer_balance
         );
         // capi escrow received its part
         let capi_escrow_amount =
-            funds_holdings(&algod, &td.capi_app_id.address(), td.funds_asset_id).await?;
+            funds_holdings(&algod, &td.capi_address.0, td.funds_asset_id).await?;
         assert_eq!(drain_res.drained_amounts.capi, capi_escrow_amount);
 
         // dao app received global state set to what was drained (to the dao)
         let dao_state = dao_global_state(&algod, dao.app_id).await?;
         assert_eq!(drain_res.drained_amounts.dao, dao_state.received);
-
-        // capi app received global state set to what was drained (to capi)
-        let capi_state = capi_app_global_state(&algod, td.capi_app_id).await?;
-        assert_eq!(drain_res.drained_amounts.capi, capi_state.received);
 
         Ok(())
     }

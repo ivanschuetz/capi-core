@@ -15,7 +15,7 @@ use serde::Serialize;
 use crate::teal::save_rendered_teal;
 use crate::{
     api::version::VersionedTealSourceTemplate,
-    capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
+    capi_deps::{CapiAddress, CapiAssetDaoDeps},
     state::dao_app_state::{
         GLOBAL_SCHEMA_NUM_BYTE_SLICES, GLOBAL_SCHEMA_NUM_INTS, LOCAL_SCHEMA_NUM_BYTE_SLICES,
         LOCAL_SCHEMA_NUM_INTS,
@@ -44,7 +44,7 @@ pub async fn create_app_tx(
         share_supply,
         precision,
         investors_share,
-        capi_deps.app_id,
+        &capi_deps.address,
         capi_deps.escrow_percentage,
         share_price,
     )
@@ -79,7 +79,7 @@ pub async fn render_and_compile_app_approval(
     share_supply: ShareAmount,
     precision: u64,
     investors_share: SharesPercentage,
-    capi_app_id: CapiAppId,
+    capi_address: &CapiAddress,
     capi_percentage: SharesPercentage,
     share_price: FundsAmount,
 ) -> Result<CompiledTeal> {
@@ -89,7 +89,7 @@ pub async fn render_and_compile_app_approval(
             share_supply,
             precision,
             investors_share,
-            capi_app_id,
+            capi_address,
             capi_percentage,
             share_price,
         ),
@@ -108,7 +108,7 @@ pub fn render_central_app_approval_v1(
     share_supply: ShareAmount,
     precision: u64,
     investors_share: SharesPercentage,
-    capi_app_id: CapiAppId,
+    capi_address: &CapiAddress,
     capi_percentage: SharesPercentage,
     share_price: FundsAmount,
 ) -> Result<TealSource> {
@@ -137,11 +137,7 @@ pub fn render_central_app_approval_v1(
             ),
             ("TMPL_PRECISION__", &precision.to_string()),
             ("TMPL_PRECISION_SQUARE", &precision_square.to_string()),
-            (
-                "TMPL_CAPI_ESCROW_ADDRESS",
-                &capi_app_id.address().to_string(),
-            ),
-            ("TMPL_CAPI_APP_ID", &capi_app_id.0.to_string()),
+            ("TMPL_CAPI_ESCROW_ADDRESS", &capi_address.0.to_string()),
             ("TMPL_CAPI_SHARE", &capi_share.to_string()),
             ("TMPL_SHARE_PRICE", &share_price.val().to_string()),
         ],
@@ -186,13 +182,10 @@ struct RenderCentralAppContext {
 mod tests {
     use crate::{
         api::version::{Version, VersionedTealSourceTemplate},
-        capi_asset::{
-            capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
-            capi_asset_id::CapiAssetId,
-        },
+        capi_deps::{CapiAssetDaoDeps, CapiAddress},
         network_util::wait_for_pending_transaction,
         teal::load_teal_template,
-        testing::{network_test_util::test_init, test_data::creator, TESTS_DEFAULT_PRECISION},
+        testing::{network_test_util::test_init, test_data::{creator, investor1}, TESTS_DEFAULT_PRECISION},
     };
     use algonaut::{
         model::algod::v2::TealKeyValue,
@@ -240,8 +233,7 @@ mod tests {
             // Arbitrary - not used
             &CapiAssetDaoDeps {
                 escrow_percentage: 0_u64.as_decimal().try_into()?,
-                app_id: CapiAppId(0),
-                asset_id: CapiAssetId(0),
+                address: CapiAddress(investor1().address()),
             },
             // Arbitrary - not used
             FundsAmount::new(10),

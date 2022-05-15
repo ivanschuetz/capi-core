@@ -2,7 +2,7 @@
 mod tests {
     use algonaut::transaction::{AcceptAsset, TransferAsset, TxnBuilder};
     use anyhow::Result;
-    use mbase::models::{share_amount::ShareAmount, funds::FundsAmount};
+    use mbase::models::{funds::FundsAmount, share_amount::ShareAmount};
     use serial_test::serial;
     use tokio::test;
 
@@ -171,7 +171,6 @@ mod tests {
 
         // just a rename to help with clarity a bit
         let expected_claimed_amount = investor2_entitled_amount;
-        println!(">>> expected_claimed_amount: {:?}", expected_claimed_amount);
         let investor2_infos = algod.account_information(&td.investor2.address()).await?;
         let investor2_amount = funds_holdings_from_account(&investor2_infos, td.funds_asset_id)?;
 

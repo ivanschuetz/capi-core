@@ -1,6 +1,6 @@
 use crate::{
-    api::teal_api::TealApi, capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
-    flows::withdraw::withdrawals::withdrawals, queries::received_payments::all_received_payments,
+    api::teal_api::TealApi, capi_deps::CapiAssetDaoDeps, flows::withdraw::withdrawals::withdrawals,
+    queries::received_payments::all_received_payments,
 };
 use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::{anyhow, Result};
@@ -72,15 +72,8 @@ pub async fn historic_dao_funds_balance(
 
 #[cfg(test)]
 mod tests {
-    use std::{convert::TryInto, str::FromStr};
-
     use crate::{
-        api::teal_api::LocalTealApi,
-        capi_asset::{
-            capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
-            capi_asset_id::CapiAssetId,
-        },
-        logger::init_logger,
+        api::teal_api::LocalTealApi, capi_deps::{CapiAssetDaoDeps, CapiAddress}, logger::init_logger,
         queries::historic::historic_dao_funds_balance,
     };
     use anyhow::Result;
@@ -90,6 +83,7 @@ mod tests {
         models::{dao_app_id::DaoAppId, dao_id::DaoId, funds::FundsAssetId},
     };
     use rust_decimal::Decimal;
+    use std::{convert::TryInto, str::FromStr};
     use tokio::test;
 
     // wasm debugging: query balance for existing dao
@@ -110,8 +104,7 @@ mod tests {
         let funds_asset = FundsAssetId(11);
         let capi_deps = &CapiAssetDaoDeps {
             escrow_percentage: Decimal::from_str("0.1").unwrap().try_into()?,
-            app_id: CapiAppId(29),
-            asset_id: CapiAssetId(28),
+            address: CapiAddress("".parse().unwrap()),
         };
 
         let date = Utc::now();

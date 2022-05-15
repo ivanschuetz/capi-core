@@ -1,11 +1,10 @@
 use crate::{
     api::version::VersionedTealSourceTemplate,
-    capi_asset::capi_asset_dao_specs::CapiAssetDaoDeps,
     flows::create_dao::{
         model::{CreateAssetsToSign, CreateSharesSpecs},
         setup_dao_specs::SetupDaoSpecs,
     },
-    network_util::wait_for_pending_transaction,
+    network_util::wait_for_pending_transaction, capi_deps::CapiAssetDaoDeps,
 };
 use algonaut::{
     algod::v2::Algod,

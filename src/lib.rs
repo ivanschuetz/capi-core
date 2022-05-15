@@ -1,6 +1,6 @@
 pub mod algo_helpers;
 pub mod api;
-pub mod capi_asset;
+pub mod capi_deps;
 mod common_txs;
 pub mod date_util;
 mod debug_msg_pack_submit_par;

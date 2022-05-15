@@ -6,10 +6,7 @@ use serde::Serialize;
 #[allow(unused_imports)]
 mod tests {
     use crate::{
-        capi_asset::{
-            capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps,
-            capi_asset_id::CapiAssetId,
-        },
+        capi_deps::CapiAddress,
         dependencies,
         flows::{
             claim::claim::{submit_claim, ClaimSigned},
@@ -52,7 +49,7 @@ mod tests {
         let share_supply = ShareAmount::new(100);
         let investors_share = Decimal::from_str("0.4")?.try_into()?;
         // let app_id = DaoAppId(123);
-        let capi_app_id = CapiAppId(123);
+        let capi_address = CapiAddress("".parse().unwrap());
         let capi_share = 123u64.as_decimal().try_into()?;
 
         // let capi_deps = &CapiAssetDaoDeps {
@@ -70,7 +67,7 @@ mod tests {
             share_supply,
             TESTS_DEFAULT_PRECISION,
             investors_share,
-            capi_app_id,
+            &capi_address,
             capi_share,
             shares_price,
         )?;

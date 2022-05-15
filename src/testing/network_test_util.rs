@@ -8,18 +8,14 @@ pub use test::{
 mod test {
     use crate::algo_helpers::{send_tx_and_wait, send_txs_and_wait};
     use crate::api::teal_api::{LocalTealApi, TealApi};
-    use crate::capi_asset::capi_app_id::CapiAppId;
-    use crate::capi_asset::capi_asset_id::CapiAssetId;
-    use crate::capi_asset::create::setup_flow::test_flow::{setup_capi_app, CapiAssetFlowRes};
-    use crate::capi_asset::{
-        capi_asset_dao_specs::CapiAssetDaoDeps, capi_asset_id::CapiAssetAmount,
-        create::setup_flow::test_flow::setup_capi_asset_flow,
-    };
+    use crate::capi_deps::{CapiAddress, CapiAssetDaoDeps};
     use crate::files::{read_lines, write_to_file};
     use crate::flows::create_dao::setup_dao::Programs;
     use crate::flows::create_dao::setup_dao_specs::SetupDaoSpecs;
     use crate::testing::flow::create_dao_flow::test::test_programs;
-    use crate::testing::test_data::{dao_specs, msig_acc1, msig_acc2, msig_acc3};
+    use crate::testing::test_data::{
+        dao_specs, funds_asset_creator, msig_acc1, msig_acc2, msig_acc3,
+    };
     use crate::testing::tests_msig::TestsMsig;
     use algonaut::core::Address;
     use algonaut::{
@@ -72,11 +68,8 @@ mod test {
 
         pub funds_asset_id: FundsAssetId,
 
-        pub capi_owner: Account,
         pub capi_escrow_percentage: SharesPercentage,
-        pub capi_app_id: CapiAppId,
-        pub capi_asset_id: CapiAssetId,
-        pub capi_supply: CapiAssetAmount,
+        pub capi_address: CapiAddress,
 
         pub precision: u64,
 
@@ -86,10 +79,8 @@ mod test {
     impl TestDeps {
         pub fn dao_deps(&self) -> CapiAssetDaoDeps {
             CapiAssetDaoDeps {
-                // TODO: review: what exactly has to be done on Capi app updates / escrow migrations?
                 escrow_percentage: self.capi_escrow_percentage,
-                app_id: self.capi_app_id,
-                asset_id: self.capi_asset_id,
+                address: CapiAddress(capi_owner().address()),
             }
         }
     }
@@ -103,10 +94,9 @@ mod test {
         test_init()?;
 
         let algod = algod_for_tests();
-        let api = LocalTealApi {};
         let capi_owner = capi_owner();
 
-        let chain_deps = setup_on_chain_deps(&algod, &api, &capi_owner).await?;
+        let chain_deps = setup_on_chain_deps(&algod, &capi_owner).await?;
 
         test_dao_init_with_deps(algod, &chain_deps).await
     }
@@ -118,7 +108,7 @@ mod test {
     ) -> Result<TestDeps> {
         let OnChainDeps {
             funds_asset_id,
-            capi_flow_res,
+            capi_address,
         } = chain_deps;
 
         Ok(TestDeps {
@@ -132,14 +122,11 @@ mod test {
             msig: msig()?,
             specs: dao_specs(),
             funds_asset_id: funds_asset_id.clone(),
-            // unwrap: we know the owner mnemonic is valid + this is just for tests
-            capi_owner: Account::from_mnemonic(&capi_flow_res.owner_mnemonic).unwrap(),
+
             precision: TESTS_DEFAULT_PRECISION,
 
             capi_escrow_percentage: capi_escrow_percentage(),
-            capi_app_id: capi_flow_res.app_id,
-            capi_asset_id: capi_flow_res.asset_id,
-            capi_supply: capi_flow_res.supply,
+            capi_address: capi_address.to_owned(),
 
             programs: test_programs()?,
         })
@@ -159,11 +146,6 @@ mod test {
         Ok(())
     }
 
-    fn funds_asset_creator() -> Account {
-        // address: NIKGABIQLRCPJYCNCFZWR7GUIC3NA66EBVR65JKHKLGLIYQ4KO3YYPV67Q
-        Account::from_mnemonic("accident inherit artist kid such wheat sure then skirt horse afford penalty grant airport school aim hollow position ask churn extend soft mean absorb achieve").unwrap()
-    }
-
     fn test_accounts_initial_funds() -> FundsAmount {
         FundsAmount::new(10_000_000_000)
     }
@@ -173,6 +155,10 @@ mod test {
 
         let asset_creator = funds_asset_creator();
         let asset_id = create_funds_asset(algod, &params, &asset_creator).await?;
+
+        // we want to only opt-in, not fund the capi owner. the capi owner is assumed to start without any funding
+        // no reason other than backwards compatibility with tests
+        optin_and_submit(algod, &params, asset_id.0, &capi_owner()).await?;
 
         let accounts = &[
             creator(),
@@ -207,15 +193,12 @@ mod test {
             accounts,
         )
         .await?;
+
         Ok(asset_id)
     }
 
     /// Creates the funds asset and capi-token related dependencies
-    pub async fn setup_on_chain_deps(
-        algod: &Algod,
-        api: &dyn TealApi,
-        capi_owner: &Account,
-    ) -> Result<OnChainDeps> {
+    pub async fn setup_on_chain_deps(algod: &Algod, capi_owner: &Account) -> Result<OnChainDeps> {
         let params = algod.suggested_transaction_params().await?;
         let funds_asset_id = create_and_distribute_funds_asset(algod).await?;
 
@@ -229,20 +212,18 @@ mod test {
         )
         .await?;
 
-        let capi_flow_res =
-            create_capi_asset_and_deps(algod, api, capi_owner, funds_asset_id).await?;
-        log::info!("capi_deps: {capi_flow_res:?}, funds_asset_id: {funds_asset_id:?}");
+        log::info!("funds_asset_id: {funds_asset_id:?}");
 
         Ok(OnChainDeps {
             funds_asset_id,
-            capi_flow_res,
+            capi_address: CapiAddress(capi_owner.address()),
         })
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct OnChainDeps {
         pub funds_asset_id: FundsAssetId,
-        pub capi_flow_res: CapiAssetFlowRes,
+        pub capi_address: CapiAddress,
     }
 
     async fn create_funds_asset(
@@ -287,19 +268,31 @@ mod test {
         Ok(())
     }
 
-    async fn create_capi_asset_and_deps(
-        algod: &Algod,
-        api: &dyn TealApi,
-        capi_owner: &Account,
-        funds_asset_id: FundsAssetId,
-    ) -> Result<CapiAssetFlowRes> {
-        let capi_supply = CapiAssetAmount::new(1_000_000_000);
-        Ok(setup_capi_asset_flow(algod, api, &capi_owner, capi_supply, funds_asset_id).await?)
-    }
-
     fn capi_escrow_percentage() -> SharesPercentage {
         // unwraps: hardcoded value, which we knows works + this is used only in tests
         Decimal::from_str("0.1").unwrap().try_into().unwrap()
+    }
+
+    async fn optin_and_submit(
+        algod: &Algod,
+        params: &SuggestedTransactionParams,
+        asset_id: u64,
+        account: &Account,
+    ) -> Result<()> {
+        // optin the receiver to the asset
+        let optin_tx = TxnBuilder::with(
+            params,
+            AcceptAsset::new(account.address(), asset_id).build(),
+        )
+        .build()?;
+
+        let optin_tx_signed = account.sign_transaction(optin_tx)?;
+
+        send_txs_and_wait(&algod, &[optin_tx_signed]).await?;
+
+        log::debug!("Opted in: {}, to asset: {asset_id}", account.address());
+
+        Ok(())
     }
 
     async fn optin_and_send_asset_to_account(
@@ -330,7 +323,10 @@ mod test {
 
         send_txs_and_wait(&algod, &[optin_tx_signed, fund_tx_signed]).await?;
 
-        log::debug!("Opted in and funded (funds asset): {}", receiver.address());
+        log::debug!(
+            "Opted in and funded: {}, asset: {asset_id}",
+            receiver.address()
+        );
 
         Ok(())
     }
@@ -430,40 +426,6 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    #[ignore]
-    async fn do_optin_capi_escrow_to_capi_asset_on_testnet() -> Result<()> {
-        test_init()?;
-        optin_capi_escrow_to_capi_asset(&Network::Test).await?;
-        Ok(())
-    }
-
-    /// If the escrow's code changes, we have to setup (fund and opt-in to assets) it again
-    /// Normally only used for Testnet / MainNet - for private networks everything is just re-created
-    async fn optin_capi_escrow_to_capi_asset(net: &Network) -> Result<()> {
-        test_init()?;
-
-        let algod = algod_for_net(net);
-        let params = algod.suggested_transaction_params().await?;
-
-        // This can be any account that has enough assets (funds asset). Normally the funder will be the capi owner.
-        let funder = capi_owner();
-
-        setup_capi_app(
-            &algod,
-            &params,
-            &funder,
-            FundsAssetId(75503403), // pre-existing asset id
-            CapiAssetId(77428422),  // pre-existing asset id
-            CapiAppId(75503537),    // pre-existing app id
-        )
-        .await?;
-
-        log::debug!("Finished capi escrow setup");
-
-        Ok(())
-    }
-
     /// Reset and prepare local network for manual testing.
     #[test]
     #[ignore]
@@ -497,10 +459,9 @@ mod test {
 
     pub async fn reset_and_fund_network(net: &Network) -> Result<OnChainDeps> {
         let algod = algod_for_net(net);
-        let api = LocalTealApi {};
         let capi_owner = capi_owner();
 
-        let deps = setup_on_chain_deps(&algod, &api, &capi_owner).await?;
+        let deps = setup_on_chain_deps(&algod, &capi_owner).await?;
         log::info!("Capi deps: {deps:?}");
 
         Ok(deps)
@@ -593,14 +554,7 @@ mod test {
                 "FUNDS_ASSET_ID".to_owned(),
                 deps.funds_asset_id.0.to_string(),
             ),
-            (
-                "CAPI_APP_ID".to_owned(),
-                deps.capi_flow_res.app_id.0.to_string(),
-            ),
-            (
-                "CAPI_ASSET_ID".to_owned(),
-                deps.capi_flow_res.asset_id.0.to_string(),
-            ),
+            ("CAPI_ADDRESS".to_owned(), deps.capi_address.0.to_string()),
         ]
     }
 
@@ -697,6 +651,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     async fn hex_to_address() {
         let hex = "8c025cac37c404934e0066f5407032a6e2294b54026ee39fcd272b23643f5916";
         let bytes = HEXLOWER.decode(hex.as_bytes()).unwrap();
@@ -705,6 +660,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     async fn send_payment() -> Result<()> {
         let receiver = "5SU5QMNXI4I33PAYXJSRBZCQFWYU6OWPRPYH5EK57DM3JBNGAYMLIUXXNY"
             .parse()
@@ -722,9 +678,7 @@ mod test {
             TransferAsset::new(sender.address(), funds_asset_id.0, amount.val(), receiver).build(),
         )
         .build()?;
-
         let fund_tx_signed = sender.sign_transaction(tx)?;
-
         send_txs_and_wait(&algod, &[fund_tx_signed]).await?;
 
         println!("Funded!");

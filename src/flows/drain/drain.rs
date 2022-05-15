@@ -1,8 +1,6 @@
 use crate::{
-    algo_helpers::calculate_total_fee,
-    capi_asset::{capi_app_id::CapiAppId, capi_asset_dao_specs::CapiAssetDaoDeps},
-    flows::create_dao::storage::load_dao::TxId,
-    state::account_state::funds_holdings,
+    algo_helpers::calculate_total_fee, capi_deps::CapiAssetDaoDeps,
+    flows::create_dao::storage::load_dao::TxId, state::account_state::funds_holdings,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -44,13 +42,6 @@ pub async fn drain_customer_escrow(
         customer_escrow.address(),
         funds_asset_id,
     )?;
-    let mut capi_app_call_tx = drain_capi_app_call_tx(
-        capi_deps.app_id,
-        &params,
-        drainer,
-        customer_escrow.address(),
-        funds_asset_id,
-    )?;
 
     let mut drain_tx = TxnBuilder::with_fee(
         &params,
@@ -72,20 +63,14 @@ pub async fn drain_customer_escrow(
             *customer_escrow.address(),
             funds_asset_id.0,
             amounts.capi.val(),
-            capi_deps.app_id.address(),
+            capi_deps.address.0,
         )
         .build(),
     )
     .build()?;
 
     app_call_tx.fee = calculate_total_fee(&params, &[&app_call_tx, &drain_tx, &capi_share_tx])?;
-    TxGroup::assign_group_id(&mut [
-        &mut app_call_tx,
-        &mut capi_app_call_tx,
-        &mut drain_tx,
-        &mut capi_share_tx,
-    ])?;
-    // TxGroup::assign_group_id(vec![capi_app_call_tx, app_call_tx, drain_tx, capi_share_tx])?;
+    TxGroup::assign_group_id(&mut [&mut app_call_tx, &mut drain_tx, &mut capi_share_tx])?;
 
     let signed_drain_tx = customer_escrow.sign(drain_tx, vec![])?;
     let signed_capi_share_tx = customer_escrow.sign(capi_share_tx, vec![])?;
@@ -94,7 +79,6 @@ pub async fn drain_customer_escrow(
         drain_tx: signed_drain_tx,
         capi_share_tx: signed_capi_share_tx,
         app_call_tx: app_call_tx.clone(),
-        capi_app_call_tx: capi_app_call_tx.clone(),
     })
 }
 
@@ -177,27 +161,6 @@ pub fn drain_app_call_tx(
     Ok(tx)
 }
 
-pub fn drain_capi_app_call_tx(
-    app_id: CapiAppId,
-    params: &SuggestedTransactionParams,
-    sender: &Address,
-    customer_escrow: &Address,
-    funds_asset_id: FundsAssetId,
-) -> Result<Transaction> {
-    // NOTE that to debug this, the capi transaction has to be moved first in the group - otherwise we get invalid asset id.
-    // (TEAL has to be adjusted accordingly)
-    // Doesn't make sense to move it permanently, because we get then the same problem with the DAO app call.
-    let tx = TxnBuilder::with(
-        params,
-        CallApplication::new(*sender, app_id.0)
-            .foreign_assets(vec![funds_asset_id.0])
-            .accounts(vec![*customer_escrow])
-            .build(),
-    )
-    .build()?;
-    Ok(tx)
-}
-
 pub async fn submit_drain_customer_escrow(
     algod: &Algod,
     signed: &DrainCustomerEscrowSigned,
@@ -207,7 +170,6 @@ pub async fn submit_drain_customer_escrow(
     // crate::teal::debug_teal_rendered(
     //     &[
     //         signed.app_call_tx_signed.clone(),
-    //         signed.capi_app_call_tx_signed.clone(),
     //         signed.drain_tx.clone(),
     //         signed.capi_share_tx.clone(),
     //     ],
@@ -217,20 +179,7 @@ pub async fn submit_drain_customer_escrow(
 
     // crate::teal::debug_teal_rendered(
     //     &[
-    //         // NOTE: the tx order in the group has to be inverted, so capi app is first (to debug)
-    //         signed.capi_app_call_tx_signed.clone(),
     //         signed.app_call_tx_signed.clone(),
-    //         signed.drain_tx.clone(),
-    //         signed.capi_share_tx.clone(),
-    //     ],
-    //     "capi_app_approval",
-    // )
-    // .unwrap();
-
-    // crate::teal::debug_teal_rendered(
-    //     &[
-    //         signed.app_call_tx_signed.clone(),
-    //         signed.capi_app_call_tx_signed.clone(),
     //         signed.drain_tx.clone(),
     //         signed.capi_share_tx.clone(),
     //     ],
@@ -241,9 +190,6 @@ pub async fn submit_drain_customer_escrow(
     let res = algod
         .broadcast_signed_transactions(&[
             signed.app_call_tx_signed.clone(),
-            signed.capi_app_call_tx_signed.clone(),
-            // signed.capi_app_call_tx_signed.clone(),
-            // signed.app_call_tx_signed.clone(),
             signed.drain_tx.clone(),
             signed.capi_share_tx.clone(),
         ])
@@ -256,7 +202,6 @@ pub async fn submit_drain_customer_escrow(
 pub struct DrainCustomerEscrowToSign {
     pub drain_tx: SignedTransaction,
     pub capi_share_tx: SignedTransaction,
-    pub capi_app_call_tx: Transaction,
     pub app_call_tx: Transaction,
 }
 
@@ -264,6 +209,5 @@ pub struct DrainCustomerEscrowToSign {
 pub struct DrainCustomerEscrowSigned {
     pub drain_tx: SignedTransaction,
     pub capi_share_tx: SignedTransaction,
-    pub capi_app_call_tx_signed: SignedTransaction,
     pub app_call_tx_signed: SignedTransaction,
 }

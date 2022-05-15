@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub use test::{
-    capi_owner, creator, customer, dao_specs, investor1, investor2, msig_acc1, msig_acc2,
-    msig_acc3, shares_specs,
+    capi_owner, creator, customer, dao_specs, funds_asset_creator, investor1, investor2, msig_acc1,
+    msig_acc2, msig_acc3, shares_specs,
 };
 
 #[cfg(test)]
@@ -11,7 +11,7 @@ mod test {
 
     use crate::flows::create_dao::{model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs};
     use algonaut::transaction::account::Account;
-    use mbase::models::{funds::FundsAmount, share_amount::ShareAmount, image_hash::ImageHash};
+    use mbase::models::{funds::FundsAmount, image_hash::ImageHash, share_amount::ShareAmount};
     use rust_decimal::Decimal;
 
     pub fn creator() -> Account {
@@ -53,6 +53,11 @@ mod test {
     pub fn msig_acc3() -> Account {
         // BFRTECKTOOE7A5LHCF3TTEOH2A7BW46IYT2SX5VP6ANKEXHZYJY77SJTVM
         Account::from_mnemonic("since during average anxiety protect cherry club long lawsuit loan expand embark forum theory winter park twenty ball kangaroo cram burst board host ability left").unwrap()
+    }
+
+    pub fn funds_asset_creator() -> Account {
+        // KPV7XSMNSRSQ44QCDQY7I6MORAB4GGT3GRY4WUNTCZZNRKSL4UEBPTJP2U
+        Account::from_mnemonic("robot ramp stock ask enable crack amount hockey any nothing flag online party indicate gadget trap window century grief unusual plastic fatigue repeat ability swear").unwrap()
     }
 
     // msig address (has to be funded with Algos too): BSAWQANNI3VWCQH3RCJLDHR27XEYTQYVBLTQ3C2MW5GRULCKFQBEWPDV6E

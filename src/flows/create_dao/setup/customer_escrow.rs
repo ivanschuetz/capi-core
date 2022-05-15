@@ -7,7 +7,7 @@ use algonaut::{
     },
 };
 use anyhow::{anyhow, Result};
-use mbase::models::{funds::FundsAssetId, dao_app_id::DaoAppId};
+use mbase::models::{dao_app_id::DaoAppId, funds::FundsAssetId};
 use serde::Serialize;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -15,6 +15,7 @@ use crate::teal::save_rendered_teal;
 use crate::{
     algo_helpers::calculate_total_fee,
     api::version::{VersionedContractAccount, VersionedTealSourceTemplate},
+    capi_deps::CapiAddress,
     teal::{render_template_new, TealSource, TealSourceTemplate},
 };
 
@@ -29,7 +30,7 @@ pub async fn setup_customer_escrow(
     source: &VersionedTealSourceTemplate,
     params: &SuggestedTransactionParams,
     funds_asset_id: FundsAssetId,
-    capi_escrow_address: &Address,
+    capi_escrow_address: &CapiAddress,
     app_id: DaoAppId,
 ) -> Result<SetupCustomerEscrowToSign> {
     let escrow =
@@ -60,7 +61,7 @@ pub async fn setup_customer_escrow(
 pub async fn render_and_compile_customer_escrow(
     algod: &Algod,
     template: &VersionedTealSourceTemplate,
-    capi_escrow_address: &Address,
+    capi_escrow_address: &CapiAddress,
     app_id: DaoAppId,
 ) -> Result<VersionedContractAccount> {
     let source = match template.version.0 {
@@ -79,14 +80,17 @@ pub async fn render_and_compile_customer_escrow(
 
 pub fn render_customer_escrow_v1(
     source: &TealSourceTemplate,
-    capi_escrow_address: &Address,
+    capi_escrow_address: &CapiAddress,
     app_id: DaoAppId,
 ) -> Result<TealSource> {
     let escrow_source = render_template_new(
         source,
         &[
             ("TMPL_APP_ESCROW_ADDRESS", &app_id.address().to_string()),
-            ("TMPL_CAPI_ESCROW_ADDRESS", &capi_escrow_address.to_string()),
+            (
+                "TMPL_CAPI_ESCROW_ADDRESS",
+                &capi_escrow_address.0.to_string(),
+            ),
             ("TMPL_CENTRAL_APP_ID", &app_id.to_string()),
             (
                 "TMPL_APP_ESCROW_ADDRESS",
