@@ -670,7 +670,7 @@ mod test {
         let amount = FundsAmount::new(100_000_000);
 
         let algod = algod(); // environment network - if using from WASM scripts, the net passed in build script
-        let sender = capi_owner(); // arbitrary account we know has enough assets
+        let sender = funds_asset_creator(); // arbitrary account we know has enough assets
 
         let params = algod.suggested_transaction_params().await?;
         let tx = TxnBuilder::with(
