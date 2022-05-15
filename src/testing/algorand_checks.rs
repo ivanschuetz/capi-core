@@ -16,8 +16,9 @@ pub mod test {
         algod::v2::Algod,
         core::{Address, MicroAlgos},
         transaction::{
-            account::Account, transaction::StateSchema, tx_group::TxGroup, AcceptAsset,
-            CreateApplication, CreateAsset, Pay, Transaction, TransferAsset, TxnBuilder,
+            account::Account, contract_account::ContractAccount, transaction::StateSchema,
+            tx_group::TxGroup, AcceptAsset, CreateApplication, CreateAsset, Pay, Transaction,
+            TransferAsset, TxnBuilder,
         },
     };
     use anyhow::Result;
@@ -62,6 +63,13 @@ pub mod test {
             Pay::new(*sender, *sender, MicroAlgos(10_000)).build(),
         )
         .build()?)
+    }
+
+    pub async fn pay_and_submit(algod: &Algod, sender: &Account) -> Result<()> {
+        let tx = pay(algod, &sender.address()).await?;
+        let signed = sender.sign_transaction(tx)?;
+        send_tx_and_wait(algod, &signed).await?;
+        Ok(())
     }
 
     pub async fn optin_to_asset(
@@ -220,6 +228,81 @@ pub mod test {
 
         log::debug!("res: {:?}", res);
         assert!(res.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    async fn rekey_to_lsig_works() -> Result<()> {
+        let algod = algod_for_tests();
+
+        // regular account rekeys (this can be the address which with we receive the fee)
+        let rekeyed_acc = creator();
+        let rekeyed_acc_address = rekeyed_acc.address();
+
+        // rekeyed to lsig: so anyone can withdraw from the address, as long as it's allowed by the program
+        // this also invalidates the old account as sender
+        let program = algod
+            .compile_teal(
+                r#"
+    #pragma version 6
+    int 1
+    "#
+                .as_bytes(),
+            )
+            .await?;
+        let rekey_to_acc = ContractAccount::new(program);
+        let rekey_to_acc_address = rekey_to_acc.address().to_owned();
+        println!("rekey_to_acc_address: {rekey_to_acc_address:?}");
+
+        // rekey
+        let params = algod.suggested_transaction_params().await?;
+        let rekey_tx = TxnBuilder::with(
+            &params,
+            Pay::new(rekeyed_acc_address, rekeyed_acc_address, MicroAlgos(0)).build(),
+        )
+        .rekey_to(rekey_to_acc_address)
+        .build()?;
+        let rekey_signed = rekeyed_acc.sign_transaction(rekey_tx)?;
+        let rekey_response = algod.broadcast_signed_transaction(&rekey_signed).await?;
+        wait_for_pending_transaction(&algod, &rekey_response.tx_id.parse()?).await?;
+        println!("Rekey success");
+
+        // verify: rekey_to address is set as auth address of the rekeyed acc
+        let account_infos = algod.account_information(&rekeyed_acc_address).await?;
+        assert_eq!(Some(rekey_to_acc_address), account_infos.auth_addr);
+
+        // verify: send a tx with the rekeyed address as sender, signing with rekey_to account
+        // unwrap: this is a test
+        let receiver = "PGCS3D5JL4AIFGTBPDGGMMCT3ODKUUFEFG336MJO25CGBG7ORKVOE3AHSU"
+            .parse()
+            .unwrap();
+        let payment_tx = TxnBuilder::with(
+            &params,
+            Pay::new(rekeyed_acc_address, receiver, MicroAlgos(10_000)).build(),
+        )
+        .build()?;
+        let payment_signed = rekey_to_acc.sign(payment_tx, vec![])?;
+        let payment_response = algod.broadcast_signed_transaction(&payment_signed).await;
+        println!("Payment response: {:?}", payment_response);
+        assert!(payment_response.is_ok());
+
+        // verify: the original account can't send anymore
+        // note: different amount so tx has different id (preventx "tx already in ledger")
+        let new_payment_tx = TxnBuilder::with(
+            &params,
+            Pay::new(rekeyed_acc_address, receiver, MicroAlgos(11_000)).build(),
+        )
+        .build()?;
+        let new_payment_signed = rekeyed_acc.sign_transaction(new_payment_tx)?;
+        let new_payment_response = algod
+            .broadcast_signed_transaction(&new_payment_signed)
+            .await;
+        // we get the expected error: complains about the original account authorizing the tx, instead of the program:
+        // "should have been authorized by ZG2RRCHBZ4K2QKP3NGMYVF2MVG7YW2TSNJPVFVLEGX7KGQ46QVPJGOFTK4 but was actually authorized by STOUDMINSIPP7JMJMGXVJYVS6HHD3TT5UODCDPYGV6KBGP7UYNTLJVJJME""
+        println!("New payment response: {:?}", new_payment_response);
+        assert!(new_payment_response.is_err());
 
         Ok(())
     }
