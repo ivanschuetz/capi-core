@@ -53,6 +53,7 @@ pub mod test {
                 transaction: tx,
                 transaction_id: "".to_owned(),
                 sig: TransactionSignature::Multi(msig),
+                auth_address: None,
             })
         }
 
@@ -67,6 +68,7 @@ pub mod test {
                 transaction: tx,
                 transaction_id: "".to_owned(),
                 sig: TransactionSignature::Multi(msig),
+                auth_address: None,
             })
         }
     }
