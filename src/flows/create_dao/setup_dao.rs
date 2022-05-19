@@ -3,7 +3,6 @@ use super::{
     setup_dao_specs::SetupDaoSpecs,
 };
 use crate::{
-    api::version::VersionedTealSourceTemplate,
     capi_deps::CapiAssetDaoDeps,
     common_txs::pay,
     flows::create_dao::{
@@ -20,7 +19,10 @@ use algonaut::{
     transaction::{tx_group::TxGroup, TransferAsset, TxnBuilder},
 };
 use anyhow::Result;
-use mbase::models::{dao_app_id::DaoAppId, funds::FundsAssetId};
+use mbase::{
+    api::version::VersionedTealSourceTemplate,
+    models::{dao_app_id::DaoAppId, funds::FundsAssetId},
+};
 
 #[allow(clippy::too_many_arguments)]
 pub async fn setup_dao_txs(
@@ -88,6 +90,8 @@ pub async fn setup_dao_txs(
             social_media_url: specs.social_media_url.clone(),
             owner,
             shares_for_investors: specs.shares_for_investors(),
+            min_raise_target: specs.raise_min_target,
+            min_raise_target_end_date: specs.raise_end_date,
         },
     )
     .await?;
@@ -147,7 +151,7 @@ pub async fn submit_setup_dao(
     ];
 
     // crate::dryrun_util::dryrun_all(algod, &signed_txs).await?;
-    // crate::teal::debug_teal_rendered(&signed_txs, "dao_app_approval").unwrap();
+    // mbase::teal::debug_teal_rendered(&signed_txs, "dao_app_approval").unwrap();
 
     let tx_id = algod
         .broadcast_signed_transactions(&signed_txs)

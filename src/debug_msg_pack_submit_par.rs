@@ -19,7 +19,6 @@ mod tests {
             invest::{invest::submit_invest, model::InvestSigned},
             withdraw::withdraw::{submit_withdraw, WithdrawSigned},
         },
-        teal::load_teal_template,
         testing::{test_data::creator, TESTS_DEFAULT_PRECISION},
     };
     use algonaut::core::Address;
@@ -27,7 +26,7 @@ mod tests {
     use mbase::{
         dependencies::algod_for_tests,
         models::{funds::FundsAmount, share_amount::ShareAmount},
-        util::decimal_util::AsDecimal,
+        util::decimal_util::AsDecimal, teal::load_teal_template,
     };
     use rust_decimal::Decimal;
     use std::{convert::TryInto, str::FromStr};

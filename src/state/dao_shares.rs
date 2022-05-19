@@ -1,10 +1,10 @@
-use super::{
-    account_state::asset_holdings,
-    dao_app_state::{dao_global_state, CentralAppGlobalState},
-};
+use super::account_state::asset_holdings;
 use algonaut::{algod::v2::Algod, core::to_app_address};
 use anyhow::{anyhow, Result};
-use mbase::models::{dao_app_id::DaoAppId, share_amount::ShareAmount};
+use mbase::{
+    models::{dao_app_id::DaoAppId, share_amount::ShareAmount},
+    state::dao_app_state::{dao_global_state, CentralAppGlobalState},
+};
 
 /// Shares on the DAO's app escrow
 pub struct DaoShareHoldings {

@@ -7,9 +7,6 @@ mod tests {
     use crate::state::account_state::{
         asset_holdings, find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
     };
-    use crate::state::dao_app_state::{
-        central_investor_state_from_acc, dao_global_state, dao_investor_state,
-    };
     use crate::state::dao_shares::dao_shares;
     use crate::testing::flow::create_dao_flow::create_dao_flow;
     use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
@@ -23,6 +20,9 @@ mod tests {
     use anyhow::Result;
     use mbase::models::funds::FundsAmount;
     use mbase::models::share_amount::ShareAmount;
+    use mbase::state::dao_app_state::{
+        central_investor_state_from_acc, dao_global_state, dao_investor_state,
+    };
     use serial_test::serial;
     use tokio::test;
 

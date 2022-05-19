@@ -5,23 +5,21 @@ use algonaut::{
 };
 use anyhow::{anyhow, Result};
 use mbase::{
-    models::{funds::FundsAmount, share_amount::ShareAmount, shares_percentage::SharesPercentage},
-    util::decimal_util::AsDecimal,
-};
-use rust_decimal::prelude::ToPrimitive;
-use serde::Serialize;
-
-#[cfg(not(target_arch = "wasm32"))]
-use crate::teal::save_rendered_teal;
-use crate::{
     api::version::VersionedTealSourceTemplate,
-    capi_deps::{CapiAddress, CapiAssetDaoDeps},
+    models::{funds::FundsAmount, share_amount::ShareAmount, shares_percentage::SharesPercentage},
     state::dao_app_state::{
         GLOBAL_SCHEMA_NUM_BYTE_SLICES, GLOBAL_SCHEMA_NUM_INTS, LOCAL_SCHEMA_NUM_BYTE_SLICES,
         LOCAL_SCHEMA_NUM_INTS,
     },
     teal::{render_template_new, TealSource, TealSourceTemplate},
+    util::decimal_util::AsDecimal,
 };
+use rust_decimal::prelude::ToPrimitive;
+use serde::Serialize;
+
+use crate::capi_deps::{CapiAddress, CapiAssetDaoDeps};
+#[cfg(not(target_arch = "wasm32"))]
+use mbase::teal::save_rendered_teal;
 
 #[allow(clippy::too_many_arguments)]
 pub async fn create_app_tx(
@@ -181,11 +179,13 @@ struct RenderCentralAppContext {
 #[cfg(test)]
 mod tests {
     use crate::{
-        api::version::{Version, VersionedTealSourceTemplate},
-        capi_deps::{CapiAssetDaoDeps, CapiAddress},
+        capi_deps::{CapiAddress, CapiAssetDaoDeps},
         network_util::wait_for_pending_transaction,
-        teal::load_teal_template,
-        testing::{network_test_util::test_init, test_data::{creator, investor1}, TESTS_DEFAULT_PRECISION},
+        testing::{
+            network_test_util::test_init,
+            test_data::{creator, investor1},
+            TESTS_DEFAULT_PRECISION,
+        },
     };
     use algonaut::{
         model::algod::v2::TealKeyValue,
@@ -193,8 +193,10 @@ mod tests {
     };
     use anyhow::{anyhow, Result};
     use mbase::{
+        api::version::{Version, VersionedTealSourceTemplate},
         dependencies::algod_for_tests,
         models::{funds::FundsAmount, share_amount::ShareAmount},
+        teal::load_teal_template,
         util::decimal_util::AsDecimal,
     };
     use rust_decimal::Decimal;

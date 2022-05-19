@@ -1,14 +1,8 @@
 use algonaut::{algod::v2::Algod, core::Address};
 use anyhow::{Error, Result};
-use mbase::models::{funds::FundsAmount, share_amount::ShareAmount};
+use mbase::{models::{funds::FundsAmount, share_amount::ShareAmount}, state::dao_app_state::{dao_global_state, dao_investor_state}};
 
-use crate::{
-    flows::create_dao::model::Dao,
-    state::{
-        account_state::funds_holdings,
-        dao_app_state::{dao_global_state, dao_investor_state},
-    },
-};
+use crate::{flows::create_dao::model::Dao, state::account_state::funds_holdings};
 
 pub async fn claim_diagnostics(
     algod: &Algod,

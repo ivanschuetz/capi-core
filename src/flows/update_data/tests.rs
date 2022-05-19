@@ -1,9 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        api::version::{Version, VersionedAddress},
         flows::update_data::update_data::UpdatableDaoData,
-        state::dao_app_state::{dao_global_state, dao_investor_state, CentralAppGlobalState},
         testing::{
             flow::{
                 claim_flow::{claim_flow, test::claim_precs_with_dao},
@@ -14,7 +12,11 @@ mod tests {
         },
     };
     use anyhow::Result;
-    use mbase::models::{funds::FundsAmount, image_hash::ImageHash, share_amount::ShareAmount};
+    use mbase::{
+        api::version::{Version, VersionedAddress},
+        models::{funds::FundsAmount, image_hash::ImageHash, share_amount::ShareAmount},
+        state::dao_app_state::{dao_global_state, dao_investor_state, CentralAppGlobalState},
+    };
     use serial_test::serial;
     use tokio::test;
 
@@ -117,7 +119,6 @@ mod tests {
         let new_customer_escrow_address = td.investor2.address();
         let new_project_name = "new_project_name".to_owned();
         let new_project_desc = "new_project_desc".to_owned();
-        let new_share_price = FundsAmount::new(121212);
         let new_image_hash = Some(ImageHash("new_test_image_hash".to_owned()));
         let new_social_media_url = "new_social_media_url".to_owned();
         let new_owner = td.customer.address();
@@ -126,7 +127,6 @@ mod tests {
             customer_escrow: VersionedAddress::new(new_customer_escrow_address, Version(2)),
             project_name: new_project_name.clone(),
             project_desc: new_project_desc.clone(),
-            share_price: new_share_price,
             image_hash: new_image_hash,
             social_media_url: new_social_media_url.clone(),
             owner: new_owner,
@@ -137,7 +137,6 @@ mod tests {
         assert_eq!(gs.customer_escrow, data.customer_escrow);
         assert_eq!(gs.project_name, data.project_name);
         assert_eq!(gs.project_desc, data.project_desc);
-        assert_eq!(gs.share_price, data.share_price);
         assert_eq!(gs.image_hash, data.image_hash);
         assert_eq!(gs.social_media_url, data.social_media_url);
         assert_eq!(gs.owner, data.owner);
@@ -150,7 +149,6 @@ mod tests {
         assert_ne!(gs.customer_escrow, data.customer_escrow);
         assert_ne!(gs.project_name, data.project_name);
         assert_ne!(gs.project_desc, data.project_desc);
-        assert_ne!(gs.share_price, data.share_price);
         assert_ne!(gs.image_hash, data.image_hash);
         assert_ne!(gs.social_media_url, data.social_media_url);
         assert_ne!(gs.owner, data.owner);

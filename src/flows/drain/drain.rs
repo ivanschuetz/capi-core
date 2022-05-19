@@ -167,7 +167,7 @@ pub async fn submit_drain_customer_escrow(
 ) -> Result<TxId> {
     log::debug!("calling submit drain..");
 
-    // crate::teal::debug_teal_rendered(
+    // mbase::teal::debug_teal_rendered(
     //     &[
     //         signed.app_call_tx_signed.clone(),
     //         signed.drain_tx.clone(),
@@ -177,7 +177,7 @@ pub async fn submit_drain_customer_escrow(
     // )
     // .unwrap();
 
-    // crate::teal::debug_teal_rendered(
+    // mbase::teal::debug_teal_rendered(
     //     &[
     //         signed.app_call_tx_signed.clone(),
     //         signed.drain_tx.clone(),

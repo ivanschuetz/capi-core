@@ -11,6 +11,7 @@ mod test {
 
     use crate::flows::create_dao::{model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs};
     use algonaut::transaction::account::Account;
+    use chrono::{Duration, Utc};
     use mbase::models::{funds::FundsAmount, image_hash::ImageHash, share_amount::ShareAmount};
     use rust_decimal::Decimal;
 
@@ -84,7 +85,9 @@ mod test {
             FundsAmount::new(5_000_000),
             Some(ImageHash("test_hash".to_owned())),
             "https://twitter.com/capi_fin".to_owned(),
-            ShareAmount::new(80) // unwrap: assumes a higher supply
+            ShareAmount::new(80), // unwrap: assumes a higher supply
+            FundsAmount::new(0), // 0 target means practically no target - we'll use different deps to test funds target
+            (Utc::now() - Duration::minutes(1)).into() // in the past means practically no funds raising period - we'll use different deps to test funds target
         ).unwrap()
     }
 

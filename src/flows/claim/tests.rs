@@ -2,7 +2,6 @@
 mod tests {
     use std::{convert::TryInto, str::FromStr};
     use crate::{
-        api::version::VersionedAddress,
         flows::{
             claim::claim::claimable_dividend,
             create_dao::{
@@ -11,7 +10,6 @@ mod tests {
         },
         state::{
             account_state::funds_holdings,
-            dao_app_state::{central_investor_state_from_acc, dao_global_state},
         },
         testing::{
             flow::claim_flow::{claim_flow, claim_precs},
@@ -20,7 +18,8 @@ mod tests {
     };
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
-    use mbase::models::{share_amount::ShareAmount, funds::{FundsAmount, FundsAssetId}, image_hash::ImageHash, dao_app_id::DaoAppId};
+    use chrono::{Utc, Duration};
+    use mbase::{models::{share_amount::ShareAmount, funds::{FundsAmount, FundsAssetId}, image_hash::ImageHash, dao_app_id::DaoAppId}, state::dao_app_state::{dao_global_state, central_investor_state_from_acc}, api::version::VersionedAddress};
     use rust_decimal::Decimal;
     use serial_test::serial;
     use tokio::test;
@@ -165,7 +164,9 @@ mod tests {
             FundsAmount::new(5_000_000),
             Some(ImageHash("test_hash".to_owned())),
             "https://twitter.com/capi_fin".to_owned(),
-            ShareAmount::new(250) // assumes a higher supply number
+            ShareAmount::new(250), // assumes a higher supply number
+            FundsAmount::new(0), // 0 target means practically no target - we'll use different deps to test funds target
+            (Utc::now() - Duration::minutes(1)).into() // in the past means practically no funds raising period - we'll use different deps to test funds target
         )?;
         Ok(td)
     }

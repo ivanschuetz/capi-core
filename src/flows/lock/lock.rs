@@ -8,7 +8,7 @@ use algonaut::{
     },
 };
 use anyhow::Result;
-use mbase::models::{share_amount::ShareAmount, dao_app_id::DaoAppId};
+use mbase::models::{dao_app_id::DaoAppId, share_amount::ShareAmount};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -62,7 +62,7 @@ pub async fn submit_lock(algod: &Algod, signed: LockSigned) -> Result<TxId> {
         signed.central_app_call_setup_tx.clone(),
         signed.shares_xfer_tx_signed.clone(),
     ];
-    // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
+    // mbase::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Lock tx id: {:?}", res.tx_id);
     Ok(res.tx_id.parse()?)

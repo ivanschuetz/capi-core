@@ -4,8 +4,6 @@ mod tests {
         flows::create_dao::model::Dao,
         state::{
             account_state::{asset_holdings, find_asset_holding_or_err},
-            app_state::ApplicationLocalStateError,
-            dao_app_state::{dao_global_state, dao_investor_state},
             dao_shares::dao_shares,
         },
         testing::{
@@ -15,7 +13,13 @@ mod tests {
     };
     use algonaut::algod::v2::Algod;
     use anyhow::Result;
-    use mbase::models::{asset_amount::AssetAmount, funds::FundsAmount, share_amount::ShareAmount};
+    use mbase::{
+        models::{asset_amount::AssetAmount, funds::FundsAmount, share_amount::ShareAmount},
+        state::{
+            app_state::ApplicationLocalStateError,
+            dao_app_state::{dao_global_state, dao_investor_state},
+        },
+    };
     use serial_test::serial;
     use tokio::test;
 

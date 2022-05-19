@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 use mbase::models::{
     funds::FundsAmount, image_hash::ImageHash, share_amount::ShareAmount,
-    shares_percentage::SharesPercentage,
+    shares_percentage::SharesPercentage, timestamp::Timestamp,
 };
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
@@ -40,6 +40,12 @@ pub struct SetupDaoSpecs {
     // shares to be sold to investors (the rest stay in the creator's account)
     // note this is entirely different from investors_share, which is the % of the project's income channeled to investors
     shares_for_investors: ShareAmount,
+    // we manage this as timestamp instead of date,
+    // to ensure correctness when storing the timestamp in TEAL / compare to current TEAL timestamp (which is in seconds)
+    // DateTime can have millis and nanoseconds too,
+    // which would e.g. break equality comparisons between these specs and the ones loaded from global state
+    pub raise_end_date: Timestamp,
+    pub raise_min_target: FundsAmount,
 }
 
 impl SetupDaoSpecs {
@@ -52,6 +58,8 @@ impl SetupDaoSpecs {
         image_hash: Option<ImageHash>,
         social_media_url: String,
         shares_for_investors: ShareAmount,
+        raise_min_target: FundsAmount,
+        raise_end_date: Timestamp,
     ) -> Result<SetupDaoSpecs> {
         if shares_for_investors > shares.supply {
             return Err(anyhow!(
@@ -59,6 +67,7 @@ impl SetupDaoSpecs {
                 shares.supply
             ));
         }
+
         Ok(SetupDaoSpecs {
             name,
             description,
@@ -68,6 +77,8 @@ impl SetupDaoSpecs {
             image_hash,
             social_media_url,
             shares_for_investors,
+            raise_min_target,
+            raise_end_date,
         })
     }
 

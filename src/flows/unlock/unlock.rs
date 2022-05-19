@@ -43,7 +43,7 @@ pub async fn submit_unlock(algod: &Algod, signed: UnlockSigned) -> Result<TxId> 
 
     let txs = vec![signed.central_app_optout_tx];
 
-    // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
+    // mbase::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Unlock tx id: {:?}", res.tx_id);

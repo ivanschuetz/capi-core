@@ -1,9 +1,6 @@
-use super::{
-    contract::Contract,
-    version::{Version, VersionedTealSourceTemplate, Versions},
-};
-use crate::teal::load_teal_template;
+use super::contract::Contract;
 use anyhow::{anyhow, Result};
+use mbase::{api::version::{Version, VersionedTealSourceTemplate, Versions}, teal::load_teal_template};
 
 // Send + sync assumess the implementations to be stateless
 // (also: we currently use this only in WASM, which is single threaded)

@@ -1,15 +1,15 @@
-use crate::{
-    api::version::{versions_to_bytes, VersionedAddress, Versions},
-    flows::create_dao::storage::load_dao::TxId,
-    state::dao_app_state::dao_global_state,
-};
+use crate::flows::create_dao::storage::load_dao::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::Address,
     transaction::{builder::CallApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
-use mbase::models::{funds::FundsAmount, image_hash::ImageHash, dao_app_id::DaoAppId};
+use mbase::{
+    api::version::{versions_to_bytes, VersionedAddress, Versions},
+    models::{dao_app_id::DaoAppId, image_hash::ImageHash},
+    state::dao_app_state::dao_global_state,
+};
 use serde::{Deserialize, Serialize};
 
 /// Dao app data that is meant to be updated externally
@@ -19,7 +19,6 @@ pub struct UpdatableDaoData {
 
     pub project_name: String,
     pub project_desc: String,
-    pub share_price: FundsAmount,
 
     pub image_hash: Option<ImageHash>,
     pub social_media_url: String,
@@ -54,7 +53,6 @@ pub async fn update_data(
                 data.customer_escrow.address.0.to_vec(),
                 data.project_name.as_bytes().to_vec(),
                 data.project_desc.as_bytes().to_vec(),
-                data.share_price.val().to_be_bytes().to_vec(),
                 data.image_hash
                     .as_ref()
                     .map(|h| h.bytes())
@@ -76,7 +74,7 @@ pub async fn submit_update_data(algod: &Algod, signed: UpdateDaoDataSigned) -> R
 
     let txs = vec![signed.update];
 
-    // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
+    // mbase::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Unlock tx id: {:?}", res.tx_id);

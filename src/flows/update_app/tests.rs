@@ -1,19 +1,18 @@
 #[cfg(test)]
 mod tests {
-    use crate::{
-        state::dao_app_state::{dao_global_state, dao_investor_state},
-        teal::TealSource,
-        testing::{
-            flow::{
-                claim_flow::{claim_flow, test::claim_precs_with_dao},
-                create_dao_flow::test::create_dao_flow_with_owner,
-                update_dao_flow::update_dao_flow,
-            },
-            network_test_util::test_dao_init,
+    use crate::testing::{
+        flow::{
+            claim_flow::{claim_flow, test::claim_precs_with_dao},
+            create_dao_flow::test::create_dao_flow_with_owner,
+            update_dao_flow::update_dao_flow,
         },
+        network_test_util::test_dao_init,
     };
     use anyhow::Result;
-    use mbase::models::{funds::FundsAmount, share_amount::ShareAmount};
+    use mbase::{
+        models::{funds::FundsAmount, share_amount::ShareAmount},
+        state::dao_app_state::{dao_global_state, dao_investor_state}, teal::TealSource,
+    };
     use serial_test::serial;
     use tokio::test;
 

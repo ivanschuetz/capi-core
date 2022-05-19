@@ -1,3 +1,4 @@
+use crate::{algo_helpers::calculate_total_fee, capi_deps::CapiAddress};
 use algonaut::{
     algod::v2::Algod,
     core::{to_app_address, Address, MicroAlgos, SuggestedTransactionParams},
@@ -7,17 +8,14 @@ use algonaut::{
     },
 };
 use anyhow::{anyhow, Result};
-use mbase::models::{dao_app_id::DaoAppId, funds::FundsAssetId};
-use serde::Serialize;
-
 #[cfg(not(target_arch = "wasm32"))]
-use crate::teal::save_rendered_teal;
-use crate::{
-    algo_helpers::calculate_total_fee,
+use mbase::teal::save_rendered_teal;
+use mbase::{
     api::version::{VersionedContractAccount, VersionedTealSourceTemplate},
-    capi_deps::CapiAddress,
+    models::{dao_app_id::DaoAppId, funds::FundsAssetId},
     teal::{render_template_new, TealSource, TealSourceTemplate},
 };
+use serde::Serialize;
 
 // TODO no constants
 // 1 asset (funds asset)

@@ -6,12 +6,11 @@ use crate::{
         setup::customer_escrow::render_and_compile_customer_escrow,
         setup_dao_specs::SetupDaoSpecs,
     },
-    state::dao_app_state::dao_global_state,
 };
 use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE32_NOPAD;
-use mbase::models::{dao_id::DaoId, share_amount::ShareAmount};
+use mbase::{models::{dao_id::DaoId, share_amount::ShareAmount}, state::dao_app_state::dao_global_state};
 use serde::{Deserialize, Serialize};
 use std::{
     convert::{TryFrom, TryInto},
@@ -68,6 +67,8 @@ pub async fn load_dao(
             dao_state.image_hash.clone(),
             dao_state.social_media_url.clone(),
             dao_state.shares_for_investors,
+            dao_state.min_funds_target,
+            dao_state.min_funds_target_end_date,
         )?,
         funds_asset_id: dao_state.funds_asset_id,
         owner: dao_state.owner,

@@ -2,18 +2,14 @@
 mod tests {
     use algonaut::{algod::v2::Algod, core::to_app_address, transaction::account::Account};
     use anyhow::Result;
-    use mbase::models::{funds::FundsAmount, share_amount::ShareAmount};
+    use mbase::{models::{funds::FundsAmount, share_amount::ShareAmount}, state::dao_app_state::{dao_global_state, central_investor_state_from_acc}};
     use serial_test::serial;
     use tokio::test;
 
     use crate::{
         flows::create_dao::model::Dao,
         network_util::wait_for_pending_transaction,
-        state::{
-            account_state::find_asset_holding_or_err,
-            dao_app_state::{central_investor_state_from_acc, dao_global_state},
-            dao_shares::dao_shares,
-        },
+        state::{account_state::find_asset_holding_or_err, dao_shares::dao_shares},
         testing::{
             flow::{
                 create_dao_flow::create_dao_flow,

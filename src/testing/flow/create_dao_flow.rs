@@ -2,20 +2,17 @@
 pub use test::create_dao_flow;
 #[cfg(test)]
 pub mod test {
-    use crate::api::version::VersionedTealSourceTemplate;
     use crate::flows::create_dao::setup_dao::{Escrows, Programs};
-    use crate::teal::load_teal_template;
-    use crate::testing::network_test_util::TestDeps;
-    use crate::{
-        api::version::Version,
-        flows::create_dao::{
-            model::{Dao, SetupDaoSigned},
-            setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
-            setup_dao::{setup_dao_txs, submit_setup_dao},
-        },
+    use crate::flows::create_dao::{
+        model::{Dao, SetupDaoSigned},
+        setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
+        setup_dao::{setup_dao_txs, submit_setup_dao},
     };
+    use crate::testing::network_test_util::TestDeps;
     use algonaut::core::Address;
     use anyhow::Result;
+    use mbase::api::version::{Version, VersionedTealSourceTemplate};
+    use mbase::teal::load_teal_template;
 
     pub async fn create_dao_flow(td: &TestDeps) -> Result<Dao> {
         create_dao_flow_with_owner(td, &td.creator.address()).await

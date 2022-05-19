@@ -1,10 +1,10 @@
 use crate::{
-    api::version::VersionedTealSourceTemplate,
+    capi_deps::CapiAssetDaoDeps,
     flows::create_dao::{
         model::{CreateAssetsToSign, CreateSharesSpecs},
         setup_dao_specs::SetupDaoSpecs,
     },
-    network_util::wait_for_pending_transaction, capi_deps::CapiAssetDaoDeps,
+    network_util::wait_for_pending_transaction,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -14,7 +14,7 @@ use algonaut::{
 };
 use anyhow::{anyhow, Result};
 use futures::join;
-use mbase::models::dao_app_id::DaoAppId;
+use mbase::{api::version::VersionedTealSourceTemplate, models::dao_app_id::DaoAppId};
 
 use super::create_app::create_app_tx;
 
@@ -55,7 +55,7 @@ pub async fn submit_create_assets(
     signed: &CrateDaoAssetsSigned,
 ) -> Result<CreateAssetsResult> {
     // let txs = vec![signed.create_app.clone()];
-    // crate::teal::debug_teal_rendered(&vec![signed.create_app.clone()], "dao_app_approval")
+    // mbase::teal::debug_teal_rendered(&vec![signed.create_app.clone()], "dao_app_approval")
     //     .unwrap();
 
     // Note that we don't use a tx group here but send the 2 transactions separately,

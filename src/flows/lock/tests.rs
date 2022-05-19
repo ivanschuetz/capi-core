@@ -2,7 +2,7 @@
 mod tests {
     use algonaut::transaction::{AcceptAsset, TransferAsset, TxnBuilder};
     use anyhow::Result;
-    use mbase::models::{funds::FundsAmount, share_amount::ShareAmount};
+    use mbase::{models::{funds::FundsAmount, share_amount::ShareAmount}, state::{dao_app_state::{dao_global_state, central_investor_state_from_acc, dao_investor_state}, app_state::ApplicationLocalStateError}};
     use serial_test::serial;
     use tokio::test;
 
@@ -18,10 +18,6 @@ mod tests {
         state::{
             account_state::{
                 find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
-            },
-            app_state::ApplicationLocalStateError,
-            dao_app_state::{
-                central_investor_state_from_acc, dao_global_state, dao_investor_state,
             },
             dao_shares::dao_shares,
         },

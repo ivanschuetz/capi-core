@@ -103,7 +103,7 @@ pub async fn submit_invest(algod: &Algod, signed: &InvestSigned) -> Result<Inves
         signed.payment_tx.clone(),
     ];
 
-    // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
+    // mbase::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     Ok(InvestResult {

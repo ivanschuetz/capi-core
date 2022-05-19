@@ -1,18 +1,19 @@
-use crate::{
-    api::version::{versions_to_bytes, Version, VersionedAddress, Versions},
-    note::dao_setup_prefix,
-};
+use crate::note::dao_setup_prefix;
 use algonaut::{
     core::{Address, SuggestedTransactionParams},
     transaction::{builder::CallApplication, Transaction, TxnBuilder},
 };
 use anyhow::Result;
-use mbase::models::{
-    dao_app_id::DaoAppId,
-    funds::{FundsAmount, FundsAssetId},
-    image_hash::ImageHash,
-    share_amount::ShareAmount,
-    shares_percentage::SharesPercentage,
+use mbase::{
+    api::version::{versions_to_bytes, Version, VersionedAddress, Versions},
+    models::{
+        dao_app_id::DaoAppId,
+        funds::{FundsAmount, FundsAssetId},
+        image_hash::ImageHash,
+        share_amount::ShareAmount,
+        shares_percentage::SharesPercentage,
+        timestamp::Timestamp,
+    },
 };
 
 /// Data to initialize the app's global state with
@@ -39,6 +40,9 @@ pub struct DaoInitData {
     pub owner: Address,
 
     pub shares_for_investors: ShareAmount,
+
+    pub min_raise_target: FundsAmount,
+    pub min_raise_target_end_date: Timestamp,
 }
 
 impl DaoInitData {
@@ -77,6 +81,8 @@ pub async fn setup_app_tx(
                 data.owner.0.to_vec(),
                 versions_to_bytes(data.versions())?,
                 data.shares_for_investors.val().to_be_bytes().to_vec(),
+                data.min_raise_target.val().to_be_bytes().to_vec(),
+                data.min_raise_target_end_date.0.to_be_bytes().to_vec(),
             ])
             .foreign_assets(vec![data.funds_asset_id.0, data.shares_asset_id])
             .build(),

@@ -5,10 +5,10 @@ pub mod test {
     use crate::algo_helpers::send_tx_and_wait;
     use crate::flows::create_dao::model::Dao;
     use crate::flows::update_app::update::update;
-    use crate::teal::TealSource;
     use crate::testing::network_test_util::TestDeps;
     use algonaut::transaction::account::Account;
     use anyhow::Result;
+    use mbase::teal::TealSource;
 
     pub async fn update_dao_flow(
         td: &TestDeps,

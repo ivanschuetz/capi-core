@@ -1,10 +1,11 @@
 use super::{setup_dao_specs::SetupDaoSpecs, storage::load_dao::TxId};
-use crate::api::version::VersionedContractAccount;
 use algonaut::{
     core::Address,
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
 };
-use mbase::models::{dao_app_id::DaoAppId, dao_id::DaoId, funds::FundsAssetId, share_amount::ShareAmount};
+use mbase::{models::{
+    dao_app_id::DaoAppId, dao_id::DaoId, funds::FundsAssetId, share_amount::ShareAmount,
+}, api::version::VersionedContractAccount};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 

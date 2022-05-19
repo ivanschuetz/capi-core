@@ -2,7 +2,7 @@
 mod tests {
     use crate::{
         flows::create_dao::setup::customer_escrow,
-        state::{account_state::funds_holdings, dao_app_state::dao_global_state},
+        state::account_state::funds_holdings,
         testing::{
             flow::{
                 create_dao_flow::create_dao_flow,
@@ -12,7 +12,7 @@ mod tests {
         },
     };
     use anyhow::Result;
-    use mbase::models::funds::FundsAmount;
+    use mbase::{models::funds::FundsAmount, state::dao_app_state::dao_global_state};
     use serial_test::serial;
     use tokio::test;
 

@@ -53,7 +53,7 @@ pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<T
     let txs = vec![signed.withdraw_tx.clone()];
 
     // crate::dryrun_util::dryrun_all(algod, &txs).await?;
-    // crate::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
+    // mbase::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Withdrawal txs tx id: {}", res.tx_id);
