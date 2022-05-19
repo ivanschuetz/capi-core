@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub use test::{
     create_and_distribute_funds_asset, setup_on_chain_deps, test_dao_init, test_dao_init_with_deps,
-    test_init, OnChainDeps, TestDeps,
+    test_dao_with_funds_target_init, test_init, OnChainDeps, TestDeps,
 };
 
 #[cfg(test)]
@@ -14,7 +14,8 @@ mod test {
     use crate::flows::create_dao::setup_dao_specs::SetupDaoSpecs;
     use crate::testing::flow::create_dao_flow::test::test_programs;
     use crate::testing::test_data::{
-        dao_specs, funds_asset_creator, msig_acc1, msig_acc2, msig_acc3,
+        dao_specs, dao_specs_with_funds_target, funds_asset_creator, msig_acc1, msig_acc2,
+        msig_acc3,
     };
     use crate::testing::tests_msig::TestsMsig;
     use algonaut::core::Address;
@@ -27,7 +28,9 @@ mod test {
             TxnBuilder,
         },
     };
+    use chrono::{Duration, Utc};
     use data_encoding::HEXLOWER;
+    use mbase::date_util::DateTimeExt;
     use mbase::dependencies::{
         algod, algod_for_net, algod_for_tests, indexer_for_tests, network, DataType, Env, Network,
     };
@@ -91,6 +94,21 @@ mod test {
 
     /// Common tests initialization
     pub async fn test_dao_init() -> Result<TestDeps> {
+        test_dao_init_internal(&dao_specs()).await
+    }
+
+    /// Guarantee: the returned funds raising end date is in a week
+    /// Relevant for test generally is that it's "later" by a safe span, so e.g. a withdrawal performed "now" with these deps will fail,
+    /// as end date is in a week and withdrawals have to happen after it
+    pub async fn test_dao_with_funds_target_init() -> Result<TestDeps> {
+        // this needs to be dynamic, because we use a dynamic "now" reference date in TEAL and we've to ensure that this is after that
+        // specifically 1 week doesn't have a particular reason, other than being a reasonable funding timeline generally
+        let funds_end_date = Utc::now() + Duration::weeks(1);
+        test_dao_init_internal(&dao_specs_with_funds_target(funds_end_date.to_timestap())).await
+    }
+
+    // named internal to not change the old "test_dao_init", which now means init without funds target specs
+    async fn test_dao_init_internal(specs: &SetupDaoSpecs) -> Result<TestDeps> {
         test_init()?;
 
         let algod = algod_for_tests();
@@ -98,13 +116,14 @@ mod test {
 
         let chain_deps = setup_on_chain_deps(&algod, &capi_owner).await?;
 
-        test_dao_init_with_deps(algod, &chain_deps).await
+        test_dao_init_with_deps(algod, &chain_deps, specs).await
     }
 
     /// Use this for test initialization with custom chain deps
     pub async fn test_dao_init_with_deps(
         algod: Algod,
         chain_deps: &OnChainDeps,
+        specs: &SetupDaoSpecs,
     ) -> Result<TestDeps> {
         let OnChainDeps {
             funds_asset_id,
@@ -120,7 +139,7 @@ mod test {
             investor2: investor2(),
             customer: customer(),
             msig: msig()?,
-            specs: dao_specs(),
+            specs: specs.to_owned(),
             funds_asset_id: funds_asset_id.clone(),
 
             precision: TESTS_DEFAULT_PRECISION,

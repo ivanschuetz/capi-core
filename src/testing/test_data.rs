@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub use test::{
-    capi_owner, creator, customer, dao_specs, funds_asset_creator, investor1, investor2, msig_acc1,
-    msig_acc2, msig_acc3, shares_specs,
+    capi_owner, creator, customer, dao_specs, dao_specs_with_funds_target, funds_asset_creator,
+    investor1, investor2, msig_acc1, msig_acc2, msig_acc3, shares_specs,
 };
 
 #[cfg(test)]
@@ -12,6 +12,7 @@ mod test {
     use crate::flows::create_dao::{model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs};
     use algonaut::transaction::account::Account;
     use chrono::{Duration, Utc};
+    use mbase::models::timestamp::Timestamp;
     use mbase::models::{funds::FundsAmount, image_hash::ImageHash, share_amount::ShareAmount};
     use rust_decimal::Decimal;
 
@@ -75,7 +76,22 @@ mod test {
         println!("msig3: {}", msig_acc3().address());
     }
 
+    // this is test dao specs *without* funds target - named just "dao specs" for backwards comp
     pub fn dao_specs() -> SetupDaoSpecs {
+        dao_specs_internal(
+            FundsAmount::new(0), // 0 target means practically no target - we'll use different deps to test funds target
+            (Utc::now() - Duration::minutes(1)).into(), // in the past means practically no funds raising period - we'll use different deps to test funds target
+        )
+    }
+
+    pub fn dao_specs_with_funds_target(end_date: Timestamp) -> SetupDaoSpecs {
+        dao_specs_internal(
+            FundsAmount::new(10_000), // 0 target means practically no target - we'll use different deps to test funds target
+            end_date,
+        )
+    }
+
+    fn dao_specs_internal(target: FundsAmount, end_date: Timestamp) -> SetupDaoSpecs {
         // unwrap: tests, and we know hardcoded data is correct
         SetupDaoSpecs::new(
             "Pancakes ltd".to_owned(),
@@ -86,8 +102,8 @@ mod test {
             Some(ImageHash("test_hash".to_owned())),
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(80), // unwrap: assumes a higher supply
-            FundsAmount::new(0), // 0 target means practically no target - we'll use different deps to test funds target
-            (Utc::now() - Duration::minutes(1)).into() // in the past means practically no funds raising period - we'll use different deps to test funds target
+            target,
+            end_date
         ).unwrap()
     }
 

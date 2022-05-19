@@ -11,7 +11,7 @@ mod tests {
                 invest_in_dao_flow::{invests_flow, invests_optins_flow},
                 withdraw_flow::{test::withdraw_flow, withdraw_precs},
             },
-            network_test_util::test_dao_init,
+            network_test_util::{test_dao_init, test_dao_with_funds_target_init},
             test_data::{dao_specs, investor2},
         },
     };
@@ -293,6 +293,48 @@ mod tests {
         // check app's balance
         let central_escrow_amount = funds_holdings(algod, app_address, funds_asset_id).await?;
         assert_eq!(expected_central_amount, central_escrow_amount);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_cannot_withdraw_before_funds_target_finished() -> Result<()> {
+        // the deps have a target raise end date at some point in the future,
+        // we try to withdraw "now" - can't, because it's not possible to withdraw funds before the project has finished raising the min target,
+        // and we're before the end date
+        let td = &test_dao_with_funds_target_init().await?;
+        let algod = &td.algod;
+
+        // precs
+
+        let withdraw_amount = FundsAmount::new(1_000_000);
+
+        let dao = create_dao_flow(&td).await?;
+
+        let params = algod.suggested_transaction_params().await?;
+        let dao_address = to_app_address(dao.app_id.0);
+        log::debug!("app address: {dao_address}");
+
+        // send asset to the DAO app
+        transfer_tokens_submit(
+            algod,
+            &params,
+            &td.creator,
+            &dao_address,
+            td.funds_asset_id.0,
+            withdraw_amount.0,
+        )
+        .await?;
+
+        // flow
+
+        let res = withdraw_flow(&algod, &dao, &td.creator, withdraw_amount, dao.app_id).await;
+
+        // test
+
+        println!("res: {res:?}");
+        assert!(res.is_err());
 
         Ok(())
     }
