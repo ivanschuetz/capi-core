@@ -1,7 +1,8 @@
 #[cfg(test)]
 pub use test::{
-    capi_owner, creator, customer, dao_specs, dao_specs_with_funds_target, funds_asset_creator,
-    investor1, investor2, msig_acc1, msig_acc2, msig_acc3, shares_specs,
+    capi_owner, creator, customer, dao_specs, dao_specs_with_funds_pars,
+    dao_specs_with_funds_target, funds_asset_creator, investor1, investor2, msig_acc1, msig_acc2,
+    msig_acc3, shares_specs,
 };
 
 #[cfg(test)]
@@ -78,20 +79,20 @@ mod test {
 
     // this is test dao specs *without* funds target - named just "dao specs" for backwards comp
     pub fn dao_specs() -> SetupDaoSpecs {
-        dao_specs_internal(
+        dao_specs_with_funds_pars(
             FundsAmount::new(0), // 0 target means practically no target - we'll use different deps to test funds target
             (Utc::now() - Duration::minutes(1)).into(), // in the past means practically no funds raising period - we'll use different deps to test funds target
         )
     }
 
     pub fn dao_specs_with_funds_target(end_date: Timestamp) -> SetupDaoSpecs {
-        dao_specs_internal(
+        dao_specs_with_funds_pars(
             FundsAmount::new(10_000), // 0 target means practically no target - we'll use different deps to test funds target
             end_date,
         )
     }
 
-    fn dao_specs_internal(target: FundsAmount, end_date: Timestamp) -> SetupDaoSpecs {
+    pub fn dao_specs_with_funds_pars(target: FundsAmount, end_date: Timestamp) -> SetupDaoSpecs {
         // unwrap: tests, and we know hardcoded data is correct
         SetupDaoSpecs::new(
             "Pancakes ltd".to_owned(),

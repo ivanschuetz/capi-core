@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub use test::{
     create_and_distribute_funds_asset, setup_on_chain_deps, test_dao_init, test_dao_init_with_deps,
-    test_dao_with_funds_target_init, test_init, OnChainDeps, TestDeps,
+    test_dao_with_funds_target_init, test_dao_with_specs, test_init, OnChainDeps, TestDeps,
 };
 
 #[cfg(test)]
@@ -92,9 +92,14 @@ mod test {
         Ok(TestsMsig::new(vec![msig_acc1(), msig_acc2(), msig_acc3()])?)
     }
 
+    // TODO rename - it suggests that the dao is initialized here, which isn't the case - maybe crate_test_deps?
     /// Common tests initialization
+    /// Guarantee: the returned funds raising end date is in the past and the target is 0,
+    /// this means that the funds raising ended successfully,
+    /// (which makes these deps backwards compatible with the pre-minfunds feature tests,
+    /// where it's assumed that funds can always / unconditionally be withdrawn).
     pub async fn test_dao_init() -> Result<TestDeps> {
-        test_dao_init_internal(&dao_specs()).await
+        test_dao_with_specs(&dao_specs()).await
     }
 
     /// Guarantee: the returned funds raising end date is in a week
@@ -104,11 +109,11 @@ mod test {
         // this needs to be dynamic, because we use a dynamic "now" reference date in TEAL and we've to ensure that this is after that
         // specifically 1 week doesn't have a particular reason, other than being a reasonable funding timeline generally
         let funds_end_date = Utc::now() + Duration::weeks(1);
-        test_dao_init_internal(&dao_specs_with_funds_target(funds_end_date.to_timestap())).await
+        test_dao_with_specs(&dao_specs_with_funds_target(funds_end_date.to_timestap())).await
     }
 
     // named internal to not change the old "test_dao_init", which now means init without funds target specs
-    async fn test_dao_init_internal(specs: &SetupDaoSpecs) -> Result<TestDeps> {
+    pub async fn test_dao_with_specs(specs: &SetupDaoSpecs) -> Result<TestDeps> {
         test_init()?;
 
         let algod = algod_for_tests();

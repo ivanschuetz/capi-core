@@ -11,8 +11,10 @@ mod tests {
                 invest_in_dao_flow::{invests_flow, invests_optins_flow},
                 withdraw_flow::{test::withdraw_flow, withdraw_precs},
             },
-            network_test_util::{test_dao_init, test_dao_with_funds_target_init},
-            test_data::{dao_specs, investor2},
+            network_test_util::{
+                test_dao_init, test_dao_with_funds_target_init, test_dao_with_specs,
+            },
+            test_data::{dao_specs, dao_specs_with_funds_pars, investor2},
         },
     };
     use algonaut::{
@@ -20,15 +22,20 @@ mod tests {
         core::{to_app_address, Address},
     };
     use anyhow::Result;
-    use mbase::models::{
-        funds::{FundsAmount, FundsAssetId},
-        share_amount::ShareAmount,
+    use chrono::{Duration, Utc};
+    use mbase::{
+        date_util::DateTimeExt,
+        models::{
+            funds::{FundsAmount, FundsAssetId},
+            share_amount::ShareAmount,
+        },
     };
     use serial_test::serial;
     use tokio::test;
 
     #[test]
     #[serial]
+    // in this test, we just send some funds directly to the dao (no investing or draining flow) as withdrawal precondition
     async fn test_basic_withdraw_success() -> Result<()> {
         let td = &test_dao_init().await?;
         let algod = &td.algod;
@@ -83,6 +90,8 @@ mod tests {
 
     #[test]
     #[serial]
+    // in this test, we fund the dao (withdrawal precondition) via the normal user flow - investing and draining
+    // (opposed to test_basic_withdraw_success)
     async fn test_withdraw_success() -> Result<()> {
         let td = &test_dao_init().await?;
         let algod = &td.algod;
@@ -335,6 +344,89 @@ mod tests {
 
         println!("res: {res:?}");
         assert!(res.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_cannot_withdraw_after_funds_target_end_date_if_target_wasnt_raised() -> Result<()>
+    {
+        test_can_withdraw_after_funds_target_end_date(
+            FundsAmount::new(100_000_000),
+            FundsAmount::new(5_000_000),
+            ShareAmount::new(10), // * price = 50_000_000, which is less than funds target -> can't withdraw
+            false,
+        )
+        .await
+    }
+
+    #[test]
+    #[serial]
+    // note that this test is essentially not different to the basic withdrawal tests,
+    // where the funds target parameters allow the withdrawal to succeed
+    // just for completeness, to have a counter part for test_cannot_withdraw_after_funds_target_end_date_if_target_wasnt_raised
+    // where we test with a realistic funds target (not 0)
+    async fn test_can_withdraw_after_funds_target_end_date_if_target_was_raised() -> Result<()> {
+        test_can_withdraw_after_funds_target_end_date(
+            FundsAmount::new(100_000_000),
+            FundsAmount::new(5_000_000),
+            ShareAmount::new(100), // * price = 500_000_000, which is more than funds target -> can withdraw
+            true,
+        )
+        .await
+    }
+
+    async fn test_can_withdraw_after_funds_target_end_date(
+        funds_target: FundsAmount,
+        share_price: FundsAmount,
+        buy_share_amount: ShareAmount,
+        can_withdraw: bool,
+    ) -> Result<()> {
+        // specs with:
+        // funds amount > 0 (so there have to be investments before withdrawing),
+        // end date in the past (so raising is already finished - teal compares with a "now" - generated in teal)
+        let funds_end_date = Utc::now() - Duration::minutes(1);
+        let mut specs = dao_specs_with_funds_pars(funds_target, funds_end_date.to_timestap());
+        // ensure that share price meets test conditions
+        specs.share_price = share_price;
+
+        let td = &test_dao_with_specs(&specs).await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
+
+        // precs
+
+        let dao = create_dao_flow(td).await?;
+
+        // funds raising: an investor buys shares
+        invests_optins_flow(algod, &investor, &dao).await?;
+        invests_flow(td, investor, buy_share_amount, &dao).await?;
+
+        // remeber state
+        let app_balance_before_withdrawing =
+            funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
+
+        // sanity check: the app has the funds raised
+        assert_eq!(
+            app_balance_before_withdrawing,
+            FundsAmount::new(buy_share_amount.val() * specs.share_price.val())
+        );
+
+        // flow
+
+        let withdraw_amount = FundsAmount::new(1_000_000);
+        let res = withdraw_flow(&algod, &dao, &td.creator, withdraw_amount, dao.app_id).await;
+
+        // test
+
+        println!("res: {res:?}");
+
+        if can_withdraw {
+            assert!(res.is_ok());
+        } else {
+            assert!(res.is_err());
+        }
 
         Ok(())
     }
