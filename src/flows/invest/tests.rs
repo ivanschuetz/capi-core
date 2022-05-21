@@ -438,7 +438,7 @@ mod tests {
         let algod = &td.algod;
 
         invests_flow(td, investor, share_amount, &dao).await?;
-        let unlock_tx_id = unlock_flow(algod, &dao, investor, dao.shares_asset_id).await?;
+        let unlock_tx_id = unlock_flow(algod, &dao, investor).await?;
         wait_for_pending_transaction(algod, &unlock_tx_id).await?;
         Ok(())
     }

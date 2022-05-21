@@ -4,6 +4,7 @@ pub mod drain;
 pub mod invest;
 pub mod lock;
 pub mod pay_dao;
+pub mod reclaim;
 pub mod shared;
 pub mod unlock;
 pub mod update_app;

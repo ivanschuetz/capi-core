@@ -2,7 +2,10 @@
 mod tests {
     use algonaut::{algod::v2::Algod, core::to_app_address, transaction::account::Account};
     use anyhow::Result;
-    use mbase::{models::{funds::FundsAmount, share_amount::ShareAmount}, state::dao_app_state::{dao_global_state, central_investor_state_from_acc}};
+    use mbase::{
+        models::{funds::FundsAmount, share_amount::ShareAmount},
+        state::dao_app_state::{central_investor_state_from_acc, dao_global_state},
+    };
     use serial_test::serial;
     use tokio::test;
 
@@ -41,7 +44,7 @@ mod tests {
 
         // flow
 
-        let unlock_tx_id = unlock_flow(algod, &dao, investor, dao.shares_asset_id).await?;
+        let unlock_tx_id = unlock_flow(algod, &dao, investor).await?;
         wait_for_pending_transaction(algod, &unlock_tx_id).await?;
 
         // test

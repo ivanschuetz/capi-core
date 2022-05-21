@@ -10,13 +10,8 @@ pub mod test {
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
 
-    pub async fn unlock_flow(
-        algod: &Algod,
-        dao: &Dao,
-        investor: &Account,
-        shares_asset_id: u64,
-    ) -> Result<TxId> {
-        let to_sign = unlock(&algod, investor.address(), dao.app_id, shares_asset_id).await?;
+    pub async fn unlock_flow(algod: &Algod, dao: &Dao, investor: &Account) -> Result<TxId> {
+        let to_sign = unlock(&algod, investor.address(), dao.app_id, dao.shares_asset_id).await?;
 
         let signed_central_app_optout = investor.sign_transaction(to_sign.central_app_optout_tx)?;
 

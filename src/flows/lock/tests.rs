@@ -2,7 +2,15 @@
 mod tests {
     use algonaut::transaction::{AcceptAsset, TransferAsset, TxnBuilder};
     use anyhow::Result;
-    use mbase::{models::{funds::FundsAmount, share_amount::ShareAmount}, state::{dao_app_state::{dao_global_state, central_investor_state_from_acc, dao_investor_state}, app_state::ApplicationLocalStateError}};
+    use mbase::{
+        models::{funds::FundsAmount, share_amount::ShareAmount},
+        state::{
+            app_state::ApplicationLocalStateError,
+            dao_app_state::{
+                central_investor_state_from_acc, dao_global_state, dao_investor_state,
+            },
+        },
+    };
     use serial_test::serial;
     use tokio::test;
 
@@ -58,7 +66,7 @@ mod tests {
 
         // investor1 unlocks
         let traded_shares = buy_share_amount;
-        let unlock_tx_id = unlock_flow(algod, &dao, &td.investor1, dao.shares_asset_id).await?;
+        let unlock_tx_id = unlock_flow(algod, &dao, &td.investor1).await?;
         wait_for_pending_transaction(algod, &unlock_tx_id).await?;
 
         // investor2 gets shares from investor1 externally
@@ -209,7 +217,7 @@ mod tests {
 
         // investor unlocks - note that partial unlocking isn't possible, only locking
 
-        let unlock_tx_id = unlock_flow(algod, &dao, &investor, dao.shares_asset_id).await?;
+        let unlock_tx_id = unlock_flow(algod, &dao, &investor).await?;
         wait_for_pending_transaction(&algod, &unlock_tx_id).await?;
 
         // sanity checks

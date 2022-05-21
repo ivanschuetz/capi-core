@@ -3,6 +3,7 @@ pub mod create_dao_flow;
 pub mod customer_payment_and_drain_flow;
 pub mod invest_in_dao_flow;
 pub mod lock_flow;
+pub mod reclaim_flow;
 pub mod unlock_flow;
 pub mod update_dao_data_flow;
 pub mod update_dao_flow;
