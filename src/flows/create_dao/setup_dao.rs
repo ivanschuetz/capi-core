@@ -70,8 +70,6 @@ pub async fn setup_dao_txs(
     )
     .build()?;
 
-    // TODO image hash
-
     let mut setup_app_tx = setup_app_tx(
         app_id,
         &creator,
