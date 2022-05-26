@@ -19,7 +19,7 @@ mod tests {
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
     use chrono::{Utc, Duration};
-    use mbase::{models::{share_amount::ShareAmount, funds::{FundsAmount, FundsAssetId}, hash::ImageHash, dao_app_id::DaoAppId}, state::dao_app_state::{dao_global_state, central_investor_state_from_acc}, api::version::VersionedAddress};
+    use mbase::{models::{share_amount::ShareAmount, funds::{FundsAmount, FundsAssetId},  dao_app_id::DaoAppId}, state::dao_app_state::{dao_global_state, central_investor_state_from_acc}, api::version::VersionedAddress};
     use rust_decimal::Decimal;
     use serial_test::serial;
     use tokio::test;
@@ -155,7 +155,7 @@ mod tests {
         td.capi_escrow_percentage = Decimal::new(0, 0).try_into().unwrap();
         td.specs = SetupDaoSpecs::new(
             "Pancakes ltd".to_owned(),
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(), 
+            None, 
             CreateSharesSpecs { 
                 token_name: "PCK".to_owned(), 
                 supply: ShareAmount::new(300),
