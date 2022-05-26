@@ -9,7 +9,7 @@ use mbase::{
     models::{
         dao_app_id::DaoAppId,
         funds::{FundsAmount, FundsAssetId},
-        image_hash::ImageHash,
+        hash::GlobalStateHash,
         share_amount::ShareAmount,
         shares_percentage::SharesPercentage,
         timestamp::Timestamp,
@@ -30,11 +30,11 @@ pub struct DaoInitData {
     pub funds_asset_id: FundsAssetId,
 
     pub project_name: String,
-    pub project_description: String,
+    pub descr_hash: Option<GlobalStateHash>,
     pub share_price: FundsAmount,
     pub investors_share: SharesPercentage,
 
-    pub image_hash: Option<ImageHash>,
+    pub image_hash: Option<GlobalStateHash>,
     pub social_media_url: String,
 
     pub owner: Address,
@@ -70,7 +70,10 @@ pub async fn setup_app_tx(
                 data.shares_asset_id.to_be_bytes().to_vec(),
                 data.funds_asset_id.0.to_be_bytes().to_vec(),
                 data.project_name.as_bytes().to_vec(),
-                data.project_description.as_bytes().to_vec(),
+                data.descr_hash
+                    .as_ref()
+                    .map(|h| h.bytes())
+                    .unwrap_or(vec![]),
                 data.share_price.val().to_be_bytes().to_vec(),
                 data.investors_share.to_u64()?.to_be_bytes().to_vec(),
                 data.image_hash

@@ -14,7 +14,7 @@ mod test {
     use algonaut::transaction::account::Account;
     use chrono::{Duration, Utc};
     use mbase::models::timestamp::Timestamp;
-    use mbase::models::{funds::FundsAmount, image_hash::ImageHash, share_amount::ShareAmount};
+    use mbase::models::{funds::FundsAmount, hash::ImageHash, share_amount::ShareAmount};
     use rust_decimal::Decimal;
 
     pub fn creator() -> Account {

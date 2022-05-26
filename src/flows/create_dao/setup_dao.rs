@@ -83,7 +83,7 @@ pub async fn setup_dao_txs(
             shares_asset_id,
             funds_asset_id,
             project_name: specs.name.clone(),
-            project_description: specs.description.clone(),
+            descr_hash: specs.descr_hash.clone(),
             share_price: specs.share_price,
             investors_share: specs.investors_share,
             image_hash: specs.image_hash.clone(),
