@@ -19,7 +19,7 @@ mod tests {
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
     use chrono::{Utc, Duration};
-    use mbase::{models::{share_amount::ShareAmount, funds::{FundsAmount, FundsAssetId},  dao_app_id::DaoAppId}, state::dao_app_state::{dao_global_state, central_investor_state_from_acc}, api::version::VersionedAddress};
+    use mbase::{models::{share_amount::ShareAmount, funds::{FundsAmount, FundsAssetId},  dao_app_id::DaoAppId, hash::GlobalStateHash}, state::dao_app_state::{dao_global_state, central_investor_state_from_acc}, api::version::VersionedAddress};
     use rust_decimal::Decimal;
     use serial_test::serial;
     use tokio::test;
@@ -162,7 +162,7 @@ mod tests {
             },
             Decimal::from_str("0.4")?.try_into()?,
             FundsAmount::new(5_000_000),
-            Some(ImageHash("test_hash".to_owned())),
+            Some(GlobalStateHash("test_hash".to_owned())),
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(250), // assumes a higher supply number
             FundsAmount::new(0), // 0 target means practically no target - we'll use different deps to test funds target

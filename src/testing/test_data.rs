@@ -13,8 +13,9 @@ mod test {
     use crate::flows::create_dao::{model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs};
     use algonaut::transaction::account::Account;
     use chrono::{Duration, Utc};
+    use mbase::models::hash::GlobalStateHash;
     use mbase::models::timestamp::Timestamp;
-    use mbase::models::{funds::FundsAmount, hash::ImageHash, share_amount::ShareAmount};
+    use mbase::models::{funds::FundsAmount, share_amount::ShareAmount};
     use rust_decimal::Decimal;
 
     pub fn creator() -> Account {
@@ -96,11 +97,11 @@ mod test {
         // unwrap: tests, and we know hardcoded data is correct
         SetupDaoSpecs::new(
             "Pancakes ltd".to_owned(),
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned(),
+            Some(GlobalStateHash("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned())),
             shares_specs(),
             Decimal::from_str("0.4").unwrap().try_into().unwrap(),
             FundsAmount::new(5_000_000),
-            Some(ImageHash("test_hash".to_owned())),
+            Some(GlobalStateHash("test_hash".to_owned())),
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(80), // unwrap: assumes a higher supply
             target,

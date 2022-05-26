@@ -14,7 +14,7 @@ mod tests {
     use anyhow::Result;
     use mbase::{
         api::version::{Version, VersionedAddress},
-        models::{funds::FundsAmount, hash::ImageHash, share_amount::ShareAmount},
+        models::{funds::FundsAmount, share_amount::ShareAmount, hash::GlobalStateHash},
         state::dao_app_state::{dao_global_state, dao_investor_state, CentralAppGlobalState},
     };
     use serial_test::serial;
@@ -118,8 +118,8 @@ mod tests {
         // arbitrary data different to the existing one
         let new_customer_escrow_address = td.investor2.address();
         let new_project_name = "new_project_name".to_owned();
-        let new_project_desc = "new_project_desc".to_owned();
-        let new_image_hash = Some(ImageHash("new_test_image_hash".to_owned()));
+        let new_project_desc = Some(GlobalStateHash("new_project_desc".to_owned()));
+        let new_image_hash = Some(GlobalStateHash("new_test_image_hash".to_owned()));
         let new_social_media_url = "new_social_media_url".to_owned();
         let new_owner = td.customer.address();
 
