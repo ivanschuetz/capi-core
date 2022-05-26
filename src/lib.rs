@@ -17,3 +17,4 @@ pub mod queries;
 pub mod roadmap;
 pub mod state;
 mod testing;
+mod reqwest_ext;

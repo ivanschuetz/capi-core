@@ -1,3 +1,4 @@
+use crate::reqwest_ext::ResponseExt;
 use anyhow::Result;
 use async_trait::async_trait;
 use mbase::models::dao_app_id::DaoAppId;
@@ -39,12 +40,23 @@ impl ImageApiImpl {
             .header("Content-Type", "application/octet-stream")
             .body(bytes)
             .send()
+            .await?
+            .to_error_if_http_error()
             .await?;
         Ok(())
     }
 
     async fn get(&self, url: &str) -> Result<Vec<u8>> {
-        Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
+        Ok(self
+            .client
+            .get(url)
+            .send()
+            .await?
+            .to_error_if_http_error()
+            .await?
+            .bytes()
+            .await?
+            .to_vec())
     }
 }
 
