@@ -1,8 +1,15 @@
-use crate::flows::create_dao::storage::load_dao::TxId;
+use crate::{
+    capi_deps::CapiAssetDaoDeps,
+    flows::{
+        create_dao::storage::load_dao::TxId,
+        drain::drain::calculate_dao_and_capi_escrow_xfer_amounts,
+    },
+};
 use algonaut::{core::Address, indexer::v2::Indexer, model::indexer::v2::QueryTransaction};
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 use mbase::{
+    checked::CheckedSub,
     date_util::timestamp_seconds_to_date,
     models::funds::{FundsAmount, FundsAssetId},
 };
@@ -20,6 +27,7 @@ pub async fn all_received_payments(
     funds_asset: FundsAssetId,
     before_time: &Option<DateTime<Utc>>,
     after_time: &Option<DateTime<Utc>>,
+    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Payment>> {
     // payments to the customer escrow
     let mut customer_escrow_payments = received_payments(
@@ -28,11 +36,21 @@ pub async fn all_received_payments(
         funds_asset,
         before_time,
         after_time,
+        capi_deps,
+        true,
     )
     .await?;
     // payments to the app escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)
-    let app_escrow_payments =
-        received_payments(indexer, &dao_address, funds_asset, before_time, after_time).await?;
+    let app_escrow_payments = received_payments(
+        indexer,
+        &dao_address,
+        funds_asset,
+        before_time,
+        after_time,
+        capi_deps,
+        false,
+    )
+    .await?;
     // filter out draining (payments from customer escrow to app escrow), which would duplicate payments to the customer escrow
     let filtered_app_escrow_payments: Vec<Payment> = app_escrow_payments
         .into_iter()
@@ -43,12 +61,14 @@ pub async fn all_received_payments(
 }
 
 /// Payments (funds xfer) to the Dao
-pub async fn received_payments(
+async fn received_payments(
     indexer: &Indexer,
     address: &Address,
     funds_asset: FundsAssetId,
     before_time: &Option<DateTime<Utc>>,
     after_time: &Option<DateTime<Utc>>,
+    capi_deps: &CapiAssetDaoDeps,
+    to_customer_escrow: bool,
 ) -> Result<Vec<Payment>> {
     log::debug!("Retrieving payment to: {:?}", address);
 
@@ -106,12 +126,35 @@ pub async fn received_payments(
                     }
                 }
 
+                let amount = FundsAmount::new(xfer_tx.amount);
+
+                // for customer escrow payments, we track the fee, to show on the UI (as otherwise possible confusion with actual project funds)
+                // NOTE that in reality this fee isn't sent here (payment to customer escrow), but when *draining*
+                // but since we remove the draining payments (xfers customer escrow -> app) (as we want the totality of payments and there may be undrained payments),
+                // we've to apply the fee in advance here
+                // practically it's correct, because no one can do anything with the escrow funds other than draining them,
+                // so (for the purpose of tracking the project's income) it's like they had already paid the fee.
+                //
+                // WARNING / TODO: this assumes a never-changing capi fee,
+                // if the fee was changed, we could be substracting the current fee from payments that were made with a different fee,
+                // making our activity protocol inaccurate. For now (MVP) like this.
+                //
+                // TODO this is a bit hacky / too specific here, as it's supposed to be general payments for any addresses
+                // for now like this. we probably should map the payments to "payments with fee" in a separate iteration
+                let fee = if to_customer_escrow {
+                    calculate_dao_and_capi_escrow_xfer_amounts(amount, capi_deps.escrow_percentage)?
+                        .capi
+                } else {
+                    FundsAmount::new(0)
+                };
+
                 payments.push(Payment {
                     tx_id: id.parse()?,
-                    amount: FundsAmount::new(xfer_tx.amount),
+                    amount,
                     sender: tx.sender.parse().map_err(Error::msg)?,
                     date: timestamp_seconds_to_date(round_time)?,
                     note: tx.note.clone(),
+                    fee,
                 })
             }
         } else {
@@ -130,4 +173,11 @@ pub struct Payment {
     pub sender: Address,
     pub date: DateTime<Utc>,
     pub note: Option<String>,
+    pub fee: FundsAmount,
+}
+
+impl Payment {
+    pub fn received_amount(&self) -> Result<FundsAmount> {
+        self.amount.sub(&self.fee)
+    }
 }

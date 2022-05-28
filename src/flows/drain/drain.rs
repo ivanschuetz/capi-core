@@ -126,7 +126,7 @@ pub async fn fetch_drain_amount_and_drain(
     .await
 }
 
-fn calculate_dao_and_capi_escrow_xfer_amounts(
+pub fn calculate_dao_and_capi_escrow_xfer_amounts(
     amount_to_drain: FundsAmount,
     capi_percentage: SharesPercentage,
 ) -> Result<DaoAndCapiDrainAmounts> {

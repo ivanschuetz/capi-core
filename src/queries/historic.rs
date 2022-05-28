@@ -38,6 +38,7 @@ pub async fn historic_dao_funds_balance(
         &Some(date),
         // &None, // debugging: fetch all
         &None,
+        capi_deps,
     )
     .await?;
     let income: u64 = received.iter().map(|p| p.amount.val()).sum();

@@ -20,6 +20,7 @@ pub struct FundsActivityEntry {
     pub amount: FundsAmount,
     pub tx_id: TxId,
     pub address: Address,
+    pub fee: FundsAmount
 }
 
 #[derive(Debug, Clone)]
@@ -49,7 +50,7 @@ pub async fn funds_activity(
         &None,
     )
     .await?;
-    // payments to the customer escrow
+    // payments to the customer and app escrows
     let payments = all_received_payments(
         indexer,
         &dao_id.0.address(),
@@ -57,6 +58,7 @@ pub async fn funds_activity(
         funds_asset,
         &None,
         &None,
+        capi_deps,
     )
     .await?;
 
@@ -70,6 +72,7 @@ pub async fn funds_activity(
             amount: withdrawal.amount,
             tx_id: withdrawal.tx_id.clone(),
             address: withdrawal.address,
+            fee: FundsAmount::new(0)
         })
     }
 
@@ -83,6 +86,7 @@ pub async fn funds_activity(
             amount: payment.amount,
             tx_id: payment.tx_id.clone(),
             address: payment.sender,
+            fee: payment.fee
         })
     }
 
