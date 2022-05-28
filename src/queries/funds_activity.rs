@@ -1,7 +1,8 @@
 use super::received_payments::all_received_payments;
 use crate::{
     api::teal_api::TealApi,
-    flows::{create_dao::storage::load_dao::TxId, withdraw::withdrawals::withdrawals}, capi_deps::CapiAssetDaoDeps,
+    capi_deps::CapiAssetDaoDeps,
+    flows::{create_dao::storage::load_dao::TxId, withdraw::withdrawals::withdrawals},
 };
 use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::Result;

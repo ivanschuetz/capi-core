@@ -14,7 +14,7 @@ mod tests {
     use anyhow::Result;
     use mbase::{
         api::version::{Version, VersionedAddress},
-        models::{funds::FundsAmount, share_amount::ShareAmount, hash::GlobalStateHash},
+        models::{funds::FundsAmount, hash::GlobalStateHash, share_amount::ShareAmount},
         state::dao_app_state::{dao_global_state, dao_investor_state, CentralAppGlobalState},
     };
     use serial_test::serial;

@@ -10,7 +10,10 @@ use crate::{
 use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE32_NOPAD;
-use mbase::{models::{dao_id::DaoId, share_amount::ShareAmount}, state::dao_app_state::dao_global_state};
+use mbase::{
+    models::{dao_id::DaoId, share_amount::ShareAmount},
+    state::dao_app_state::dao_global_state,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     convert::{TryFrom, TryInto},

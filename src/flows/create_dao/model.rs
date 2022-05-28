@@ -3,9 +3,10 @@ use algonaut::{
     core::Address,
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
 };
-use mbase::{models::{
-    dao_app_id::DaoAppId, dao_id::DaoId, funds::FundsAssetId, share_amount::ShareAmount,
-}, api::version::VersionedContractAccount};
+use mbase::{
+    api::version::VersionedContractAccount,
+    models::{dao_app_id::DaoAppId, dao_id::DaoId, funds::FundsAssetId, share_amount::ShareAmount},
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 

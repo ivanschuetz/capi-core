@@ -14,7 +14,10 @@ mod tests {
         },
     };
     use anyhow::Result;
-    use mbase::models::funds::FundsAmount;
+    use mbase::{
+        checked::{CheckedAdd, CheckedSub},
+        models::funds::FundsAmount,
+    };
     use serial_test::serial;
     use tokio::test;
 
@@ -59,13 +62,20 @@ mod tests {
         let msig_funds =
             funds_holdings(algod, &td.msig.address().address(), td.funds_asset_id).await?;
         assert_eq!(
-            msig_balance_bafore_withdrawing + withdraw_amount,
+            msig_balance_bafore_withdrawing
+                .add(&withdraw_amount)
+                .unwrap(),
             msig_funds
         );
 
         // central lost the funds
         let app_amount = funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
-        assert_eq!(app_balance_before_withdrawing - withdraw_amount, app_amount);
+        assert_eq!(
+            app_balance_before_withdrawing
+                .sub(&withdraw_amount)
+                .unwrap(),
+            app_amount
+        );
 
         // sanity check: the creator's balance didn't change
         let creator_funds = funds_holdings(algod, &td.creator.address(), td.funds_asset_id).await?;

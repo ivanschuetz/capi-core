@@ -1,16 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use std::{convert::TryInto, str::FromStr};
     use crate::{
         flows::{
             claim::claim::claimable_dividend,
-            create_dao::{
-                model::CreateSharesSpecs, setup_dao_specs::{SetupDaoSpecs},
-            },
+            create_dao::{model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs},
         },
-        state::{
-            account_state::funds_holdings,
-        },
+        state::account_state::funds_holdings,
         testing::{
             flow::claim_flow::{claim_flow, claim_precs},
             network_test_util::{test_dao_init, TestDeps},
@@ -18,10 +13,22 @@ mod tests {
     };
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
-    use chrono::{Utc, Duration};
-    use mbase::{models::{share_amount::ShareAmount, funds::{FundsAmount, FundsAssetId},  dao_app_id::DaoAppId, hash::GlobalStateHash}, state::dao_app_state::{dao_global_state, central_investor_state_from_acc}, api::version::VersionedAddress};
+    use chrono::{Duration, Utc};
+    use mbase::{
+        api::version::VersionedAddress,
+        checked::CheckedAdd,
+        checked::CheckedSub,
+        models::{
+            dao_app_id::DaoAppId,
+            funds::{FundsAmount, FundsAssetId},
+            hash::GlobalStateHash,
+            share_amount::ShareAmount,
+        },
+        state::dao_app_state::{central_investor_state_from_acc, dao_global_state},
+    };
     use rust_decimal::Decimal;
     use serial_test::serial;
+    use std::{convert::TryInto, str::FromStr};
     use tokio::test;
 
     #[test]
@@ -68,9 +75,9 @@ mod tests {
             &res.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // claimer got the amount
-            res.claimer_balance_before_claiming + dividend,
+            res.claimer_balance_before_claiming.add(&dividend).unwrap(),
             // central lost the amount
-            precs.app_balance_after_drain - dividend,
+            precs.app_balance_after_drain.sub(&dividend).unwrap(),
             // double check shares local state
             buy_share_amount,
             // only one dividend: local state is the claimed amount
@@ -134,9 +141,9 @@ mod tests {
             &res.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // claimer got the amount
-            res.claimer_balance_before_claiming + dividend,
+            res.claimer_balance_before_claiming.add(&dividend).unwrap(),
             // central lost the amount
-            precs.app_balance_after_drain - dividend,
+            precs.app_balance_after_drain.sub(&dividend).unwrap(),
             // double check shares local state
             buy_share_amount,
             // only one claim: local state is the claimed amount
@@ -155,9 +162,9 @@ mod tests {
         td.capi_escrow_percentage = Decimal::new(0, 0).try_into().unwrap();
         td.specs = SetupDaoSpecs::new(
             "Pancakes ltd".to_owned(),
-            None, 
-            CreateSharesSpecs { 
-                token_name: "PCK".to_owned(), 
+            None,
+            CreateSharesSpecs {
+                token_name: "PCK".to_owned(),
                 supply: ShareAmount::new(300),
             },
             Decimal::from_str("0.4")?.try_into()?,
@@ -166,7 +173,7 @@ mod tests {
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(250), // assumes a higher supply number
             FundsAmount::new(0), // 0 target means practically no target - we'll use different deps to test funds target
-            (Utc::now() - Duration::minutes(1)).into() // in the past means practically no funds raising period - we'll use different deps to test funds target
+            (Utc::now() - Duration::minutes(1)).into(), // in the past means practically no funds raising period - we'll use different deps to test funds target
         )?;
         Ok(td)
     }
@@ -216,9 +223,9 @@ mod tests {
             &res1.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // asset balance is the claimed amount
-            res1.claimer_balance_before_claiming + dividend,
+            res1.claimer_balance_before_claiming.add(&dividend).unwrap(),
             // central lost the amount
-            precs.app_balance_after_drain - dividend,
+            precs.app_balance_after_drain.sub(&dividend).unwrap(),
             // double check shares local state
             buy_share_amount,
             // local state is the claimed amount
@@ -244,8 +251,8 @@ mod tests {
             td.funds_asset_id,
             &res1.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
-            res1.claimer_balance_before_claiming + dividend,
-            precs.app_balance_after_drain - dividend,
+            res1.claimer_balance_before_claiming.add(&dividend).unwrap(),
+            precs.app_balance_after_drain.sub(&dividend).unwrap(),
             buy_share_amount,
             dividend,
             FundsAmount::new(0),

@@ -18,6 +18,7 @@ mod tests {
     use crate::testing::test_data::investor2;
     use algonaut::transaction::account::Account;
     use anyhow::Result;
+    use mbase::checked::{CheckedAdd, CheckedSub};
     use mbase::models::funds::FundsAmount;
     use mbase::models::share_amount::ShareAmount;
     use mbase::state::dao_app_state::{
@@ -82,9 +83,9 @@ mod tests {
 
         // investor lost algos and fees
         let investor_holdings = funds_holdings_from_account(&investor_infos, td.funds_asset_id)?;
-        let paid_amount = specs.share_price.val() * buy_share_amount.val();
+        let paid_amount = FundsAmount::new(specs.share_price.val() * buy_share_amount.val());
         assert_eq!(
-            flow_res.investor_initial_amount - paid_amount,
+            flow_res.investor_initial_amount.sub(&paid_amount).unwrap(),
             investor_holdings
         );
 
@@ -93,7 +94,10 @@ mod tests {
         let app_holdings = funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
         // app escrow received paid algos
         assert_eq!(
-            flow_res.central_escrow_initial_amount + paid_amount,
+            flow_res
+                .central_escrow_initial_amount
+                .add(&paid_amount)
+                .unwrap(),
             app_holdings
         );
         let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;

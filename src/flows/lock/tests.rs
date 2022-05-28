@@ -3,6 +3,7 @@ mod tests {
     use algonaut::transaction::{AcceptAsset, TransferAsset, TxnBuilder};
     use anyhow::Result;
     use mbase::{
+        checked::CheckedAdd,
         models::{funds::FundsAmount, share_amount::ShareAmount},
         state::{
             app_state::ApplicationLocalStateError,
@@ -155,7 +156,7 @@ mod tests {
         // the traded shares were locked and we've no more locked shares, to we expect them in the locked global state
         assert_eq!(traded_shares, dao_shares.locked);
         // with the now "returned" shares the holdings are back to the asset total supply
-        assert_eq!(dao.specs.shares_for_investors(), dao_shares.total());
+        assert_eq!(dao.specs.shares_for_investors(), dao_shares.total()?);
 
         // investor2 claims: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         let _ = claim_flow(td, &dao, &td.investor2).await;
@@ -180,7 +181,9 @@ mod tests {
 
         // the balance is increased with the claim
         assert_eq!(
-            investor2_amount_before_claim + expected_claimed_amount,
+            investor2_amount_before_claim
+                .add(&expected_claimed_amount)
+                .unwrap(),
             investor2_amount
         );
 
@@ -191,7 +194,9 @@ mod tests {
         // the claimed total was updated:
         // initial (entitled_amount_after_locking_shares: entitled amount when locking the shares) + just claimed
         assert_eq!(
-            entitled_amount_after_locking_shares + expected_claimed_amount,
+            entitled_amount_after_locking_shares
+                .add(&expected_claimed_amount)
+                .unwrap(),
             investor_state.claimed
         );
 

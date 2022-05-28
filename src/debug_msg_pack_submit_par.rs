@@ -26,7 +26,8 @@ mod tests {
     use mbase::{
         dependencies::algod_for_tests,
         models::{funds::FundsAmount, share_amount::ShareAmount},
-        util::decimal_util::AsDecimal, teal::load_teal_template,
+        teal::load_teal_template,
+        util::decimal_util::AsDecimal,
     };
     use rust_decimal::Decimal;
     use std::{convert::TryInto, str::FromStr};

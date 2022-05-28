@@ -73,7 +73,9 @@ pub async fn historic_dao_funds_balance(
 #[cfg(test)]
 mod tests {
     use crate::{
-        api::teal_api::LocalTealApi, capi_deps::{CapiAssetDaoDeps, CapiAddress}, logger::init_logger,
+        api::teal_api::LocalTealApi,
+        capi_deps::{CapiAddress, CapiAssetDaoDeps},
+        logger::init_logger,
         queries::historic::historic_dao_funds_balance,
     };
     use anyhow::Result;

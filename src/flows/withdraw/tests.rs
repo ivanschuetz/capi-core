@@ -24,6 +24,7 @@ mod tests {
     use anyhow::Result;
     use chrono::{Duration, Utc};
     use mbase::{
+        checked::{CheckedAdd, CheckedMulOther, CheckedSub},
         date_util::DateTimeExt,
         models::{
             funds::{FundsAmount, FundsAssetId},
@@ -79,9 +80,13 @@ mod tests {
             td.funds_asset_id,
             &dao.app_address(),
             // creator got the amount
-            creator_balance_bafore_withdrawing + withdraw_amount,
+            creator_balance_bafore_withdrawing
+                .add(&withdraw_amount)
+                .unwrap(),
             // central lost the withdrawn amount
-            app_balance_before_withdrawing - withdraw_amount,
+            app_balance_before_withdrawing
+                .sub(&withdraw_amount)
+                .unwrap(),
         )
         .await?;
 
@@ -124,9 +129,13 @@ mod tests {
             td.funds_asset_id,
             &dao.app_address(),
             // creator got the amount
-            creator_balance_bafore_withdrawing + withdraw_amount,
+            creator_balance_bafore_withdrawing
+                .add(&withdraw_amount)
+                .unwrap(),
             // central lost the withdrawn amount
-            app_balance_before_withdrawing - withdraw_amount,
+            app_balance_before_withdrawing
+                .sub(&withdraw_amount)
+                .unwrap(),
         )
         .await
     }
@@ -143,9 +152,12 @@ mod tests {
         let dao_specs = dao_specs();
         let investor_share_amount = ShareAmount::new(10);
 
-        let investment_amount = dao_specs.share_price * investor_share_amount.val();
+        let investment_amount = dao_specs
+            .share_price
+            .mul(investor_share_amount.val())
+            .unwrap();
 
-        let withdraw_amount = investment_amount + FundsAmount::new(1); // > investment amount (which is in the funds when withdrawing)
+        let withdraw_amount = investment_amount.add(&FundsAmount::new(1)).unwrap(); // > investment amount (which is in the funds when withdrawing)
 
         let dao = create_dao_flow(td).await?;
 

@@ -2,6 +2,7 @@ use super::account_state::asset_holdings;
 use algonaut::{algod::v2::Algod, core::to_app_address};
 use anyhow::{anyhow, Result};
 use mbase::{
+    checked::CheckedAdd,
     models::{dao_app_id::DaoAppId, share_amount::ShareAmount},
     state::dao_app_state::{dao_global_state, CentralAppGlobalState},
 };
@@ -18,8 +19,13 @@ pub struct DaoShareHoldings {
 
 impl DaoShareHoldings {
     /// The total amount of shares in the escrow
-    pub fn total(&self) -> ShareAmount {
-        ShareAmount::new(self.locked.val() + self.available.val())
+    /// This isn't expected to *normally* return an error, as locked + unlocked should < supply, which is an u64
+    pub fn total(&self) -> Result<ShareAmount> {
+        let res = self.locked.add(&self.available);
+        if let Some(e) = res.as_ref().err() {
+            log::error!("Invalid state: locked + available shares failed: {e}");
+        }
+        res
     }
 }
 

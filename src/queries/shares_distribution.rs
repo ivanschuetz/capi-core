@@ -7,7 +7,11 @@ use algonaut::{
     model::indexer::v2::{Account, AssetHolding, QueryAccount},
 };
 use anyhow::{anyhow, Result};
-use mbase::{models::{asset_amount::AssetAmount, dao_app_id::DaoAppId, share_amount::ShareAmount}, state::{dao_app_state::dao_investor_state, app_state::ApplicationLocalStateError}};
+use mbase::{
+    checked::CheckedAdd,
+    models::{asset_amount::AssetAmount, dao_app_id::DaoAppId, share_amount::ShareAmount},
+    state::{app_state::ApplicationLocalStateError, dao_app_state::dao_investor_state},
+};
 use rust_decimal::Decimal;
 
 /// Returns holders of the asset with their respective amounts and percentages.
@@ -59,7 +63,7 @@ async fn share_sholders(
 ) -> Result<Vec<ShareHolding>> {
     let free_holders = free_assets_holdings(indexer, asset_id, &to_app_address(app_id.0)).await?;
     let lockers = lockers_holdings(algod, indexer, app_id).await?;
-    let mut merged = merge(free_holders, lockers);
+    let mut merged = merge(free_holders, lockers)?;
     // sort descendingly by amount
     merged.sort_by(|h1, h2| h2.amount.val().cmp(&h1.amount.val()));
     Ok(merged)
@@ -68,7 +72,7 @@ async fn share_sholders(
 fn merge(
     free_holdings: Vec<ShareHolding>,
     locked_holdings: Vec<ShareHolding>,
-) -> Vec<ShareHolding> {
+) -> Result<Vec<ShareHolding>> {
     let mut map: HashMap<[u8; 32], ShareAmount> = free_holdings
         .iter()
         .map(|h| (h.address.0, h.amount.to_owned()))
@@ -76,18 +80,19 @@ fn merge(
 
     for holding in locked_holdings {
         if let Some(share_amount) = map.get_mut(&holding.address.0) {
-            share_amount.0 = AssetAmount(share_amount.val() + holding.amount.val());
+            *share_amount = share_amount.add(&holding.amount)?;
         } else {
             map.insert(holding.address.0, holding.amount);
         }
     }
 
-    map.into_iter()
+    Ok(map
+        .into_iter()
         .map(|(k, v)| ShareHolding {
             address: Address(k),
             amount: v,
         })
-        .collect()
+        .collect())
 }
 
 // TODO paginate? but clarify first whether we'll actually use this, it's quite expensive either way
