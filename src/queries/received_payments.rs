@@ -97,13 +97,13 @@ pub async fn received_payments(
                 if let Some(after_time) = after_time {
                     if round_time < after_time.timestamp() as u64 {
                         continue;
-                    } 
+                    }
                 }
                 // needs to be checked manually, because the query param was disabled
                 if let Some(before_time) = before_time {
                     if round_time > before_time.timestamp() as u64 {
                         continue;
-                    } 
+                    }
                 }
 
                 payments.push(Payment {

@@ -1,8 +1,6 @@
 use algonaut::{
-    algod::v2::Algod,
-    core::Address,
-    indexer::v2::Indexer,
-    model::indexer::v2::{QueryAccountTransaction},
+    algod::v2::Algod, core::Address, indexer::v2::Indexer,
+    model::indexer::v2::QueryAccountTransaction,
 };
 use chrono::{DateTime, Utc};
 use mbase::date_util::timestamp_seconds_to_date;
@@ -109,15 +107,15 @@ pub async fn withdrawals(
 
                             // needs to be checked manually, because the query param was disabled
                             if let Some(after_time) = after_time {
-                               if round_time < after_time.timestamp() as u64 {
-                                   continue;
-                               } 
+                                if round_time < after_time.timestamp() as u64 {
+                                    continue;
+                                }
                             }
                             // needs to be checked manually, because the query param was disabled
                             if let Some(before_time) = before_time {
                                 if round_time > before_time.timestamp() as u64 {
                                     continue;
-                                } 
+                                }
                             }
 
                             withdrawals.push(Withdrawal {
