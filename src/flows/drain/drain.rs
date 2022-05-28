@@ -85,7 +85,7 @@ pub async fn drain_customer_escrow(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DaoAndCapiDrainAmounts {
     pub dao: FundsAmount,
-    pub capi: FundsAmount,
+    pub capi: FundsAmount, // fee
 }
 
 pub async fn drain_amounts(
@@ -126,6 +126,7 @@ pub async fn fetch_drain_amount_and_drain(
     .await
 }
 
+/// Note: always use this function to calculate fee, to prevent possible rounding mismatches.
 pub fn calculate_dao_and_capi_escrow_xfer_amounts(
     amount_to_drain: FundsAmount,
     capi_percentage: SharesPercentage,
