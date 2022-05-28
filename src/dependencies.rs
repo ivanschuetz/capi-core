@@ -8,8 +8,7 @@ pub fn image_api() -> impl ImageApi {
 pub fn image_api_for_env(env: &Env) -> impl ImageApi {
     let host = match env {
         Env::Local => "http://localhost:8000",
-        // TODO
-        Env::Test => "http://localhost:8000",
+        Env::Test => "http://18.214.98.83:8000",
     };
     ImageApiImpl::new(host)
 }
