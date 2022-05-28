@@ -2,7 +2,7 @@ use algonaut::{
     algod::v2::Algod,
     core::Address,
     indexer::v2::Indexer,
-    model::indexer::v2::{QueryAccountTransaction, TransactionType},
+    model::indexer::v2::{QueryAccountTransaction},
 };
 use chrono::{DateTime, Utc};
 use mbase::date_util::timestamp_seconds_to_date;
@@ -34,14 +34,17 @@ pub async fn withdrawals(
 ) -> Result<Vec<Withdrawal>> {
     let dao = load_dao(algod, dao_id, api, capi_deps).await?;
 
-    let before_time_formatted = before_time.map(|t| t.to_rfc3339());
-    let after_time_formatted = after_time.map(|t| t.to_rfc3339());
+    // let before_time_formatted = before_time.map(|t| t.to_rfc3339());
+    // let after_time_formatted = after_time.map(|t| t.to_rfc3339());
 
     let query = QueryAccountTransaction {
         // TODO filter by application id here?
-        tx_type: Some(TransactionType::ApplicationTransaction),
-        before_time: before_time_formatted,
-        after_time: after_time_formatted,
+        // added to disabled_parameters..
+        // tx_type: Some(TransactionType::ApplicationTransaction),
+        // added to disabled_parameters..
+        // before_time: before_time_formatted,
+        // added to disabled_parameters..
+        // after_time: after_time_formatted,
         // For now no prefix filtering
         // Algorand's indexer has performance problems with note-prefix and it doesn't work at all with AlgoExplorer or PureStake currently:
         // https://github.com/algorand/indexer/issues/358
@@ -103,6 +106,19 @@ pub async fn withdrawals(
                                 .id
                                 .clone()
                                 .ok_or_else(|| anyhow!("Unexpected: tx has no id: {:?}", tx))?;
+
+                            // needs to be checked manually, because the query param was disabled
+                            if let Some(after_time) = after_time {
+                               if round_time < after_time.timestamp() as u64 {
+                                   continue;
+                               } 
+                            }
+                            // needs to be checked manually, because the query param was disabled
+                            if let Some(before_time) = before_time {
+                                if round_time > before_time.timestamp() as u64 {
+                                    continue;
+                                } 
+                            }
 
                             withdrawals.push(Withdrawal {
                                 amount: FundsAmount::new(xfer.amount),

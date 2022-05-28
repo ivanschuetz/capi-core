@@ -52,14 +52,16 @@ pub async fn received_payments(
 ) -> Result<Vec<Payment>> {
     log::debug!("Retrieving payment to: {:?}", address);
 
-    let before_time_formatted = before_time.map(|t| t.to_rfc3339());
-    let after_time_formatted = after_time.map(|t| t.to_rfc3339());
+    // let before_time_formatted = before_time.map(|t| t.to_rfc3339());
+    // let after_time_formatted = after_time.map(|t| t.to_rfc3339());
 
     let response = indexer
         .transactions(&QueryTransaction {
             address: Some(address.to_string()),
-            before_time: before_time_formatted,
-            after_time: after_time_formatted,
+            // added to disabled_parameters..
+            // before_time: before_time_formatted,
+            // added to disabled_parameters..
+            // after_time: after_time_formatted,
             // indexer disabled this, for performance apparently https://github.com/algorand/indexer/commit/1216e7957d5fba7c6a858e244a2aaf7e99412e5d
             // so we filter locally
             // address_role: Some(Role::Receiver),
@@ -90,6 +92,19 @@ pub async fn received_payments(
                     .id
                     .clone()
                     .ok_or_else(|| anyhow!("Unexpected: tx has no id: {:?}", tx))?;
+
+                // needs to be checked manually, because the query param was disabled
+                if let Some(after_time) = after_time {
+                    if round_time < after_time.timestamp() as u64 {
+                        continue;
+                    } 
+                }
+                // needs to be checked manually, because the query param was disabled
+                if let Some(before_time) = before_time {
+                    if round_time > before_time.timestamp() as u64 {
+                        continue;
+                    } 
+                }
 
                 payments.push(Payment {
                     tx_id: id.parse()?,
