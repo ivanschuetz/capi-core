@@ -77,7 +77,7 @@ mod tests {
         api::teal_api::LocalTealApi,
         capi_deps::{CapiAddress, CapiAssetDaoDeps},
         logger::init_logger,
-        queries::historic::historic_dao_funds_balance,
+        queries::historic_balance::historic_dao_funds_balance,
     };
     use anyhow::Result;
     use chrono::Utc;
