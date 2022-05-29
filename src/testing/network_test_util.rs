@@ -686,10 +686,10 @@ mod test {
     #[test]
     #[ignore]
     async fn send_payment() -> Result<()> {
-        let receiver = "5SU5QMNXI4I33PAYXJSRBZCQFWYU6OWPRPYH5EK57DM3JBNGAYMLIUXXNY"
+        let receiver = "OO7F7V6NG6BISF336ST4UVBTVMYNSG2BOOA3XKF5OBFP6LPMIJHRYWZRO4"
             .parse()
             .unwrap();
-        let funds_asset_id = FundsAssetId(11);
+        let funds_asset_id = FundsAssetId(12);
 
         let amount = FundsAmount::new(100_000_000);
 
