@@ -1,5 +1,4 @@
 use crate::{
-    api::teal_api::TealApi,
     capi_deps::CapiAssetDaoDeps,
     flows::create_dao::{model::Dao, storage::load_dao::load_dao},
     note::dao_setup_prefix_base64,
@@ -13,6 +12,7 @@ use algonaut::{
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 use mbase::{
+    api::teal_api::TealApi,
     models::{dao_app_id::DaoAppId, dao_id::DaoId},
     state::dao_app_state::find_state_with_a_capi_dao_id,
 };

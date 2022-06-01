@@ -7,7 +7,6 @@ pub use test::{
 #[cfg(test)]
 mod test {
     use crate::algo_helpers::{send_tx_and_wait, send_txs_and_wait};
-    use crate::api::teal_api::{LocalTealApi, TealApi};
     use crate::capi_deps::{CapiAddress, CapiAssetDaoDeps};
     use crate::files::{read_lines, write_to_file};
     use crate::flows::create_dao::setup_dao::Programs;
@@ -30,6 +29,7 @@ mod test {
     };
     use chrono::{Duration, Utc};
     use data_encoding::HEXLOWER;
+    use mbase::api::teal_api::{LocalTealApi, TealApi};
     use mbase::date_util::DateTimeExt;
     use mbase::dependencies::{
         algod, algod_for_net, algod_for_tests, indexer_for_tests, network, DataType, Env, Network,

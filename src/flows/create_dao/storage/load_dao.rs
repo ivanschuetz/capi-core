@@ -1,5 +1,4 @@
 use crate::{
-    api::{contract::Contract, teal_api::TealApi},
     capi_deps::CapiAssetDaoDeps,
     flows::create_dao::{
         model::{CreateSharesSpecs, Dao},
@@ -11,6 +10,7 @@ use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE32_NOPAD;
 use mbase::{
+    api::{contract::Contract, teal_api::TealApi},
     models::{dao_id::DaoId, share_amount::ShareAmount},
     state::dao_app_state::dao_global_state,
 };

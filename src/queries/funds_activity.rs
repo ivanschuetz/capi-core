@@ -1,15 +1,17 @@
 use super::received_payments::all_received_payments;
 use crate::{
-    api::teal_api::TealApi,
     capi_deps::CapiAssetDaoDeps,
     flows::{create_dao::storage::load_dao::TxId, withdraw::withdrawals::withdrawals},
 };
 use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use mbase::models::{
-    dao_id::DaoId,
-    funds::{FundsAmount, FundsAssetId},
+use mbase::{
+    api::teal_api::TealApi,
+    models::{
+        dao_id::DaoId,
+        funds::{FundsAmount, FundsAssetId},
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -20,7 +22,7 @@ pub struct FundsActivityEntry {
     pub amount: FundsAmount,
     pub tx_id: TxId,
     pub address: Address,
-    pub fee: FundsAmount
+    pub fee: FundsAmount,
 }
 
 #[derive(Debug, Clone)]
@@ -72,7 +74,7 @@ pub async fn funds_activity(
             amount: withdrawal.amount,
             tx_id: withdrawal.tx_id.clone(),
             address: withdrawal.address,
-            fee: FundsAmount::new(0)
+            fee: FundsAmount::new(0),
         })
     }
 
@@ -86,7 +88,7 @@ pub async fn funds_activity(
             amount: payment.amount,
             tx_id: payment.tx_id.clone(),
             address: payment.sender,
-            fee: payment.fee
+            fee: payment.fee,
         })
     }
 

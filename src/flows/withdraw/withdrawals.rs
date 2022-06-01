@@ -3,6 +3,7 @@ use algonaut::{
     model::indexer::v2::QueryAccountTransaction,
 };
 use chrono::{DateTime, Utc};
+use mbase::api::teal_api::TealApi;
 use mbase::date_util::timestamp_seconds_to_date;
 use mbase::models::{
     dao_id::DaoId,
@@ -11,7 +12,6 @@ use mbase::models::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    api::teal_api::TealApi,
     capi_deps::CapiAssetDaoDeps,
     flows::{
         create_dao::storage::load_dao::{load_dao, TxId},

@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use mbase::models::dao_app_id::DaoAppId;
 use reqwest::Client;
 
+/// Image api client
 // Send + sync assumess the implementations to be stateless
 // (also: we currently use this only in WASM, which is single threaded)
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
