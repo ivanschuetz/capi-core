@@ -8,9 +8,11 @@ pub use test::{
 mod test {
     use crate::algo_helpers::{send_tx_and_wait, send_txs_and_wait};
     use crate::capi_deps::{CapiAddress, CapiAssetDaoDeps};
+    use crate::dependencies::teal_api;
     use crate::files::{read_lines, write_to_file};
     use crate::flows::create_dao::setup_dao::Programs;
     use crate::flows::create_dao::setup_dao_specs::SetupDaoSpecs;
+    use crate::teal::TealApi;
     use crate::testing::flow::create_dao_flow::test::test_programs;
     use crate::testing::test_data::{
         dao_specs, dao_specs_with_funds_target, funds_asset_creator, msig_acc1, msig_acc2,
@@ -29,7 +31,6 @@ mod test {
     };
     use chrono::{Duration, Utc};
     use data_encoding::HEXLOWER;
-    use mbase::api::teal_api::{LocalTealApi, TealApi};
     use mbase::date_util::DateTimeExt;
     use mbase::dependencies::{
         algod, algod_for_net, algod_for_tests, indexer_for_tests, network, DataType, Env, Network,
@@ -138,7 +139,7 @@ mod test {
         Ok(TestDeps {
             algod,
             indexer: indexer_for_tests(),
-            api: Box::new(LocalTealApi {}),
+            api: Box::new(teal_api()),
             creator: creator(),
             investor1: investor1(),
             investor2: investor2(),

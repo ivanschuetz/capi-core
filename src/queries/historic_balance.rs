@@ -1,16 +1,13 @@
 use crate::{
     capi_deps::CapiAssetDaoDeps, flows::withdraw::withdrawals::withdrawals,
-    queries::received_payments::all_received_payments,
+    queries::received_payments::all_received_payments, teal::TealApi,
 };
 use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use mbase::{
-    api::teal_api::TealApi,
-    models::{
-        dao_id::DaoId,
-        funds::{FundsAmount, FundsAssetId},
-    },
+use mbase::models::{
+    dao_id::DaoId,
+    funds::{FundsAmount, FundsAssetId},
 };
 
 /// The balance of an account at some date
@@ -78,13 +75,13 @@ pub async fn historic_dao_funds_balance(
 mod tests {
     use crate::{
         capi_deps::{CapiAddress, CapiAssetDaoDeps},
+        dependencies::teal_api,
         logger::init_logger,
         queries::historic_balance::historic_dao_funds_balance,
     };
     use anyhow::Result;
     use chrono::Utc;
     use mbase::{
-        api::teal_api::LocalTealApi,
         dependencies::{algod, indexer},
         models::{dao_app_id::DaoAppId, dao_id::DaoId, funds::FundsAssetId},
     };
@@ -100,7 +97,7 @@ mod tests {
 
         let algod = algod();
         let indexer = indexer();
-        let api = LocalTealApi {};
+        let api = teal_api();
 
         // existing dao params
         let dao_id = DaoId(DaoAppId(35));

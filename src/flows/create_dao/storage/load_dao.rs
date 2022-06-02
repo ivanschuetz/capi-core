@@ -5,12 +5,13 @@ use crate::{
         setup::customer_escrow::render_and_compile_customer_escrow,
         setup_dao_specs::SetupDaoSpecs,
     },
+    teal::TealApi,
 };
 use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE32_NOPAD;
 use mbase::{
-    api::{contract::Contract, teal_api::TealApi},
+    api::contract::Contract,
     models::{dao_id::DaoId, share_amount::ShareAmount},
     state::dao_app_state::dao_global_state,
 };
@@ -41,7 +42,9 @@ pub async fn load_dao(
 
     // NOTE currently not async - trait doesn't support async out of the box (TODO)
     // will be needed especially later when fetching the TEAL from a remove location
-    let customer_escrow = api.template(Contract::DaoCustomer, dao_state.customer_escrow.version)?;
+    let customer_escrow = api
+        .template(Contract::DaoCustomer, dao_state.customer_escrow.version)
+        .await?;
 
     // TODO store this state (redundantly in the same app field), to prevent this call?
     let asset_infos = algod.asset_information(dao_state.shares_asset_id).await?;
