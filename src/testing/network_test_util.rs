@@ -537,13 +537,7 @@ mod test {
         let build_command = format!("wasm-pack build --out-dir ../wasm-build --{build_config_str}");
         let complete_build_command = format!("{vars_str} {build_command}");
 
-        // Executes a WASM test that compiles the PyTeal (from the TEAL repo) and copies the output TEAL into the WASM project,
-        // to ensure that the build's TEAL is up to date.
-        let update_teal_command = "cargo test --package wasm --lib -- teal::update_teal::test::update_teal --exact --nocapture";
-
-        let complete_command = format!("{update_teal_command}\n{complete_build_command}");
-
-        write_to_file(wasm_local_build_script_path, &complete_command)?;
+        write_to_file(wasm_local_build_script_path, &complete_build_command)?;
 
         Ok(())
     }
