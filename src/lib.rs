@@ -14,7 +14,7 @@ mod logger;
 pub mod network_util;
 mod note;
 pub mod queries;
-mod reqwest_ext;
+pub mod reqwest_ext;
 pub mod roadmap;
 pub mod state;
 pub mod teal;
