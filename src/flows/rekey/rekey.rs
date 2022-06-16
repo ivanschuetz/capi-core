@@ -1,8 +1,10 @@
-use crate::{flows::create_dao::storage::load_dao::TxId, network_util::wait_for_pending_transaction};
+use crate::{
+    flows::create_dao::storage::load_dao::TxId, network_util::wait_for_pending_transaction,
+};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
-    transaction::{ SignedTransaction, Transaction, TxnBuilder, Pay},
+    transaction::{Pay, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -10,11 +12,7 @@ use serde::{Deserialize, Serialize};
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 
-pub async fn rekey(
-    algod: &Algod,
-    to_rekey: &Address,
-    auth: &Address,
-) -> Result<RekeyToSign> {
+pub async fn rekey(algod: &Algod, to_rekey: &Address, auth: &Address) -> Result<RekeyToSign> {
     let params = algod.suggested_transaction_params().await?;
     log::debug!("Creating rekey txs, from: {to_rekey:?} to: {auth:?}");
 
@@ -27,9 +25,7 @@ pub async fn rekey(
 
     log::debug!("create rekey tx: {tx:?}");
 
-    Ok(RekeyToSign {
-        tx
-    })
+    Ok(RekeyToSign { tx })
 }
 
 pub async fn submit_rekey(algod: &Algod, signed: RekeySigned) -> Result<TxId> {

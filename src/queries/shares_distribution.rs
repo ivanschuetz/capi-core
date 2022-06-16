@@ -109,7 +109,7 @@ async fn opted_in_to_app(indexer: &Indexer, app_id: DaoAppId) -> Result<Vec<Acco
     Ok(accounts.accounts)
 }
 
-// TODO when fetching shares distr sometimes, 
+// TODO when fetching shares distr sometimes,
 // Msg("Unexpected investor local state length: 0, state: ApplicationLocalState { id: 75, key_value: [], schema: ApplicationStateSchema { num_byte_slice: 0, num_uint: 4 } }")
 // only reason for no local state should be not opted in, but here we're fetching only opted in accounts - what's going on? also don't remember having opted out the account
 async fn lockers_holdings(

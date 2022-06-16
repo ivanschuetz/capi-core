@@ -55,7 +55,7 @@ pub async fn submit_create_assets(
     signed: &CrateDaoAssetsSigned,
 ) -> Result<CreateAssetsResult> {
     log::debug!("Submitting create assets..");
-    
+
     // let txs = vec![signed.create_app.clone()];
     // mbase::teal::debug_teal_rendered(&vec![signed.create_app.clone()], "dao_app_approval")
     //     .unwrap();
