@@ -16,7 +16,7 @@ pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 
 pub async fn withdraw(
     algod: &Algod,
-    creator: Address,
+    sender: Address,
     inputs: &WithdrawalInputs,
     app_id: DaoAppId,
     funds_asset: FundsAssetId,
@@ -27,7 +27,7 @@ pub async fn withdraw(
 
     let mut app_call_tx = TxnBuilder::with(
         &params,
-        CallApplication::new(creator, app_id.0)
+        CallApplication::new(sender, app_id.0)
             .app_arguments(vec![
                 "withdraw".as_bytes().to_vec(),
                 inputs.amount.to_bytes(),
