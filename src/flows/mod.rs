@@ -10,3 +10,4 @@ pub mod unlock;
 pub mod update_app;
 pub mod update_data;
 pub mod withdraw;
+pub mod rekey;
