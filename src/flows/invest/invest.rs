@@ -36,9 +36,11 @@ pub async fn invest_txs(
     let total_price = share_price
         .val()
         .checked_mul(share_amount.val())
-        .ok_or(anyhow!(
+        .ok_or_else(|| {
+            anyhow!(
         "Share price: {share_price} multiplied by share amount: {share_amount} caused an overflow."
-    ))?;
+    )
+        })?;
 
     let mut central_app_investor_setup_tx =
         dao_app_investor_setup_tx(&params, app_id, shares_asset_id, *investor, share_amount)?;
@@ -66,9 +68,9 @@ pub async fn invest_txs(
 
     Ok(InvestToSign {
         dao: dao.to_owned(),
-        central_app_setup_tx: central_app_investor_setup_tx.clone(),
-        payment_tx: pay_price_tx.clone(),
-        shares_asset_optin_tx: shares_optin_tx.clone(),
+        central_app_setup_tx: central_app_investor_setup_tx,
+        payment_tx: pay_price_tx,
+        shares_asset_optin_tx: shares_optin_tx,
     })
 }
 

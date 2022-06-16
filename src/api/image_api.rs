@@ -75,7 +75,7 @@ impl ImageApi for ImageApiImpl {
     }
 
     fn image_url(&self, id: &str) -> String {
-        let encoded_id = urlencoding::encode(&id).to_string();
+        let encoded_id = urlencoding::encode(id).to_string();
         format!("{}/image/{}", self.host, encoded_id)
     }
 
@@ -91,7 +91,7 @@ impl ImageApi for ImageApiImpl {
     }
 
     fn descr_url(&self, id: &str) -> String {
-        let encoded_id = urlencoding::encode(&id).to_string();
+        let encoded_id = urlencoding::encode(id).to_string();
         format!("{}/descr/{}", self.host, encoded_id)
     }
 }

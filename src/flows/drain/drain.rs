@@ -78,7 +78,7 @@ pub async fn drain_customer_escrow(
     Ok(DrainCustomerEscrowToSign {
         drain_tx: signed_drain_tx,
         capi_share_tx: signed_capi_share_tx,
-        app_call_tx: app_call_tx.clone(),
+        app_call_tx,
     })
 }
 
@@ -133,7 +133,7 @@ pub fn calculate_dao_and_capi_escrow_xfer_amounts(
 ) -> Result<DaoAndCapiDrainAmounts> {
     // Take cut for $capi holders. Note floor: to match TEAL truncated division https://developer.algorand.org/docs/get-details/dapps/avm/teal/opcodes/#_2
     let amount_for_capi_holders =
-        (amount_to_drain.as_decimal() * capi_percentage.value()).floor().to_u64().ok_or(anyhow!(
+        (amount_to_drain.as_decimal() * capi_percentage.value()).floor().to_u64().ok_or_else(|| anyhow!(
             "Invalid state: amount_for_capi_holders was floored and should be always convertible to u64"
         ))?;
 
@@ -196,7 +196,7 @@ pub async fn submit_drain_customer_escrow(
         ])
         .await?;
     log::debug!("Drain customer escrow tx id: {:?}", res.tx_id);
-    Ok(res.tx_id.parse()?)
+    res.tx_id.parse()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -116,5 +116,5 @@ where
 #[allow(dead_code)]
 pub fn write_bytes_to_tmp_file(bytes: &[u8]) {
     // just a (gitignore) file in the root directory
-    fs::write(&format!("./some_bytes"), bytes).unwrap();
+    fs::write("./some_bytes", bytes).unwrap();
 }

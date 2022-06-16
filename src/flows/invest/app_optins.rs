@@ -26,5 +26,5 @@ pub async fn submit_invest_or_locking_app_optin(
     // mbase::teal::debug_teal_rendered(&signed, "dao_app_approval").unwrap();
     let res = algod.broadcast_signed_transaction(&signed).await?;
     log::debug!("Investor app optins tx id: {}", res.tx_id);
-    Ok(res.tx_id.parse()?)
+    res.tx_id.parse()
 }

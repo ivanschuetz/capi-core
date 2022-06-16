@@ -55,11 +55,11 @@ pub async fn update_data(
                 data.project_desc
                     .as_ref()
                     .map(|h| h.bytes())
-                    .unwrap_or(vec![]),
+                    .unwrap_or_default(),
                 data.image_hash
                     .as_ref()
                     .map(|h| h.bytes())
-                    .unwrap_or(vec![]),
+                    .unwrap_or_default(),
                 data.social_media_url.as_bytes().to_vec(),
                 data.owner.0.to_vec(),
                 versions_to_bytes(versions)?,
@@ -81,7 +81,7 @@ pub async fn submit_update_data(algod: &Algod, signed: UpdateDaoDataSigned) -> R
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Unlock tx id: {:?}", res.tx_id);
-    Ok(res.tx_id.parse()?)
+    res.tx_id.parse()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

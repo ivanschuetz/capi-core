@@ -36,7 +36,7 @@ pub async fn submit_update(algod: &Algod, signed: UpdateAppSigned) -> Result<TxI
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Unlock tx id: {:?}", res.tx_id);
-    Ok(res.tx_id.parse()?)
+    res.tx_id.parse()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

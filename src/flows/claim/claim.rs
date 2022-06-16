@@ -38,9 +38,7 @@ pub async fn claim(
     // pay the send divident inner tx fee
     app_call_tx.fee = app_call_tx.fee * 2;
 
-    Ok(ClaimToSign {
-        app_call_tx: app_call_tx.clone(),
-    })
+    Ok(ClaimToSign { app_call_tx })
 }
 
 pub fn claim_app_call_tx(
@@ -72,7 +70,7 @@ pub async fn submit_claim(algod: &Algod, signed: &ClaimSigned) -> Result<TxId> {
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Claim tx id: {:?}", res.tx_id);
-    Ok(res.tx_id.parse()?)
+    res.tx_id.parse()
 }
 
 /// The total claim amount the investor is entitled to, based on locked shares and the total received global state.

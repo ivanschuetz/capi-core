@@ -35,10 +35,10 @@ pub async fn send_txs_and_wait(
 
 async fn wait_for_p_tx(algod: &Algod, response: TransactionResponse) -> Result<PendingTransaction> {
     let p_tx = wait_for_pending_transaction(algod, &response.tx_id.parse()?).await?;
-    Ok(p_tx.ok_or_else(|| {
+    p_tx.ok_or_else(|| {
         anyhow!(
             "Pending tx couldn't be retrieved, tx id: {}",
             response.tx_id
         )
-    })?)
+    })
 }

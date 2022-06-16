@@ -37,15 +37,10 @@ pub async fn my_daos(
     let created = my_created_daos(algod, indexer, address, api, capi_deps).await?;
     let invested = my_current_invested_daos(algod, address, api, capi_deps).await?;
 
-    let created_map: HashMap<DaoId, Dao> = created
-        .iter()
-        .map(|d| (d.id().clone(), d.to_owned()))
-        .collect();
+    let created_map: HashMap<DaoId, Dao> = created.iter().map(|d| (d.id(), d.to_owned())).collect();
 
-    let invested_map: HashMap<DaoId, Dao> = invested
-        .iter()
-        .map(|d| (d.id().clone(), d.to_owned()))
-        .collect();
+    let invested_map: HashMap<DaoId, Dao> =
+        invested.iter().map(|d| (d.id(), d.to_owned())).collect();
 
     // Daos created by me and [created and invested] by me
     let mut daos = vec![];

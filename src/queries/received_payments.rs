@@ -43,7 +43,7 @@ pub async fn all_received_payments(
     // payments to the app escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)
     let app_escrow_payments = received_payments(
         indexer,
-        &dao_address,
+        dao_address,
         funds_asset,
         before_time,
         after_time,

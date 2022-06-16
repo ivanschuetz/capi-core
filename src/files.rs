@@ -23,7 +23,7 @@ where
         .open(path)
         .unwrap();
 
-    file.write_all(&str.as_bytes().to_vec())?;
+    file.write_all(str.as_bytes())?;
 
     Ok(())
 }

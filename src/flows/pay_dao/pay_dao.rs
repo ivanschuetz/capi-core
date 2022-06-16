@@ -31,7 +31,7 @@ pub async fn pay_dao(
 pub async fn submit_pay_dao(algod: &Algod, signed: PayDaoSigned) -> Result<TxId> {
     let res = algod.broadcast_signed_transaction(&signed.tx).await?;
     log::debug!("Pay dao tx id: {:?}", res.tx_id);
-    Ok(res.tx_id.parse()?)
+    res.tx_id.parse()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

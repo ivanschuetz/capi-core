@@ -10,6 +10,6 @@ pub fn pay(
     receiver: &Address,
     amount: MicroAlgos,
 ) -> Result<Transaction> {
-    let tx = TxnBuilder::with(&params, Pay::new(*sender, *receiver, amount).build()).build()?;
+    let tx = TxnBuilder::with(params, Pay::new(*sender, *receiver, amount).build()).build()?;
     Ok(tx)
 }

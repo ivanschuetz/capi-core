@@ -73,7 +73,7 @@ impl RoadmapItemInputs {
     fn to_roadmap_item(&self) -> Result<RoadmapItem> {
         let hash = self.hash()?;
         Ok(RoadmapItem {
-            dao_id: self.dao_id.clone(),
+            dao_id: self.dao_id,
             title: self.title.clone(),
             parent: self.parent.clone(),
             hash,

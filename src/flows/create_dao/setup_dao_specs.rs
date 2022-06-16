@@ -60,6 +60,7 @@ pub struct SetupDaoSpecs {
 }
 
 impl SetupDaoSpecs {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
         descr_hash: Option<GlobalStateHash>,

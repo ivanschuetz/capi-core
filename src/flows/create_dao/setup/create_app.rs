@@ -71,6 +71,7 @@ pub async fn create_app_tx(
     Ok(tx)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn render_and_compile_app_approval(
     algod: &Algod,
     template: &VersionedTealSourceTemplate,
@@ -117,7 +118,7 @@ pub fn render_central_app_approval_v1(
     // TODO write tests that catch incorrect/variable supply - previously it was hardcoded to 100 and everything was passing
     let investors_share_percentage = (investors_share.value() * precision.as_decimal().floor())
         .to_u64()
-        .ok_or(anyhow!("Unexpected: couldn't convert decimal to u64"))?;
+        .ok_or_else(|| anyhow!("Unexpected: couldn't convert decimal to u64"))?;
 
     let capi_share = (capi_percentage
         .value()

@@ -86,7 +86,7 @@ fn to_saved_roadmap_item(
 ) -> Result<SavedRoadmapItem> {
     Ok(SavedRoadmapItem {
         tx_id: tx_id.clone(),
-        dao_id: item.dao_id.clone(),
+        dao_id: item.dao_id,
         title: item.title.clone(),
         date: item.date,
         saved_date: timestamp_seconds_to_date(round_time)?,

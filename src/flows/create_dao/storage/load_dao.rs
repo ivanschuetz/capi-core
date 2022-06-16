@@ -65,7 +65,7 @@ pub async fn load_dao(
             dao_state.project_name.clone(),
             dao_state.project_desc.clone(),
             CreateSharesSpecs {
-                token_name: asset_infos.params.name.unwrap_or("".to_owned()),
+                token_name: asset_infos.params.name.unwrap_or_else(|| "".to_owned()),
                 supply: ShareAmount::new(asset_infos.params.total),
             },
             dao_state.investors_share,

@@ -32,8 +32,8 @@ pub async fn create_assets(
 
     let create_app_tx = &mut create_app_tx(
         algod,
-        &app_approval,
-        &app_clear,
+        app_approval,
+        app_clear,
         creator,
         specs.shares.supply,
         precision,

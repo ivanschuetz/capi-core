@@ -15,6 +15,7 @@ use mbase::models::{
 /// this should be optimized (e.g. pagination), for now it's ok since at the beginning with the beta/MVP there will not be that much txs
 ///
 /// If date is before the dao was created / had balance, the returned balance will be 0
+#[allow(clippy::too_many_arguments)]
 pub async fn historic_dao_funds_balance(
     algod: &Algod,
     indexer: &Indexer,
@@ -31,7 +32,7 @@ pub async fn historic_dao_funds_balance(
     // let before_time_formatted = date.to_rfc3339();
 
     let received = all_received_payments(
-        &indexer,
+        indexer,
         &dao_address,
         customer_escrow_address,
         funds_asset,

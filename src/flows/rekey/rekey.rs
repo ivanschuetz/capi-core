@@ -39,9 +39,9 @@ pub async fn submit_rekey(algod: &Algod, signed: RekeySigned) -> Result<TxId> {
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Rekey tx id: {:?}", res.tx_id);
 
-    let _ = wait_for_pending_transaction(&algod, &res.tx_id.parse()?).await?;
+    let _ = wait_for_pending_transaction(algod, &res.tx_id.parse()?).await?;
 
-    Ok(res.tx_id.parse()?)
+    res.tx_id.parse()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

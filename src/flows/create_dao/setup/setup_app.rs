@@ -73,13 +73,13 @@ pub async fn setup_app_tx(
                 data.descr_hash
                     .as_ref()
                     .map(|h| h.bytes())
-                    .unwrap_or(vec![]),
+                    .unwrap_or_default(),
                 data.share_price.val().to_be_bytes().to_vec(),
                 data.investors_share.to_u64()?.to_be_bytes().to_vec(),
                 data.image_hash
                     .as_ref()
                     .map(|h| h.bytes())
-                    .unwrap_or(vec![]),
+                    .unwrap_or_default(),
                 data.social_media_url.as_bytes().to_vec(),
                 data.owner.0.to_vec(),
                 versions_to_bytes(data.versions())?,

@@ -50,7 +50,7 @@ pub fn asset_holdings_from_account_if_opted_in(
         .iter()
         .find(|a| a.asset_id == asset_id)
         .map(|h| AssetAmount(h.amount))
-        .ok_or(anyhow!("Not opted in to asset: {asset_id}"))
+        .ok_or_else(|| anyhow!("Not opted in to asset: {asset_id}"))
 }
 
 pub async fn funds_holdings(

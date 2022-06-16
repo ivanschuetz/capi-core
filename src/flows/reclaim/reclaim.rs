@@ -53,7 +53,7 @@ pub async fn reclaim(
     TxGroup::assign_group_id(&mut [&mut app_call_tx, &mut shares_xfer_tx])?;
 
     Ok(ReclaimToSign {
-        app_call_tx: app_call_tx.clone(),
+        app_call_tx,
         shares_xfer_tx,
     })
 }
@@ -73,7 +73,7 @@ pub async fn submit_reclaim(algod: &Algod, signed: &ReclaimSigned) -> Result<TxI
 
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Reclaim tx id: {:?}", res.tx_id);
-    Ok(res.tx_id.parse()?)
+    res.tx_id.parse()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

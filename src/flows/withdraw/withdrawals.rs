@@ -20,6 +20,7 @@ use crate::{
 };
 use anyhow::{anyhow, Error, Result};
 
+#[allow(clippy::too_many_arguments)]
 pub async fn withdrawals(
     algod: &Algod,
     indexer: &Indexer,

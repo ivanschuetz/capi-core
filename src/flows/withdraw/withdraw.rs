@@ -58,7 +58,7 @@ pub async fn submit_withdraw(algod: &Algod, signed: &WithdrawSigned) -> Result<T
     let res = algod.broadcast_signed_transactions(&txs).await?;
     log::debug!("Withdrawal txs tx id: {}", res.tx_id);
 
-    Ok(res.tx_id.parse()?)
+    res.tx_id.parse()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

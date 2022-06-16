@@ -66,12 +66,7 @@ impl TealApi for RemoteTealApi {
             Contract::DaoCustomer => "customer",
         };
 
-        let url = format!(
-            "{}/teal/{}/{}",
-            self.host,
-            contract_str,
-            version.0.to_string()
-        );
+        let url = format!("{}/teal/{}/{}", self.host, contract_str, version.0);
         let bytes = self
             .client
             .get(url)
