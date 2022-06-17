@@ -37,8 +37,6 @@ pub struct DaoInitData {
     pub image_hash: Option<GlobalStateHash>,
     pub social_media_url: String,
 
-    pub owner: Address,
-
     pub shares_for_investors: ShareAmount,
 
     pub min_raise_target: FundsAmount,
@@ -81,7 +79,6 @@ pub async fn setup_app_tx(
                     .map(|h| h.bytes())
                     .unwrap_or_default(),
                 data.social_media_url.as_bytes().to_vec(),
-                data.owner.0.to_vec(),
                 versions_to_bytes(data.versions())?,
                 data.shares_for_investors.val().to_be_bytes().to_vec(),
                 data.min_raise_target.val().to_be_bytes().to_vec(),

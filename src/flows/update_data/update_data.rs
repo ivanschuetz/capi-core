@@ -22,8 +22,6 @@ pub struct UpdatableDaoData {
 
     pub image_hash: Option<GlobalStateHash>,
     pub social_media_url: String,
-
-    pub owner: Address,
 }
 
 pub async fn update_data(
@@ -61,7 +59,6 @@ pub async fn update_data(
                     .map(|h| h.bytes())
                     .unwrap_or_default(),
                 data.social_media_url.as_bytes().to_vec(),
-                data.owner.0.to_vec(),
                 versions_to_bytes(versions)?,
             ])
             .build(),

@@ -9,16 +9,11 @@ pub mod test {
         setup_dao::{setup_dao_txs, submit_setup_dao},
     };
     use crate::testing::network_test_util::TestDeps;
-    use algonaut::core::Address;
     use anyhow::Result;
     use mbase::api::version::{Version, VersionedTealSourceTemplate};
     use mbase::teal::load_teal_template;
 
     pub async fn create_dao_flow(td: &TestDeps) -> Result<Dao> {
-        create_dao_flow_with_owner(td, &td.creator.address()).await
-    }
-
-    pub async fn create_dao_flow_with_owner(td: &TestDeps, owner: &Address) -> Result<Dao> {
         let algod = &td.algod;
 
         // Create asset first: id needed in app template
@@ -54,7 +49,6 @@ pub mod test {
             algod,
             &td.specs,
             td.creator.address(),
-            *owner,
             create_assets_res.shares_asset_id,
             td.funds_asset_id,
             &td.programs,

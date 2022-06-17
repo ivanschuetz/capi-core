@@ -3,7 +3,7 @@ mod tests {
     use crate::testing::{
         flow::{
             claim_flow::{claim_flow, test::claim_precs_with_dao},
-            create_dao_flow::test::create_dao_flow_with_owner,
+            create_dao_flow::test::create_dao_flow,
             update_dao_flow::update_dao_flow,
         },
         network_test_util::test_dao_init,
@@ -25,7 +25,7 @@ mod tests {
         // precs
 
         let owner = &td.creator;
-        let dao = create_dao_flow_with_owner(td, &owner.address()).await?;
+        let dao = create_dao_flow(td).await?;
 
         // in this test we double-check that the update works, by being able to perform a tx that we were not able to perform before of the update.
         // the most simple tx to do this check is coincidentally updating: it's only 1 tx and the only check it's that it's signed by the owner.
@@ -80,7 +80,7 @@ mod tests {
         // precs
 
         let owner = &td.creator;
-        let dao = create_dao_flow_with_owner(td, &owner.address()).await?;
+        let dao = create_dao_flow(td).await?;
 
         // invest and claim some dividend - after this all the app's global and local variables should be set to something
 

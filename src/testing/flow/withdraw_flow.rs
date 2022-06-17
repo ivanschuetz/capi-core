@@ -87,6 +87,7 @@ pub mod test {
         })
     }
 
+    #[allow(dead_code)] // we might test msig once rekey functionality complete
     pub async fn withdraw_msig_flow(
         algod: &Algod,
         withdrawer: &TestsMsig,
@@ -120,6 +121,7 @@ pub mod test {
         Ok(())
     }
 
+    #[allow(dead_code)] // we might test msig once rekey functionality complete
     pub async fn withdraw_incomplete_msig_flow(
         algod: &Algod,
         withdrawer: &TestsMsig,

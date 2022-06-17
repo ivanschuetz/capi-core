@@ -5,7 +5,7 @@ mod tests {
         testing::{
             flow::{
                 claim_flow::{claim_flow, test::claim_precs_with_dao},
-                create_dao_flow::test::create_dao_flow_with_owner,
+                create_dao_flow::create_dao_flow,
                 update_dao_data_flow::update_dao_data_flow,
             },
             network_test_util::{test_dao_init, TestDeps},
@@ -27,7 +27,7 @@ mod tests {
         let algod = &td.algod;
 
         let owner = &td.creator;
-        let dao = create_dao_flow_with_owner(td, &owner.address()).await?;
+        let dao = create_dao_flow(td).await?;
 
         let update_data = some_data_to_update(&td);
 
@@ -56,7 +56,7 @@ mod tests {
         let algod = &td.algod;
 
         let owner = &td.creator;
-        let dao = create_dao_flow_with_owner(td, &owner.address()).await?;
+        let dao = create_dao_flow(td).await?;
 
         let update_data = some_data_to_update(&td);
 
@@ -121,7 +121,6 @@ mod tests {
         let new_project_desc = Some(GlobalStateHash("new_project_desc".to_owned()));
         let new_image_hash = Some(GlobalStateHash("new_test_image_hash".to_owned()));
         let new_social_media_url = "new_social_media_url".to_owned();
-        let new_owner = td.customer.address();
 
         UpdatableDaoData {
             customer_escrow: VersionedAddress::new(new_customer_escrow_address, Version(2)),
@@ -129,7 +128,6 @@ mod tests {
             project_desc: new_project_desc.clone(),
             image_hash: new_image_hash,
             social_media_url: new_social_media_url.clone(),
-            owner: new_owner,
         }
     }
 
@@ -139,7 +137,6 @@ mod tests {
         assert_eq!(gs.project_desc, data.project_desc);
         assert_eq!(gs.image_hash, data.image_hash);
         assert_eq!(gs.social_media_url, data.social_media_url);
-        assert_eq!(gs.owner, data.owner);
     }
 
     fn sanity_check_current_state_different_to_update_data(
@@ -151,6 +148,5 @@ mod tests {
         assert_ne!(gs.project_desc, data.project_desc);
         assert_ne!(gs.image_hash, data.image_hash);
         assert_ne!(gs.social_media_url, data.social_media_url);
-        assert_ne!(gs.owner, data.owner);
     }
 }
