@@ -85,7 +85,6 @@ pub async fn setup_dao_txs(
             investors_share: specs.investors_share,
             image_hash: specs.image_hash.clone(),
             social_media_url: specs.social_media_url.clone(),
-            shares_for_investors: specs.shares_for_investors(),
             min_raise_target: specs.raise_min_target,
             min_raise_target_end_date: specs.raise_end_date,
         },
@@ -157,12 +156,22 @@ pub async fn submit_setup_dao(
     Ok(SubmitSetupDaoResult {
         tx_id: tx_id.parse()?,
         dao: Dao {
-            specs: signed.specs,
             shares_asset_id: signed.shares_asset_id,
             funds_asset_id: signed.funds_asset_id,
             app_id: signed.app_id,
             customer_escrow: signed.customer_escrow,
             owner: signed.creator,
+
+            name: signed.specs.name,
+            descr_hash: signed.specs.descr_hash,
+            token_name: signed.specs.shares.token_name,
+            token_supply: signed.specs.shares.supply,
+            investors_share: signed.specs.investors_share,
+            share_price: signed.specs.share_price,
+            image_hash: signed.specs.image_hash,
+            social_media_url: signed.specs.social_media_url,
+            raise_end_date: signed.specs.raise_end_date,
+            raise_min_target: signed.specs.raise_min_target,
         },
     })
 }

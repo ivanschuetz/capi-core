@@ -137,10 +137,10 @@ mod tests {
         let investor2_entitled_amount = claimable_dividend(
             central_total_received,
             FundsAmount::new(0),
-            dao.specs.shares.supply,
+            dao.token_supply,
             traded_shares,
             td.precision,
-            dao.specs.investors_share,
+            dao.investors_share,
         )?;
 
         let investor_state = central_investor_state_from_acc(&investor2_infos, dao.app_id)?;
@@ -156,7 +156,7 @@ mod tests {
         // the traded shares were locked and we've no more locked shares, to we expect them in the locked global state
         assert_eq!(traded_shares, dao_shares.locked);
         // with the now "returned" shares the holdings are back to the asset total supply
-        assert_eq!(dao.specs.shares_for_investors(), dao_shares.total()?);
+        assert_eq!(td.specs.shares_for_investors(), dao_shares.total()?);
 
         // investor2 claims: doesn't get anything, because there has not been new income (customer payments) since they bought the shares
         let _ = claim_flow(td, &dao, &td.investor2).await;

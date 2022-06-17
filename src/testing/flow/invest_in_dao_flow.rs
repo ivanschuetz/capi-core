@@ -60,7 +60,7 @@ pub mod test {
             dao.shares_asset_id,
             buy_share_amount,
             td.funds_asset_id,
-            dao.specs.share_price,
+            dao.share_price,
         )
         .await?;
 

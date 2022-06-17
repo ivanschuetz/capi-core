@@ -43,14 +43,11 @@ mod tests {
         // created asset checks
         // assert_eq!(created_assets[0].params.creator, td.creator.address()); // TODO clarify creator field
         // name matches specs
-        assert_eq!(
-            created_assets[0].params.name,
-            Some(dao.specs.shares.token_name.clone())
-        );
+        assert_eq!(created_assets[0].params.name, Some(dao.token_name.clone()));
         // unit matches specs
         assert_eq!(
             created_assets[0].params.unit_name,
-            Some(dao.specs.shares.token_name.clone())
+            Some(dao.token_name.clone())
         );
         assert_eq!(td.specs.shares.supply.0, created_assets[0].params.total);
         let creator_assets = creator_infos.assets;

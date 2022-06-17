@@ -5,7 +5,15 @@ use algonaut::{
 };
 use mbase::{
     api::version::VersionedContractAccount,
-    models::{dao_app_id::DaoAppId, dao_id::DaoId, funds::FundsAssetId, share_amount::ShareAmount},
+    models::{
+        dao_app_id::DaoAppId,
+        dao_id::DaoId,
+        funds::{FundsAmount, FundsAssetId},
+        hash::GlobalStateHash,
+        share_amount::ShareAmount,
+        shares_percentage::SharesPercentage,
+        timestamp::Timestamp,
+    },
 };
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -64,11 +72,25 @@ pub struct SetupDaoSigned {
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dao {
     pub app_id: DaoAppId,
-    pub specs: SetupDaoSpecs,
     pub owner: Address,
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
     pub customer_escrow: VersionedContractAccount,
+
+    pub name: String,
+    pub descr_hash: Option<GlobalStateHash>,
+    pub token_name: String,
+    pub token_supply: ShareAmount,
+    pub investors_share: SharesPercentage,
+    pub share_price: FundsAmount,
+    pub image_hash: Option<GlobalStateHash>,
+    pub social_media_url: String, // this can be later in an extension (possibly with more links)
+    // we manage this as timestamp instead of date,
+    // to ensure correctness when storing the timestamp in TEAL / compare to current TEAL timestamp (which is in seconds)
+    // DateTime can have millis and nanoseconds too,
+    // which would e.g. break equality comparisons between these specs and the ones loaded from global state
+    pub raise_end_date: Timestamp,
+    pub raise_min_target: FundsAmount,
 }
 
 impl Dao {
@@ -88,11 +110,20 @@ impl Debug for Dao {
         f.debug_struct("Dao")
             .field("app_id", &self.app_id)
             .field("app_address()", &self.app_address())
-            .field("specs", &self.specs)
             .field("creator", &self.owner)
             .field("shares_asset_id", &self.shares_asset_id)
             .field("funds_asset_id", &self.funds_asset_id)
             .field("customer_escrow", &self.customer_escrow)
+            .field("name", &self.name)
+            .field("descr_hash", &self.descr_hash)
+            .field("token_name", &self.token_name)
+            .field("token_supply", &self.token_supply)
+            .field("investors_share", &self.investors_share)
+            .field("share_price", &self.share_price)
+            .field("image_hash", &self.image_hash)
+            .field("social_media_url", &self.social_media_url)
+            .field("raise_end_date", &self.raise_end_date)
+            .field("raise_min_target", &self.raise_min_target)
             .finish()
     }
 }

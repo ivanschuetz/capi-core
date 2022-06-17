@@ -56,7 +56,7 @@ mod tests {
         // app escrow still has all the shares
         let app_shares =
             ShareAmount(asset_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?);
-        assert_eq!(dao.specs.shares_for_investors(), app_shares);
+        assert_eq!(specs.shares_for_investors(), app_shares);
 
         // investor tests
 
@@ -103,9 +103,7 @@ mod tests {
         let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
         assert_eq!(buy_share_amount, dao_shares.locked); // bought shares added to locked shares
         assert_eq!(
-            ShareAmount::new(
-                flow_res.dao.specs.shares_for_investors().val() - buy_share_amount.val()
-            ),
+            ShareAmount::new(specs.shares_for_investors().val() - buy_share_amount.val()),
             dao_shares.available
         ); // bought shares subtracted from available shares
 
@@ -335,10 +333,10 @@ mod tests {
         let claimable_dividend = claimable_dividend(
             central_state.received,
             FundsAmount::new(0),
-            dao.specs.shares.supply,
+            dao.token_supply,
             buy_share_amount,
             td.precision,
-            dao.specs.investors_share,
+            dao.investors_share,
         )?;
 
         // investing inits the "claimed" amount to entitled amount (to prevent double claiming)
@@ -384,10 +382,10 @@ mod tests {
         let claimable_dividend = claimable_dividend(
             central_state.received,
             FundsAmount::new(0),
-            dao.specs.shares.supply,
+            dao.token_supply,
             buy_share_amount,
             td.precision,
-            dao.specs.investors_share,
+            dao.investors_share,
         )?;
 
         // locking inits the "claimed" amount to entitled amount (to prevent double claiming)
