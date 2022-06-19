@@ -222,7 +222,7 @@ mod test {
         Ok(asset_id)
     }
 
-    /// Creates the funds asset and capi-token related dependencies
+    /// Creates the funds asset and capi dependencies
     pub async fn setup_on_chain_deps(algod: &Algod, capi_owner: &Account) -> Result<OnChainDeps> {
         let params = algod.suggested_transaction_params().await?;
         let funds_asset_id = create_and_distribute_funds_asset(algod).await?;
@@ -248,6 +248,7 @@ mod test {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct OnChainDeps {
         pub funds_asset_id: FundsAssetId,
+        // the address to which the platform fees are directed
         pub capi_address: CapiAddress,
     }
 
