@@ -7,7 +7,10 @@ mod tests {
         },
         state::account_state::funds_holdings,
         testing::{
-            flow::claim_flow::{claim_flow, claim_precs},
+            flow::{
+                claim_flow::{claim_flow, claim_precs},
+                invest_in_dao_flow::invests_flow,
+            },
             network_test_util::{test_dao_init, TestDeps},
         },
     };
@@ -24,7 +27,9 @@ mod tests {
             hash::GlobalStateHash,
             share_amount::ShareAmount,
         },
-        state::dao_app_state::{central_investor_state_from_acc, dao_global_state},
+        state::dao_app_state::{
+            central_investor_state_from_acc, dao_global_state, dao_investor_state,
+        },
     };
     use rust_decimal::Decimal;
     use serial_test::serial;
@@ -312,6 +317,95 @@ mod tests {
         // check claimed local state
         assert_eq!(expected_claimed_total, investor_state.claimed);
         assert_eq!(expected_claimed_init, investor_state.claimed_init);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_pending_dividend_preserved_when_locking_again() -> Result<()> {
+        let td = test_dao_init().await?;
+        let algod = &td.algod;
+
+        let drainer = &td.investor1;
+        let claimer = &td.investor2;
+
+        // precs
+
+        // invests_optins_flow(algod, &claimer, &precs.dao).await?;
+        // invests_flow(&td, &claimer, ShareAmount::new(10), &precs.dao).await?;
+
+        let buy_share_amount = ShareAmount::new(20);
+        let pay_and_drain_amount = FundsAmount::new(10_000_000);
+
+        let precs = claim_precs(
+            &td,
+            buy_share_amount,
+            pay_and_drain_amount,
+            &drainer,
+            &claimer,
+        )
+        .await?;
+
+        // tests
+
+        // double-check investor state before investing again
+
+        let investor_state =
+            dao_investor_state(algod, &claimer.address(), precs.dao.app_id).await?;
+
+        let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
+        // this is the claimable dividend at this point - "unclaimed" because investor never claims it
+        let unclaimed_dividend = claimable_dividend(
+            central_state.received,
+            FundsAmount::new(0),
+            td.specs.shares.supply,
+            buy_share_amount,
+            td.precision,
+            td.specs.investors_share,
+        )?;
+
+        // log::debug!("{pending_dividend:?}");
+
+        // there was income and drain while invested, so investor has something to claim
+        assert!(unclaimed_dividend.val() > 0);
+
+        // the shares we just bought are in state
+        assert_eq!(buy_share_amount, investor_state.shares);
+        // invested before the dao ever drained, so claimed_init initialized to 0
+        assert_eq!(FundsAmount::new(0), investor_state.claimed_init);
+        // investor hasn't claimed anything yet, so 0
+        assert_eq!(FundsAmount::new(0), investor_state.claimed);
+
+        // investor has unclaimed dividend now
+
+        // investor buys more shares
+        let new_buy_amount = ShareAmount::new(10);
+        invests_flow(&td, &claimer, new_buy_amount, &precs.dao).await?;
+
+        let investor_state =
+            dao_investor_state(algod, &claimer.address(), precs.dao.app_id).await?;
+
+        // new total locked shares (investing locks the shares automatically)
+        let total_locked_shares = ShareAmount::new(buy_share_amount.val() + new_buy_amount.val());
+
+        let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
+        let dividend = claimable_dividend(
+            central_state.received,
+            FundsAmount::new(0),
+            td.specs.shares.supply,
+            total_locked_shares,
+            td.precision,
+            td.specs.investors_share,
+        )?;
+        // test that claimed_init is initialized to claimable dividend (based on total number of shares) MINUS unclaimed dividend
+        // the reasoning here is that we initalize "already claimed" in teal to what the investor is entitled to when locking the shares,
+        // to ensure dividend can be claimed only for the future
+        // and we substract dividend that hasn't been claimed yet, to prevent buying/locking of new shares removing not claimed dividend.
+        let expected_claim_init = FundsAmount::new(dividend.val() - unclaimed_dividend.val());
+        assert_eq!(expected_claim_init, investor_state.claimed_init);
+        // when locking shares, claimed is initialized to claim_init, so we expect it to have the same value
+        assert_eq!(expected_claim_init, investor_state.claimed);
 
         Ok(())
     }
