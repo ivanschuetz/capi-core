@@ -21,6 +21,7 @@ pub mod test {
     use mbase::models::funds::FundsAmount;
     use mbase::models::share_amount::ShareAmount;
 
+    /// invests and drains
     pub async fn claim_precs(
         td: &TestDeps,
         share_amount: ShareAmount,

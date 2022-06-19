@@ -234,7 +234,7 @@ mod tests {
             investor_state_res
         );
 
-        // investor has the unlocks shares
+        // investor has the unlocked shares
 
         let investor_infos = algod.account_information(&investor.address()).await?;
         let investor_assets = &investor_infos.assets;
