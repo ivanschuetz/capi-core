@@ -66,9 +66,6 @@ mod tests {
         // investor has shares
         assert_eq!(buy_share_amount, central_investor_state.shares);
 
-        // check that the dao id was initialized
-        assert_eq!(dao.id(), central_investor_state.dao_id);
-
         // check that claimed is 0 (nothing claimed yet)
         assert_eq!(FundsAmount::new(0), central_investor_state.claimed);
         assert_eq!(FundsAmount::new(0), central_investor_state.claimed_init);

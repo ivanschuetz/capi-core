@@ -14,7 +14,7 @@ use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 use mbase::{
     models::{dao_app_id::DaoAppId, dao_id::DaoId},
-    state::dao_app_state::find_state_with_a_capi_dao_id,
+    state::dao_app_state::matches_capi_local_state,
 };
 use std::collections::HashMap;
 
@@ -85,8 +85,8 @@ pub async fn my_current_invested_daos(
     // Check the local state from all the apps that the user is opted in for capi dao ids and collect them
     let mut my_dao_ids = vec![];
     for app in apps {
-        if let Some(dao_id) = find_state_with_a_capi_dao_id(&app)? {
-            my_dao_ids.push(dao_id)
+        if matches_capi_local_state(&app) {
+            my_dao_ids.push(DaoId(DaoAppId(app.id)))
         }
     }
 
