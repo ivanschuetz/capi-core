@@ -32,3 +32,8 @@ loggers:
     appenders:
       - console
       # - file
+  mbase:
+    level: trace
+    appenders:
+      - console
+      # - file
