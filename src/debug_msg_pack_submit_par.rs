@@ -10,12 +10,8 @@ mod tests {
         dependencies,
         flows::{
             claim::claim::{submit_claim, ClaimSigned},
-            create_dao::setup::{
-                create_app::render_central_app_approval_v1,
-                customer_escrow::{render_and_compile_customer_escrow, render_customer_escrow_v1},
-                setup_app,
-            },
-            drain::drain::{submit_drain, DrainCustomerEscrowSigned},
+            create_dao::setup::{create_app::render_central_app_approval_v1, setup_app},
+            drain::drain::{submit_drain, DrainSigned},
             invest::{invest::submit_invest, model::InvestSigned},
             withdraw::withdraw::{submit_withdraw, WithdrawSigned},
         },
@@ -79,9 +75,6 @@ mod tests {
 
         // let signed: WithdrawSigned = rmp_serde::from_slice(&bytes).unwrap();
         // submit_withdraw(&algod, &signed).await?;
-
-        // let signed: DrainCustomerEscrowSigned = rmp_serde::from_slice(&bytes).unwrap();
-        // submit_drain_customer_escrow(&algod, &signed).await?;
 
         let signed: InvestSigned = rmp_serde::from_slice(&bytes).unwrap();
         submit_invest(&algod, &signed).await?;

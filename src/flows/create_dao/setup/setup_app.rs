@@ -5,7 +5,7 @@ use algonaut::{
 };
 use anyhow::Result;
 use mbase::{
-    api::version::{versions_to_bytes, Version, VersionedAddress, Versions},
+    api::version::{versions_to_bytes, Version, Versions},
     models::{
         dao_app_id::DaoAppId,
         funds::{FundsAmount, FundsAssetId},
@@ -20,8 +20,6 @@ use mbase::{
 /// state initialized to a fixed value can be just set in TEAL / doesn't have to be passed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DaoInitData {
-    pub customer_escrow: VersionedAddress,
-
     pub app_approval_version: Version,
     pub app_clear_version: Version,
 
@@ -45,7 +43,6 @@ impl DaoInitData {
         Versions {
             app_approval: self.app_approval_version,
             app_clear: self.app_clear_version,
-            customer_escrow: self.customer_escrow.version,
         }
     }
 }
@@ -61,7 +58,6 @@ pub async fn setup_app_tx(
         params,
         CallApplication::new(*creator, app_id.0)
             .app_arguments(vec![
-                data.customer_escrow.address.0.to_vec(),
                 data.shares_asset_id.to_be_bytes().to_vec(),
                 data.funds_asset_id.0.to_be_bytes().to_vec(),
                 data.project_name.as_bytes().to_vec(),

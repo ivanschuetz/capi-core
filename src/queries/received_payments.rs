@@ -14,61 +14,14 @@ use mbase::{
     models::funds::{FundsAmount, FundsAssetId},
 };
 
-/// All the payments (funds xfer) made to the Dao
-/// This combines payments to 2 escrows: the customer and the app's escrow
-/// The payments to the app escrow coming from the customer escrow are removed, in order to not duplicate the customer escrow's payments
-/// (note that we need to query both escrows, as there can be funds in the customer escrow that haven't been drained yet)
-/// this way dates also make sense: customer payments have the date of the actual payment (xfer to customer escrow), not the draining date.
-/// (and investors buying shares, expectedly also have the date of when the share was bought)
-pub async fn all_received_payments(
-    indexer: &Indexer,
-    dao_address: &Address,
-    customer_escrow_address: &Address,
-    funds_asset: FundsAssetId,
-    before_time: &Option<DateTime<Utc>>,
-    after_time: &Option<DateTime<Utc>>,
-    capi_deps: &CapiAssetDaoDeps,
-) -> Result<Vec<Payment>> {
-    // payments to the customer escrow
-    let mut customer_escrow_payments = received_payments(
-        indexer,
-        customer_escrow_address,
-        funds_asset,
-        before_time,
-        after_time,
-        capi_deps,
-        true,
-    )
-    .await?;
-    // payments to the app escrow (either from investors buying shares, draining from customer escrow, or unexpected/not supported by the app payments)
-    let app_escrow_payments = received_payments(
-        indexer,
-        dao_address,
-        funds_asset,
-        before_time,
-        after_time,
-        capi_deps,
-        false,
-    )
-    .await?;
-    // filter out draining (payments from customer escrow to app escrow), which would duplicate payments to the customer escrow
-    let filtered_app_escrow_payments: Vec<Payment> = app_escrow_payments
-        .into_iter()
-        .filter(|p| &p.sender != customer_escrow_address)
-        .collect();
-    customer_escrow_payments.extend(filtered_app_escrow_payments);
-    Ok(customer_escrow_payments)
-}
-
-/// Payments (funds xfer) to the Dao
-async fn received_payments(
+/// Payments (funds xfer) to the Dao escrow
+pub async fn received_payments(
     indexer: &Indexer,
     address: &Address,
     funds_asset: FundsAssetId,
     before_time: &Option<DateTime<Utc>>,
     after_time: &Option<DateTime<Utc>>,
     capi_deps: &CapiAssetDaoDeps,
-    to_customer_escrow: bool,
 ) -> Result<Vec<Payment>> {
     log::debug!("Retrieving payment to: {:?}", address);
 
@@ -128,24 +81,18 @@ async fn received_payments(
 
                 let amount = FundsAmount::new(xfer_tx.amount);
 
-                // for customer escrow payments, we track the fee, to show on the UI (as otherwise possible confusion with actual project funds)
-                // NOTE that in reality this fee isn't sent here (payment to customer escrow), but when *draining*
-                // but since we remove the draining payments (xfers customer escrow -> app) (as we want the totality of payments and there may be undrained payments),
-                // we've to apply the fee in advance here
-                // practically it's correct, because no one can do anything with the escrow funds other than draining them,
-                // so (for the purpose of tracking the project's income) it's like they had already paid the fee.
-                //
-                // WARNING / TODO: this assumes a never-changing capi fee,
-                // if the fee was changed, we could be substracting the current fee from payments that were made with a different fee,
-                // making our activity protocol inaccurate. For now (MVP) like this.
-                //
-                // TODO this is a bit hacky / too specific here, as it's supposed to be general payments for any addresses
-                // for now like this. we probably should map the payments to "payments with fee" in a separate iteration
-                let fee = if to_customer_escrow {
+                // investment funds don't pay a fee - they're added immediately to withdrawable amount
+                // all other funds transfers to the app escrow have to go through draining and pay a fee
+                // TODO (low prio)?: Note that anyone can send funds transfers to the app escrow with an "invest" note
+                // making them be handled here as fee-less
+                // this might be malicious to skew the statistics / funds history, for some reason
+                // we might have to check for investments in a more robust way
+                // e.g. checking the other txs in the group (https://github.com/algorand/indexer/issues/135)
+                let fee = if tx.note == Some("invest".to_owned()) {
+                    FundsAmount::new(0)
+                } else {
                     calculate_dao_and_capi_escrow_xfer_amounts(amount, capi_deps.escrow_percentage)?
                         .capi
-                } else {
-                    FundsAmount::new(0)
                 };
 
                 payments.push(Payment {
@@ -158,8 +105,7 @@ async fn received_payments(
                 })
             }
         } else {
-            // Just a "why not" log - e.g. if we're debugging the customer escrow payments,
-            // it can be worth inspecting non payment txs as their purpose would be unclear.
+            // it can be worth inspecting non transfer txs as their purpose would be unclear.
             log::trace!("Payment receiver received a non-payment tx: {:?}", tx);
         }
     }
@@ -173,6 +119,7 @@ pub struct Payment {
     pub sender: Address,
     pub date: DateTime<Utc>,
     pub note: Option<String>,
+    // capi fee
     pub fee: FundsAmount,
 }
 

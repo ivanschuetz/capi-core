@@ -39,24 +39,18 @@ pub struct SetupInvestEscrowSigned {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SetupDaoToSign {
-    pub customer_escrow_funding_tx: Transaction,
     pub fund_app_tx: Transaction,
     pub setup_app_tx: Transaction,
     pub transfer_shares_to_app_tx: Transaction,
 
-    pub customer_escrow_optin_to_funds_asset_tx: SignedTransaction, // lsig
-
     pub specs: SetupDaoSpecs,
-    pub customer_escrow: VersionedContractAccount,
     pub creator: Address,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SetupDaoSigned {
     pub app_funding_tx: SignedTransaction,
-    pub fund_customer_escrow_tx: SignedTransaction,
     pub setup_app_tx: SignedTransaction,
-    pub customer_escrow_optin_to_funds_asset_tx: SignedTransaction, // lsig
     pub transfer_shares_to_app_tx: SignedTransaction,
 
     pub specs: SetupDaoSpecs,
@@ -64,7 +58,6 @@ pub struct SetupDaoSigned {
     pub shares_asset_id: u64,
     pub app_id: DaoAppId,
     pub funds_asset_id: FundsAssetId,
-    pub customer_escrow: VersionedContractAccount,
 }
 
 /// Note that dao doesn't know its id (DaoId), because it's generated after it's stored (it's the id of the storage tx),
@@ -75,7 +68,6 @@ pub struct Dao {
     pub owner: Address,
     pub shares_asset_id: u64,
     pub funds_asset_id: FundsAssetId,
-    pub customer_escrow: VersionedContractAccount,
 
     pub name: String,
     pub descr_hash: Option<GlobalStateHash>,
@@ -113,7 +105,6 @@ impl Debug for Dao {
             .field("creator", &self.owner)
             .field("shares_asset_id", &self.shares_asset_id)
             .field("funds_asset_id", &self.funds_asset_id)
-            .field("customer_escrow", &self.customer_escrow)
             .field("name", &self.name)
             .field("descr_hash", &self.descr_hash)
             .field("token_name", &self.token_name)

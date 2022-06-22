@@ -368,9 +368,7 @@ mod tests {
 
         // test
 
-        let my_invested_daos =
-            my_current_invested_daos(algod, &investor.address(), td.api.as_ref(), &td.dao_deps())
-                .await?;
+        let my_invested_daos = my_current_invested_daos(algod, &investor.address()).await?;
 
         assert_eq!(1, my_invested_daos.len());
         assert_eq!(dao.id(), my_invested_daos[0].id());

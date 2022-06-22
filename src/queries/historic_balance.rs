@@ -1,8 +1,8 @@
 use crate::{
     capi_deps::CapiAssetDaoDeps, flows::withdraw::withdrawals::withdrawals,
-    queries::received_payments::all_received_payments, teal::TealApi,
+    queries::received_payments::received_payments,
 };
-use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
+use algonaut::{algod::v2::Algod, indexer::v2::Indexer};
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use mbase::models::{
@@ -19,9 +19,7 @@ use mbase::models::{
 pub async fn historic_dao_funds_balance(
     algod: &Algod,
     indexer: &Indexer,
-    api: &dyn TealApi,
     funds_asset: FundsAssetId,
-    customer_escrow_address: &Address,
     dao_id: DaoId,
     capi_deps: &CapiAssetDaoDeps,
     date: DateTime<Utc>,
@@ -31,10 +29,9 @@ pub async fn historic_dao_funds_balance(
 
     // let before_time_formatted = date.to_rfc3339();
 
-    let received = all_received_payments(
+    let received = received_payments(
         indexer,
         &dao_address,
-        customer_escrow_address,
         funds_asset,
         &Some(date),
         // &None, // debugging: fetch all
@@ -48,9 +45,7 @@ pub async fn historic_dao_funds_balance(
         algod,
         indexer,
         dao_id,
-        api,
         funds_asset,
-        capi_deps,
         &Some(date),
         // &None, // debugging: fetch all
         &None,
@@ -76,7 +71,6 @@ pub async fn historic_dao_funds_balance(
 mod tests {
     use crate::{
         capi_deps::{CapiAddress, CapiAssetDaoDeps},
-        dependencies::teal_api,
         logger::init_logger,
         queries::historic_balance::historic_dao_funds_balance,
     };
@@ -98,13 +92,9 @@ mod tests {
 
         let algod = algod();
         let indexer = indexer();
-        let api = teal_api();
 
         // existing dao params
         let dao_id = DaoId(DaoAppId(35));
-        let customer_escrow_address = "XDIWDG6EAAEIKMNK64VVSRLFLDYNCRJ2LWHNCZXUY7DJV5RFPYHI4GJGVU"
-            .parse()
-            .unwrap();
         let funds_asset = FundsAssetId(11);
         let capi_deps = &CapiAssetDaoDeps {
             escrow_percentage: Decimal::from_str("0.1").unwrap().try_into()?,
@@ -113,17 +103,9 @@ mod tests {
 
         let date = Utc::now();
 
-        let balance = historic_dao_funds_balance(
-            &algod,
-            &indexer,
-            &api,
-            funds_asset,
-            &customer_escrow_address,
-            dao_id,
-            &capi_deps,
-            date,
-        )
-        .await?;
+        let balance =
+            historic_dao_funds_balance(&algod, &indexer, funds_asset, dao_id, &capi_deps, date)
+                .await?;
         println!("balance: {:?}", balance);
 
         Ok(())

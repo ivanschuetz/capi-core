@@ -13,24 +13,6 @@ use mbase::models::{
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
 
-pub async fn pay_dao(
-    algod: &Algod,
-    customer: &Address,
-    customer_escrow: &Address,
-    funds_asset_id: FundsAssetId,
-    amount: FundsAmount,
-) -> Result<PayDaoToSign> {
-    let params = algod.suggested_transaction_params().await?;
-
-    let tx = TxnBuilder::with(
-        &params,
-        TransferAsset::new(*customer, funds_asset_id.0, amount.val(), *customer_escrow).build(),
-    )
-    .build()?;
-
-    Ok(PayDaoToSign { tx })
-}
-
 pub async fn pay_dao_app(
     algod: &Algod,
     customer: &Address,

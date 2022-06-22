@@ -1,7 +1,12 @@
+use crate::flows::{
+    create_dao::storage::load_dao::{load_dao, TxId},
+    withdraw::note::base64_withdrawal_note_to_withdrawal_description,
+};
 use algonaut::{
     algod::v2::Algod, core::Address, indexer::v2::Indexer,
     model::indexer::v2::QueryAccountTransaction,
 };
+use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 use mbase::date_util::timestamp_seconds_to_date;
 use mbase::models::{
@@ -10,28 +15,16 @@ use mbase::models::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::teal::TealApi;
-use crate::{
-    capi_deps::CapiAssetDaoDeps,
-    flows::{
-        create_dao::storage::load_dao::{load_dao, TxId},
-        withdraw::note::base64_withdrawal_note_to_withdrawal_description,
-    },
-};
-use anyhow::{anyhow, Error, Result};
-
 #[allow(clippy::too_many_arguments)]
 pub async fn withdrawals(
     algod: &Algod,
     indexer: &Indexer,
     dao_id: DaoId,
-    api: &dyn TealApi,
     funds_asset: FundsAssetId,
-    capi_deps: &CapiAssetDaoDeps,
     before_time: &Option<DateTime<Utc>>,
     after_time: &Option<DateTime<Utc>>,
 ) -> Result<Vec<Withdrawal>> {
-    let dao = load_dao(algod, dao_id, api, capi_deps).await?;
+    let dao = load_dao(algod, dao_id).await?;
 
     // let before_time_formatted = before_time.map(|t| t.to_rfc3339());
     // let after_time_formatted = after_time.map(|t| t.to_rfc3339());

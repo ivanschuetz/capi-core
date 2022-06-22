@@ -1,8 +1,7 @@
-use super::received_payments::all_received_payments;
+use super::received_payments::received_payments;
 use crate::{
     capi_deps::CapiAssetDaoDeps,
     flows::{create_dao::storage::load_dao::TxId, withdraw::withdrawals::withdrawals},
-    teal::TealApi,
 };
 use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::Result;
@@ -34,27 +33,14 @@ pub async fn funds_activity(
     algod: &Algod,
     indexer: &Indexer,
     dao_id: DaoId,
-    customer_escrow_address: &Address,
-    api: &dyn TealApi,
     capi_deps: &CapiAssetDaoDeps,
     funds_asset: FundsAssetId,
 ) -> Result<Vec<FundsActivityEntry>> {
-    let withdrawals = withdrawals(
-        algod,
-        indexer,
-        dao_id,
-        api,
-        funds_asset,
-        capi_deps,
-        &None,
-        &None,
-    )
-    .await?;
+    let withdrawals = withdrawals(algod, indexer, dao_id, funds_asset, &None, &None).await?;
     // payments to the customer and app escrows
-    let payments = all_received_payments(
+    let payments = received_payments(
         indexer,
         &dao_id.0.address(),
-        customer_escrow_address,
         funds_asset,
         &None,
         &None,

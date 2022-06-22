@@ -19,14 +19,10 @@ pub async fn claim_diagnostics(
 
     let app_balance = funds_holdings(algod, &dao.app_address(), dao.funds_asset_id).await?;
 
-    let customer_escrow_balance =
-        funds_holdings(algod, dao.customer_escrow.address(), dao.funds_asset_id).await?;
-
     Ok(ClaimDiagnostics {
         central_total_received,
         already_claimed: central_investor_state.claimed,
-        central_balance: app_balance,
-        customer_escrow_balance,
+        app_balance,
         investor_share_amount: central_investor_state.shares,
     })
 }
@@ -34,8 +30,7 @@ pub async fn claim_diagnostics(
 pub struct ClaimDiagnostics {
     pub central_total_received: FundsAmount,
     pub already_claimed: FundsAmount,
-    pub central_balance: FundsAmount,
-    pub customer_escrow_balance: FundsAmount,
+    pub app_balance: FundsAmount,
     // pub investor_balance: Funds,
     pub investor_share_amount: ShareAmount,
 }
@@ -49,11 +44,7 @@ pub async fn log_claim_diagnostics(algod: &Algod, investor: &Address, dao: &Dao)
 
     log::info!("central_total_received: {:?}", diag.central_total_received);
     log::info!("already_claimed: {:?}", diag.already_claimed);
-    log::info!("central_balance: {:?}", diag.central_balance);
-    log::info!(
-        "customer_escrow_balance: {:?}",
-        diag.customer_escrow_balance
-    );
+    log::info!("app_balance: {:?}", diag.app_balance);
     log::info!("investor_share_count: {:?}", diag.investor_share_amount);
 
     log::info!("//////////////////////////////////////////////////////////");

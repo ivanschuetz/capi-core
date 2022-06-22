@@ -2,7 +2,7 @@
 pub use test::create_dao_flow;
 #[cfg(test)]
 pub mod test {
-    use crate::flows::create_dao::setup_dao::{Escrows, Programs};
+    use crate::flows::create_dao::setup_dao::Programs;
     use crate::flows::create_dao::{
         model::{Dao, SetupDaoSigned},
         setup::create_shares::{create_assets, submit_create_assets, CrateDaoAssetsSigned},
@@ -54,13 +54,9 @@ pub mod test {
             &td.programs,
             td.precision,
             create_assets_res.app_id,
-            &td.dao_deps(),
         )
         .await?;
 
-        let fund_customer_escrow_tx = td
-            .creator
-            .sign_transaction(to_sign.customer_escrow_funding_tx)?;
         let signed_fund_app_tx = td.creator.sign_transaction(to_sign.fund_app_tx)?;
         let signed_setup_app_tx = td.creator.sign_transaction(to_sign.setup_app_tx)?;
         let signed_transfer_shares_to_app_tx = td
@@ -77,12 +73,8 @@ pub mod test {
                 creator: td.creator.address(),
                 shares_asset_id: create_assets_res.shares_asset_id,
                 funds_asset_id: td.funds_asset_id.clone(),
-                fund_customer_escrow_tx,
-                customer_escrow_optin_to_funds_asset_tx: to_sign
-                    .customer_escrow_optin_to_funds_asset_tx,
                 app_funding_tx: signed_fund_app_tx,
                 setup_app_tx: signed_setup_app_tx,
-                customer_escrow: to_sign.customer_escrow,
                 app_id: create_assets_res.app_id,
                 transfer_shares_to_app_tx: signed_transfer_shares_to_app_tx,
             },
@@ -104,12 +96,6 @@ pub mod test {
                 load_teal_template("dao_app_clear")?,
                 Version(1),
             ),
-            escrows: Escrows {
-                customer_escrow: VersionedTealSourceTemplate::new(
-                    load_teal_template("customer_escrow")?,
-                    Version(1),
-                ),
-            },
         })
     }
 }

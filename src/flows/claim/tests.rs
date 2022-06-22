@@ -18,7 +18,6 @@ mod tests {
     use anyhow::Result;
     use chrono::{Duration, Utc};
     use mbase::{
-        api::version::VersionedAddress,
         checked::CheckedAdd,
         checked::CheckedSub,
         models::{
@@ -79,7 +78,6 @@ mod tests {
             &claimer,
             res.dao.app_id,
             td.funds_asset_id,
-            &res.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // claimer got the amount
             res.claimer_balance_before_claiming.add(&dividend).unwrap(),
@@ -149,7 +147,6 @@ mod tests {
             &claimer,
             res.dao.app_id,
             td.funds_asset_id,
-            &res.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // claimer got the amount
             res.claimer_balance_before_claiming.add(&dividend).unwrap(),
@@ -231,7 +228,6 @@ mod tests {
             &claimer,
             res1.dao.app_id,
             td.funds_asset_id,
-            &res1.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             // asset balance is the claimed amount
             res1.claimer_balance_before_claiming.add(&dividend).unwrap(),
@@ -262,7 +258,6 @@ mod tests {
             &claimer,
             res1.dao.app_id,
             td.funds_asset_id,
-            &res1.dao.customer_escrow.to_versioned_address(),
             precs.drain_res.drained_amounts.dao,
             res1.claimer_balance_before_claiming.add(&dividend).unwrap(),
             precs.app_balance_after_drain.sub(&dividend).unwrap(),
@@ -285,7 +280,6 @@ mod tests {
         claimer: &Account,
         app_id: DaoAppId,
         funds_asset_id: FundsAssetId,
-        customer_escrow_address: &VersionedAddress,
         // this parameter isn't ideal: it assumes that we did a (one) drain before claiming
         // for now letting it there as it's a quick refactoring
         // arguably needed, it tests basically that the total received global state isn't affected by claiming
@@ -308,11 +302,7 @@ mod tests {
         // the total received didn't change
         // (i.e. same as expected after draining, claiming doesn't affect it)
         let global_state = dao_global_state(algod, app_id).await?;
-        log::debug!("??? global state2: {global_state:?}");
         assert_eq!(global_state.received, drained_amount);
-
-        // sanity check: global state addresses are set
-        assert_eq!(&global_state.customer_escrow, customer_escrow_address);
 
         // claimer local state: test that it was incremented by amount claimed
         // Only one local variable used

@@ -1,13 +1,8 @@
-use crate::{
-    capi_deps::CapiAssetDaoDeps,
-    flows::create_dao::{model::Dao, setup::customer_escrow::render_and_compile_customer_escrow},
-    teal::TealApi,
-};
-use algonaut::{algod::v2::Algod, core::Address, crypto::HashDigest};
+use crate::flows::create_dao::model::Dao;
+use algonaut::{algod::v2::Algod, crypto::HashDigest};
 use anyhow::{anyhow, Result};
 use data_encoding::BASE32_NOPAD;
 use mbase::{
-    api::contract::Contract,
     models::{dao_id::DaoId, share_amount::ShareAmount},
     state::dao_app_state::dao_global_state,
 };
@@ -24,44 +19,21 @@ use std::{
 /// - Call to retrieve asset information (supply etc, using the asset id stored in the app state)
 /// - Calls to render and compile ALL the escrows (parallelized - 2 batches)
 /// TODO parallelize more (and outside of this function, try to cache the dao, etc. to not have to call this often)
-pub async fn load_dao(
-    algod: &Algod,
-    dao_id: DaoId,
-    api: &dyn TealApi,
-    capi_deps: &CapiAssetDaoDeps,
-) -> Result<Dao> {
+pub async fn load_dao(algod: &Algod, dao_id: DaoId) -> Result<Dao> {
     let app_id = dao_id.0;
 
     log::debug!("Fetching dao with id: {:?}", app_id);
 
     let dao_state = dao_global_state(algod, app_id).await?;
 
-    // NOTE currently not async - trait doesn't support async out of the box (TODO)
-    // will be needed especially later when fetching the TEAL from a remove location
-    let customer_escrow = api
-        .template(Contract::DaoCustomer, dao_state.customer_escrow.version)
-        .await?;
-
     // TODO store this state (redundantly in the same app field), to prevent this call?
     let asset_infos = algod.asset_information(dao_state.shares_asset_id).await?;
-
-    // Render and compile escrows
-    let customer_escrow_account =
-        render_and_compile_customer_escrow(algod, &customer_escrow, &capi_deps.address, app_id)
-            .await?;
-
-    // validate the generated programs against the addresses stored in the app
-    expect_match(
-        &dao_state.customer_escrow.address,
-        customer_escrow_account.account.address(),
-    )?;
 
     let dao = Dao {
         funds_asset_id: dao_state.funds_asset_id,
         owner: dao_state.owner,
         shares_asset_id: dao_state.shares_asset_id,
         app_id,
-        customer_escrow: customer_escrow_account,
 
         name: dao_state.project_name.clone(),
         descr_hash: dao_state.project_desc.clone(),
@@ -76,13 +48,6 @@ pub async fn load_dao(
     };
 
     Ok(dao)
-}
-
-fn expect_match(stored_address: &Address, generated_address: &Address) -> Result<()> {
-    if stored_address != generated_address {
-        return Err(anyhow!("Stored address: {stored_address:?} doesn't match with generated address: {generated_address:?}"));
-    }
-    Ok(())
 }
 
 #[derive(Debug, Clone, Eq, Serialize, Deserialize)]

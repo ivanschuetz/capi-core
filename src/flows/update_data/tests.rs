@@ -8,12 +8,11 @@ mod tests {
                 create_dao_flow::create_dao_flow,
                 update_dao_data_flow::update_dao_data_flow,
             },
-            network_test_util::{test_dao_init, TestDeps},
+            network_test_util::test_dao_init,
         },
     };
     use anyhow::Result;
     use mbase::{
-        api::version::{Version, VersionedAddress},
         models::{funds::FundsAmount, hash::GlobalStateHash, share_amount::ShareAmount},
         state::dao_app_state::{dao_global_state, dao_investor_state, CentralAppGlobalState},
     };
@@ -29,7 +28,7 @@ mod tests {
         let owner = &td.creator;
         let dao = create_dao_flow(td).await?;
 
-        let update_data = some_data_to_update(&td);
+        let update_data = some_data_to_update();
 
         // precs
 
@@ -58,7 +57,7 @@ mod tests {
         let owner = &td.creator;
         let dao = create_dao_flow(td).await?;
 
-        let update_data = some_data_to_update(&td);
+        let update_data = some_data_to_update();
 
         // precs
 
@@ -114,16 +113,14 @@ mod tests {
         Ok(())
     }
 
-    fn some_data_to_update(td: &TestDeps) -> UpdatableDaoData {
+    fn some_data_to_update() -> UpdatableDaoData {
         // arbitrary data different to the existing one
-        let new_customer_escrow_address = td.investor2.address();
         let new_project_name = "new_project_name".to_owned();
         let new_project_desc = Some(GlobalStateHash("new_project_desc".to_owned()));
         let new_image_hash = Some(GlobalStateHash("new_test_image_hash".to_owned()));
         let new_social_media_url = "new_social_media_url".to_owned();
 
         UpdatableDaoData {
-            customer_escrow: VersionedAddress::new(new_customer_escrow_address, Version(2)),
             project_name: new_project_name.clone(),
             project_desc: new_project_desc.clone(),
             image_hash: new_image_hash,
@@ -132,7 +129,6 @@ mod tests {
     }
 
     fn validate_global_state_with_update_data(gs: &CentralAppGlobalState, data: &UpdatableDaoData) {
-        assert_eq!(gs.customer_escrow, data.customer_escrow);
         assert_eq!(gs.project_name, data.project_name);
         assert_eq!(gs.project_desc, data.project_desc);
         assert_eq!(gs.image_hash, data.image_hash);
@@ -143,7 +139,6 @@ mod tests {
         gs: &CentralAppGlobalState,
         data: &UpdatableDaoData,
     ) {
-        assert_ne!(gs.customer_escrow, data.customer_escrow);
         assert_ne!(gs.project_name, data.project_name);
         assert_ne!(gs.project_desc, data.project_desc);
         assert_ne!(gs.image_hash, data.image_hash);

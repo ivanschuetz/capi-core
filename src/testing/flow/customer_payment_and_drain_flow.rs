@@ -7,8 +7,7 @@ pub mod test {
         flows::create_dao::model::Dao,
         flows::create_dao::storage::load_dao::TxId,
         flows::drain::drain::{
-            drain, submit_drain, to_drain_amounts, DaoAndCapiDrainAmounts,
-            DrainCustomerEscrowSigned,
+            drain, submit_drain, to_drain_amounts, DaoAndCapiDrainAmounts, DrainSigned,
         },
         flows::pay_dao::pay_dao::{pay_dao_app, submit_pay_dao, PayDaoSigned},
         network_util::wait_for_pending_transaction,
@@ -78,7 +77,7 @@ pub mod test {
 
         let drain_tx_id = submit_drain(
             &algod,
-            &DrainCustomerEscrowSigned {
+            &DrainSigned {
                 app_call_tx_signed: app_call_tx_signed.clone(),
             },
         )

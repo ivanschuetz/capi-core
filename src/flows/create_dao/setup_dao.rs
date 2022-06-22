@@ -3,14 +3,10 @@ use super::{
     setup_dao_specs::SetupDaoSpecs,
 };
 use crate::{
-    capi_deps::CapiAssetDaoDeps,
     common_txs::pay,
     flows::create_dao::{
         model::Dao,
-        setup::{
-            customer_escrow::setup_customer_escrow,
-            setup_app::{setup_app_tx, DaoInitData},
-        },
+        setup::setup_app::{setup_app_tx, DaoInitData},
     },
 };
 use algonaut::{
@@ -34,7 +30,6 @@ pub async fn setup_dao_txs(
     programs: &Programs,
     precision: u64,
     app_id: DaoAppId,
-    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<SetupDaoToSign> {
     log::debug!(
         "Creating dao with specs: {:?}, shares_asset_id: {}, precision: {}",
@@ -44,17 +39,6 @@ pub async fn setup_dao_txs(
     );
 
     let params = algod.suggested_transaction_params().await?;
-
-    let mut customer_to_sign = setup_customer_escrow(
-        algod,
-        &creator,
-        &programs.escrows.customer_escrow,
-        &params,
-        funds_asset_id,
-        &capi_deps.address,
-        app_id,
-    )
-    .await?;
 
     // The non-investor shares currently just stay in the creator's wallet
     let mut transfer_shares_to_app_tx = TxnBuilder::with(
@@ -74,7 +58,6 @@ pub async fn setup_dao_txs(
         &creator,
         &params,
         &DaoInitData {
-            customer_escrow: customer_to_sign.escrow.to_versioned_address(),
             app_approval_version: programs.central_app_approval.version,
             app_clear_version: programs.central_app_clear.version,
             shares_asset_id,
@@ -100,15 +83,8 @@ pub async fn setup_dao_txs(
     TxGroup::assign_group_id(&mut [
         &mut fund_app_tx,
         &mut setup_app_tx,
-        &mut customer_to_sign.fund_min_balance_tx,
-        &mut customer_to_sign.optin_to_funds_asset_tx,
         &mut transfer_shares_to_app_tx,
     ])?;
-
-    let customer_escrow_optin_to_funds_asset_tx_signed = customer_to_sign
-        .escrow
-        .account
-        .sign(customer_to_sign.optin_to_funds_asset_tx, vec![])?;
 
     Ok(SetupDaoToSign {
         specs: specs.to_owned(),
@@ -116,11 +92,6 @@ pub async fn setup_dao_txs(
 
         fund_app_tx,
         setup_app_tx,
-
-        customer_escrow: customer_to_sign.escrow,
-
-        customer_escrow_funding_tx: customer_to_sign.fund_min_balance_tx,
-        customer_escrow_optin_to_funds_asset_tx: customer_escrow_optin_to_funds_asset_tx_signed,
 
         transfer_shares_to_app_tx,
     })
@@ -140,8 +111,6 @@ pub async fn submit_setup_dao(
     let signed_txs = vec![
         signed.app_funding_tx,
         signed.setup_app_tx,
-        signed.fund_customer_escrow_tx,
-        signed.customer_escrow_optin_to_funds_asset_tx,
         signed.transfer_shares_to_app_tx,
     ];
 
@@ -159,7 +128,6 @@ pub async fn submit_setup_dao(
             shares_asset_id: signed.shares_asset_id,
             funds_asset_id: signed.funds_asset_id,
             app_id: signed.app_id,
-            customer_escrow: signed.customer_escrow,
             owner: signed.creator,
 
             name: signed.specs.name,
@@ -180,14 +148,9 @@ pub async fn submit_setup_dao(
 pub struct Programs {
     pub central_app_approval: VersionedTealSourceTemplate,
     pub central_app_clear: VersionedTealSourceTemplate,
-    pub escrows: Escrows,
 }
 
-#[derive(Debug)]
-pub struct Escrows {
-    pub customer_escrow: VersionedTealSourceTemplate,
-}
-
+// TODO remove
 /// TEAL related to the capi token
 #[derive(Debug)]
 pub struct CapiPrograms {

@@ -16,7 +16,7 @@ mod tests {
 
         let created_dao = create_dao_flow(&td).await?;
 
-        let loaded_dao = load_dao(algod, created_dao.id(), td.api.as_ref(), &td.dao_deps()).await?;
+        let loaded_dao = load_dao(algod, created_dao.id()).await?;
 
         assert_eq!(created_dao, loaded_dao);
 

@@ -1,8 +1,6 @@
 use crate::{
-    capi_deps::CapiAssetDaoDeps,
     flows::create_dao::{model::Dao, storage::load_dao::load_dao},
     note::dao_setup_prefix_base64,
-    teal::TealApi,
 };
 use algonaut::{
     algod::v2::Algod,
@@ -31,11 +29,9 @@ pub async fn my_daos(
     algod: &Algod,
     indexer: &Indexer,
     address: &Address,
-    api: &dyn TealApi,
-    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<MyStoredDao>> {
-    let created = my_created_daos(algod, indexer, address, api, capi_deps).await?;
-    let invested = my_current_invested_daos(algod, address, api, capi_deps).await?;
+    let created = my_created_daos(algod, indexer, address).await?;
+    let invested = my_current_invested_daos(algod, address).await?;
 
     let created_map: HashMap<DaoId, Dao> = created.iter().map(|d| (d.id(), d.to_owned())).collect();
 
@@ -70,12 +66,7 @@ pub async fn my_daos(
 /// Returns daos where the user is invested. Meaning: has currently locked shares (more exactly a local state containing the dao id).
 /// (Daos for non-locked shares, where the user opted out, or where the local state was deleted (externally) don't count).
 /// TODO can this be improved, now that we use URL->app id?
-pub async fn my_current_invested_daos(
-    algod: &Algod,
-    address: &Address,
-    api: &dyn TealApi,
-    capi_deps: &CapiAssetDaoDeps,
-) -> Result<Vec<Dao>> {
+pub async fn my_current_invested_daos(algod: &Algod, address: &Address) -> Result<Vec<Dao>> {
     log::debug!("Retrieving my current invested daos from: {:?}", address);
 
     let account = algod.account_information(address).await?;
@@ -94,7 +85,7 @@ pub async fn my_current_invested_daos(
     for dao_id in my_dao_ids {
         // If there's a dao id and there are no bugs, there should *always* be a dao - as the ids are on-chain tx ids
         // and these tx should have the properly formatted dao data in the note field
-        let dao = load_dao(algod, dao_id, api, capi_deps).await?;
+        let dao = load_dao(algod, dao_id).await?;
         my_daos.push(dao);
     }
 
@@ -111,8 +102,6 @@ pub async fn my_created_daos(
     algod: &Algod,
     indexer: &Indexer,
     address: &Address,
-    api: &dyn TealApi,
-    capi_deps: &CapiAssetDaoDeps,
 ) -> Result<Vec<Dao>> {
     log::debug!("Retrieving my created daos from: {:?}", address);
 
@@ -145,7 +134,7 @@ pub async fn my_created_daos(
                         }
                         let dao_id = DaoId(DaoAppId(app_id));
 
-                        let dao = load_dao(algod, dao_id, api, capi_deps).await?;
+                        let dao = load_dao(algod, dao_id).await?;
                         my_daos.push(dao);
                     }
                 }

@@ -94,10 +94,6 @@ mod tests {
         td: &TestDeps,
     ) -> Result<()> {
         let state = dao_global_state(algod, dao.app_id).await?;
-        assert_eq!(
-            dao.customer_escrow.to_versioned_address(),
-            state.customer_escrow
-        );
         assert_eq!(td.funds_asset_id, state.funds_asset_id);
         assert_eq!(dao.shares_asset_id, state.shares_asset_id);
         assert_eq!(FundsAmount::new(0), state.received);

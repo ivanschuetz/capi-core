@@ -28,7 +28,7 @@ pub async fn drain(
     funds_asset_id: FundsAssetId,
     capi_deps: &CapiAssetDaoDeps,
     amounts: &DaoAndCapiDrainAmounts,
-) -> Result<DrainCustomerEscrowToSign> {
+) -> Result<DrainToSign> {
     log::debug!("Will create drain txs, amounts: {amounts:?}");
 
     let params = algod.suggested_transaction_params().await?;
@@ -39,7 +39,7 @@ pub async fn drain(
     // pay for the capi fee inner tx
     app_call_tx.fee = app_call_tx.fee * 2;
 
-    Ok(DrainCustomerEscrowToSign { app_call_tx })
+    Ok(DrainToSign { app_call_tx })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,7 +77,7 @@ pub async fn fetch_drain_amount_and_drain(
     app_id: DaoAppId,
     funds_asset_id: FundsAssetId,
     capi_deps: &CapiAssetDaoDeps,
-) -> Result<DrainCustomerEscrowToSign> {
+) -> Result<DrainToSign> {
     let amounts =
         to_drain_amounts(algod, capi_deps.escrow_percentage, funds_asset_id, app_id).await?;
 
@@ -121,7 +121,7 @@ pub fn drain_app_call_tx(
     Ok(tx)
 }
 
-pub async fn submit_drain(algod: &Algod, signed: &DrainCustomerEscrowSigned) -> Result<TxId> {
+pub async fn submit_drain(algod: &Algod, signed: &DrainSigned) -> Result<TxId> {
     log::debug!("calling submit drain..");
 
     // mbase::teal::debug_teal_rendered(&[signed.app_call_tx_signed.clone()], "dao_app_approval")
@@ -130,16 +130,15 @@ pub async fn submit_drain(algod: &Algod, signed: &DrainCustomerEscrowSigned) -> 
     let res = algod
         .broadcast_signed_transactions(&[signed.app_call_tx_signed.clone()])
         .await?;
-    log::debug!("Drain customer escrow tx id: {:?}", res.tx_id);
     res.tx_id.parse()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DrainCustomerEscrowToSign {
+pub struct DrainToSign {
     pub app_call_tx: Transaction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DrainCustomerEscrowSigned {
+pub struct DrainSigned {
     pub app_call_tx_signed: SignedTransaction,
 }

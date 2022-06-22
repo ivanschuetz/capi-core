@@ -6,7 +6,7 @@ use algonaut::{
 };
 use anyhow::Result;
 use mbase::{
-    api::version::{versions_to_bytes, VersionedAddress, Versions},
+    api::version::{versions_to_bytes, Versions},
     models::{dao_app_id::DaoAppId, hash::GlobalStateHash},
     state::dao_app_state::dao_global_state,
 };
@@ -15,8 +15,6 @@ use serde::{Deserialize, Serialize};
 /// Dao app data that is meant to be updated externally
 #[derive(Debug, Clone)]
 pub struct UpdatableDaoData {
-    pub customer_escrow: VersionedAddress,
-
     pub project_name: String,
     pub project_desc: Option<GlobalStateHash>,
 
@@ -39,7 +37,6 @@ pub async fn update_data(
     let versions = Versions {
         app_approval: current_state.app_approval_version,
         app_clear: current_state.app_clear_version,
-        customer_escrow: data.customer_escrow.version,
     };
 
     // We might make these updates more granular later. For now everything in 1 call.
@@ -48,7 +45,6 @@ pub async fn update_data(
         CallApplication::new(*owner, app_id.0)
             .app_arguments(vec![
                 "update_data".as_bytes().to_vec(),
-                data.customer_escrow.address.0.to_vec(),
                 data.project_name.as_bytes().to_vec(),
                 data.project_desc
                     .as_ref()
