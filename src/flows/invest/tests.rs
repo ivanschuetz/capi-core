@@ -10,11 +10,12 @@ mod tests {
     use crate::state::dao_shares::dao_shares;
     use crate::testing::flow::create_dao_flow::create_dao_flow;
     use crate::testing::flow::customer_payment_and_drain_flow::customer_payment_and_drain_flow;
-    use crate::testing::flow::invest_in_dao_flow::{invests_flow, invests_optins_flow};
+    use crate::testing::flow::invest_in_dao_flow::{
+        invests_flow, invests_optins_flow, InvestInDaoTestFlowRes,
+    };
     use crate::testing::flow::lock_flow::lock_flow;
     use crate::testing::flow::unlock_flow::unlock_flow;
     use crate::testing::network_test_util::{test_dao_init, TestDeps};
-    use crate::testing::test_data::dao_specs;
     use crate::testing::test_data::investor2;
     use algonaut::transaction::account::Account;
     use anyhow::Result;
@@ -35,7 +36,6 @@ mod tests {
         let investor = &td.investor1;
 
         let buy_share_amount = ShareAmount::new(10);
-        let specs = dao_specs();
 
         let dao = create_dao_flow(td).await?;
 
@@ -47,64 +47,15 @@ mod tests {
 
         let flow_res = invests_flow(&td, &investor, buy_share_amount, &dao).await?;
 
-        // locked shares global state set to bought shares
-        let gs = dao_global_state(algod, dao.app_id).await?;
-        assert_eq!(buy_share_amount, gs.locked_shares);
-
-        // app escrow tests
-
-        // app escrow still has all the shares
-        let app_shares =
-            ShareAmount(asset_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?);
-        assert_eq!(specs.shares_for_investors(), app_shares);
-
-        // investor tests
-
-        let investor_infos = algod.account_information(&investor.address()).await?;
-        let central_investor_state = central_investor_state_from_acc(&investor_infos, dao.app_id)?;
-
-        // investor has shares
-        assert_eq!(buy_share_amount, central_investor_state.shares);
+        // tests
 
         // check that claimed is 0 (nothing claimed yet)
-        assert_eq!(FundsAmount::new(0), central_investor_state.claimed);
-        assert_eq!(FundsAmount::new(0), central_investor_state.claimed_init);
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let investor_state = central_investor_state_from_acc(&investor_infos, dao.app_id)?;
+        assert_eq!(FundsAmount::new(0), investor_state.claimed);
+        assert_eq!(FundsAmount::new(0), investor_state.claimed_init);
 
-        // double check: investor didn't receive any shares
-
-        let investor_assets = investor_infos.assets.clone();
-        // funds asset + shares asset
-        assert_eq!(2, investor_assets.len());
-        let shares_asset = find_asset_holding_or_err(&investor_assets, dao.shares_asset_id)?;
-        assert_eq!(0, shares_asset.amount);
-
-        // investor lost algos and fees
-        let investor_holdings = funds_holdings_from_account(&investor_infos, td.funds_asset_id)?;
-        let paid_amount = FundsAmount::new(specs.share_price.val() * buy_share_amount.val());
-        assert_eq!(
-            flow_res.investor_initial_amount.sub(&paid_amount).unwrap(),
-            investor_holdings
-        );
-
-        // app escrow tests
-
-        let app_holdings = funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
-        // app escrow received paid algos
-        assert_eq!(
-            flow_res
-                .central_escrow_initial_amount
-                .add(&paid_amount)
-                .unwrap(),
-            app_holdings
-        );
-        let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
-        assert_eq!(buy_share_amount, dao_shares.locked); // bought shares added to locked shares
-        assert_eq!(
-            ShareAmount::new(specs.shares_for_investors().val() - buy_share_amount.val()),
-            dao_shares.available
-        ); // bought shares subtracted from available shares
-
-        Ok(())
+        test_simple_investment_res(&td, &dao, investor, buy_share_amount, flow_res).await
     }
 
     #[test]
@@ -424,6 +375,164 @@ mod tests {
         assert_eq!(1, my_invested_daos.len());
         assert_eq!(dao.id(), my_invested_daos[0].id());
         assert_eq!(dao, my_invested_daos[0]);
+
+        Ok(())
+    }
+
+    // capi fees and dividends are generated only by consumer payments - investment income shouldn't have any effect there
+    // note that in the future we may raise capi fees on investments too
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_investment_does_not_generate_capi_fees_or_dividends() -> Result<()> {
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
+
+        let buy_share_amount = ShareAmount::new(10);
+
+        let dao = create_dao_flow(td).await?;
+
+        // precs
+
+        invests_optins_flow(&algod, &investor, &dao).await?;
+
+        // flow
+
+        let flow_res = invests_flow(td, investor, buy_share_amount, &dao).await?;
+
+        // test
+
+        let dao_state = dao_global_state(&algod, dao.app_id).await?;
+        // investment income is immediately put in withdrawable global state
+        // NOTE that the funds may still *not* be actually withdrawable, if withdrawing before funds raising end date
+        assert_eq!(flow_res.total_paid_price, dao_state.withdrawable);
+
+        // no dividend: so total received (which is used to calculate the dividend) was not incremented
+        let dao_state = dao_global_state(&algod, dao.app_id).await?;
+        assert_eq!(FundsAmount::new(0), dao_state.received);
+
+        // sanity: regular investment tests
+
+        // check that claimed is 0 (nothing claimed yet)
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let investor_state = central_investor_state_from_acc(&investor_infos, dao.app_id)?;
+        assert_eq!(FundsAmount::new(0), investor_state.claimed);
+        assert_eq!(FundsAmount::new(0), investor_state.claimed_init);
+
+        test_simple_investment_res(&td, &dao, investor, buy_share_amount, flow_res).await
+    }
+
+    // for basic explanation, see test_investment_does_not_generate_capi_fees_or_dividends
+    // this tests invests *after* draining - we expect the same resulting state
+    // note that this use case may not exist in practice,
+    // as probably (especially for legal reasons) the funds raising phase has to be finished,
+    // before being able to accept money from customers.
+    // But it's technically possible in any case.
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_investment_after_draining_does_not_generate_capi_fees_or_dividends() -> Result<()>
+    {
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
+        let drainer = &td.investor2;
+
+        let buy_share_amount = ShareAmount::new(10);
+
+        let dao = create_dao_flow(td).await?;
+
+        // precs
+
+        invests_optins_flow(&algod, &investor, &dao).await?;
+
+        // flow
+
+        // drain
+        let customer_payment_amount = FundsAmount::new(10 * 1_000_000);
+        let drain_res =
+            customer_payment_and_drain_flow(&td, &dao, customer_payment_amount, drainer).await?;
+
+        // invest
+        let invest_res = invests_flow(td, investor, buy_share_amount, &dao).await?;
+
+        // test
+
+        let dao_state = dao_global_state(&algod, dao.app_id).await?;
+        // investment income is immediately put in withdrawable global state
+        // we drained too, so we expect the withdrawable state to be the investment + drained amount
+        // NOTE that the funds may still *not* be actually withdrawable, if withdrawing before funds raising end date
+        let expected_withdrawable_funds = FundsAmount::new(
+            drain_res.drained_amounts.dao.val() + invest_res.total_paid_price.val(),
+        );
+        assert_eq!(expected_withdrawable_funds, dao_state.withdrawable);
+
+        // total received (which is used to calculate the dividend) was incremented by the drained amount (and not by the invest amount)
+        let dao_state = dao_global_state(&algod, dao.app_id).await?;
+        assert_eq!(drain_res.drained_amounts.dao, dao_state.received);
+
+        // sanity: regular investment tests
+        // note that we skip testing for claimed state here,
+        // as we'd have to calculate the dividend for the drained amount and that seems out of scope here (investment tests)
+        test_simple_investment_res(&td, &dao, investor, buy_share_amount, invest_res).await
+    }
+
+    async fn test_simple_investment_res(
+        td: &TestDeps,
+        dao: &Dao,
+        investor: &Account,
+        buy_share_amount: ShareAmount,
+        flow_res: InvestInDaoTestFlowRes,
+    ) -> Result<()> {
+        let algod = &td.algod;
+
+        // locked shares global state set to bought shares
+        let gs = dao_global_state(algod, dao.app_id).await?;
+        assert_eq!(buy_share_amount, gs.locked_shares);
+
+        // app escrow still has all the shares
+        let app_shares =
+            ShareAmount(asset_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?);
+        assert_eq!(td.specs.shares_for_investors(), app_shares);
+
+        let investor_infos = algod.account_information(&investor.address()).await?;
+        let central_investor_state = central_investor_state_from_acc(&investor_infos, dao.app_id)?;
+
+        // investor has shares
+        assert_eq!(buy_share_amount, central_investor_state.shares);
+
+        // double check: investor didn't receive any shares
+
+        let investor_assets = investor_infos.assets.clone();
+        // funds asset + shares asset
+        assert_eq!(2, investor_assets.len());
+        let shares_asset = find_asset_holding_or_err(&investor_assets, dao.shares_asset_id)?;
+        assert_eq!(0, shares_asset.amount);
+
+        // investor lost algos and fees
+        let investor_holdings = funds_holdings_from_account(&investor_infos, td.funds_asset_id)?;
+        let paid_amount = FundsAmount::new(td.specs.share_price.val() * buy_share_amount.val());
+        assert_eq!(
+            flow_res.investor_initial_amount.sub(&paid_amount).unwrap(),
+            investor_holdings
+        );
+
+        // app escrow tests
+
+        let app_holdings = funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
+        // app escrow received paid algos
+        assert_eq!(
+            flow_res
+                .central_escrow_initial_amount
+                .add(&paid_amount)
+                .unwrap(),
+            app_holdings
+        );
+        let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
+        assert_eq!(buy_share_amount, dao_shares.locked); // bought shares added to locked shares
+        assert_eq!(
+            ShareAmount::new(td.specs.shares_for_investors().val() - buy_share_amount.val()),
+            dao_shares.available
+        ); // bought shares subtracted from available shares
 
         Ok(())
     }

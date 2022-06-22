@@ -27,20 +27,23 @@ pub async fn invest_txs(
     shares_asset_id: u64,
     share_amount: ShareAmount,
     funds_asset_id: FundsAssetId,
+    // TODO remove: share_price is in the dao
     share_price: FundsAmount,
 ) -> Result<InvestToSign> {
     log::debug!("Investing in dao: {:?}", dao);
 
     let params = algod.suggested_transaction_params().await?;
 
-    let total_price = share_price
-        .val()
-        .checked_mul(share_amount.val())
-        .ok_or_else(|| {
-            anyhow!(
+    let total_price = FundsAmount::new(
+        share_price
+            .val()
+            .checked_mul(share_amount.val())
+            .ok_or_else(|| {
+                anyhow!(
         "Share price: {share_price} multiplied by share amount: {share_amount} caused an overflow."
     )
-        })?;
+            })?,
+    );
 
     let mut central_app_investor_setup_tx =
         dao_app_investor_setup_tx(&params, app_id, shares_asset_id, *investor, share_amount)?;
@@ -53,7 +56,13 @@ pub async fn invest_txs(
 
     let mut pay_price_tx = TxnBuilder::with(
         &params,
-        TransferAsset::new(*investor, funds_asset_id.0, total_price, dao.app_address()).build(),
+        TransferAsset::new(
+            *investor,
+            funds_asset_id.0,
+            total_price.val(),
+            dao.app_address(),
+        )
+        .build(),
     )
     .build()?;
 
@@ -71,6 +80,7 @@ pub async fn invest_txs(
         central_app_setup_tx: central_app_investor_setup_tx,
         payment_tx: pay_price_tx,
         shares_asset_optin_tx: shares_optin_tx,
+        total_price,
     })
 }
 

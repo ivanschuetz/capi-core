@@ -5,7 +5,10 @@ use algonaut::{
     transaction::{SignedTransaction, Transaction, TransferAsset, TxnBuilder},
 };
 use anyhow::Result;
-use mbase::models::funds::{FundsAmount, FundsAssetId};
+use mbase::models::{
+    dao_app_id::DaoAppId,
+    funds::{FundsAmount, FundsAssetId},
+};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -22,6 +25,24 @@ pub async fn pay_dao(
     let tx = TxnBuilder::with(
         &params,
         TransferAsset::new(*customer, funds_asset_id.0, amount.val(), *customer_escrow).build(),
+    )
+    .build()?;
+
+    Ok(PayDaoToSign { tx })
+}
+
+pub async fn pay_dao_app(
+    algod: &Algod,
+    customer: &Address,
+    app_id: DaoAppId,
+    funds_asset_id: FundsAssetId,
+    amount: FundsAmount,
+) -> Result<PayDaoToSign> {
+    let params = algod.suggested_transaction_params().await?;
+
+    let tx = TxnBuilder::with(
+        &params,
+        TransferAsset::new(*customer, funds_asset_id.0, amount.val(), app_id.address()).build(),
     )
     .build()?;
 

@@ -21,6 +21,7 @@ mod tests {
         checked::{CheckedAdd, CheckedMulOther, CheckedSub},
         date_util::DateTimeExt,
         models::{funds::FundsAmount, share_amount::ShareAmount},
+        state::dao_app_state::dao_global_state,
     };
     use serial_test::serial;
     use tokio::test;
@@ -65,6 +66,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_before_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_before_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_before_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -81,6 +83,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_after_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_after_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_after_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -112,6 +115,14 @@ mod tests {
         assert_eq!(
             app_balance_before_reclaiming.sub(&reclaimed_funds).unwrap(),
             app_balance_after_reclaiming
+        );
+
+        // app withdrawable amount decreased
+        assert_eq!(
+            FundsAmount::new(
+                app_state_before_reclaiming.withdrawable.val() - reclaimed_funds.val()
+            ),
+            app_state_after_reclaiming.withdrawable
         );
 
         Ok(())
@@ -157,6 +168,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_before_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_before_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_before_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -176,6 +188,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_after_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_after_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_after_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -190,6 +203,7 @@ mod tests {
         );
         assert_eq!(app_shares_before_reclaiming, app_shares_after_reclaiming);
         assert_eq!(app_balance_before_reclaiming, app_balance_after_reclaiming);
+        assert_eq!(app_state_before_reclaiming, app_state_after_reclaiming);
 
         Ok(())
     }
@@ -233,6 +247,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_before_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_before_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_before_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -252,6 +267,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_after_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_after_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_after_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -266,6 +282,7 @@ mod tests {
         );
         assert_eq!(app_shares_before_reclaiming, app_shares_after_reclaiming);
         assert_eq!(app_balance_before_reclaiming, app_balance_after_reclaiming);
+        assert_eq!(app_state_before_reclaiming, app_state_after_reclaiming);
 
         Ok(())
     }
@@ -312,6 +329,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_before_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_before_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_before_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -329,6 +347,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_after_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_after_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_after_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -359,6 +378,14 @@ mod tests {
         assert_eq!(
             app_balance_before_reclaiming.sub(&total_invested_price)?,
             app_balance_after_reclaiming
+        );
+
+        // app withdrawable amount decreased
+        assert_eq!(
+            FundsAmount::new(
+                app_state_before_reclaiming.withdrawable.val() - total_invested_price.val()
+            ),
+            app_state_after_reclaiming.withdrawable
         );
 
         Ok(())
@@ -452,6 +479,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_before_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_before_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_before_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -474,6 +502,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_after_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_after_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_after_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -504,6 +533,14 @@ mod tests {
         assert_eq!(
             FundsAmount::new(app_balance_before_reclaiming.val() - total_invested_price.val()),
             app_balance_after_reclaiming
+        );
+
+        // app withdrawable amount decreased
+        assert_eq!(
+            FundsAmount::new(
+                app_state_before_reclaiming.withdrawable.val() - total_invested_price.val()
+            ),
+            app_state_after_reclaiming.withdrawable
         );
 
         Ok(())
@@ -552,6 +589,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_before_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_before_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_before_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -580,6 +618,7 @@ mod tests {
             share_holdings(algod, &investor.address(), dao.shares_asset_id).await?;
         let app_balance_after_reclaiming =
             funds_holdings(algod, &dao.app_address(), td.funds_asset_id).await?;
+        let app_state_after_reclaiming = dao_global_state(&algod, dao.app_id).await?;
         let app_shares_after_reclaiming =
             share_holdings(algod, &dao.app_address(), dao.shares_asset_id).await?;
 
@@ -610,6 +649,14 @@ mod tests {
         assert_eq!(
             FundsAmount::new(app_balance_before_reclaiming.val() - reclaimed_funds.val()),
             app_balance_after_reclaiming
+        );
+
+        // app withdrawable amount decreased
+        assert_eq!(
+            FundsAmount::new(
+                app_state_before_reclaiming.withdrawable.val() - reclaimed_funds.val()
+            ),
+            app_state_after_reclaiming.withdrawable
         );
 
         Ok(())

@@ -15,7 +15,7 @@ mod tests {
                 customer_escrow::{render_and_compile_customer_escrow, render_customer_escrow_v1},
                 setup_app,
             },
-            drain::drain::{submit_drain_customer_escrow, DrainCustomerEscrowSigned},
+            drain::drain::{submit_drain, DrainCustomerEscrowSigned},
             invest::{invest::submit_invest, model::InvestSigned},
             withdraw::withdraw::{submit_withdraw, WithdrawSigned},
         },

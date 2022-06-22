@@ -7,21 +7,23 @@ pub mod test {
         flows::create_dao::model::Dao,
         flows::create_dao::storage::load_dao::TxId,
         flows::drain::drain::{
-            drain_amounts, drain_customer_escrow, submit_drain_customer_escrow,
-            DaoAndCapiDrainAmounts, DrainCustomerEscrowSigned,
+            drain, submit_drain, to_drain_amounts, DaoAndCapiDrainAmounts,
+            DrainCustomerEscrowSigned,
         },
-        flows::pay_dao::pay_dao::{pay_dao, submit_pay_dao, PayDaoSigned},
+        flows::pay_dao::pay_dao::{pay_dao_app, submit_pay_dao, PayDaoSigned},
         network_util::wait_for_pending_transaction,
-        state::account_state::funds_holdings,
         testing::network_test_util::TestDeps,
     };
     use algonaut::{
         algod::v2::Algod,
-        core::{Address, MicroAlgos},
+        core::MicroAlgos,
         transaction::{account::Account, Transaction},
     };
     use anyhow::Result;
-    use mbase::models::funds::{FundsAmount, FundsAssetId};
+    use mbase::models::{
+        dao_app_id::DaoAppId,
+        funds::{FundsAmount, FundsAssetId},
+    };
 
     pub async fn customer_payment_and_drain_flow(
         td: &TestDeps,
@@ -31,16 +33,11 @@ pub mod test {
     ) -> Result<CustomerPaymentAndDrainFlowRes> {
         let algod = &td.algod;
 
-        // double check precondition: customer escrow has no funds
-        let customer_escrow_holdings =
-            funds_holdings(algod, dao.customer_escrow.address(), td.funds_asset_id).await?;
-        assert_eq!(FundsAmount::new(0), customer_escrow_holdings);
-
         // Customer sends a payment
-        let customer_payment_tx_id = send_payment_to_customer_escrow(
+        let customer_payment_tx_id = send_payment_to_app(
             algod,
             &td.customer,
-            dao.customer_escrow.address(),
+            dao.app_id,
             td.funds_asset_id,
             customer_payment_amount,
         )
@@ -59,32 +56,29 @@ pub mod test {
 
         let initial_drainer_balance = algod.account_information(&drainer.address()).await?.amount;
 
-        let drain_amounts = drain_amounts(
+        let drain_amounts = to_drain_amounts(
             algod,
             td.dao_deps().escrow_percentage,
             dao.funds_asset_id,
-            &dao.customer_escrow.address(),
+            dao.app_id,
         )
         .await?;
 
-        let drain_to_sign = drain_customer_escrow(
+        let drain_to_sign = drain(
             &algod,
             &drainer.address(),
             dao.app_id,
             dao.funds_asset_id,
             &td.dao_deps(),
-            &dao.customer_escrow.account,
             &drain_amounts,
         )
         .await?;
 
         let app_call_tx_signed = drainer.sign_transaction(drain_to_sign.app_call_tx)?;
 
-        let drain_tx_id = submit_drain_customer_escrow(
+        let drain_tx_id = submit_drain(
             &algod,
             &DrainCustomerEscrowSigned {
-                drain_tx: drain_to_sign.drain_tx,
-                capi_share_tx: drain_to_sign.capi_share_tx,
                 app_call_tx_signed: app_call_tx_signed.clone(),
             },
         )
@@ -109,23 +103,17 @@ pub mod test {
         pub drained_amounts: DaoAndCapiDrainAmounts,
     }
 
-    // Simulate a payment to the "external" dao address
-    async fn send_payment_to_customer_escrow(
+    // Simulate a payment to the dao address
+    async fn send_payment_to_app(
         algod: &Algod,
         customer: &Account,
-        customer_escrow: &Address,
+        app_id: DaoAppId,
         funds_asset_id: FundsAssetId,
         amount: FundsAmount,
     ) -> Result<TxId> {
-        let tx = pay_dao(
-            algod,
-            &customer.address(),
-            customer_escrow,
-            funds_asset_id,
-            amount,
-        )
-        .await?
-        .tx;
+        let tx = pay_dao_app(algod, &customer.address(), app_id, funds_asset_id, amount)
+            .await?
+            .tx;
         let signed_tx = customer.sign_transaction(tx)?;
         let tx_id = submit_pay_dao(algod, PayDaoSigned { tx: signed_tx }).await?;
         log::debug!("Customer payment tx id: {:?}", tx_id);

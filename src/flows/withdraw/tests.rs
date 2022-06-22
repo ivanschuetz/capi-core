@@ -36,8 +36,7 @@ mod tests {
 
     #[test]
     #[serial]
-    // in this test, we just send some funds directly to the dao (no investing or draining flow) as withdrawal precondition
-    async fn test_basic_withdraw_success() -> Result<()> {
+    async fn test_withdraw_directly_sent_funds_fails() -> Result<()> {
         let td = &test_dao_init().await?;
         let algod = &td.algod;
 
@@ -51,7 +50,8 @@ mod tests {
         let dao_address = to_app_address(dao.app_id.0);
         log::debug!("app address: {dao_address}");
 
-        // send asset to the DAO app
+        // send funds ot dao
+        // note that we're not draining this payment
         transfer_tokens_submit(
             algod,
             &params,
@@ -62,33 +62,13 @@ mod tests {
         )
         .await?;
 
-        // remeber state
-        let app_balance_before_withdrawing =
-            funds_holdings(&algod, &dao.app_address(), td.funds_asset_id).await?;
-        let creator_balance_bafore_withdrawing =
-            funds_holdings(&algod, &td.creator.address(), td.funds_asset_id).await?;
-
         // flow
 
-        withdraw_flow(&algod, &dao, &td.creator, withdraw_amount, dao.app_id).await?;
+        let res = withdraw_flow(&algod, &dao, &td.creator, withdraw_amount, dao.app_id).await;
 
         // test
 
-        after_withdrawal_success_or_failure_tests(
-            &algod,
-            &td.creator.address(),
-            td.funds_asset_id,
-            &dao.app_address(),
-            // creator got the amount
-            creator_balance_bafore_withdrawing
-                .add(&withdraw_amount)
-                .unwrap(),
-            // central lost the withdrawn amount
-            app_balance_before_withdrawing
-                .sub(&withdraw_amount)
-                .unwrap(),
-        )
-        .await?;
+        assert!(res.is_err());
 
         Ok(())
     }

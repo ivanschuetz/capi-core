@@ -29,6 +29,7 @@ mod tests {
         },
         state::dao_app_state::{
             central_investor_state_from_acc, dao_global_state, dao_investor_state,
+            CentralAppGlobalState,
         },
     };
     use rust_decimal::Decimal;
@@ -59,6 +60,7 @@ mod tests {
         )
         .await?;
 
+        let central_state_before_claim = dao_global_state(&algod, precs.dao.app_id).await?;
         let res = claim_flow(&td, &precs.dao, claimer).await?;
 
         // test
@@ -89,6 +91,7 @@ mod tests {
             dividend,
             // invested before first drain: initial entitled dividend is 0
             FundsAmount::new(0),
+            &central_state_before_claim,
         )
         .await?;
 
@@ -119,8 +122,11 @@ mod tests {
         )
         .await?;
 
-        let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
-        log::debug!("central_total_received: {:?}", central_state.received);
+        let central_state_before_claim = dao_global_state(&algod, precs.dao.app_id).await?;
+        log::debug!(
+            "central_total_received: {:?}",
+            central_state_before_claim.received
+        );
 
         // flow
 
@@ -129,7 +135,7 @@ mod tests {
         // test
 
         let dividend = claimable_dividend(
-            central_state.received,
+            central_state_before_claim.received,
             FundsAmount::new(0),
             td.specs.shares.supply,
             buy_share_amount,
@@ -155,6 +161,7 @@ mod tests {
             dividend,
             // invested before first drain: initial entitled dividend is 0
             FundsAmount::new(0),
+            &central_state_before_claim,
         )
         .await?;
 
@@ -206,12 +213,9 @@ mod tests {
         )
         .await?;
 
-        // test 1
-
-        let central_state = dao_global_state(&algod, precs.dao.app_id).await?;
-
+        let central_state_before_claim = dao_global_state(&algod, precs.dao.app_id).await?;
         let dividend = claimable_dividend(
-            central_state.received,
+            central_state_before_claim.received,
             FundsAmount::new(0),
             td.specs.shares.supply,
             buy_share_amount,
@@ -219,6 +223,8 @@ mod tests {
             td.specs.investors_share,
         )?;
         let res1 = claim_flow(&td, &precs.dao, &claimer).await?;
+
+        // test 1
 
         test_claim_result(
             &algod,
@@ -237,6 +243,7 @@ mod tests {
             dividend,
             // invested before first drain: initial entitled dividend is 0
             FundsAmount::new(0),
+            &central_state_before_claim,
         )
         .await?;
 
@@ -244,10 +251,11 @@ mod tests {
 
         let _ = claim_flow(&td, &precs.dao, &claimer).await?;
 
-        // test 2
-        // nothing new has been drained, we claim 0, and test that all the state is still the same
-
+        // bonus condition: no-op claim: nothing new has been drained, we claim 0, which doesn't have any effect
+        // (the test also passes with this line commented)
         let _ = claim_flow(&td, &precs.dao, &claimer).await?;
+
+        // test 2
 
         test_claim_result(
             &algod,
@@ -261,6 +269,7 @@ mod tests {
             buy_share_amount,
             dividend,
             FundsAmount::new(0),
+            &central_state_before_claim,
         )
         .await?;
 
@@ -287,6 +296,7 @@ mod tests {
         expected_shares: ShareAmount,
         expected_claimed_total: FundsAmount,
         expected_claimed_init: FundsAmount,
+        state_before_claiming: &CentralAppGlobalState,
     ) -> Result<()> {
         let claim_funds_amount = funds_holdings(algod, &claimer.address(), funds_asset_id).await?;
         let central_escrow_funds_amount =
@@ -298,6 +308,7 @@ mod tests {
         // the total received didn't change
         // (i.e. same as expected after draining, claiming doesn't affect it)
         let global_state = dao_global_state(algod, app_id).await?;
+        log::debug!("??? global state2: {global_state:?}");
         assert_eq!(global_state.received, drained_amount);
 
         // sanity check: global state addresses are set
@@ -317,6 +328,14 @@ mod tests {
         // check claimed local state
         assert_eq!(expected_claimed_total, investor_state.claimed);
         assert_eq!(expected_claimed_init, investor_state.claimed_init);
+
+        // check that withdrawable amount was decreased by claimed amount
+        assert_eq!(
+            FundsAmount::new(
+                state_before_claiming.withdrawable.val() - investor_state.claimed.val()
+            ),
+            global_state.withdrawable
+        );
 
         Ok(())
     }
@@ -409,4 +428,6 @@ mod tests {
 
         Ok(())
     }
+
+    // TODO test: can't claim not available amount
 }

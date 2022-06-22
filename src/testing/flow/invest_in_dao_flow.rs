@@ -92,6 +92,7 @@ pub mod test {
             central_escrow_initial_amount: app_initial_amount,
             invest_res,
             dao: dao.to_owned(),
+            total_paid_price: to_sign.total_price,
         })
     }
 
@@ -102,5 +103,7 @@ pub mod test {
         pub central_escrow_initial_amount: FundsAmount,
         pub invest_res: InvestResult,
         pub dao: Dao,
+        // the price paid for the shares bought in the investment
+        pub total_paid_price: FundsAmount,
     }
 }
