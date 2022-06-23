@@ -48,6 +48,14 @@ pub struct DaoAndCapiDrainAmounts {
     pub capi: FundsAmount, // fee
 }
 
+impl DaoAndCapiDrainAmounts {
+    pub fn has_something_to_drain(&self) -> bool {
+        // capi is just the fee (derived from the dao amount),
+        // if the dao amount is 0, it means there's nothing to drain
+        self.dao.val() > 0
+    }
+}
+
 pub async fn to_drain_amounts(
     algod: &Algod,
     capi_percentage: SharesPercentage,
