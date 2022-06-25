@@ -679,10 +679,11 @@ mod test {
         println!("Hex: {} -> address: {}", hex, address);
     }
 
+    /// Use this e.g. to fund DAO
     #[test]
     #[ignore]
     async fn send_payment() -> Result<()> {
-        let receiver = "OO7F7V6NG6BISF336ST4UVBTVMYNSG2BOOA3XKF5OBFP6LPMIJHRYWZRO4"
+        let receiver = "IW5LCUASFJCSJHEJEIT7SEQOBWZ52XHQD72UALYF5L2PG56KK636XPEG44"
             .parse()
             .unwrap();
         let funds_asset_id = FundsAssetId(12);
