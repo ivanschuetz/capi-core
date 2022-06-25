@@ -71,13 +71,13 @@ pub async fn historic_dao_funds_balance(
 mod tests {
     use crate::{
         capi_deps::{CapiAddress, CapiAssetDaoDeps},
-        logger::init_logger,
         queries::historic_balance::historic_dao_funds_balance,
     };
     use anyhow::Result;
     use chrono::Utc;
     use mbase::{
         dependencies::{algod, indexer},
+        logger::init_logger,
         models::{dao_app_id::DaoAppId, dao_id::DaoId, funds::FundsAssetId},
     };
     use rust_decimal::Decimal;

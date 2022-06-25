@@ -35,6 +35,7 @@ mod test {
     use mbase::dependencies::{
         algod, algod_for_net, algod_for_tests, indexer_for_tests, network, DataType, Env, Network,
     };
+    use mbase::logger::init_logger;
     use mbase::models::asset_amount::AssetAmount;
     use mbase::models::funds::{FundsAmount, FundsAssetId};
     use mbase::models::shares_percentage::SharesPercentage;
@@ -43,7 +44,6 @@ mod test {
     use std::str::FromStr;
     use tokio::test;
     use {
-        crate::logger::init_logger,
         crate::testing::test_data::{capi_owner, creator, customer, investor1, investor2},
         crate::testing::TESTS_DEFAULT_PRECISION,
         anyhow::{anyhow, Result},

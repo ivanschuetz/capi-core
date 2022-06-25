@@ -10,7 +10,6 @@ mod files;
 pub mod flows;
 mod hashable;
 pub mod image;
-mod logger;
 pub mod network_util;
 mod note;
 pub mod queries;
