@@ -2,7 +2,7 @@ appenders:
   console:
     kind: console
     encoder:
-      pattern: "{d(%Y-%m-%d %H:%M:%S)} {M} {f}:{L} {l} - {m}\n"
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} {M} {f}:{L} {h({l})} - {m}\n"
     filters:
       - kind: threshold
         level: trace
