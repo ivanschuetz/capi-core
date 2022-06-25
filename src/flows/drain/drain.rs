@@ -69,10 +69,12 @@ pub async fn to_drain_amounts(
         dao_holdings
             .val()
             .checked_sub(state.withdrawable.val())
-            .ok_or(anyhow!(
-                "Error subtracting dao holdings: {dao_holdings:?} - {:?}",
-                state.withdrawable
-            ))?,
+            .ok_or_else(|| {
+                anyhow!(
+                    "Error subtracting dao holdings: {dao_holdings:?} - {:?}",
+                    state.withdrawable
+                )
+            })?,
     );
 
     let calc = calculate_dao_and_capi_escrow_xfer_amounts(not_yet_drained, capi_percentage)?;
