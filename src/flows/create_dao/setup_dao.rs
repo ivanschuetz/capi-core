@@ -140,6 +140,7 @@ pub async fn submit_setup_dao(
             social_media_url: signed.specs.social_media_url,
             raise_end_date: signed.specs.raise_end_date,
             raise_min_target: signed.specs.raise_min_target,
+            raised: FundsAmount::new(0), // dao is just being setup - nothing raised yet
         },
     })
 }

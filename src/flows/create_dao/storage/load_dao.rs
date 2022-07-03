@@ -45,6 +45,7 @@ pub async fn load_dao(algod: &Algod, dao_id: DaoId) -> Result<Dao> {
         social_media_url: dao_state.social_media_url.clone(),
         raise_end_date: dao_state.min_funds_target_end_date,
         raise_min_target: dao_state.min_funds_target,
+        raised: dao_state.raised,
     };
 
     Ok(dao)

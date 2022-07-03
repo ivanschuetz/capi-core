@@ -83,6 +83,8 @@ pub struct Dao {
     // which would e.g. break equality comparisons between these specs and the ones loaded from global state
     pub raise_end_date: Timestamp,
     pub raise_min_target: FundsAmount,
+
+    pub raised: FundsAmount,
 }
 
 impl Dao {
