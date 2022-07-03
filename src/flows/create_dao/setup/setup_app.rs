@@ -10,6 +10,7 @@ use mbase::{
         dao_app_id::DaoAppId,
         funds::{FundsAmount, FundsAssetId},
         hash::GlobalStateHash,
+        nft::Nft,
         shares_percentage::SharesPercentage,
         timestamp::Timestamp,
     },
@@ -32,6 +33,7 @@ pub struct DaoInitData {
     pub investors_share: SharesPercentage,
 
     pub image_hash: Option<GlobalStateHash>,
+    pub image_nft: Option<Nft>,
     pub social_media_url: String,
 
     pub min_raise_target: FundsAmount,

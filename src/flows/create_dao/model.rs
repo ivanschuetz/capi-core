@@ -10,6 +10,7 @@ use mbase::{
         dao_id::DaoId,
         funds::{FundsAmount, FundsAssetId},
         hash::GlobalStateHash,
+        nft::{Cid, Nft},
         share_amount::ShareAmount,
         shares_percentage::SharesPercentage,
         timestamp::Timestamp,
@@ -58,6 +59,7 @@ pub struct SetupDaoSigned {
     pub shares_asset_id: u64,
     pub app_id: DaoAppId,
     pub funds_asset_id: FundsAssetId,
+    pub image_nft: Option<Nft>,
 }
 
 /// Note that dao doesn't know its id (DaoId), because it's generated after it's stored (it's the id of the storage tx),
@@ -76,6 +78,7 @@ pub struct Dao {
     pub investors_share: SharesPercentage,
     pub share_price: FundsAmount,
     pub image_hash: Option<GlobalStateHash>,
+    pub image_nft: Option<Nft>,
     pub social_media_url: String, // this can be later in an extension (possibly with more links)
     // we manage this as timestamp instead of date,
     // to ensure correctness when storing the timestamp in TEAL / compare to current TEAL timestamp (which is in seconds)
@@ -137,4 +140,11 @@ pub struct CreateSharesSpecs {
 pub struct CreateAssetsToSign {
     pub create_shares_tx: Transaction,
     pub create_app_tx: Transaction,
+    pub create_image_nft: Option<CreateImageNftToSign>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CreateImageNftToSign {
+    pub tx: Transaction,
+    pub cid: Cid,
 }

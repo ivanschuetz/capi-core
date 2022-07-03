@@ -2,7 +2,7 @@ use super::model::CreateSharesSpecs;
 use anyhow::{anyhow, Result};
 use data_encoding::BASE64;
 use mbase::models::{
-    funds::FundsAmount, hash::GlobalStateHash, share_amount::ShareAmount,
+    funds::FundsAmount, hash::GlobalStateHash, nft::Cid, share_amount::ShareAmount,
     shares_percentage::SharesPercentage, timestamp::Timestamp,
 };
 use serde::{Deserialize, Serialize};
@@ -47,6 +47,7 @@ pub struct SetupDaoSpecs {
     pub investors_share: SharesPercentage,
     pub share_price: FundsAmount,
     pub image_hash: Option<GlobalStateHash>,
+    pub image_cid: Option<Cid>,
     pub social_media_url: String, // this can be later in an extension (possibly with more links)
     // shares to be sold to investors (the rest stay in the creator's account)
     // note this is entirely different from investors_share, which is the % of the project's income channeled to investors
@@ -68,6 +69,7 @@ impl SetupDaoSpecs {
         investors_share: SharesPercentage,
         share_price: FundsAmount,
         image_hash: Option<GlobalStateHash>,
+        image_cid: Option<Cid>,
         social_media_url: String,
         shares_for_investors: ShareAmount,
         raise_min_target: FundsAmount,
@@ -87,6 +89,7 @@ impl SetupDaoSpecs {
             investors_share,
             share_price,
             image_hash,
+            image_cid,
             social_media_url,
             shares_for_investors,
             raise_min_target,

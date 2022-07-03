@@ -17,7 +17,11 @@ use algonaut::{
 use anyhow::Result;
 use mbase::{
     api::version::VersionedTealSourceTemplate,
-    models::{dao_app_id::DaoAppId, funds::FundsAssetId},
+    models::{
+        dao_app_id::DaoAppId,
+        funds::{FundsAmount, FundsAssetId},
+        nft::Nft,
+    },
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -30,6 +34,7 @@ pub async fn setup_dao_txs(
     programs: &Programs,
     precision: u64,
     app_id: DaoAppId,
+    image_nft: Option<Nft>,
 ) -> Result<SetupDaoToSign> {
     log::debug!(
         "Creating dao with specs: {:?}, shares_asset_id: {}, precision: {}",
@@ -67,6 +72,7 @@ pub async fn setup_dao_txs(
             share_price: specs.share_price,
             investors_share: specs.investors_share,
             image_hash: specs.image_hash.clone(),
+            image_nft,
             social_media_url: specs.social_media_url.clone(),
             min_raise_target: specs.raise_min_target,
             min_raise_target_end_date: specs.raise_end_date,
@@ -137,6 +143,7 @@ pub async fn submit_setup_dao(
             investors_share: signed.specs.investors_share,
             share_price: signed.specs.share_price,
             image_hash: signed.specs.image_hash,
+            image_nft: signed.image_nft,
             social_media_url: signed.specs.social_media_url,
             raise_end_date: signed.specs.raise_end_date,
             raise_min_target: signed.specs.raise_min_target,

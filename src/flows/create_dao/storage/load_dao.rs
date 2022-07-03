@@ -42,6 +42,7 @@ pub async fn load_dao(algod: &Algod, dao_id: DaoId) -> Result<Dao> {
         investors_share: dao_state.investors_share,
         share_price: dao_state.share_price,
         image_hash: dao_state.image_hash.clone(),
+        image_nft: dao_state.image_nft.clone(),
         social_media_url: dao_state.social_media_url.clone(),
         raise_end_date: dao_state.min_funds_target_end_date,
         raise_min_target: dao_state.min_funds_target,
