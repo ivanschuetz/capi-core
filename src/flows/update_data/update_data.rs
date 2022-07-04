@@ -1,8 +1,10 @@
-use crate::flows::create_dao::storage::load_dao::TxId;
+use crate::{common_txs::pay, flows::create_dao::storage::load_dao::TxId};
 use algonaut::{
     algod::v2::Algod,
-    core::Address,
-    transaction::{builder::CallApplication, SignedTransaction, Transaction, TxnBuilder},
+    core::{Address, MicroAlgos},
+    transaction::{
+        builder::CallApplication, tx_group::TxGroup, SignedTransaction, Transaction, TxnBuilder,
+    },
 };
 use anyhow::Result;
 use mbase::{
@@ -19,6 +21,7 @@ pub struct UpdatableDaoData {
     pub project_desc: Option<GlobalStateHash>,
 
     pub image_hash: Option<GlobalStateHash>,
+    pub image_url: Option<String>,
     pub social_media_url: String,
 }
 
@@ -40,7 +43,7 @@ pub async fn update_data(
     };
 
     // We might make these updates more granular later. For now everything in 1 call.
-    let update = TxnBuilder::with(
+    let mut update = TxnBuilder::with(
         &params,
         CallApplication::new(*owner, app_id.0)
             .app_arguments(vec![
@@ -56,19 +59,41 @@ pub async fn update_data(
                     .unwrap_or_default(),
                 data.social_media_url.as_bytes().to_vec(),
                 versions_to_bytes(versions)?,
+                data.image_url
+                    .as_ref()
+                    .map(|h| h.as_bytes().to_vec())
+                    .unwrap_or_default(),
             ])
             .build(),
     )
     .build()?;
 
-    Ok(UpdateAppToSign { update })
+    // pay for optional image nft create tx
+    update.fee = update.fee * 2;
+
+    let increase_min_balance_tx = if data.image_url.is_some() {
+        let mut pay_tx = pay(&params, &owner, &app_id.address(), MicroAlgos(100_000))?;
+        TxGroup::assign_group_id(&mut [&mut pay_tx, &mut update])?;
+        Some(pay_tx)
+    } else {
+        None
+    };
+
+    Ok(UpdateAppToSign {
+        update,
+        increase_min_balance_tx,
+    })
 }
 
 pub async fn submit_update_data(algod: &Algod, signed: UpdateDaoDataSigned) -> Result<TxId> {
     log::debug!("calling submit app data update..");
     // crate::debug_msg_pack_submit_par::log_to_msg_pack(&signed);
 
-    let txs = vec![signed.update];
+    let mut txs = vec![];
+    if let Some(tx) = signed.increase_min_balance_tx {
+        txs.push(tx)
+    };
+    txs.push(signed.update);
 
     // mbase::teal::debug_teal_rendered(&txs, "dao_app_approval").unwrap();
 
@@ -80,9 +105,11 @@ pub async fn submit_update_data(algod: &Algod, signed: UpdateDaoDataSigned) -> R
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateAppToSign {
     pub update: Transaction,
+    pub increase_min_balance_tx: Option<Transaction>, // for possible image nft being created
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UpdateDaoDataSigned {
     pub update: SignedTransaction,
+    pub increase_min_balance_tx: Option<SignedTransaction>, // for possible image nft being created
 }

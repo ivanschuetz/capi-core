@@ -42,8 +42,8 @@ mod tests {
 
         // test
 
-        // let gs_after_update = dao_global_state(algod, dao.app_id).await?;
-        // validate_global_state_with_update_data(&gs_after_update, &update_data);
+        let gs_after_update = dao_global_state(algod, dao.app_id).await?;
+        validate_global_state_with_update_data(&gs_after_update, &update_data);
 
         Ok(())
     }
@@ -118,12 +118,14 @@ mod tests {
         let new_project_name = "new_project_name".to_owned();
         let new_project_desc = Some(GlobalStateHash("new_project_desc".to_owned()));
         let new_image_hash = Some(GlobalStateHash("new_test_image_hash".to_owned()));
+        let new_image_url = Some("new_image_url".to_owned());
         let new_social_media_url = "new_social_media_url".to_owned();
 
         UpdatableDaoData {
             project_name: new_project_name.clone(),
             project_desc: new_project_desc.clone(),
             image_hash: new_image_hash,
+            image_url: new_image_url,
             social_media_url: new_social_media_url.clone(),
         }
     }
@@ -132,6 +134,15 @@ mod tests {
         assert_eq!(gs.project_name, data.project_name);
         assert_eq!(gs.project_desc, data.project_desc);
         assert_eq!(gs.image_hash, data.image_hash);
+
+        if gs.image_nft.is_some() {
+            let nft = gs.image_nft.clone().unwrap();
+            assert!(data.image_url.is_some());
+            assert_eq!(nft.url, data.image_url.clone().unwrap());
+        } else {
+            assert!(data.image_url.is_none())
+        }
+
         assert_eq!(gs.social_media_url, data.social_media_url);
     }
 

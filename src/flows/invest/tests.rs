@@ -2,6 +2,7 @@
 mod tests {
     use crate::flows::claim::claim::claimable_dividend;
     use crate::flows::create_dao::model::Dao;
+    use crate::flows::create_dao::storage::load_dao::load_dao;
     use crate::network_util::wait_for_pending_transaction;
     use crate::queries::my_daos::my_current_invested_daos;
     use crate::state::account_state::{
@@ -367,6 +368,9 @@ mod tests {
         invests_flow(td, investor, buy_share_amount, &dao).await?;
 
         // test
+
+        // fetch dao again, because investing changes raised field
+        let dao = load_dao(algod, dao.id()).await?;
 
         let my_invested_daos = my_current_invested_daos(algod, &investor.address()).await?;
 

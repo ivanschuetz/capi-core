@@ -3,6 +3,7 @@ use super::{
     setup_dao_specs::SetupDaoSpecs,
 };
 use crate::{
+    algo_helpers::wait_for_p_tx_with_id,
     common_txs::pay,
     flows::create_dao::{
         model::Dao,
@@ -12,9 +13,10 @@ use crate::{
 use algonaut::{
     algod::v2::Algod,
     core::{to_app_address, Address, MicroAlgos},
+    model::algod::v2::PendingTransaction,
     transaction::{tx_group::TxGroup, TransferAsset, TxnBuilder},
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use mbase::{
     api::version::VersionedTealSourceTemplate,
     models::{
@@ -34,7 +36,7 @@ pub async fn setup_dao_txs(
     programs: &Programs,
     precision: u64,
     app_id: DaoAppId,
-    image_nft: Option<Nft>,
+    image_nft_url: Option<String>,
 ) -> Result<SetupDaoToSign> {
     log::debug!(
         "Creating dao with specs: {:?}, shares_asset_id: {}, precision: {}",
@@ -72,7 +74,7 @@ pub async fn setup_dao_txs(
             share_price: specs.share_price,
             investors_share: specs.investors_share,
             image_hash: specs.image_hash.clone(),
-            image_nft,
+            image_nft_url,
             social_media_url: specs.social_media_url.clone(),
             min_raise_target: specs.raise_min_target,
             min_raise_target_end_date: specs.raise_end_date,
@@ -81,10 +83,10 @@ pub async fn setup_dao_txs(
     .await?;
 
     let app_address = to_app_address(app_id.0);
-    // min balance to hold 2 assets (shares and funds asset)
-    let mut fund_app_tx = pay(&params, &creator, &app_address, MicroAlgos(300_000))?;
-    // pay the opt-in inner tx fees (shares and funds asset) (arbitrarily with this tx - could be any other in this group)
-    fund_app_tx.fee = fund_app_tx.fee * 3;
+    // min balance to hold 3 assets (shares, funds asset, optional image nft)
+    let mut fund_app_tx = pay(&params, &creator, &app_address, MicroAlgos(400_000))?;
+    // pay the opt-in inner tx fees (shares, funds asset and optional create image nft) (arbitrarily with this tx - could be any other in this group)
+    fund_app_tx.fee = fund_app_tx.fee * 4;
 
     TxGroup::assign_group_id(&mut [
         &mut fund_app_tx,
@@ -114,6 +116,8 @@ pub async fn submit_setup_dao(
         signed.creator,
     );
 
+    let app_call_tx_id = signed.setup_app_tx.transaction_id.clone();
+
     let signed_txs = vec![
         signed.app_funding_tx,
         signed.setup_app_tx,
@@ -123,13 +127,15 @@ pub async fn submit_setup_dao(
     // crate::dryrun_util::dryrun_all(algod, &signed_txs).await?;
     // mbase::teal::debug_teal_rendered(&signed_txs, "dao_app_approval").unwrap();
 
-    let tx_id = algod
+    let _ = algod
         .broadcast_signed_transactions(&signed_txs)
         .await?
         .tx_id;
 
+    let p_tx = wait_for_p_tx_with_id(algod, &app_call_tx_id.parse()?).await?;
+    let image_nft = to_nft(&p_tx, signed.image_url)?;
+
     Ok(SubmitSetupDaoResult {
-        tx_id: tx_id.parse()?,
         dao: Dao {
             shares_asset_id: signed.shares_asset_id,
             funds_asset_id: signed.funds_asset_id,
@@ -143,12 +149,53 @@ pub async fn submit_setup_dao(
             investors_share: signed.specs.investors_share,
             share_price: signed.specs.share_price,
             image_hash: signed.specs.image_hash,
-            image_nft: signed.image_nft,
+            image_nft,
             social_media_url: signed.specs.social_media_url,
             raise_end_date: signed.specs.raise_end_date,
             raise_min_target: signed.specs.raise_min_target,
             raised: FundsAmount::new(0), // dao is just being setup - nothing raised yet
         },
+    })
+}
+
+/// creates nft (optional) instance with the created asset (in teal) from inner txs and optional url
+/// if the state is inconsistent (e.g. there's no url but there's a created asset or vice versa) returns an error
+fn to_nft(p_tx: &PendingTransaction, url: Option<String>) -> Result<Option<Nft>> {
+    let created_asset_ids: Vec<u64> = p_tx
+        .inner_txs
+        .iter()
+        .filter_map(|tx| tx.asset_index)
+        .collect();
+
+    log::trace!("inner txs: {:?}", p_tx.inner_txs);
+    log::trace!("created_asset_ids: {created_asset_ids:?}");
+
+    let image_nft_asset_id = if let Some((created_asset_id, should_be_empty)) =
+        created_asset_ids.split_first()
+    {
+        if !should_be_empty.is_empty() {
+            return Err(anyhow!(
+                    // in dao setup inner txs, we create only the image nft asset id
+                    "Invalid state: inner txs in dao setup created more than one asset: {created_asset_ids:?}"
+                ));
+        }
+
+        Some(*created_asset_id)
+    } else {
+        None
+    };
+
+    Ok(match (image_nft_asset_id, &url) {
+        (Some(asset_id), Some(url)) => Some(Nft {
+            asset_id,
+            url: url.to_owned(),
+        }),
+        (None, None) => None,
+        _ => {
+            return Err(anyhow!(
+                "Illegal state: both or none must be set: {image_nft_asset_id:?}, {url:?}"
+            ))
+        }
     })
 }
 

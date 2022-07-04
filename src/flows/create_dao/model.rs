@@ -1,4 +1,4 @@
-use super::{setup_dao_specs::SetupDaoSpecs, storage::load_dao::TxId};
+use super::setup_dao_specs::SetupDaoSpecs;
 use algonaut::{
     core::Address,
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
@@ -59,7 +59,7 @@ pub struct SetupDaoSigned {
     pub shares_asset_id: u64,
     pub app_id: DaoAppId,
     pub funds_asset_id: FundsAssetId,
-    pub image_nft: Option<Nft>,
+    pub image_url: Option<String>,
 }
 
 /// Note that dao doesn't know its id (DaoId), because it's generated after it's stored (it's the id of the storage tx),
@@ -117,16 +117,17 @@ impl Debug for Dao {
             .field("investors_share", &self.investors_share)
             .field("share_price", &self.share_price)
             .field("image_hash", &self.image_hash)
+            .field("image_nft", &self.image_nft)
             .field("social_media_url", &self.social_media_url)
             .field("raise_end_date", &self.raise_end_date)
             .field("raise_min_target", &self.raise_min_target)
+            .field("raised", &self.raised)
             .finish()
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubmitSetupDaoResult {
-    pub tx_id: TxId,
     pub dao: Dao,
 }
 
@@ -140,7 +141,6 @@ pub struct CreateSharesSpecs {
 pub struct CreateAssetsToSign {
     pub create_shares_tx: Transaction,
     pub create_app_tx: Transaction,
-    pub create_image_nft: Option<CreateImageNftToSign>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

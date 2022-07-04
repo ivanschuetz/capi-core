@@ -24,7 +24,6 @@ mod tests {
             dao_app_id::DaoAppId,
             funds::{FundsAmount, FundsAssetId},
             hash::GlobalStateHash,
-            nft::Cid,
             share_amount::ShareAmount,
         },
         state::dao_app_state::{
@@ -180,7 +179,7 @@ mod tests {
             Decimal::from_str("0.4")?.try_into()?,
             FundsAmount::new(5_000_000),
             Some(GlobalStateHash("test_hash".to_owned())),
-            Some(Cid("123".to_owned())),
+            Some("123".to_owned()),
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(250), // assumes a higher supply number
             FundsAmount::new(0), // 0 target means practically no target - we'll use different deps to test funds target

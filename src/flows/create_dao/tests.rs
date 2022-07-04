@@ -64,7 +64,7 @@ mod tests {
         let app_escrow = &dao.app_address();
         let app_escrow_infos = algod.account_information(app_escrow).await?;
         let app_escrow_held_assets = app_escrow_infos.assets;
-        assert_eq!(app_escrow_held_assets.len(), 2);
+        assert_eq!(app_escrow_held_assets.len(), 3); // assets: shares, funds, image nft
         let app_escrow_shares =
             ShareAmount(asset_holdings(algod, app_escrow, dao.shares_asset_id).await?);
         let app_funds = asset_holdings(algod, app_escrow, dao.funds_asset_id.0).await?;

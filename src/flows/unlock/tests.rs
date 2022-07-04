@@ -57,7 +57,7 @@ mod tests {
         // shares not anymore in app escrow
         let app_escrow_infos = algod.account_information(&dao.app_address()).await?;
         let app_escrow_assets = app_escrow_infos.assets;
-        assert_eq!(2, app_escrow_assets.len()); // still opted in to shares (and funds asset)
+        assert_eq!(3, app_escrow_assets.len()); // still opted in to shares (and funds asset and image nft)
         let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
         assert_eq!(ShareAmount::new(0), dao_shares.locked); // lost shares
 
@@ -104,7 +104,7 @@ mod tests {
             .account_information(&to_app_address(dao.app_id.0))
             .await?;
         let app_escrow_assets = app_escrow_infos.assets;
-        assert_eq!(2, app_escrow_assets.len()); // opted in to shares and funds asset
+        assert_eq!(3, app_escrow_assets.len()); // opted in to shares, funds asset and image nft asset
 
         let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
         assert_eq!(buy_share_amount, dao_shares.locked);

@@ -14,7 +14,6 @@ mod test {
     use algonaut::transaction::account::Account;
     use chrono::{Duration, Utc};
     use mbase::models::hash::GlobalStateHash;
-    use mbase::models::nft::Cid;
     use mbase::models::timestamp::Timestamp;
     use mbase::models::{funds::FundsAmount, share_amount::ShareAmount};
     use rust_decimal::Decimal;
@@ -103,7 +102,7 @@ mod test {
             Decimal::from_str("0.4").unwrap().try_into().unwrap(),
             FundsAmount::new(5_000_000),
             Some(GlobalStateHash("test_hash".to_owned())),
-            Some(Cid("123".to_owned())),
+            Some("123".to_owned()),
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(80), // unwrap: assumes a higher supply
             target,

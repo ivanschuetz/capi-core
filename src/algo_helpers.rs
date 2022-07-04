@@ -1,4 +1,6 @@
-use crate::network_util::wait_for_pending_transaction;
+use crate::{
+    flows::create_dao::storage::load_dao::TxId, network_util::wait_for_pending_transaction,
+};
 use algonaut::{
     algod::v2::Algod,
     core::{MicroAlgos, SuggestedTransactionParams},
@@ -34,11 +36,10 @@ pub async fn send_txs_and_wait(
 }
 
 async fn wait_for_p_tx(algod: &Algod, response: TransactionResponse) -> Result<PendingTransaction> {
-    let p_tx = wait_for_pending_transaction(algod, &response.tx_id.parse()?).await?;
-    p_tx.ok_or_else(|| {
-        anyhow!(
-            "Pending tx couldn't be retrieved, tx id: {}",
-            response.tx_id
-        )
-    })
+    wait_for_p_tx_with_id(algod, &response.tx_id.parse()?).await
+}
+
+pub async fn wait_for_p_tx_with_id(algod: &Algod, tx_id: &TxId) -> Result<PendingTransaction> {
+    let p_tx = wait_for_pending_transaction(algod, tx_id).await?;
+    p_tx.ok_or_else(|| anyhow!("Pending tx couldn't be retrieved, tx id: {:?}", tx_id))
 }

@@ -2,7 +2,6 @@
 pub use test::create_dao_flow;
 #[cfg(test)]
 pub mod test {
-    use crate::flows::create_dao::setup::create_shares::CreateImageNftSigned;
     use crate::flows::create_dao::setup_dao::Programs;
     use crate::flows::create_dao::{
         model::{Dao, SetupDaoSigned},
@@ -36,24 +35,16 @@ pub mod test {
             .creator
             .sign_transaction(create_assets_txs.create_app_tx)?;
 
-        let signed_create_image_nft = if let Some(to_sign) = create_assets_txs.create_image_nft {
-            Some(CreateImageNftSigned {
-                tx: td.creator.sign_transaction(to_sign.tx)?,
-                cid: to_sign.cid,
-            })
-        } else {
-            None
-        };
-
         let create_assets_res = submit_create_assets(
             algod,
             &CreateDaoAssetsSigned {
                 create_shares: signed_create_shares_tx,
                 create_app: signed_create_app_tx,
-                create_image_nft: signed_create_image_nft,
             },
         )
         .await?;
+
+        let image_url = td.specs.image_url.clone();
 
         // Rest of create dao txs
         let to_sign = setup_dao_txs(
@@ -65,7 +56,7 @@ pub mod test {
             &td.programs,
             td.precision,
             create_assets_res.app_id,
-            create_assets_res.image_nft.clone(),
+            image_url.clone(),
         )
         .await?;
 
@@ -89,7 +80,7 @@ pub mod test {
                 setup_app_tx: signed_setup_app_tx,
                 app_id: create_assets_res.app_id,
                 transfer_shares_to_app_tx: signed_transfer_shares_to_app_tx,
-                image_nft: create_assets_res.image_nft,
+                image_url,
             },
         )
         .await?;
