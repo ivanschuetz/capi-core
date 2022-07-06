@@ -116,7 +116,7 @@ pub async fn submit_setup_dao(
         signed.creator,
     );
 
-    let app_call_tx_id = signed.setup_app_tx.transaction_id.clone();
+    let app_call_tx_id = signed.setup_app_tx.transaction.id()?;
 
     let signed_txs = vec![
         signed.app_funding_tx,
