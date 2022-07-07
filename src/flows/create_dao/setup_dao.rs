@@ -193,7 +193,7 @@ fn to_nft(p_tx: &PendingTransaction, url: Option<String>) -> Result<Option<Nft>>
         (None, None) => None,
         _ => {
             return Err(anyhow!(
-                "Illegal state: both or none must be set: {image_nft_asset_id:?}, {url:?}"
+                "Illegal state: image: both or none must be set: asset id: {image_nft_asset_id:?}, url: {url:?}"
             ))
         }
     })
