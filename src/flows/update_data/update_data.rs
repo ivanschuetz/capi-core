@@ -42,28 +42,30 @@ pub async fn update_data(
         app_clear: current_state.app_clear_version,
     };
 
+    let mut args = vec![
+        "update_data".as_bytes().to_vec(),
+        data.project_name.as_bytes().to_vec(),
+        data.project_desc
+            .as_ref()
+            .map(|h| h.bytes())
+            .unwrap_or_default(),
+        data.image_hash
+            .as_ref()
+            .map(|h| h.bytes())
+            .unwrap_or_default(),
+        data.social_media_url.as_bytes().to_vec(),
+        versions_to_bytes(versions)?,
+    ];
+
+    if let Some(image_url) = &data.image_url {
+        args.push(image_url.as_bytes().to_vec())
+    }
+
     // We might make these updates more granular later. For now everything in 1 call.
     let mut update = TxnBuilder::with(
         &params,
         CallApplication::new(*owner, app_id.0)
-            .app_arguments(vec![
-                "update_data".as_bytes().to_vec(),
-                data.project_name.as_bytes().to_vec(),
-                data.project_desc
-                    .as_ref()
-                    .map(|h| h.bytes())
-                    .unwrap_or_default(),
-                data.image_hash
-                    .as_ref()
-                    .map(|h| h.bytes())
-                    .unwrap_or_default(),
-                data.social_media_url.as_bytes().to_vec(),
-                versions_to_bytes(versions)?,
-                data.image_url
-                    .as_ref()
-                    .map(|h| h.as_bytes().to_vec())
-                    .unwrap_or_default(),
-            ])
+            .app_arguments(args)
             .build(),
     )
     .build()?;
