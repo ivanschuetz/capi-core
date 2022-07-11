@@ -214,11 +214,13 @@ fn find_amount(asset_id: u64, asset_holding: &[AssetHolding]) -> Result<AssetAmo
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ShareHolding {
     pub address: Address,
     pub amount: ShareAmount,
 }
 
+#[derive(Debug, Clone)]
 pub struct ShareHoldingPercentage {
     pub address: Address,
     pub amount: ShareAmount,
