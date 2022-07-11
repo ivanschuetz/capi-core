@@ -97,7 +97,9 @@ mod test {
         // unwrap: tests, and we know hardcoded data is correct
         SetupDaoSpecs::new(
             "Pancakes ltd".to_owned(),
-            Some(GlobalStateHash("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned())),
+            // Note that this isn't a valid hash - but this is used only for testing, which doesn't fetch the actual description
+            // so e.g. for equality checks, for which the arbitrary text is enough
+            Some(GlobalStateHash("abc".to_owned())),
             shares_specs(),
             Decimal::from_str("0.4").unwrap().try_into().unwrap(),
             FundsAmount::new(5_000_000),
