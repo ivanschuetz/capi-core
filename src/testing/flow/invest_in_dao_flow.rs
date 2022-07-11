@@ -22,6 +22,7 @@ pub mod test {
     use mbase::models::funds::FundsAmount;
     use mbase::models::share_amount::ShareAmount;
 
+    /// opts in to the app (requirement for investing)
     pub async fn invests_optins_flow(algod: &Algod, investor: &Account, dao: &Dao) -> Result<()> {
         // app optins (have to happen before invest_txs, which initializes investor's local state)
         let app_optin_tx = invest_or_locking_app_optin_tx(algod, dao, &investor.address()).await?;

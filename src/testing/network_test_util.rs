@@ -93,6 +93,7 @@ mod test {
         Ok(TestsMsig::new(vec![msig_acc1(), msig_acc2(), msig_acc3()])?)
     }
 
+    /// inits logs, resets the network and initializes test dependencies for default test dao specs
     // TODO rename - it suggests that the dao is initialized here, which isn't the case - maybe crate_test_deps?
     /// Common tests initialization
     /// Guarantee: the returned funds raising end date is in the past and the target is 0,
@@ -103,6 +104,7 @@ mod test {
         test_dao_with_specs(&dao_specs()).await
     }
 
+    /// inits logs, resets the network and initializes test dependencies
     /// Guarantee: the returned funds raising end date is in a week
     /// Relevant for test generally is that it's "later" by a safe span, so e.g. a withdrawal performed "now" with these deps will fail,
     /// as end date is in a week and withdrawals have to happen after it
@@ -113,6 +115,7 @@ mod test {
         test_dao_with_specs(&dao_specs_with_funds_target(funds_end_date.to_timestap())).await
     }
 
+    /// inits logs, resets the network and initializes test dependencies for given specs
     // named internal to not change the old "test_dao_init", which now means init without funds target specs
     pub async fn test_dao_with_specs(specs: &SetupDaoSpecs) -> Result<TestDeps> {
         test_init()?;
@@ -157,6 +160,7 @@ mod test {
         })
     }
 
+    /// inits logs and resets the network
     pub fn test_init() -> Result<()> {
         // load vars in .env file
 
