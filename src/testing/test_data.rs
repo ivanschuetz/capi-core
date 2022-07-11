@@ -106,8 +106,9 @@ mod test {
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(80), // unwrap: assumes a higher supply
             target,
-            end_date
-        ).unwrap()
+            end_date,
+        )
+        .unwrap()
     }
 
     pub fn shares_specs() -> CreateSharesSpecs {
