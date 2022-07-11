@@ -1,7 +1,8 @@
 #[cfg(test)]
 pub use test::{
-    create_and_distribute_funds_asset, setup_on_chain_deps, test_dao_init, test_dao_init_with_deps,
-    test_dao_with_funds_target_init, test_dao_with_specs, test_init, OnChainDeps, TestDeps,
+    create_and_distribute_funds_asset, optin_and_fund_accounts_with_asset, setup_on_chain_deps,
+    test_dao_init, test_dao_with_funds_target_init, test_dao_with_specs, test_init, OnChainDeps,
+    TestDeps,
 };
 
 #[cfg(test)]
@@ -129,7 +130,7 @@ mod test {
     }
 
     /// Use this for test initialization with custom chain deps
-    pub async fn test_dao_init_with_deps(
+    async fn test_dao_init_with_deps(
         algod: Algod,
         chain_deps: &OnChainDeps,
         specs: &SetupDaoSpecs,
@@ -283,7 +284,7 @@ mod test {
         Ok(FundsAssetId(asset_id))
     }
 
-    async fn optin_and_fund_accounts_with_asset(
+    pub async fn optin_and_fund_accounts_with_asset(
         algod: &Algod,
         params: &SuggestedTransactionParams,
         asset_id: u64,
