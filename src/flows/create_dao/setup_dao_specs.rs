@@ -82,6 +82,22 @@ impl SetupDaoSpecs {
             ));
         }
 
+        let max_raisable_amount = FundsAmount::new(
+            shares
+                .supply
+                .val()
+                .checked_mul(share_price.val())
+                .ok_or_else(|| anyhow!(""))?,
+        );
+
+        if raise_min_target.val() > max_raisable_amount.val() {
+            return Err(anyhow!(
+                "Min target: {} must be <= max possible funding (supply * price): {}",
+                raise_min_target,
+                max_raisable_amount
+            ));
+        }
+
         Ok(SetupDaoSpecs {
             name,
             descr_hash,
