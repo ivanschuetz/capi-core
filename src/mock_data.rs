@@ -151,7 +151,7 @@ pub mod test {
     pub fn dao_specs() -> SetupDaoSpecs {
         // unwrap: tests, and we know hardcoded data is correct
         SetupDaoSpecs::new(
-            "Super Cool Ltd".to_owned(),
+            "Hello World Ltd".to_owned(),
             // Some(GlobalStateHash("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore".to_owned())),
             None,
             CreateSharesSpecs {
