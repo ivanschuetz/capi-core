@@ -478,6 +478,96 @@ mod tests {
         test_simple_investment_res(&td, &dao, investor, buy_share_amount, invest_res).await
     }
 
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_canot_invest_if_not_enough_shares_supply() -> Result<()> {
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
+
+        // buy more than supply
+        let buy_share_amount = ShareAmount::new(td.specs.shares.supply.val() + 1);
+
+        let dao = create_dao_flow(td).await?;
+
+        // precs
+
+        invests_optins_flow(algod, &investor, &dao).await?;
+
+        // flow
+
+        let flow_res = invests_flow(&td, &investor, buy_share_amount, &dao).await;
+
+        // tests
+
+        assert!(flow_res.is_err());
+
+        Ok(())
+    }
+
+    // can't invest more than amount reserved for investors
+    // note that this test assumes that it's run after initializing dao,
+    // in real world it's technically possible that the dao has more shares than initially reserved to investors
+    // (the dao owner can transfer their shares to the dao for whatever reason)
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_canot_invest_if_not_enough_shares_for_investors() -> Result<()> {
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
+
+        let dao = create_dao_flow(td).await?;
+
+        // precs
+
+        invests_optins_flow(algod, &investor, &dao).await?;
+
+        // flow
+
+        let buy_share_amount = ShareAmount::new(td.specs.shares_for_investors().val() + 1);
+        let flow_res = invests_flow(&td, &investor, buy_share_amount, &dao).await;
+
+        // tests
+
+        assert!(flow_res.is_err());
+
+        Ok(())
+    }
+
+    /// here there's enough supply / shares reserved for investors, but not enough avaiable (not locked)
+    /// meaning: other investors have exhausted the available supply
+    #[test]
+    #[serial] // reset network (cmd)
+    async fn test_canot_invest_if_not_enough_shares_for_sale() -> Result<()> {
+        let td = &test_dao_init().await?;
+        let algod = &td.algod;
+        let investor = &td.investor1;
+
+        let dao = create_dao_flow(td).await?;
+
+        // precs
+
+        // have someone buy almost all the avaiable supply
+        assert!(td.specs.shares.supply.val() > 1); // sanity check
+        let buy_share_amount = ShareAmount::new(td.specs.shares_for_investors().val() - 1);
+        invests_optins_flow(algod, &investor, &dao).await?;
+        let flow_res = invests_flow(&td, &investor, buy_share_amount, &dao).await;
+        assert!(flow_res.is_ok());
+
+        // flow
+
+        // buy more than available (previous bought all minus 1, so there's only 1 remaining)
+        // we could make previous buy everything as well, but minus 1 seems more sensible to catch issues
+        let buy_share_amount = ShareAmount::new(2);
+        let flow_res = invests_flow(&td, &investor, buy_share_amount, &dao).await;
+
+        // tests
+
+        assert!(flow_res.is_err());
+
+        Ok(())
+    }
+
     async fn test_simple_investment_res(
         td: &TestDeps,
         dao: &Dao,
