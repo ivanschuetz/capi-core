@@ -68,8 +68,7 @@ pub mod test {
             Account::from_mnemonic("rhythm sock scene profit iron large loan slow spray three stove property certain subway tongue fun blanket fury lawn summer swift rigid bag absorb ask").unwrap(),
             Account::from_mnemonic("industry rug level front public describe club crew physical horse setup genius random evil rapid silk confirm walk pear diet unfold wing slide ability alley").unwrap(),
             Account::from_mnemonic("hen betray innocent decorate dial volcano creek sentence embody fantasy chronic oppose later raccoon credit weapon soon zone hundred chef whip year width about fit").unwrap(),
-            // adding this makes the holders pie chart end with the same color it started TODO fix (low prio)
-            // Account::from_mnemonic("lion distance tone muffin tube prison organ reason museum fury radio system toy kid orange hero save future left sustain clay history net abandon slim").unwrap(),
+            Account::from_mnemonic("lion distance tone muffin tube prison organ reason museum fury radio system toy kid orange hero save future left sustain clay history net abandon slim").unwrap(),
         ];
 
         let funder = funds_asset_creator(); // account we know has enough algos and funds asset
