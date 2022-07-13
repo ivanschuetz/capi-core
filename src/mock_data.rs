@@ -37,6 +37,7 @@ pub mod test {
     /// Note that for styling (frontend/css) specifically, we've a wasm build that provides mock data
     /// (which doesn't use a network at all - this way developers don't have to configure a sandbox / we don't have to deploy on testnet).
     #[test]
+    #[ignore]
     pub async fn reset_and_init_with_mock_data() -> Result<()> {
         let td = &test_dao_with_specs(&dao_specs()).await?;
         let algod = &td.algod;
