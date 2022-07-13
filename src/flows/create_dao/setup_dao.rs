@@ -160,6 +160,7 @@ pub async fn submit_setup_dao(
 
 /// creates nft (optional) instance with the created asset (in teal) from inner txs and optional url
 /// if the state is inconsistent (e.g. there's no url but there's a created asset or vice versa) returns an error
+/// assumes p_tx to be setup dao tx (which creates the nft asset via inner tx, if the optional nft url arg is set)
 fn to_nft(p_tx: &PendingTransaction, url: Option<String>) -> Result<Option<Nft>> {
     let created_asset_ids: Vec<u64> = p_tx
         .inner_txs
