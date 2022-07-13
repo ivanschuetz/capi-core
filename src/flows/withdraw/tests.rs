@@ -363,7 +363,7 @@ mod tests {
         test_can_withdraw_after_funds_target_end_date(
             FundsAmount::new(100_000_000),
             FundsAmount::new(5_000_000),
-            ShareAmount::new(100), // * price = 500_000_000, which is more than funds target -> can withdraw
+            ShareAmount::new(80), // * price = 400_000_000, which is more than funds target -> can withdraw
             true,
         )
         .await
