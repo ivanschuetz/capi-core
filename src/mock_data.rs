@@ -28,6 +28,7 @@ pub mod test {
         hash::GlobalStateHash,
         share_amount::ShareAmount,
     };
+    use rand::Rng;
     use rust_decimal::Decimal;
     use tokio::test;
 
@@ -122,9 +123,21 @@ pub mod test {
         // we do them in the same iteration to have more varied-looking funds activity
         // (instead of a block of investments, then a block of payments..)
         for investor in &investors {
+            let mut rng = rand::thread_rng();
+            let multiplier: f64 = rng.gen(); // 0..1
+
             // invest
             invests_optins_flow(algod, &investor, &dao).await?;
-            invests_flow(td, &investor, ShareAmount::new(200_000), &dao).await?;
+            invests_flow(
+                td,
+                &investor,
+                // note that 500_000 * investors is higher than the supply - we're relying on the random distribution to not exceed it
+                // it's fine here as this is just a convenience test (script) to prefill data
+                // we don't select a lower number as the chart looks better with this
+                ShareAmount::new((500_000 as f64 * multiplier) as u64),
+                &dao,
+            )
+            .await?;
 
             // send a payment and drain (needed for withdrawals)
             customer_payment_and_drain_flow(&td, &dao, FundsAmount::new(1_000_000_000), &funder)
