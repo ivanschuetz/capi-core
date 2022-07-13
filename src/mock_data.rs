@@ -174,7 +174,7 @@ pub mod test {
             Decimal::from_str("0.4").unwrap().try_into().unwrap(),
             FundsAmount::new(100_000),
             Some(GlobalStateHash("test_hash".to_owned())),
-            Some("123".to_owned()),
+            Some("https://placekitten.com/1033/360".to_owned()),
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(10_000_000),
             FundsAmount::new(200_000_000_000),
