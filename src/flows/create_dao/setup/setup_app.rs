@@ -55,32 +55,35 @@ pub async fn setup_app_tx(
     data: &DaoInitData,
 ) -> Result<Transaction> {
     log::debug!("Setting up app: {app_id:?}");
+
+    let mut args = vec![
+        data.shares_asset_id.to_be_bytes().to_vec(),
+        data.funds_asset_id.0.to_be_bytes().to_vec(),
+        data.project_name.as_bytes().to_vec(),
+        data.descr_hash
+            .as_ref()
+            .map(|h| h.bytes())
+            .unwrap_or_default(),
+        data.share_price.val().to_be_bytes().to_vec(),
+        data.investors_share.to_u64()?.to_be_bytes().to_vec(),
+        data.image_hash
+            .as_ref()
+            .map(|h| h.bytes())
+            .unwrap_or_default(),
+        data.social_media_url.as_bytes().to_vec(),
+        versions_to_bytes(data.versions())?,
+        data.min_raise_target.val().to_be_bytes().to_vec(),
+        data.min_raise_target_end_date.0.to_be_bytes().to_vec(),
+    ];
+
+    if let Some(image_nft_url) = &data.image_nft_url {
+        args.push(image_nft_url.as_bytes().to_vec());
+    }
+
     let tx = TxnBuilder::with(
         params,
         CallApplication::new(*creator, app_id.0)
-            .app_arguments(vec![
-                data.shares_asset_id.to_be_bytes().to_vec(),
-                data.funds_asset_id.0.to_be_bytes().to_vec(),
-                data.project_name.as_bytes().to_vec(),
-                data.descr_hash
-                    .as_ref()
-                    .map(|h| h.bytes())
-                    .unwrap_or_default(),
-                data.share_price.val().to_be_bytes().to_vec(),
-                data.investors_share.to_u64()?.to_be_bytes().to_vec(),
-                data.image_hash
-                    .as_ref()
-                    .map(|h| h.bytes())
-                    .unwrap_or_default(),
-                data.social_media_url.as_bytes().to_vec(),
-                versions_to_bytes(data.versions())?,
-                data.min_raise_target.val().to_be_bytes().to_vec(),
-                data.min_raise_target_end_date.0.to_be_bytes().to_vec(),
-                data.image_nft_url
-                    .as_ref()
-                    .map(|s| s.as_bytes().to_vec())
-                    .unwrap_or_default(),
-            ])
+            .app_arguments(args)
             .foreign_assets(vec![data.funds_asset_id.0, data.shares_asset_id])
             .build(),
     )
