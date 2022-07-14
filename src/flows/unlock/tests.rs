@@ -104,7 +104,7 @@ mod tests {
             .account_information(&to_app_address(dao.app_id.0))
             .await?;
         let app_escrow_assets = app_escrow_infos.assets;
-        assert_eq!(3, app_escrow_assets.len()); // opted in to shares, funds asset and image nft asset
+        assert_eq!(2, app_escrow_assets.len()); // opted in to shares, funds asset
 
         let dao_shares = dao_shares(algod, dao.app_id, dao.shares_asset_id).await?;
         assert_eq!(buy_share_amount, dao_shares.locked);

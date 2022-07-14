@@ -104,7 +104,7 @@ mod test {
             Decimal::from_str("0.4").unwrap().try_into().unwrap(),
             FundsAmount::new(5_000_000),
             Some(GlobalStateHash("test_hash".to_owned())),
-            Some("123".to_owned()),
+            None,
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(80), // unwrap: assumes a higher supply
             target,
