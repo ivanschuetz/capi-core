@@ -17,6 +17,7 @@ use algonaut::{
     transaction::{tx_group::TxGroup, TransferAsset, TxnBuilder},
 };
 use anyhow::{anyhow, Result};
+use chrono::Utc;
 use mbase::{
     api::version::VersionedTealSourceTemplate,
     models::{
@@ -60,6 +61,8 @@ pub async fn setup_dao_txs(
     )
     .build()?;
 
+    let setup_date = Utc::now().into();
+
     let mut setup_app_tx = setup_app_tx(
         app_id,
         &creator,
@@ -78,6 +81,7 @@ pub async fn setup_dao_txs(
             social_media_url: specs.social_media_url.clone(),
             min_raise_target: specs.raise_min_target,
             min_raise_target_end_date: specs.raise_end_date,
+            setup_date,
         },
     )
     .await?;
@@ -102,6 +106,8 @@ pub async fn setup_dao_txs(
         setup_app_tx,
 
         transfer_shares_to_app_tx,
+
+        setup_date,
     })
 }
 
@@ -154,6 +160,7 @@ pub async fn submit_setup_dao(
             raise_end_date: signed.specs.raise_end_date,
             raise_min_target: signed.specs.raise_min_target,
             raised: FundsAmount::new(0), // dao is just being setup - nothing raised yet
+            setup_date: signed.setup_date,
         },
     })
 }

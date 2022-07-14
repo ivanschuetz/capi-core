@@ -46,6 +46,8 @@ pub struct SetupDaoToSign {
 
     pub specs: SetupDaoSpecs,
     pub creator: Address,
+
+    pub setup_date: Timestamp,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -60,6 +62,8 @@ pub struct SetupDaoSigned {
     pub app_id: DaoAppId,
     pub funds_asset_id: FundsAssetId,
     pub image_url: Option<String>,
+
+    pub setup_date: Timestamp,
 }
 
 /// Note that dao doesn't know its id (DaoId), because it's generated after it's stored (it's the id of the storage tx),
@@ -88,6 +92,8 @@ pub struct Dao {
     pub raise_min_target: FundsAmount,
 
     pub raised: FundsAmount,
+
+    pub setup_date: Timestamp,
 }
 
 impl Dao {

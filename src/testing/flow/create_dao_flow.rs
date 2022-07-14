@@ -81,6 +81,7 @@ pub mod test {
                 app_id: create_assets_res.app_id,
                 transfer_shares_to_app_tx: signed_transfer_shares_to_app_tx,
                 image_url,
+                setup_date: to_sign.setup_date,
             },
         )
         .await?;
