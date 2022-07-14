@@ -17,6 +17,8 @@ pub trait ImageApi: Send + Sync {
     async fn upload_descr(&self, app_id: DaoAppId, descr: Vec<u8>) -> Result<()>;
     async fn get_descr(&self, id: &str) -> Result<String>;
     fn descr_url(&self, id: &str) -> String;
+
+    async fn get(&self, url: &str) -> Result<Vec<u8>>;
 }
 
 pub struct ImageApiImpl {
@@ -45,19 +47,6 @@ impl ImageApiImpl {
             .to_error_if_http_error()
             .await?;
         Ok(())
-    }
-
-    async fn get(&self, url: &str) -> Result<Vec<u8>> {
-        Ok(self
-            .client
-            .get(url)
-            .send()
-            .await?
-            .to_error_if_http_error()
-            .await?
-            .bytes()
-            .await?
-            .to_vec())
     }
 }
 
@@ -93,6 +82,19 @@ impl ImageApi for ImageApiImpl {
     fn descr_url(&self, id: &str) -> String {
         let encoded_id = urlencoding::encode(id).to_string();
         format!("{}/descr/{}", self.host, encoded_id)
+    }
+
+    async fn get(&self, url: &str) -> Result<Vec<u8>> {
+        Ok(self
+            .client
+            .get(url)
+            .send()
+            .await?
+            .to_error_if_http_error()
+            .await?
+            .bytes()
+            .await?
+            .to_vec())
     }
 }
 
