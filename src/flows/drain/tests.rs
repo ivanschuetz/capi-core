@@ -42,7 +42,7 @@ mod tests {
 
         // withdrawable amount global state was set to drained funds
         let dao_state = dao_global_state(&algod, dao.app_id).await?;
-        assert_eq!(drain_res.drained_amounts.dao, dao_state.withdrawable);
+        assert_eq!(drain_res.drained_amounts.dao, dao_state.available);
         // total received received global state was incremented with what we drained (minus capi fee)
         assert_eq!(drain_res.drained_amounts.dao, dao_state.received);
 
@@ -96,7 +96,7 @@ mod tests {
         // withdrawable amount global state was set to drained funds total, minus capi fee
         // (i.e. the total received funds minus capi fee are available for withdrawal)
         let dao_state = dao_global_state(&algod, dao.app_id).await?;
-        assert_eq!(expected_dao_funds, dao_state.withdrawable);
+        assert_eq!(expected_dao_funds, dao_state.available);
         // total received received global state was incremented with the total drained (minus capi fee)
         assert_eq!(expected_dao_funds, dao_state.received);
 
@@ -155,7 +155,7 @@ mod tests {
         // withdrawable amount global state was set to drained funds total, minus capi fee
         // (i.e. the total received funds minus capi fee are available for withdrawal)
         let dao_state = dao_global_state(&algod, dao.app_id).await?;
-        assert_eq!(expected_dao_funds, dao_state.withdrawable);
+        assert_eq!(expected_dao_funds, dao_state.available);
         // total received received global state was incremented with the total drained (minus capi fee)
         assert_eq!(expected_dao_funds, dao_state.received);
 
@@ -224,7 +224,7 @@ mod tests {
         // withdrawable amount global state was set to drained funds total, minus capi fee, minus withdrawal
         // (i.e. the total received funds minus capi fee are available for withdrawal)
         let dao_state = dao_global_state(&algod, dao.app_id).await?;
-        assert_eq!(expected_dao_funds, dao_state.withdrawable);
+        assert_eq!(expected_dao_funds, dao_state.available);
         // total received received global state was incremented with the total drained (minus capi fee, minus withdrawal)
         let expected_dao_total_received = FundsAmount::new(
             drain_res1.drained_amounts.dao.val() + drain_res2.drained_amounts.dao.val(),
@@ -285,7 +285,7 @@ mod tests {
         let dao_state = dao_global_state(&algod, dao.app_id).await?;
 
         // nothing drained or invested: no withdrawable amount
-        assert_eq!(FundsAmount::new(0), dao_state.withdrawable);
+        assert_eq!(FundsAmount::new(0), dao_state.available);
 
         // nothing received: total received is 0
         assert_eq!(FundsAmount::new(0), dao_state.received);

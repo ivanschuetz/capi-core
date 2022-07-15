@@ -119,10 +119,8 @@ mod tests {
 
         // app withdrawable amount decreased
         assert_eq!(
-            FundsAmount::new(
-                app_state_before_reclaiming.withdrawable.val() - reclaimed_funds.val()
-            ),
-            app_state_after_reclaiming.withdrawable
+            FundsAmount::new(app_state_before_reclaiming.available.val() - reclaimed_funds.val()),
+            app_state_after_reclaiming.available
         );
 
         Ok(())
@@ -383,9 +381,9 @@ mod tests {
         // app withdrawable amount decreased
         assert_eq!(
             FundsAmount::new(
-                app_state_before_reclaiming.withdrawable.val() - total_invested_price.val()
+                app_state_before_reclaiming.available.val() - total_invested_price.val()
             ),
-            app_state_after_reclaiming.withdrawable
+            app_state_after_reclaiming.available
         );
 
         Ok(())
@@ -538,9 +536,9 @@ mod tests {
         // app withdrawable amount decreased
         assert_eq!(
             FundsAmount::new(
-                app_state_before_reclaiming.withdrawable.val() - total_invested_price.val()
+                app_state_before_reclaiming.available.val() - total_invested_price.val()
             ),
-            app_state_after_reclaiming.withdrawable
+            app_state_after_reclaiming.available
         );
 
         Ok(())
@@ -653,10 +651,8 @@ mod tests {
 
         // app withdrawable amount decreased
         assert_eq!(
-            FundsAmount::new(
-                app_state_before_reclaiming.withdrawable.val() - reclaimed_funds.val()
-            ),
-            app_state_after_reclaiming.withdrawable
+            FundsAmount::new(app_state_before_reclaiming.available.val() - reclaimed_funds.val()),
+            app_state_after_reclaiming.available
         );
 
         Ok(())

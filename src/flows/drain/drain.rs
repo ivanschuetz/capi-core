@@ -68,11 +68,11 @@ pub async fn to_drain_amounts(
     let not_yet_drained = FundsAmount::new(
         dao_holdings
             .val()
-            .checked_sub(state.withdrawable.val())
+            .checked_sub(state.available.val())
             .ok_or_else(|| {
                 anyhow!(
                     "Error subtracting dao holdings: {dao_holdings:?} - {:?}",
-                    state.withdrawable
+                    state.available
                 )
             })?,
     );

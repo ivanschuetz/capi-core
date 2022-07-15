@@ -407,7 +407,7 @@ mod tests {
         let dao_state = dao_global_state(&algod, dao.app_id).await?;
         // investment income is immediately put in withdrawable global state
         // NOTE that the funds may still *not* be actually withdrawable, if withdrawing before funds raising end date
-        assert_eq!(flow_res.total_paid_price, dao_state.withdrawable);
+        assert_eq!(flow_res.total_paid_price, dao_state.available);
 
         // no dividend: so total received (which is used to calculate the dividend) was not incremented
         let dao_state = dao_global_state(&algod, dao.app_id).await?;
@@ -466,7 +466,7 @@ mod tests {
         let expected_withdrawable_funds = FundsAmount::new(
             drain_res.drained_amounts.dao.val() + invest_res.total_paid_price.val(),
         );
-        assert_eq!(expected_withdrawable_funds, dao_state.withdrawable);
+        assert_eq!(expected_withdrawable_funds, dao_state.available);
 
         // total received (which is used to calculate the dividend) was incremented by the drained amount (and not by the invest amount)
         let dao_state = dao_global_state(&algod, dao.app_id).await?;

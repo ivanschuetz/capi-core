@@ -322,10 +322,8 @@ mod tests {
 
         // check that withdrawable amount was decreased by claimed amount
         assert_eq!(
-            FundsAmount::new(
-                state_before_claiming.withdrawable.val() - investor_state.claimed.val()
-            ),
-            global_state.withdrawable
+            FundsAmount::new(state_before_claiming.available.val() - investor_state.claimed.val()),
+            global_state.available
         );
 
         Ok(())
