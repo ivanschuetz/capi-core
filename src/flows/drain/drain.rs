@@ -44,8 +44,10 @@ pub async fn drain(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DaoAndCapiDrainAmounts {
+    // Part that goes to the dao (amount - fee)
     pub dao: FundsAmount,
-    pub capi: FundsAmount, // fee
+    // Part that goes to capi (fee)
+    pub capi: FundsAmount,
 }
 
 impl DaoAndCapiDrainAmounts {
