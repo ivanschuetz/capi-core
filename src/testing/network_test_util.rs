@@ -693,7 +693,7 @@ mod test {
             .unwrap();
         let funds_asset_id = FundsAssetId(12);
 
-        let amount = FundsAmount::new(100_000_000);
+        let amount = FundsAmount::new(10_000_000_000);
 
         let algod = algod(); // environment network - if using from WASM scripts, the net passed in build script
         let sender = funds_asset_creator(); // arbitrary account we know has enough assets
