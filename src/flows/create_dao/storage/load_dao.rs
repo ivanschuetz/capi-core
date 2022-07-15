@@ -36,7 +36,7 @@ pub async fn load_dao(algod: &Algod, dao_id: DaoId) -> Result<Dao> {
         app_id,
 
         name: dao_state.project_name.clone(),
-        descr_hash: dao_state.project_desc.clone(),
+        descr_url: dao_state.project_desc_url.clone(),
         token_name: asset_infos.params.name.unwrap_or_else(|| "".to_owned()),
         token_supply: ShareAmount::new(asset_infos.params.total),
         investors_share: dao_state.investors_share,

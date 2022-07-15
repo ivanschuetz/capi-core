@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone)]
 pub struct UpdatableDaoData {
     pub project_name: String,
-    pub project_desc: Option<GlobalStateHash>,
+    pub project_desc_url: Option<String>,
 
     pub image_hash: Option<GlobalStateHash>,
     pub image_url: Option<String>,
@@ -45,9 +45,9 @@ pub async fn update_data(
     let mut args = vec![
         "update_data".as_bytes().to_vec(),
         data.project_name.as_bytes().to_vec(),
-        data.project_desc
+        data.project_desc_url
             .as_ref()
-            .map(|h| h.bytes())
+            .map(|h| h.as_bytes().to_vec())
             .unwrap_or_default(),
         data.image_hash
             .as_ref()

@@ -76,7 +76,7 @@ pub struct Dao {
     pub funds_asset_id: FundsAssetId,
 
     pub name: String,
-    pub descr_hash: Option<GlobalStateHash>,
+    pub descr_url: Option<String>,
     pub token_name: String,
     pub token_supply: ShareAmount,
     pub investors_share: SharesPercentage,
@@ -117,7 +117,7 @@ impl Debug for Dao {
             .field("shares_asset_id", &self.shares_asset_id)
             .field("funds_asset_id", &self.funds_asset_id)
             .field("name", &self.name)
-            .field("descr_hash", &self.descr_hash)
+            .field("descr_url", &self.descr_url)
             .field("token_name", &self.token_name)
             .field("token_supply", &self.token_supply)
             .field("investors_share", &self.investors_share)

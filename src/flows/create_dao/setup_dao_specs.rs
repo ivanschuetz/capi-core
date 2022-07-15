@@ -42,7 +42,7 @@ impl HashableString for String {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SetupDaoSpecs {
     pub name: String,
-    pub descr_hash: Option<GlobalStateHash>,
+    pub descr_url: Option<String>,
     pub shares: CreateSharesSpecs,
     pub investors_share: SharesPercentage,
     pub share_price: FundsAmount,
@@ -64,7 +64,7 @@ impl SetupDaoSpecs {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
-        descr_hash: Option<GlobalStateHash>,
+        descr_url: Option<String>,
         shares: CreateSharesSpecs,
         investors_share: SharesPercentage,
         share_price: FundsAmount,
@@ -100,7 +100,7 @@ impl SetupDaoSpecs {
 
         Ok(SetupDaoSpecs {
             name,
-            descr_hash,
+            descr_url,
             shares,
             investors_share,
             share_price,

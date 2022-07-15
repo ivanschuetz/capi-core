@@ -27,7 +27,7 @@ pub struct DaoInitData {
     pub funds_asset_id: FundsAssetId,
 
     pub project_name: String,
-    pub descr_hash: Option<GlobalStateHash>,
+    pub descr_url: Option<String>,
     pub share_price: FundsAmount,
     pub investors_share: SharesPercentage,
 
@@ -62,9 +62,9 @@ pub async fn setup_app_tx(
         data.shares_asset_id.to_be_bytes().to_vec(),
         data.funds_asset_id.0.to_be_bytes().to_vec(),
         data.project_name.as_bytes().to_vec(),
-        data.descr_hash
+        data.descr_url
             .as_ref()
-            .map(|h| h.bytes())
+            .map(|s| s.as_bytes().to_vec())
             .unwrap_or_default(),
         data.share_price.val().to_be_bytes().to_vec(),
         data.investors_share.to_u64()?.to_be_bytes().to_vec(),
