@@ -177,7 +177,7 @@ mod test {
     }
 
     fn test_accounts_initial_funds() -> FundsAmount {
-        FundsAmount::new(10_000_000_000)
+        FundsAmount::new(100_000_000_000)
     }
 
     pub async fn create_and_distribute_funds_asset(algod: &Algod) -> Result<FundsAssetId> {
@@ -652,7 +652,7 @@ mod test {
             &algod,
             &params,
             81166440,
-            FundsAmount::new(10_000_000_000),
+            FundsAmount::new(100_000_000_000),
             &assets_sender,
             &accounts,
         )
