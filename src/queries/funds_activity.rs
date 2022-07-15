@@ -37,7 +37,7 @@ pub async fn funds_activity(
     funds_asset: FundsAssetId,
 ) -> Result<Vec<FundsActivityEntry>> {
     let withdrawals = withdrawals(algod, indexer, dao_id, funds_asset, &None, &None).await?;
-    // payments to the customer and app escrows
+    // payments to the app escrow
     let payments = received_payments(
         indexer,
         &dao_id.0.address(),

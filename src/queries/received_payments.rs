@@ -50,6 +50,7 @@ pub async fn received_payments(
         if let Some(xfer_tx) = &tx.asset_transfer_transaction {
             let receiver_address = xfer_tx.receiver.parse::<Address>().map_err(Error::msg)?;
 
+            // funds asset, to the app
             if &receiver_address == address && xfer_tx.asset_id == funds_asset.0 {
                 // Skip asset opt-ins
                 if sender_address == receiver_address && xfer_tx.amount == 0 {
