@@ -9,7 +9,7 @@ use algonaut::{
 use anyhow::Result;
 use mbase::{
     api::version::{versions_to_bytes, Versions},
-    models::{dao_app_id::DaoAppId, hash::GlobalStateHash},
+    models::dao_app_id::DaoAppId,
     state::dao_app_state::dao_global_state,
 };
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,6 @@ pub struct UpdatableDaoData {
     pub project_name: String,
     pub project_desc_url: Option<String>,
 
-    pub image_hash: Option<GlobalStateHash>,
     pub image_url: Option<String>,
     pub social_media_url: String,
 }
@@ -48,10 +47,6 @@ pub async fn update_data(
         data.project_desc_url
             .as_ref()
             .map(|h| h.as_bytes().to_vec())
-            .unwrap_or_default(),
-        data.image_hash
-            .as_ref()
-            .map(|h| h.bytes())
             .unwrap_or_default(),
         data.social_media_url.as_bytes().to_vec(),
         versions_to_bytes(versions)?,

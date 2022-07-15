@@ -13,7 +13,7 @@ mod tests {
     };
     use anyhow::Result;
     use mbase::{
-        models::{funds::FundsAmount, hash::GlobalStateHash, share_amount::ShareAmount},
+        models::{funds::FundsAmount, share_amount::ShareAmount},
         state::dao_app_state::{dao_global_state, dao_investor_state, CentralAppGlobalState},
     };
     use serial_test::serial;
@@ -117,14 +117,12 @@ mod tests {
         // arbitrary data different to the existing one
         let new_project_name = "new_project_name".to_owned();
         let new_project_desc = Some("new_descr_url".to_owned());
-        let new_image_hash = Some(GlobalStateHash("new_test_image_hash".to_owned()));
         let new_image_url = Some("new_image_url".to_owned());
         let new_social_media_url = "new_social_media_url".to_owned();
 
         UpdatableDaoData {
             project_name: new_project_name.clone(),
             project_desc_url: new_project_desc.clone(),
-            image_hash: new_image_hash,
             image_url: new_image_url,
             social_media_url: new_social_media_url.clone(),
         }
@@ -133,7 +131,6 @@ mod tests {
     fn validate_global_state_with_update_data(gs: &CentralAppGlobalState, data: &UpdatableDaoData) {
         assert_eq!(gs.project_name, data.project_name);
         assert_eq!(gs.project_desc_url, data.project_desc_url);
-        assert_eq!(gs.image_hash, data.image_hash);
 
         if gs.image_nft.is_some() {
             let nft = gs.image_nft.clone().unwrap();
@@ -152,7 +149,6 @@ mod tests {
     ) {
         assert_ne!(gs.project_name, data.project_name);
         assert_ne!(gs.project_desc_url, data.project_desc_url);
-        assert_ne!(gs.image_hash, data.image_hash);
         assert_ne!(gs.social_media_url, data.social_media_url);
     }
 }

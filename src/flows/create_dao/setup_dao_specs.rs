@@ -1,43 +1,10 @@
 use super::model::CreateSharesSpecs;
 use anyhow::{anyhow, Result};
-use data_encoding::BASE64;
 use mbase::models::{
-    funds::FundsAmount, hash::GlobalStateHash, share_amount::ShareAmount,
-    shares_percentage::SharesPercentage, timestamp::Timestamp,
+    funds::FundsAmount, share_amount::ShareAmount, shares_percentage::SharesPercentage,
+    timestamp::Timestamp,
 };
 use serde::{Deserialize, Serialize};
-use sha2::Digest;
-
-/// Represents an image that was already compressed
-/// and checked against its size limit (for now not enforced here - to simplify error typing)
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CompressedImage(Vec<u8>);
-
-impl CompressedImage {
-    pub fn new(bytes: Vec<u8>) -> CompressedImage {
-        CompressedImage(bytes)
-    }
-
-    pub fn hash(&self) -> GlobalStateHash {
-        let digest = sha2::Sha512_256::digest(&self.0);
-        GlobalStateHash(BASE64.encode(&digest))
-    }
-
-    pub fn bytes(&self) -> Vec<u8> {
-        self.0.clone()
-    }
-}
-
-pub trait HashableString {
-    fn hash(&self) -> GlobalStateHash;
-}
-
-impl HashableString for String {
-    fn hash(&self) -> GlobalStateHash {
-        let digest = sha2::Sha512_256::digest(&self.as_bytes());
-        GlobalStateHash(BASE64.encode(&digest))
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SetupDaoSpecs {
@@ -46,7 +13,6 @@ pub struct SetupDaoSpecs {
     pub shares: CreateSharesSpecs,
     pub investors_share: SharesPercentage,
     pub share_price: FundsAmount,
-    pub image_hash: Option<GlobalStateHash>,
     pub image_url: Option<String>,
     pub social_media_url: String, // this can be later in an extension (possibly with more links)
     // shares to be sold to investors (the rest stay in the creator's account)
@@ -68,7 +34,6 @@ impl SetupDaoSpecs {
         shares: CreateSharesSpecs,
         investors_share: SharesPercentage,
         share_price: FundsAmount,
-        image_hash: Option<GlobalStateHash>,
         image_url: Option<String>,
         social_media_url: String,
         shares_for_investors: ShareAmount,
@@ -104,7 +69,6 @@ impl SetupDaoSpecs {
             shares,
             investors_share,
             share_price,
-            image_hash,
             image_url,
             social_media_url,
             shares_for_investors,

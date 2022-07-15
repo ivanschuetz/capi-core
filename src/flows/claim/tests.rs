@@ -23,7 +23,6 @@ mod tests {
         models::{
             dao_app_id::DaoAppId,
             funds::{FundsAmount, FundsAssetId},
-            hash::GlobalStateHash,
             share_amount::ShareAmount,
         },
         state::dao_app_state::{
@@ -178,7 +177,6 @@ mod tests {
             },
             Decimal::from_str("0.4")?.try_into()?,
             FundsAmount::new(5_000_000),
-            Some(GlobalStateHash("test_hash".to_owned())),
             None,
             "https://twitter.com/capi_fin".to_owned(),
             ShareAmount::new(250), // assumes a higher supply number

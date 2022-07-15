@@ -9,7 +9,6 @@ use mbase::{
         dao_app_id::DaoAppId,
         dao_id::DaoId,
         funds::{FundsAmount, FundsAssetId},
-        hash::GlobalStateHash,
         nft::{Cid, Nft},
         share_amount::ShareAmount,
         shares_percentage::SharesPercentage,
@@ -81,7 +80,6 @@ pub struct Dao {
     pub token_supply: ShareAmount,
     pub investors_share: SharesPercentage,
     pub share_price: FundsAmount,
-    pub image_hash: Option<GlobalStateHash>,
     pub image_nft: Option<Nft>,
     pub social_media_url: String, // this can be later in an extension (possibly with more links)
     // we manage this as timestamp instead of date,
@@ -122,7 +120,6 @@ impl Debug for Dao {
             .field("token_supply", &self.token_supply)
             .field("investors_share", &self.investors_share)
             .field("share_price", &self.share_price)
-            .field("image_hash", &self.image_hash)
             .field("image_nft", &self.image_nft)
             .field("social_media_url", &self.social_media_url)
             .field("raise_end_date", &self.raise_end_date)
