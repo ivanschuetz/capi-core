@@ -1,20 +1,11 @@
 use crate::{
-    api::image_api::{ImageApi, ImageApiImpl},
+    api::fetcher::{Fetcher, FetcherImpl},
     teal::{RemoteTealApi, TealApi},
 };
 use mbase::dependencies::{env, Env};
 
-pub fn image_api() -> impl ImageApi {
-    image_api_for_env(&env())
-}
-
-pub fn image_api_for_env(env: &Env) -> impl ImageApi {
-    let host = match env {
-        Env::Local => "http://localhost:8000",
-        // Env::Local => "http://18.214.98.83:8000",
-        Env::Test => "http://18.214.98.83:8000",
-    };
-    ImageApiImpl::new(host)
+pub fn fetcher() -> impl Fetcher {
+    FetcherImpl::new()
 }
 
 pub fn teal_api() -> impl TealApi {

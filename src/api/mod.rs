@@ -1,1 +1,1 @@
-pub mod image_api;
+pub mod fetcher;
