@@ -39,30 +39,3 @@ impl Fetcher for FetcherImpl {
             .to_vec())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::Fetcher;
-    use crate::dependencies::fetcher;
-    use anyhow::Result;
-    use mbase::models::dao_app_id::DaoAppId;
-    use tokio::test;
-
-    #[test]
-    #[ignore]
-    async fn upload_image() -> Result<()> {
-        let image_api = fetcher();
-        image_api.upload_image(DaoAppId(123), vec![1, 2, 3]).await?;
-        Ok(())
-    }
-
-    #[test]
-    #[ignore]
-    async fn get_image() -> Result<()> {
-        let image_api = fetcher();
-        let image = image_api.get_image("abc").await?;
-        println!("image: {:?}", image);
-
-        Ok(())
-    }
-}
