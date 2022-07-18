@@ -90,7 +90,7 @@ pub async fn received_payments(
                 // this might be malicious to skew the statistics / funds history, for some reason
                 // we might have to check for investments in a more robust way
                 // e.g. checking the other txs in the group (https://github.com/algorand/indexer/issues/135)
-                let fee = if tx.note == Some(BASE64.encode("invest".as_bytes()).to_owned()) {
+                let fee = if tx.note == Some(BASE64.encode("Invest".as_bytes()).to_owned()) {
                     FundsAmount::new(0)
                 } else {
                     calculate_dao_and_capi_escrow_xfer_amounts(amount, capi_deps.escrow_percentage)?

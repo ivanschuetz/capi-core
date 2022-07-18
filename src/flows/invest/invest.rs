@@ -64,7 +64,9 @@ pub async fn invest_txs(
         )
         .build(),
     )
-    .note("invest".as_bytes().to_vec()) // to not apply fee when fetching received_payments with the indexer
+    // DON'T CHANGE NOTE - to not apply fee when fetching received_payments with the indexer
+    // TODO solve this in a different way - note is shown on the UI
+    .note("Invest".as_bytes().to_vec())
     .build()?;
 
     // pay for the inner xfer (shares to investor) fee
