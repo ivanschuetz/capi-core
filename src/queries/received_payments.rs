@@ -97,12 +97,18 @@ pub async fn received_payments(
                         .capi
                 };
 
+                let note = if let Some(note) = &tx.note {
+                    Some(String::from_utf8(BASE64.decode(note.as_bytes())?)?)
+                } else {
+                    None
+                };
+
                 payments.push(Payment {
                     tx_id: id.parse()?,
                     amount,
                     sender: tx.sender.parse().map_err(Error::msg)?,
                     date: timestamp_seconds_to_date(round_time)?,
-                    note: tx.note.clone(),
+                    note,
                     fee,
                 })
             }
