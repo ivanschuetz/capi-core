@@ -1,10 +1,4 @@
-use crate::{
-    capi_deps::CapiAssetDaoDeps,
-    flows::{
-        create_dao::storage::load_dao::TxId,
-        drain::drain::calculate_dao_and_capi_escrow_xfer_amounts,
-    },
-};
+use crate::flows::drain::drain::calculate_dao_and_capi_escrow_xfer_amounts;
 use algonaut::{core::Address, indexer::v2::Indexer, model::indexer::v2::QueryTransaction};
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
@@ -12,7 +6,7 @@ use data_encoding::BASE64;
 use mbase::{
     checked::CheckedSub,
     date_util::timestamp_seconds_to_date,
-    models::funds::{FundsAmount, FundsAssetId},
+    models::{funds::{FundsAmount, FundsAssetId}, capi_deps::CapiAssetDaoDeps, tx_id::TxId},
 };
 
 /// Payments (funds xfer) to the Dao escrow

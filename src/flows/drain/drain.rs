@@ -1,8 +1,4 @@
-use crate::{
-    capi_deps::{CapiAddress, CapiAssetDaoDeps},
-    flows::create_dao::storage::load_dao::TxId,
-    state::account_state::funds_holdings,
-};
+use crate::state::account_state::funds_holdings;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, SuggestedTransactionParams},
@@ -13,7 +9,7 @@ use mbase::{
     models::{
         dao_app_id::DaoAppId,
         funds::{FundsAmount, FundsAssetId},
-        shares_percentage::SharesPercentage,
+        shares_percentage::SharesPercentage, capi_deps::{CapiAssetDaoDeps, CapiAddress}, tx_id::TxId,
     },
     state::dao_app_state::dao_global_state,
 };

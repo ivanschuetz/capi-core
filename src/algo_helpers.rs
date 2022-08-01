@@ -1,6 +1,3 @@
-use crate::{
-    flows::create_dao::storage::load_dao::TxId, network_util::wait_for_pending_transaction,
-};
 use algonaut::{
     algod::v2::Algod,
     core::{MicroAlgos, SuggestedTransactionParams},
@@ -8,6 +5,7 @@ use algonaut::{
     transaction::{SignedTransaction, Transaction},
 };
 use anyhow::{anyhow, Result};
+use mbase::{models::tx_id::TxId, util::network_util::wait_for_pending_transaction};
 
 /// Sums the estimated fees of all the passed transactions
 pub fn calculate_total_fee(

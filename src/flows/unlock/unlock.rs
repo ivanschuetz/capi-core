@@ -1,11 +1,10 @@
-use crate::flows::create_dao::storage::load_dao::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     transaction::{builder::CloseApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
-use mbase::models::dao_app_id::DaoAppId;
+use mbase::models::{dao_app_id::DaoAppId, tx_id::TxId};
 use serde::{Deserialize, Serialize};
 
 // TODO no constants

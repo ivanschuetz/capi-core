@@ -1,7 +1,4 @@
-use super::{
-    model::{SetupDaoSigned, SetupDaoToSign, SubmitSetupDaoResult},
-    setup_dao_specs::SetupDaoSpecs,
-};
+use super::model::{SetupDaoSigned, SetupDaoToSign, SubmitSetupDaoResult};
 use crate::{
     algo_helpers::wait_for_p_tx_with_id,
     common_txs::pay,
@@ -23,7 +20,7 @@ use mbase::{
     models::{
         dao_app_id::DaoAppId,
         funds::{FundsAmount, FundsAssetId},
-        nft::Nft,
+        nft::Nft, setup_dao_specs::SetupDaoSpecs,
     },
 };
 

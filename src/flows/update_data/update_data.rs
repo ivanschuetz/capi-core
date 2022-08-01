@@ -1,4 +1,4 @@
-use crate::{common_txs::pay, flows::create_dao::storage::load_dao::TxId};
+use crate::common_txs::pay;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
@@ -9,7 +9,7 @@ use algonaut::{
 use anyhow::Result;
 use mbase::{
     api::version::{versions_to_bytes, Versions},
-    models::dao_app_id::DaoAppId,
+    models::{dao_app_id::DaoAppId, tx_id::TxId},
     state::dao_app_state::dao_global_state,
 };
 use serde::{Deserialize, Serialize};

@@ -1,11 +1,11 @@
 use crate::{
-    capi_deps::CapiAssetDaoDeps, flows::withdraw::withdrawals::withdrawals,
-    queries::received_payments::received_payments,
+    flows::withdraw::withdrawals::withdrawals, queries::received_payments::received_payments,
 };
 use algonaut::{algod::v2::Algod, indexer::v2::Indexer};
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use mbase::models::{
+    capi_deps::CapiAssetDaoDeps,
     dao_id::DaoId,
     funds::{FundsAmount, FundsAssetId},
 };
@@ -69,16 +69,18 @@ pub async fn historic_dao_funds_balance(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        capi_deps::{CapiAddress, CapiAssetDaoDeps},
-        queries::historic_balance::historic_dao_funds_balance,
-    };
+    use crate::queries::historic_balance::historic_dao_funds_balance;
     use anyhow::Result;
     use chrono::Utc;
     use mbase::{
         dependencies::{algod, indexer},
         logger::init_logger,
-        models::{dao_app_id::DaoAppId, dao_id::DaoId, funds::FundsAssetId},
+        models::{
+            capi_deps::{CapiAddress, CapiAssetDaoDeps},
+            dao_app_id::DaoAppId,
+            dao_id::DaoId,
+            funds::FundsAssetId,
+        },
     };
     use rust_decimal::Decimal;
     use std::{convert::TryInto, str::FromStr};

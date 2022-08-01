@@ -5,10 +5,10 @@ pub use test::lock_flow;
 pub mod test {
     use crate::flows::create_dao::model::Dao;
     use crate::flows::lock::lock::{lock, submit_lock, LockSigned};
-    use crate::network_util::wait_for_pending_transaction;
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
     use mbase::models::share_amount::ShareAmount;
+    use mbase::util::network_util::wait_for_pending_transaction;
 
     pub async fn lock_flow(
         algod: &Algod,

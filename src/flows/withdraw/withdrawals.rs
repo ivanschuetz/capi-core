@@ -1,5 +1,5 @@
 use crate::flows::{
-    create_dao::storage::load_dao::{load_dao, TxId},
+    create_dao::storage::load_dao::load_dao,
     withdraw::note::base64_withdrawal_note_to_withdrawal_description,
 };
 use algonaut::{
@@ -9,6 +9,7 @@ use algonaut::{
 use anyhow::{anyhow, Error, Result};
 use chrono::{DateTime, Utc};
 use mbase::date_util::timestamp_seconds_to_date;
+use mbase::models::tx_id::TxId;
 use mbase::models::{
     dao_id::DaoId,
     funds::{FundsAmount, FundsAssetId},

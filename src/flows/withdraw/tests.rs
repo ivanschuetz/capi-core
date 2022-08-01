@@ -14,7 +14,6 @@ mod tests {
             network_test_util::{
                 test_dao_init, test_dao_with_funds_target_init, test_dao_with_specs,
             },
-            test_data::{dao_specs, dao_specs_with_funds_pars, investor2},
         },
     };
     use algonaut::{
@@ -31,6 +30,7 @@ mod tests {
             share_amount::ShareAmount,
         },
     };
+    use network_test_util::test_data::{dao_specs, dao_specs_with_funds_pars, investor2};
     use serial_test::serial;
     use tokio::test;
 

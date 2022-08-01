@@ -8,7 +8,6 @@ pub mod test {
     use crate::testing::flow::invest_in_dao_flow::invests_optins_flow;
     use crate::{
         flows::claim::claim::{claim, submit_claim, ClaimSigned},
-        network_util::wait_for_pending_transaction,
         testing::flow::{
             create_dao_flow::create_dao_flow,
             customer_payment_and_drain_flow::customer_payment_and_drain_flow,
@@ -20,6 +19,7 @@ pub mod test {
     use anyhow::Result;
     use mbase::models::funds::FundsAmount;
     use mbase::models::share_amount::ShareAmount;
+    use mbase::util::network_util::wait_for_pending_transaction;
 
     /// invests and drains
     pub async fn claim_precs(

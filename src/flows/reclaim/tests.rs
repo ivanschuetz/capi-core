@@ -12,7 +12,6 @@ mod tests {
                 unlock_flow::unlock_flow,
             },
             network_test_util::test_dao_with_specs,
-            test_data::dao_specs_with_funds_pars,
         },
     };
     use anyhow::Result;
@@ -23,6 +22,7 @@ mod tests {
         models::{funds::FundsAmount, share_amount::ShareAmount},
         state::dao_app_state::dao_global_state,
     };
+    use network_test_util::test_data::dao_specs_with_funds_pars;
     use serial_test::serial;
     use tokio::test;
 

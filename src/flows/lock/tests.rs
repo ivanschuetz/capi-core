@@ -11,6 +11,7 @@ mod tests {
                 central_investor_state_from_acc, dao_global_state, dao_investor_state,
             },
         },
+        util::network_util::wait_for_pending_transaction,
     };
     use serial_test::serial;
     use tokio::test;
@@ -23,7 +24,6 @@ mod tests {
                 invest_or_locking_app_optin_tx, submit_invest_or_locking_app_optin,
             },
         },
-        network_util::wait_for_pending_transaction,
         state::{
             account_state::{
                 find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,

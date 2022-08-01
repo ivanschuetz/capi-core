@@ -1,10 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        flows::{
-            claim::claim::claimable_dividend,
-            create_dao::{model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs},
-        },
+        flows::claim::claim::claimable_dividend,
         state::account_state::funds_holdings,
         testing::{
             flow::{
@@ -21,8 +18,10 @@ mod tests {
         checked::CheckedAdd,
         checked::CheckedSub,
         models::{
+            create_shares_specs::CreateSharesSpecs,
             dao_app_id::DaoAppId,
             funds::{FundsAmount, FundsAssetId},
+            setup_dao_specs::SetupDaoSpecs,
             share_amount::ShareAmount,
         },
         state::dao_app_state::{

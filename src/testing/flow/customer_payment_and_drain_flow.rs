@@ -5,12 +5,10 @@ pub use test::{customer_payment_and_drain_flow, drain_flow, CustomerPaymentAndDr
 pub mod test {
     use crate::{
         flows::create_dao::model::Dao,
-        flows::create_dao::storage::load_dao::TxId,
         flows::drain::drain::{
             drain, submit_drain, to_drain_amounts, DaoAndCapiDrainAmounts, DrainSigned,
         },
         flows::pay_dao::pay_dao::{pay_dao_app, submit_pay_dao, PayDaoSigned},
-        network_util::wait_for_pending_transaction,
         testing::network_test_util::TestDeps,
     };
     use algonaut::{
@@ -19,9 +17,13 @@ pub mod test {
         transaction::{account::Account, Transaction},
     };
     use anyhow::Result;
-    use mbase::models::{
-        dao_app_id::DaoAppId,
-        funds::{FundsAmount, FundsAssetId},
+    use mbase::{
+        models::{
+            dao_app_id::DaoAppId,
+            funds::{FundsAmount, FundsAssetId},
+            tx_id::TxId,
+        },
+        util::network_util::wait_for_pending_transaction,
     };
 
     pub async fn customer_payment_and_drain_flow(

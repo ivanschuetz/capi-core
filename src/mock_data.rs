@@ -4,7 +4,6 @@ pub mod test {
 
     use crate::{
         algo_helpers::send_txs_and_wait,
-        flows::create_dao::{model::CreateSharesSpecs, setup_dao_specs::SetupDaoSpecs},
         testing::{
             create_and_submit_txs::pay_submit,
             flow::{
@@ -12,8 +11,7 @@ pub mod test {
                 customer_payment_and_drain_flow::customer_payment_and_drain_flow,
                 invest_in_dao_flow::{invests_flow, invests_optins_flow},
             },
-            network_test_util::{optin_and_fund_accounts_with_asset, test_dao_with_specs},
-            test_data::funds_asset_creator,
+            network_test_util::test_dao_with_specs,
         },
     };
     use algonaut::{
@@ -24,9 +22,12 @@ pub mod test {
     use anyhow::Result;
     use chrono::{Duration, Utc};
     use mbase::models::{
+        create_shares_specs::CreateSharesSpecs,
         funds::{FundsAmount, FundsAssetId},
+        setup_dao_specs::SetupDaoSpecs,
         share_amount::ShareAmount,
     };
+    use network_test_util::{optin_and_fund_accounts_with_asset, test_data::funds_asset_creator};
     use rand::Rng;
     use rust_decimal::Decimal;
     use tokio::test;
@@ -160,7 +161,7 @@ pub mod test {
         Ok(())
     }
 
-    pub fn dao_specs() -> SetupDaoSpecs {
+    fn dao_specs() -> SetupDaoSpecs {
         // unwrap: tests, and we know hardcoded data is correct
         SetupDaoSpecs::new(
             "Hello World Ltd".to_owned(),

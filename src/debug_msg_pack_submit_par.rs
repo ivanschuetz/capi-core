@@ -6,7 +6,6 @@ use serde::Serialize;
 #[allow(unused_imports)]
 mod tests {
     use crate::{
-        capi_deps::CapiAddress,
         dependencies,
         flows::{
             claim::claim::{submit_claim, ClaimSigned},
@@ -15,13 +14,13 @@ mod tests {
             invest::{invest::submit_invest, model::InvestSigned},
             withdraw::withdraw::{submit_withdraw, WithdrawSigned},
         },
-        testing::{test_data::creator, TESTS_DEFAULT_PRECISION},
+        testing::TESTS_DEFAULT_PRECISION,
     };
     use algonaut::core::Address;
     use anyhow::{Error, Result};
     use mbase::{
         dependencies::algod_for_tests,
-        models::{funds::FundsAmount, share_amount::ShareAmount},
+        models::{capi_deps::CapiAddress, funds::FundsAmount, share_amount::ShareAmount},
         teal::load_teal_template,
         util::decimal_util::AsDecimal,
     };

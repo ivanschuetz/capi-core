@@ -4,11 +4,11 @@ pub use test::unlock_flow;
 #[cfg(test)]
 pub mod test {
     use crate::flows::create_dao::model::Dao;
-    use crate::flows::create_dao::storage::load_dao::TxId;
     use crate::flows::unlock::unlock::unlock;
     use crate::flows::unlock::unlock::{submit_unlock, UnlockSigned};
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
+    use mbase::models::tx_id::TxId;
 
     pub async fn unlock_flow(algod: &Algod, dao: &Dao, investor: &Account) -> Result<TxId> {
         let to_sign = unlock(&algod, investor.address(), dao.app_id, dao.shares_asset_id).await?;

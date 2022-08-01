@@ -1,13 +1,11 @@
-use crate::flows::{
-    create_dao::{model::Dao, storage::load_dao::TxId},
-    shared::app::optin_to_dao_app,
-};
+use crate::flows::{create_dao::model::Dao, shared::app::optin_to_dao_app};
 use algonaut::{
     algod::v2::Algod,
     core::Address,
     transaction::{SignedTransaction, Transaction},
 };
 use anyhow::Result;
+use mbase::models::tx_id::TxId;
 
 pub async fn invest_or_locking_app_optin_tx(
     algod: &Algod,

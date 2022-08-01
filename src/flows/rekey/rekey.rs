@@ -1,12 +1,10 @@
-use crate::{
-    flows::create_dao::storage::load_dao::TxId, network_util::wait_for_pending_transaction,
-};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
     transaction::{Pay, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
+use mbase::{models::tx_id::TxId, util::network_util::wait_for_pending_transaction};
 use serde::{Deserialize, Serialize};
 
 // TODO no constants

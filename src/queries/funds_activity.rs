@@ -1,14 +1,11 @@
 use super::received_payments::received_payments;
-use crate::{
-    capi_deps::CapiAssetDaoDeps,
-    flows::{create_dao::storage::load_dao::TxId, withdraw::withdrawals::withdrawals},
-};
+use crate::flows::withdraw::withdrawals::withdrawals;
 use algonaut::{algod::v2::Algod, core::Address, indexer::v2::Indexer};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use mbase::models::{
     dao_id::DaoId,
-    funds::{FundsAmount, FundsAssetId},
+    funds::{FundsAmount, FundsAssetId}, tx_id::TxId, capi_deps::CapiAssetDaoDeps,
 };
 
 #[derive(Debug, Clone)]

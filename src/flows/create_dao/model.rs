@@ -1,4 +1,3 @@
-use super::setup_dao_specs::SetupDaoSpecs;
 use algonaut::{
     core::Address,
     transaction::{contract_account::ContractAccount, SignedTransaction, Transaction},
@@ -12,7 +11,7 @@ use mbase::{
         nft::{Cid, Nft},
         share_amount::ShareAmount,
         shares_percentage::SharesPercentage,
-        timestamp::Timestamp,
+        timestamp::Timestamp, setup_dao_specs::SetupDaoSpecs,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -132,12 +131,6 @@ impl Debug for Dao {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubmitSetupDaoResult {
     pub dao: Dao,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CreateSharesSpecs {
-    pub token_name: String,
-    pub supply: ShareAmount,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

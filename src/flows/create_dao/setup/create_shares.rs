@@ -1,11 +1,4 @@
-use crate::{
-    capi_deps::CapiAssetDaoDeps,
-    flows::create_dao::{
-        model::{CreateAssetsToSign, CreateSharesSpecs},
-        setup_dao_specs::SetupDaoSpecs,
-    },
-    network_util::wait_for_pending_transaction,
-};
+use crate::flows::create_dao::model::CreateAssetsToSign;
 use algonaut::{
     algod::v2::Algod,
     core::{to_app_address, Address, SuggestedTransactionParams},
@@ -16,7 +9,11 @@ use anyhow::{anyhow, Result};
 use futures::join;
 use mbase::{
     api::version::VersionedTealSourceTemplate,
-    models::{dao_app_id::DaoAppId, nft::Cid},
+    models::{
+        capi_deps::CapiAssetDaoDeps, create_shares_specs::CreateSharesSpecs, dao_app_id::DaoAppId,
+        nft::Cid, setup_dao_specs::SetupDaoSpecs,
+    },
+    util::network_util::wait_for_pending_transaction,
 };
 use serde::{Deserialize, Serialize};
 

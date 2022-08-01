@@ -3,7 +3,6 @@ mod tests {
     use crate::flows::claim::claim::claimable_dividend;
     use crate::flows::create_dao::model::Dao;
     use crate::flows::create_dao::storage::load_dao::load_dao;
-    use crate::network_util::wait_for_pending_transaction;
     use crate::queries::my_daos::my_current_invested_daos;
     use crate::state::account_state::{
         asset_holdings, find_asset_holding_or_err, funds_holdings, funds_holdings_from_account,
@@ -17,7 +16,6 @@ mod tests {
     use crate::testing::flow::lock_flow::lock_flow;
     use crate::testing::flow::unlock_flow::unlock_flow;
     use crate::testing::network_test_util::{test_dao_init, TestDeps};
-    use crate::testing::test_data::investor2;
     use algonaut::transaction::account::Account;
     use anyhow::Result;
     use mbase::checked::{CheckedAdd, CheckedSub};
@@ -26,6 +24,8 @@ mod tests {
     use mbase::state::dao_app_state::{
         central_investor_state_from_acc, dao_global_state, dao_investor_state,
     };
+    use mbase::util::network_util::wait_for_pending_transaction;
+    use network_test_util::test_data::investor2;
     use serial_test::serial;
     use tokio::test;
 

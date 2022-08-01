@@ -2,10 +2,11 @@
 pub mod test {
     use crate::flows::create_dao::model::Dao;
     use crate::flows::reclaim::reclaim::{reclaim, submit_reclaim, ReclaimSigned};
-    use crate::{network_util::wait_for_pending_transaction, testing::network_test_util::TestDeps};
+    use crate::testing::network_test_util::TestDeps;
     use algonaut::transaction::account::Account;
     use anyhow::Result;
     use mbase::models::share_amount::ShareAmount;
+    use mbase::util::network_util::wait_for_pending_transaction;
 
     pub async fn reclaim_flow(
         td: &TestDeps,

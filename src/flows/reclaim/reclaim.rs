@@ -1,4 +1,3 @@
-use crate::flows::create_dao::storage::load_dao::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
@@ -8,7 +7,7 @@ use algonaut::{
     },
 };
 use anyhow::Result;
-use mbase::models::{dao_app_id::DaoAppId, funds::FundsAssetId, share_amount::ShareAmount};
+use mbase::models::{dao_app_id::DaoAppId, funds::FundsAssetId, share_amount::ShareAmount, tx_id::TxId};
 use serde::{Deserialize, Serialize};
 
 // TODO no constants

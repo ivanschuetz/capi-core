@@ -6,7 +6,12 @@ use algonaut::{
 use anyhow::{anyhow, Result};
 use mbase::{
     api::version::VersionedTealSourceTemplate,
-    models::{funds::FundsAmount, share_amount::ShareAmount, shares_percentage::SharesPercentage},
+    models::{
+        capi_deps::{CapiAddress, CapiAssetDaoDeps},
+        funds::FundsAmount,
+        share_amount::ShareAmount,
+        shares_percentage::SharesPercentage,
+    },
     state::dao_app_state::{
         GLOBAL_SCHEMA_NUM_BYTE_SLICES, GLOBAL_SCHEMA_NUM_INTS, LOCAL_SCHEMA_NUM_BYTE_SLICES,
         LOCAL_SCHEMA_NUM_INTS,
@@ -17,7 +22,6 @@ use mbase::{
 use rust_decimal::prelude::ToPrimitive;
 use serde::Serialize;
 
-use crate::capi_deps::{CapiAddress, CapiAssetDaoDeps};
 #[cfg(not(target_arch = "wasm32"))]
 use mbase::teal::save_rendered_teal;
 
@@ -179,15 +183,7 @@ struct RenderCentralAppContext {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        capi_deps::{CapiAddress, CapiAssetDaoDeps},
-        network_util::wait_for_pending_transaction,
-        testing::{
-            network_test_util::test_init,
-            test_data::{creator, investor1},
-            TESTS_DEFAULT_PRECISION,
-        },
-    };
+    use crate::testing::{network_test_util::test_init, TESTS_DEFAULT_PRECISION};
     use algonaut::{
         model::algod::v2::TealKeyValue,
         transaction::{transaction::StateSchema, Transaction, TransactionType},
@@ -196,10 +192,15 @@ mod tests {
     use mbase::{
         api::version::{Version, VersionedTealSourceTemplate},
         dependencies::algod_for_tests,
-        models::{funds::FundsAmount, share_amount::ShareAmount},
+        models::{
+            capi_deps::{CapiAddress, CapiAssetDaoDeps},
+            funds::FundsAmount,
+            share_amount::ShareAmount,
+        },
         teal::load_teal_template,
-        util::decimal_util::AsDecimal,
+        util::{decimal_util::AsDecimal, network_util::wait_for_pending_transaction},
     };
+    use network_test_util::test_data::{creator, investor1};
     use rust_decimal::Decimal;
     use serial_test::serial;
     use std::{convert::TryInto, str::FromStr};

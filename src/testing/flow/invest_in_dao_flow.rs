@@ -14,13 +14,13 @@ pub mod test {
             model::InvestSigned,
         },
     };
-    use crate::network_util::wait_for_pending_transaction;
     use crate::state::account_state::funds_holdings;
     use crate::testing::network_test_util::TestDeps;
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::{anyhow, Result};
     use mbase::models::funds::FundsAmount;
     use mbase::models::share_amount::ShareAmount;
+    use mbase::util::network_util::wait_for_pending_transaction;
 
     /// opts in to the app (requirement for investing)
     pub async fn invests_optins_flow(algod: &Algod, investor: &Account, dao: &Dao) -> Result<()> {

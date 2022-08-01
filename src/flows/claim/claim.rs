@@ -1,4 +1,3 @@
-use crate::flows::create_dao::storage::load_dao::TxId;
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos, SuggestedTransactionParams},
@@ -10,7 +9,7 @@ use mbase::{
         dao_app_id::DaoAppId,
         funds::{FundsAmount, FundsAssetId},
         share_amount::ShareAmount,
-        shares_percentage::SharesPercentage,
+        shares_percentage::SharesPercentage, tx_id::TxId,
     },
     util::decimal_util::AsDecimal,
 };
