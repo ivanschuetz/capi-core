@@ -44,6 +44,7 @@ impl RemoteTealApi {
 impl TealApi for RemoteTealApi {
     async fn last_versions(&self) -> Result<Versions> {
         let url = format!("{}/teal/versions", self.host);
+        log::debug!("Will fetch last teal versions from: {:?}", url);
         Ok(self
             .client
             .get(url)
@@ -67,6 +68,8 @@ impl TealApi for RemoteTealApi {
         };
 
         let url = format!("{}/teal/{}/{}", self.host, contract_str, version.0);
+        log::debug!("Will fetch teal template from: {:?}", url);
+
         let bytes = self
             .client
             .get(url)
