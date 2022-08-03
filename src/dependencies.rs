@@ -14,8 +14,9 @@ pub fn teal_api() -> impl TealApi {
 
 pub fn teal_api_for_env(env: &Env) -> impl TealApi {
     let host = match env {
-        Env::Local => "http://localhost:8000",
-        Env::Test => "http://18.214.98.83:8000",
+        // Env::Local => "http://localhost:8000",
+        Env::Local => "http://143.244.177.249:8000",
+        Env::Test => "http://143.244.177.249:8000",
     };
     RemoteTealApi::new(host)
 }
