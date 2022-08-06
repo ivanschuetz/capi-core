@@ -20,7 +20,8 @@ use mbase::{
     models::{
         dao_app_id::DaoAppId,
         funds::{FundsAmount, FundsAssetId},
-        nft::Nft, setup_dao_specs::SetupDaoSpecs,
+        nft::Nft,
+        setup_dao_specs::SetupDaoSpecs,
     },
 };
 
@@ -35,6 +36,7 @@ pub async fn setup_dao_txs(
     precision: u64,
     app_id: DaoAppId,
     image_nft_url: Option<String>,
+    prospectus_url: Option<String>,
 ) -> Result<SetupDaoToSign> {
     log::debug!(
         "Creating dao with specs: {:?}, shares_asset_id: {}, precision: {}",
@@ -78,6 +80,7 @@ pub async fn setup_dao_txs(
             min_raise_target: specs.raise_min_target,
             min_raise_target_end_date: specs.raise_end_date,
             setup_date,
+            prospectus_url,
         },
     )
     .await?;

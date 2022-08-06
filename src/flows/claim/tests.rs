@@ -181,6 +181,7 @@ mod tests {
             ShareAmount::new(250), // assumes a higher supply number
             FundsAmount::new(0), // 0 target means practically no target - we'll use different deps to test funds target
             (Utc::now() - Duration::minutes(1)).into(), // in the past means practically no funds raising period - we'll use different deps to test funds target
+            None,
         )?;
         Ok(td)
     }

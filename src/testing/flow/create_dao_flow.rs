@@ -57,6 +57,7 @@ pub mod test {
             td.precision,
             create_assets_res.app_id,
             image_url.clone(),
+            td.specs.prospectus_url.clone(),
         )
         .await?;
 

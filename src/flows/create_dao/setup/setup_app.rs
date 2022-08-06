@@ -37,6 +37,8 @@ pub struct DaoInitData {
     pub min_raise_target_end_date: Timestamp,
 
     pub setup_date: Timestamp,
+
+    pub prospectus_url: Option<String>,
 }
 
 impl DaoInitData {
@@ -71,6 +73,11 @@ pub async fn setup_app_tx(
         data.min_raise_target.val().to_be_bytes().to_vec(),
         data.min_raise_target_end_date.0.to_be_bytes().to_vec(),
         data.setup_date.0.to_be_bytes().to_vec(),
+        data.prospectus_url
+            .clone()
+            .unwrap_or_else(|| "".to_owned())
+            .as_bytes()
+            .to_vec(),
     ];
 
     if let Some(image_nft_url) = &data.image_nft_url {
