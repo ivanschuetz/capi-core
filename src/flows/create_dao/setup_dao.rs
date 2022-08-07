@@ -158,6 +158,7 @@ pub async fn submit_setup_dao(
             raise_min_target: signed.specs.raise_min_target,
             raised: FundsAmount::new(0), // dao is just being setup - nothing raised yet
             setup_date: signed.setup_date,
+            prospectus_url: signed.prospectus_url,
         },
     })
 }

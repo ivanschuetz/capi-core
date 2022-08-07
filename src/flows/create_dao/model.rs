@@ -9,9 +9,10 @@ use mbase::{
         dao_id::DaoId,
         funds::{FundsAmount, FundsAssetId},
         nft::{Cid, Nft},
+        setup_dao_specs::SetupDaoSpecs,
         share_amount::ShareAmount,
         shares_percentage::SharesPercentage,
-        timestamp::Timestamp, setup_dao_specs::SetupDaoSpecs,
+        timestamp::Timestamp,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -62,6 +63,8 @@ pub struct SetupDaoSigned {
     pub image_url: Option<String>,
 
     pub setup_date: Timestamp,
+
+    pub prospectus_url: Option<String>,
 }
 
 /// Note that dao doesn't know its id (DaoId), because it's generated after it's stored (it's the id of the storage tx),
@@ -91,6 +94,8 @@ pub struct Dao {
     pub raised: FundsAmount,
 
     pub setup_date: Timestamp,
+
+    pub prospectus_url: Option<String>,
 }
 
 impl Dao {
@@ -124,6 +129,7 @@ impl Debug for Dao {
             .field("raise_end_date", &self.raise_end_date)
             .field("raise_min_target", &self.raise_min_target)
             .field("raised", &self.raised)
+            .field("prospectus_url", &self.prospectus_url)
             .finish()
     }
 }
