@@ -45,7 +45,7 @@ pub async fn invest_txs(
             })?,
     );
 
-    let mut central_app_investor_setup_tx =
+    let mut app_call =
         dao_app_investor_setup_tx(&params, app_id, shares_asset_id, *investor, share_amount)?;
 
     let mut shares_optin_tx = TxnBuilder::with(
@@ -71,16 +71,12 @@ pub async fn invest_txs(
 
     // pay for the inner xfer (shares to investor) fee
     // note that we don't pay for the rest of the tx's fees as they are regular txs signed by the user
-    central_app_investor_setup_tx.fee = central_app_investor_setup_tx.fee * 2;
-    TxGroup::assign_group_id(&mut [
-        &mut shares_optin_tx,
-        &mut central_app_investor_setup_tx,
-        &mut pay_price_tx,
-    ])?;
+    app_call.fee = app_call.fee * 2;
+    TxGroup::assign_group_id(&mut [&mut shares_optin_tx, &mut app_call, &mut pay_price_tx])?;
 
     Ok(InvestToSign {
         dao: dao.to_owned(),
-        central_app_setup_tx: central_app_investor_setup_tx,
+        app_call,
         payment_tx: pay_price_tx,
         shares_asset_optin_tx: shares_optin_tx,
         total_price,

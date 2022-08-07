@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InvestToSign {
     pub dao: Dao,
-    pub central_app_setup_tx: Transaction,
+    pub app_call: Transaction,
     pub payment_tx: Transaction,
     pub shares_asset_optin_tx: Transaction,
     // the total price paid for the shares is calculated when generating the txs,

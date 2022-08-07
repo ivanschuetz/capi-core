@@ -65,8 +65,7 @@ pub mod test {
         )
         .await?;
 
-        let signed_central_app_setup_tx =
-            investor.sign_transaction(to_sign.central_app_setup_tx)?;
+        let signed_central_app_setup_tx = investor.sign_transaction(to_sign.app_call)?;
         let signed_shares_optin_tx = investor.sign_transaction(to_sign.shares_asset_optin_tx)?;
         let signed_payment_tx = investor.sign_transaction(to_sign.payment_tx)?;
 
