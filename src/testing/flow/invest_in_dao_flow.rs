@@ -20,6 +20,8 @@ pub mod test {
     use anyhow::{anyhow, Result};
     use mbase::models::funds::FundsAmount;
     use mbase::models::share_amount::ShareAmount;
+    use mbase::models::timestamp::Timestamp;
+    use mbase::state::dao_app_state::SignedProspectus;
     use mbase::util::network_util::wait_for_pending_transaction;
 
     /// opts in to the app (requirement for investing)
@@ -62,6 +64,11 @@ pub mod test {
             buy_share_amount,
             td.funds_asset_id,
             dao.share_price,
+            SignedProspectus {
+                hash: "...".to_owned(),
+                url: "...".to_owned(),
+                timestamp: Timestamp::now(),
+            },
         )
         .await?;
 

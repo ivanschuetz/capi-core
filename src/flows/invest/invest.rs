@@ -10,10 +10,13 @@ use algonaut::{
     },
 };
 use anyhow::{anyhow, Result};
-use mbase::models::{
-    dao_app_id::DaoAppId,
-    funds::{FundsAmount, FundsAssetId},
-    share_amount::ShareAmount,
+use mbase::{
+    models::{
+        dao_app_id::DaoAppId,
+        funds::{FundsAmount, FundsAssetId},
+        share_amount::ShareAmount,
+    },
+    state::dao_app_state::SignedProspectus,
 };
 
 /// Requires investor to opt in to the app first,
@@ -29,6 +32,7 @@ pub async fn invest_txs(
     funds_asset_id: FundsAssetId,
     // TODO remove: share_price is in the dao
     share_price: FundsAmount,
+    signed_prospectus: SignedProspectus,
 ) -> Result<InvestToSign> {
     log::debug!("Investing in dao: {:?}", dao);
 
@@ -45,8 +49,14 @@ pub async fn invest_txs(
             })?,
     );
 
-    let mut app_call =
-        dao_app_investor_setup_tx(&params, app_id, shares_asset_id, *investor, share_amount)?;
+    let mut app_call = dao_app_investor_setup_tx(
+        &params,
+        app_id,
+        shares_asset_id,
+        *investor,
+        share_amount,
+        signed_prospectus,
+    )?;
 
     let mut shares_optin_tx = TxnBuilder::with(
         &params,
@@ -89,6 +99,7 @@ pub fn dao_app_investor_setup_tx(
     shares_asset_id: u64,
     investor: Address,
     share_amount: ShareAmount,
+    signed_prospectus: SignedProspectus,
 ) -> Result<Transaction> {
     let tx = TxnBuilder::with(
         params,
@@ -97,6 +108,9 @@ pub fn dao_app_investor_setup_tx(
             .app_arguments(vec![
                 "invest".as_bytes().to_vec(),
                 share_amount.val().to_be_bytes().to_vec(),
+                signed_prospectus.url.as_bytes().to_vec(),
+                signed_prospectus.hash.as_bytes().to_vec(),
+                signed_prospectus.timestamp.0.to_be_bytes().to_vec(),
             ])
             .build(),
     )
