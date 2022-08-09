@@ -14,6 +14,7 @@ use mbase::{
         shares_percentage::SharesPercentage,
         timestamp::Timestamp,
     },
+    state::dao_app_state::Prospectus,
 };
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -60,15 +61,16 @@ pub struct SetupDaoSigned {
     pub shares_asset_id: u64,
     pub app_id: DaoAppId,
     pub funds_asset_id: FundsAssetId,
+    // TODO remove? it's in the specs already
     pub image_url: Option<String>,
 
     pub setup_date: Timestamp,
 
-    pub prospectus_url: Option<String>,
+    pub prospectus: Option<Prospectus>,
 }
 
 /// Note that dao doesn't know its id (DaoId), because it's generated after it's stored (it's the id of the storage tx),
-/// TODO it probably makes sense to nane the id "StoredDaoId" to be more accurate.
+/// TODO it probably makes sense to name the id "StoredDaoId" to be more accurate.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dao {
     pub app_id: DaoAppId,
@@ -95,7 +97,7 @@ pub struct Dao {
 
     pub setup_date: Timestamp,
 
-    pub prospectus_url: Option<String>,
+    pub prospectus: Option<Prospectus>,
 }
 
 impl Dao {
@@ -129,7 +131,7 @@ impl Debug for Dao {
             .field("raise_end_date", &self.raise_end_date)
             .field("raise_min_target", &self.raise_min_target)
             .field("raised", &self.raised)
-            .field("prospectus_url", &self.prospectus_url)
+            .field("prospectus", &self.prospectus)
             .finish()
     }
 }

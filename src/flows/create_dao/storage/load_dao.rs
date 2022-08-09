@@ -40,7 +40,7 @@ pub async fn load_dao(algod: &Algod, dao_id: DaoId) -> Result<Dao> {
         raise_min_target: dao_state.min_funds_target,
         raised: dao_state.raised,
         setup_date: dao_state.setup_date,
-        prospectus_url: dao_state.prospectus_url.clone(),
+        prospectus: dao_state.prospectus.clone(),
     };
 
     Ok(dao)

@@ -12,6 +12,7 @@ use mbase::{
         shares_percentage::SharesPercentage,
         timestamp::Timestamp,
     },
+    state::dao_app_state::Prospectus,
 };
 
 /// Data to initialize the app's global state with
@@ -38,7 +39,7 @@ pub struct DaoInitData {
 
     pub setup_date: Timestamp,
 
-    pub prospectus_url: Option<String>,
+    pub prospectus: Option<Prospectus>,
 }
 
 impl DaoInitData {
@@ -73,11 +74,8 @@ pub async fn setup_app_tx(
         data.min_raise_target.val().to_be_bytes().to_vec(),
         data.min_raise_target_end_date.0.to_be_bytes().to_vec(),
         data.setup_date.0.to_be_bytes().to_vec(),
-        data.prospectus_url
-            .clone()
-            .unwrap_or_else(|| "".to_owned())
-            .as_bytes()
-            .to_vec(),
+        str_opt_def_to_bytes(data.prospectus.clone().map(|p| p.hash)),
+        str_opt_def_to_bytes(data.prospectus.clone().map(|p| p.url)),
     ];
 
     if let Some(image_nft_url) = &data.image_nft_url {
@@ -98,4 +96,12 @@ pub async fn setup_app_tx(
     .note(dao_setup_prefix().to_vec())
     .build()?;
     Ok(tx)
+}
+
+/// if none, defaults to empty string, and converts to bytes
+/// used for when we want to pass the argument anyway -
+/// optionals (passing or not passing the argument) are tricky to handle in teal
+/// when reading the state, we can convert empty bytes back to none
+fn str_opt_def_to_bytes(s: Option<String>) -> Vec<u8> {
+    s.unwrap_or_else(|| "".to_owned()).as_bytes().to_vec()
 }

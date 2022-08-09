@@ -45,7 +45,7 @@ pub mod test {
         .await?;
 
         let image_url = td.specs.image_url.clone();
-        let prospectus_url = td.specs.prospectus_url.clone();
+        let prospectus= td.specs.prospectus.clone();
 
         // Rest of create dao txs
         let to_sign = setup_dao_txs(
@@ -58,7 +58,7 @@ pub mod test {
             td.precision,
             create_assets_res.app_id,
             image_url.clone(),
-            td.specs.prospectus_url.clone(),
+            td.specs.prospectus.clone(),
         )
         .await?;
 
@@ -84,7 +84,7 @@ pub mod test {
                 transfer_shares_to_app_tx: signed_transfer_shares_to_app_tx,
                 image_url,
                 setup_date: to_sign.setup_date,
-                prospectus_url,
+                prospectus,
             },
         )
         .await?;

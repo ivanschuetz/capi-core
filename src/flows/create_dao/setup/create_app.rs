@@ -68,6 +68,7 @@ pub async fn create_app_tx(
                 number_byteslices: LOCAL_SCHEMA_NUM_BYTE_SLICES,
             },
         )
+        .extra_pages(1)
         .build(),
     )
     .build()?;

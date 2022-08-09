@@ -23,7 +23,9 @@ use mbase::{
         nft::Nft,
         setup_dao_specs::SetupDaoSpecs,
     },
+    state::dao_app_state::Prospectus,
 };
+use std::fmt::Debug;
 
 #[allow(clippy::too_many_arguments)]
 pub async fn setup_dao_txs(
@@ -35,8 +37,9 @@ pub async fn setup_dao_txs(
     programs: &Programs,
     precision: u64,
     app_id: DaoAppId,
+    // TODO remove? it's in the specs already?
     image_nft_url: Option<String>,
-    prospectus_url: Option<String>,
+    prospectus: Option<Prospectus>,
 ) -> Result<SetupDaoToSign> {
     log::debug!(
         "Creating dao with specs: {:?}, shares_asset_id: {}, precision: {}",
@@ -80,7 +83,7 @@ pub async fn setup_dao_txs(
             min_raise_target: specs.raise_min_target,
             min_raise_target_end_date: specs.raise_end_date,
             setup_date,
-            prospectus_url,
+            prospectus,
         },
     )
     .await?;
@@ -158,7 +161,7 @@ pub async fn submit_setup_dao(
             raise_min_target: signed.specs.raise_min_target,
             raised: FundsAmount::new(0), // dao is just being setup - nothing raised yet
             setup_date: signed.setup_date,
-            prospectus_url: signed.prospectus_url,
+            prospectus: signed.prospectus,
         },
     })
 }
