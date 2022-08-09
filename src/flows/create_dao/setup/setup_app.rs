@@ -74,8 +74,8 @@ pub async fn setup_app_tx(
         data.min_raise_target.val().to_be_bytes().to_vec(),
         data.min_raise_target_end_date.0.to_be_bytes().to_vec(),
         data.setup_date.0.to_be_bytes().to_vec(),
-        str_opt_def_to_bytes(data.prospectus.clone().map(|p| p.hash)),
         str_opt_def_to_bytes(data.prospectus.clone().map(|p| p.url)),
+        str_opt_def_to_bytes(data.prospectus.clone().map(|p| p.hash)),
     ];
 
     if let Some(image_nft_url) = &data.image_nft_url {
