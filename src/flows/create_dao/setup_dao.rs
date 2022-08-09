@@ -179,30 +179,52 @@ fn to_nft(p_tx: &PendingTransaction, url: Option<String>) -> Result<Option<Nft>>
     log::trace!("inner txs: {:?}", p_tx.inner_txs);
     log::trace!("created_asset_ids: {created_asset_ids:?}");
 
-    let image_nft_asset_id = if let Some((created_asset_id, should_be_empty)) =
-        created_asset_ids.split_first()
-    {
+    let image_nft_asset_id = expect_one_or_none(
+        &created_asset_ids,
+        "Inner txs in dao setup expected to create either no or one asset",
+    )?;
+
+    map_if_both_set(image_nft_asset_id, url, "image_nft", |p1, p2| Nft {
+        asset_id: p1,
+        url: p2,
+    })
+}
+
+fn expect_one_or_none<T>(created_asset_ids: &[T], error_context: &str) -> Result<Option<T>>
+where
+    T: Debug + Clone,
+{
+    if let Some((created_asset_id, should_be_empty)) = created_asset_ids.split_first() {
         if !should_be_empty.is_empty() {
             return Err(anyhow!(
-                    // in dao setup inner txs, we create only the image nft asset id
-                    "Invalid state: inner txs in dao setup created more than one asset: {created_asset_ids:?}"
-                ));
+                "Unexpected: multiple elements in list: {created_asset_ids:?}. Context: {error_context}"
+            ));
         }
 
-        Some(*created_asset_id)
+        Ok(Some(created_asset_id.clone()))
     } else {
-        None
-    };
+        Ok(None)
+    }
+}
 
-    Ok(match (image_nft_asset_id, &url) {
-        (Some(asset_id), Some(url)) => Some(Nft {
-            asset_id,
-            url: url.to_owned(),
-        }),
+/// Maps to a type if both parameters are set, to none if both are not set, and errors otherwise
+/// Typically used to restore an optional instance with fields that were stored separately.
+fn map_if_both_set<T, U, V>(
+    p1: Option<T>,
+    p2: Option<U>,
+    error_label: &str,
+    f: impl FnOnce(T, U) -> V,
+) -> Result<Option<V>>
+where
+    T: Debug + Clone,
+    U: Debug + Clone,
+{
+    Ok(match (&p1, &p2) {
+        (Some(p1), Some(p2)) => Some(f(p1.clone(), p2.clone())),
         (None, None) => None,
         _ => {
             return Err(anyhow!(
-                "Illegal state: image: both or none must be set: asset id: {image_nft_asset_id:?}, url: {url:?}"
+                "Illegal state: {error_label}: both or none must be set: p1: {p1:?}, p2: {p2:?}"
             ))
         }
     })
