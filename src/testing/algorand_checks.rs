@@ -3,10 +3,7 @@
 #[cfg(test)]
 #[allow(dead_code)]
 pub mod test {
-    use crate::{
-        algo_helpers::{send_tx_and_wait, send_txs_and_wait},
-        testing::network_test_util::test_init,
-    };
+    use crate::algo_helpers::{send_tx_and_wait, send_txs_and_wait};
     use algonaut::{
         algod::v2::Algod,
         core::{Address, MicroAlgos},
@@ -21,7 +18,10 @@ pub mod test {
         dependencies::algod_for_tests, teal::load_teal,
         util::network_util::wait_for_pending_transaction,
     };
-    use network_test_util::test_data::{creator, investor1};
+    use network_test_util::{
+        test_data::{creator, investor1},
+        test_init,
+    };
     use tokio::test;
 
     pub async fn create_always_approves_app(
@@ -158,7 +158,7 @@ pub mod test {
     #[test]
     #[ignore]
     async fn cannot_create_asset_and_app_in_same_group() -> Result<()> {
-        test_init()?;
+        test_init().await?;
 
         let algod = algod_for_tests();
         let creator = creator();

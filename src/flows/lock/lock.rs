@@ -7,7 +7,7 @@ use algonaut::{
     },
 };
 use anyhow::Result;
-use mbase::models::{dao_app_id::DaoAppId, share_amount::ShareAmount, tx_id::TxId};
+use mbase::{models::{dao_app_id::DaoAppId, share_amount::ShareAmount, tx_id::TxId}, state::dao_app_state::SignedProspectus};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -20,6 +20,7 @@ pub async fn lock(
     share_amount: ShareAmount,
     shares_asset_id: u64,
     app_id: DaoAppId,
+    signed_prospectus: SignedProspectus,
 ) -> Result<LockToSign> {
     let params = algod.suggested_transaction_params().await?;
 
@@ -27,7 +28,12 @@ pub async fn lock(
     let mut app_call_tx = TxnBuilder::with(
         &params,
         CallApplication::new(investor, app_id.0)
-            .app_arguments(vec!["lock".as_bytes().to_vec()])
+            .app_arguments(vec![
+                "lock".as_bytes().to_vec(),
+                signed_prospectus.url.as_bytes().to_vec(),
+                signed_prospectus.hash.as_bytes().to_vec(),
+                signed_prospectus.timestamp.0.to_be_bytes().to_vec(),
+            ])
             .build(),
     )
     .build()?;

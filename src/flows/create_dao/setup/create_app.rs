@@ -184,7 +184,7 @@ struct RenderCentralAppContext {
 
 #[cfg(test)]
 mod tests {
-    use crate::testing::{network_test_util::test_init, TESTS_DEFAULT_PRECISION};
+    use crate::testing::TESTS_DEFAULT_PRECISION;
     use algonaut::{
         model::algod::v2::TealKeyValue,
         transaction::{transaction::StateSchema, Transaction, TransactionType},
@@ -201,7 +201,10 @@ mod tests {
         teal::load_teal_template,
         util::{decimal_util::AsDecimal, network_util::wait_for_pending_transaction},
     };
-    use network_test_util::test_data::{creator, investor1};
+    use network_test_util::{
+        test_data::{creator, investor1},
+        test_init,
+    };
     use rust_decimal::Decimal;
     use serial_test::serial;
     use std::{convert::TryInto, str::FromStr};
@@ -212,7 +215,7 @@ mod tests {
     #[test]
     #[serial] // reset network (cmd)
     async fn test_create_app() -> Result<()> {
-        test_init()?;
+        test_init().await?;
 
         // deps
         let algod = algod_for_tests();

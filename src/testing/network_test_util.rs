@@ -1,7 +1,5 @@
 #[cfg(test)]
-pub use test::{
-    test_dao_init, test_dao_with_funds_target_init, test_dao_with_specs, test_init, TestDeps,
-};
+pub use test::{test_dao_init, test_dao_with_funds_target_init, test_dao_with_specs, TestDeps};
 
 #[cfg(test)]
 mod test {
@@ -21,7 +19,7 @@ mod test {
     use data_encoding::HEXLOWER;
     use mbase::date_util::DateTimeExt;
     use mbase::dependencies::{
-        algod, algod_for_net, algod_for_tests, indexer_for_tests, network, Network,
+        algod, algod_for_net, algod_for_tests, indexer_for_tests, Network,
     };
     use mbase::logger::init_logger;
     use mbase::models::asset_amount::AssetAmount;
@@ -36,14 +34,14 @@ mod test {
     };
     use network_test_util::tests_msig::TestsMsig;
     use network_test_util::{
-        msig, optin_and_fund_accounts_with_asset, optin_and_send_asset_to_account, reset_network,
-        setup_on_chain_deps, OnChainDeps,
+        msig, optin_and_fund_accounts_with_asset, optin_and_send_asset_to_account,
+        setup_on_chain_deps, test_init, OnChainDeps,
     };
     use rust_decimal::Decimal;
     use std::convert::TryInto;
     use std::str::FromStr;
     use tokio::test;
-    use {crate::testing::TESTS_DEFAULT_PRECISION, anyhow::Result, dotenv::dotenv, std::env};
+    use {crate::testing::TESTS_DEFAULT_PRECISION, anyhow::Result};
 
     pub struct TestDeps {
         pub algod: Algod,
@@ -103,7 +101,7 @@ mod test {
     /// inits logs, resets the network and initializes test dependencies for given specs
     // named internal to not change the old "test_dao_init", which now means init without funds target specs
     pub async fn test_dao_with_specs(specs: &SetupDaoSpecs) -> Result<TestDeps> {
-        test_init()?;
+        test_init().await?;
 
         let algod = algod_for_tests();
         let capi_owner = capi_owner();
@@ -143,21 +141,6 @@ mod test {
 
             programs: test_programs()?,
         })
-    }
-
-    /// inits logs and resets the network
-    pub fn test_init() -> Result<()> {
-        // load vars in .env file
-
-        dotenv().ok();
-
-        if env::var("TESTS_LOGGING")?.parse::<i32>()? == 1 {
-            init_logger()?;
-            log::debug!("Logging is enabled");
-        }
-        reset_network(&network())?;
-
-        Ok(())
     }
 
     fn capi_escrow_percentage() -> SharesPercentage {

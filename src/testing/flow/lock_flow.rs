@@ -8,6 +8,8 @@ pub mod test {
     use algonaut::{algod::v2::Algod, transaction::account::Account};
     use anyhow::Result;
     use mbase::models::share_amount::ShareAmount;
+    use mbase::models::timestamp::Timestamp;
+    use mbase::state::dao_app_state::SignedProspectus;
     use mbase::util::network_util::wait_for_pending_transaction;
 
     pub async fn lock_flow(
@@ -22,6 +24,11 @@ pub mod test {
             amount,
             dao.shares_asset_id,
             dao.app_id,
+            SignedProspectus {
+                hash: "...".to_owned(),
+                url: "...".to_owned(),
+                timestamp: Timestamp::now(),
+            },
         )
         .await?;
 
