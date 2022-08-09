@@ -7,7 +7,10 @@ use algonaut::{
     },
 };
 use anyhow::Result;
-use mbase::{models::{dao_app_id::DaoAppId, share_amount::ShareAmount, tx_id::TxId}, state::dao_app_state::SignedProspectus};
+use mbase::{
+    models::{dao_app_id::DaoAppId, share_amount::ShareAmount, tx_id::TxId},
+    state::dao_app_state::SignedProspectus,
+};
 
 // TODO no constants
 pub const MIN_BALANCE: MicroAlgos = MicroAlgos(100_000);
@@ -20,9 +23,15 @@ pub async fn lock(
     share_amount: ShareAmount,
     shares_asset_id: u64,
     app_id: DaoAppId,
-    signed_prospectus: SignedProspectus,
 ) -> Result<LockToSign> {
     let params = algod.suggested_transaction_params().await?;
+
+    // Initialize the corresponding local state in teal
+    // it's None since acking prospectus seems to make sense only when buying the shares,
+    // which in this case would be either in a third party exchange or when investing here,
+    // we've to set it either way, since we expect state to always be completely initialized / have a fixed size
+    // note that in the future we might (?) want or need to ack or somehow receive a forwarded prospectus when locking
+    let signed_prospectus: Option<SignedProspectus> = None;
 
     // Central app setup app call (init investor's local state)
     let mut app_call_tx = TxnBuilder::with(
@@ -30,9 +39,17 @@ pub async fn lock(
         CallApplication::new(investor, app_id.0)
             .app_arguments(vec![
                 "lock".as_bytes().to_vec(),
-                signed_prospectus.url.as_bytes().to_vec(),
-                signed_prospectus.hash.as_bytes().to_vec(),
-                signed_prospectus.timestamp.0.to_be_bytes().to_vec(),
+                signed_prospectus
+                    .clone()
+                    .map(|p| p.url.as_bytes().to_vec())
+                    .unwrap_or_default(),
+                signed_prospectus
+                    .clone()
+                    .map(|p| p.hash.as_bytes().to_vec())
+                    .unwrap_or_default(),
+                signed_prospectus
+                    .map(|p| p.timestamp.0.to_be_bytes().to_vec())
+                    .unwrap_or_default(),
             ])
             .build(),
     )
