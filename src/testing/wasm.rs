@@ -11,6 +11,8 @@ pub mod test {
     };
     use network_test_util::{do_setup_on_chain_deps, test_init, OnChainDeps};
 
+    use crate::dependencies::TealApiLocation;
+
     // dead code: release config, usage commented
     #[allow(dead_code)]
     #[derive(Debug)]
@@ -19,7 +21,8 @@ pub mod test {
         Release,
     }
 
-    // TODO for what is this used? difference to reset_and_fund_network?
+    /// Sets up local environment for manual testing
+    /// To be used by developers with have access to the wasm repo and dependencies
     pub async fn reset_and_fund_local_network() -> Result<()> {
         test_init().await?;
         let deps = do_setup_on_chain_deps(&Network::SandboxPrivate).await?;
@@ -30,6 +33,7 @@ pub mod test {
             &Network::SandboxPrivate,
             &Env::Local,
             &DataType::Real,
+            TealApiLocation::Local,
         )?;
 
         Ok(())
@@ -44,6 +48,7 @@ pub mod test {
         network: &Network,
         env: &Env,
         data_type: &DataType,
+        teal_api_loc: TealApiLocation,
     ) -> Result<()> {
         let build_config_str = match build_config {
             WasmBuildConfig::Debug => "debug",
@@ -55,7 +60,7 @@ pub mod test {
 
         let wasm_local_build_script_path = format!("{wasm_scrits_path}/build_local.sh");
 
-        let mut vars = generate_env_vars_for_config(network, env, data_type);
+        let mut vars = generate_env_vars_for_config(network, env, data_type, teal_api_loc);
         let deps_vars = generate_env_vars_for_deps(deps);
         vars.extend(deps_vars);
         let vars_str = vars
@@ -76,6 +81,7 @@ pub mod test {
         network: &Network,
         env: &Env,
         data_type: &DataType,
+        teal_api_loc: TealApiLocation,
     ) -> Vec<(String, String)> {
         let network_str = match network {
             Network::SandboxPrivate => "sandbox_private",
@@ -90,10 +96,15 @@ pub mod test {
             DataType::Real => "real",
             DataType::Mock => "mock",
         };
+        let teal_api_loc_str = match teal_api_loc {
+            TealApiLocation::Local => "local",
+            TealApiLocation::Test => "test",
+        };
         vec![
             ("NETWORK".to_owned(), network_str.to_owned()),
             ("ENV".to_owned(), env_str.to_owned()),
             ("DATA_TYPE".to_owned(), data_type_str.to_owned()),
+            ("TEAL_API".to_owned(), teal_api_loc_str.to_owned()),
         ]
     }
 

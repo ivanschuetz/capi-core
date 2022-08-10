@@ -185,7 +185,7 @@ mod test {
     async fn reset_and_fund_testnet() -> Result<()> {
         init_logger()?;
         // Commented for safety - to prevent creating things on TestNet if running by mistake
-        // let deps = reset_and_fund_network(&Network::Test).await?;
+        // let deps = do_setup_on_chain_deps(&Network::Test).await?;
         // update_wasm_deps(&deps, WasmBuildConfig::Release, &Network::Test, &Env::Test)?;
         Ok(())
     }
