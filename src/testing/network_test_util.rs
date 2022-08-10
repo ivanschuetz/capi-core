@@ -18,9 +18,7 @@ mod test {
     use chrono::{Duration, Utc};
     use data_encoding::HEXLOWER;
     use mbase::date_util::DateTimeExt;
-    use mbase::dependencies::{
-        algod, algod_for_net, algod_for_tests, indexer_for_tests, Network,
-    };
+    use mbase::dependencies::{algod, algod_for_net, algod_for_tests, indexer_for_tests, Network};
     use mbase::logger::init_logger;
     use mbase::models::asset_amount::AssetAmount;
     use mbase::models::capi_deps::{CapiAddress, CapiAssetDaoDeps};
@@ -175,7 +173,7 @@ mod test {
     #[test]
     #[ignore]
     async fn reset_and_fund_local_network() -> Result<()> {
-        network_test_util::wasm::reset_and_fund_local_network().await?;
+        crate::testing::wasm::test::reset_and_fund_local_network().await?;
         Ok(())
     }
 

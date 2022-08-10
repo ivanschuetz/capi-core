@@ -5,6 +5,7 @@ pub mod dao_general;
 pub mod flow;
 pub mod generate_mnemonic;
 pub mod network_test_util;
+pub mod wasm;
 
 #[cfg(test)]
 pub const TESTS_DEFAULT_PRECISION: u64 = 10_000;
