@@ -37,6 +37,9 @@ pub async fn create_app_tx(
     params: &SuggestedTransactionParams,
     capi_deps: &CapiAssetDaoDeps,
     share_price: FundsAmount,
+    // checked in teal (it's guaranteed that no more can be raised)
+    // expected to be determined by regulations, normally
+    max_raisable_amount: FundsAmount,
 ) -> Result<Transaction> {
     log::debug!("Creating central app with asset supply: {}", share_supply);
 
@@ -49,6 +52,7 @@ pub async fn create_app_tx(
         &capi_deps.address,
         capi_deps.escrow_percentage,
         share_price,
+        max_raisable_amount,
     )
     .await?;
     let compiled_clear_program = render_and_compile_app_clear(algod, clear_template).await?;
@@ -86,6 +90,7 @@ pub async fn render_and_compile_app_approval(
     capi_address: &CapiAddress,
     capi_percentage: SharesPercentage,
     share_price: FundsAmount,
+    max_raisable_amount: FundsAmount,
 ) -> Result<CompiledTeal> {
     let source = match template.version.0 {
         1 => render_central_app_approval_v1(
@@ -96,6 +101,7 @@ pub async fn render_and_compile_app_approval(
             capi_address,
             capi_percentage,
             share_price,
+            max_raisable_amount,
         ),
         _ => Err(anyhow!(
             "Dao app approval version not supported: {:?}",
@@ -115,6 +121,7 @@ pub fn render_central_app_approval_v1(
     capi_address: &CapiAddress,
     capi_percentage: SharesPercentage,
     share_price: FundsAmount,
+    max_raisable_amount: FundsAmount,
 ) -> Result<TealSource> {
     let precision_square = precision
         .checked_pow(2)
@@ -144,6 +151,10 @@ pub fn render_central_app_approval_v1(
             ("TMPL_CAPI_ESCROW_ADDRESS", &capi_address.0.to_string()),
             ("TMPL_CAPI_SHARE", &capi_share.to_string()),
             ("TMPL_SHARE_PRICE", &share_price.val().to_string()),
+            (
+                "TMPL_MAX_RAISABLE_AMOUNT",
+                &max_raisable_amount.val().to_string(),
+            ),
         ],
     )?;
     #[cfg(not(target_arch = "wasm32"))]
@@ -245,6 +256,7 @@ mod tests {
             },
             // Arbitrary - not used
             FundsAmount::new(10),
+            FundsAmount::new(5_000_000_000_000),
         )
         .await?;
 

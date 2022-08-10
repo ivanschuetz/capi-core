@@ -11,6 +11,7 @@ pub mod test {
     use crate::testing::network_test_util::TestDeps;
     use anyhow::Result;
     use mbase::api::version::{Version, VersionedTealSourceTemplate};
+    use mbase::models::funds::FundsAmount;
     use mbase::teal::load_teal_template;
 
     pub async fn create_dao_flow(td: &TestDeps) -> Result<Dao> {
@@ -25,6 +26,7 @@ pub mod test {
             &td.programs.central_app_clear,
             td.precision,
             &td.dao_deps(),
+            FundsAmount::new(5_000_000_000_000),
         )
         .await?;
 
@@ -45,7 +47,7 @@ pub mod test {
         .await?;
 
         let image_url = td.specs.image_url.clone();
-        let prospectus= td.specs.prospectus.clone();
+        let prospectus = td.specs.prospectus.clone();
 
         // Rest of create dao txs
         let to_sign = setup_dao_txs(

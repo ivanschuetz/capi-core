@@ -46,6 +46,7 @@ mod tests {
         // let app_id = DaoAppId(123);
         let capi_address = CapiAddress("".parse().unwrap());
         let capi_share = 123u64.as_decimal().try_into()?;
+        let max_raisable_amount = FundsAmount::new(5_000_000_000_000);
 
         // let capi_deps = &CapiAssetDaoDeps {
         //     escrow_percentage: Decimal::from_str("0.1").unwrap().try_into()?,
@@ -65,6 +66,7 @@ mod tests {
             &capi_address,
             capi_share,
             shares_price,
+            max_raisable_amount,
         )?;
 
         // insert msg pack serialized bytes

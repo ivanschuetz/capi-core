@@ -11,7 +11,7 @@ use mbase::{
     api::version::VersionedTealSourceTemplate,
     models::{
         capi_deps::CapiAssetDaoDeps, create_shares_specs::CreateSharesSpecs, dao_app_id::DaoAppId,
-        nft::Cid, setup_dao_specs::SetupDaoSpecs,
+        funds::FundsAmount, nft::Cid, setup_dao_specs::SetupDaoSpecs,
     },
     util::network_util::wait_for_pending_transaction,
 };
@@ -27,6 +27,7 @@ pub async fn create_assets(
     app_clear: &VersionedTealSourceTemplate,
     precision: u64,
     capi_deps: &CapiAssetDaoDeps,
+    max_raisable_amount: FundsAmount,
 ) -> Result<CreateAssetsToSign> {
     let params = algod.suggested_transaction_params().await?;
     let create_shares_tx = &mut create_shares_tx(&params, &specs.shares, *creator).await?;
@@ -42,6 +43,7 @@ pub async fn create_assets(
         &params,
         capi_deps,
         specs.share_price,
+        max_raisable_amount,
     )
     .await?;
 
