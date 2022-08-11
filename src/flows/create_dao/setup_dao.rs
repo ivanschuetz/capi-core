@@ -84,6 +84,8 @@ pub async fn setup_dao_txs(
             min_raise_target_end_date: specs.raise_end_date,
             setup_date,
             prospectus,
+            min_invest_shares: specs.min_invest_amount,
+            max_invest_shares: specs.max_invest_amount,
         },
     )
     .await?;
@@ -162,6 +164,8 @@ pub async fn submit_setup_dao(
             raised: FundsAmount::new(0), // dao is just being setup - nothing raised yet
             setup_date: signed.setup_date,
             prospectus: signed.prospectus,
+            min_invest_amount: signed.specs.min_invest_amount,
+            max_invest_amount: signed.specs.max_invest_amount,
         },
     })
 }

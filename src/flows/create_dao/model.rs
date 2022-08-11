@@ -98,6 +98,9 @@ pub struct Dao {
     pub setup_date: Timestamp,
 
     pub prospectus: Option<Prospectus>,
+
+    pub min_invest_amount: ShareAmount,
+    pub max_invest_amount: ShareAmount,
 }
 
 impl Dao {

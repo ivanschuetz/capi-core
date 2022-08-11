@@ -9,6 +9,7 @@ use mbase::{
     models::{
         dao_app_id::DaoAppId,
         funds::{FundsAmount, FundsAssetId},
+        share_amount::ShareAmount,
         shares_percentage::SharesPercentage,
         timestamp::Timestamp,
     },
@@ -40,6 +41,9 @@ pub struct DaoInitData {
     pub setup_date: Timestamp,
 
     pub prospectus: Option<Prospectus>,
+
+    pub min_invest_shares: ShareAmount,
+    pub max_invest_shares: ShareAmount,
 }
 
 impl DaoInitData {
@@ -76,6 +80,8 @@ pub async fn setup_app_tx(
         data.setup_date.0.to_be_bytes().to_vec(),
         str_opt_def_to_bytes(data.prospectus.clone().map(|p| p.url)),
         str_opt_def_to_bytes(data.prospectus.clone().map(|p| p.hash)),
+        data.min_invest_shares.val().to_be_bytes().to_vec(),
+        data.max_invest_shares.val().to_be_bytes().to_vec(),
     ];
 
     if let Some(image_nft_url) = &data.image_nft_url {

@@ -179,6 +179,8 @@ pub mod test {
             FundsAmount::new(200_000_000_000),
             (Utc::now() + Duration::weeks(4)).into(),
             None,
+            ShareAmount::new(0),
+            ShareAmount::new(u64::MAX),
         )
         .unwrap()
     }
