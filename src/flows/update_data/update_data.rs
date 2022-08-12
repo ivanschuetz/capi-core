@@ -1,4 +1,4 @@
-use crate::common_txs::pay;
+use crate::{common_txs::pay, flows::create_dao::setup::setup_app::str_opt_def_to_bytes};
 use algonaut::{
     algod::v2::Algod,
     core::{Address, MicroAlgos},
@@ -9,8 +9,8 @@ use algonaut::{
 use anyhow::Result;
 use mbase::{
     api::version::{versions_to_bytes, Versions},
-    models::{dao_app_id::DaoAppId, tx_id::TxId},
-    state::dao_app_state::dao_global_state,
+    models::{dao_app_id::DaoAppId, share_amount::ShareAmount, tx_id::TxId},
+    state::dao_app_state::{dao_global_state, Prospectus},
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +22,10 @@ pub struct UpdatableDaoData {
 
     pub image_url: Option<String>,
     pub social_media_url: String,
+
+    pub prospectus: Option<Prospectus>,
+    pub min_invest_shares: ShareAmount,
+    pub max_invest_shares: ShareAmount,
 }
 
 pub async fn update_data(
@@ -50,6 +54,10 @@ pub async fn update_data(
             .unwrap_or_default(),
         data.social_media_url.as_bytes().to_vec(),
         versions_to_bytes(versions)?,
+        str_opt_def_to_bytes(data.prospectus.clone().map(|p| p.url)),
+        str_opt_def_to_bytes(data.prospectus.clone().map(|p| p.hash)),
+        data.min_invest_shares.val().to_be_bytes().to_vec(),
+        data.max_invest_shares.val().to_be_bytes().to_vec(),
     ];
 
     if let Some(image_url) = &data.image_url {

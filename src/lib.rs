@@ -7,7 +7,6 @@ pub mod dependencies;
 pub mod diagnostics;
 mod dryrun_util;
 pub mod flows;
-pub mod hashable;
 pub mod image;
 pub mod mock_data;
 mod note;

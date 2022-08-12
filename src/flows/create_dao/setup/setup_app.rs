@@ -108,6 +108,6 @@ pub async fn setup_app_tx(
 /// used for when we want to pass the argument anyway -
 /// optionals (passing or not passing the argument) are tricky to handle in teal
 /// when reading the state, we can convert empty bytes back to none
-fn str_opt_def_to_bytes(s: Option<String>) -> Vec<u8> {
+pub fn str_opt_def_to_bytes(s: Option<String>) -> Vec<u8> {
     s.unwrap_or_else(|| "".to_owned()).as_bytes().to_vec()
 }
