@@ -2,11 +2,14 @@
 mod tests {
     use algonaut::{algod::v2::Algod, core::to_app_address, transaction::account::Account};
     use anyhow::Result;
+    use chrono::{Duration, Utc};
     use mbase::{
+        date_util::DateTimeExt,
         models::{funds::FundsAmount, share_amount::ShareAmount},
         state::dao_app_state::{central_investor_state_from_acc, dao_global_state},
         util::network_util::wait_for_pending_transaction,
     };
+    use network_test_util::test_data::dao_specs_with_funds_pars;
     use serial_test::serial;
     use tokio::test;
 
@@ -19,7 +22,7 @@ mod tests {
                 invest_in_dao_flow::{invests_flow, invests_optins_flow},
                 unlock_flow::unlock_flow,
             },
-            network_test_util::test_dao_init,
+            network_test_util::{test_dao_init, test_dao_with_specs},
         },
     };
 
@@ -112,6 +115,41 @@ mod tests {
         // check locked global state (assumes only share amount has been locked)
         let gs = dao_global_state(algod, dao.app_id).await?;
         assert_eq!(buy_share_amount, gs.locked_shares);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    async fn test_cannot_unlock_before_end_date() -> Result<()> {
+        let funds_target = FundsAmount::new(10_000_000);
+        // end date in the future (relative to TEAL "now", evaluated when calling the contract)
+        let funds_end_date = Utc::now() + Duration::minutes(1);
+        let specs = dao_specs_with_funds_pars(funds_target, funds_end_date.to_timestap());
+
+        let td = &test_dao_with_specs(&specs).await?;
+
+        let algod = &td.algod;
+
+        let investor = &td.investor1;
+
+        let dao = create_dao_flow(&td).await?;
+
+        // precs
+
+        // invest - note that this automatically locks the shares
+        invests_optins_flow(algod, &investor, &dao).await?;
+        let share_amount = ShareAmount::new(10);
+        let _ = invests_flow(&td, &investor, share_amount, &dao).await?;
+
+        // flow
+
+        let res = unlock_flow(algod, &dao, investor).await;
+
+        // tests
+
+        log::debug!("res error: {res:?}");
+        assert!(res.is_err());
 
         Ok(())
     }
