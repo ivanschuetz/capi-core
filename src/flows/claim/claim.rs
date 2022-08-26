@@ -9,7 +9,8 @@ use mbase::{
         dao_app_id::DaoAppId,
         funds::{FundsAmount, FundsAssetId},
         share_amount::ShareAmount,
-        shares_percentage::SharesPercentage, tx_id::TxId,
+        shares_percentage::SharesPercentage,
+        tx_id::TxId,
     },
     util::decimal_util::AsDecimal,
 };
@@ -71,8 +72,17 @@ pub async fn submit_claim(algod: &Algod, signed: &ClaimSigned) -> Result<TxId> {
     res.tx_id.parse()
 }
 
-/// The total claim amount the investor is entitled to, based on locked shares and the total received global state.
+/// The amount the investor is entitled to claim, based on locked shares, the investor's % defined by the dao,
+/// the share supply, and the total received global state ("income").
+///
 /// Does not account for already claimed funds.
+///
+/// Formula: received_total * (locked * investors_% / supply)
+/// where:
+/// received_total: the global state that tracks all the income the app has ever received
+/// locked: the shares amount locked by the investor
+/// investors_%: the share of income reserved to investors, defined when creating the dao
+/// supply: the share asset supply
 fn total_entitled_dividend(
     central_received_total: FundsAmount,
     share_supply: ShareAmount,
