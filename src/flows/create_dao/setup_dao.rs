@@ -80,7 +80,6 @@ pub async fn setup_dao_txs(
             investors_share: specs.investors_share,
             image_nft_url,
             social_media_url: specs.social_media_url.clone(),
-            homepage_url: specs.homepage_url.clone(),
             min_raise_target: specs.raise_min_target,
             min_raise_target_end_date: specs.raise_end_date,
             setup_date,
@@ -160,7 +159,6 @@ pub async fn submit_setup_dao(
             share_price: signed.specs.share_price,
             image_nft,
             social_media_url: signed.specs.social_media_url,
-            homepage_url: signed.specs.homepage_url,
             raise_end_date: signed.specs.raise_end_date,
             raise_min_target: signed.specs.raise_min_target,
             raised: FundsAmount::new(0), // dao is just being setup - nothing raised yet

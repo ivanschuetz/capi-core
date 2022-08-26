@@ -34,7 +34,6 @@ pub struct DaoInitData {
 
     pub image_nft_url: Option<String>,
     pub social_media_url: String,
-    pub homepage_url: String,
 
     pub min_raise_target: FundsAmount,
     pub min_raise_target_end_date: Timestamp,
@@ -83,7 +82,6 @@ pub async fn setup_app_tx(
         str_opt_def_to_bytes(data.prospectus.clone().map(|p| p.hash)),
         data.min_invest_shares.val().to_be_bytes().to_vec(),
         data.max_invest_shares.val().to_be_bytes().to_vec(),
-        data.homepage_url.as_bytes().to_vec(),
     ];
 
     if let Some(image_nft_url) = &data.image_nft_url {
