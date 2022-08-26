@@ -175,6 +175,7 @@ pub mod test {
             FundsAmount::new(100_000),
             Some("https://placekitten.com/1033/360".to_owned()),
             "https://twitter.com/capi_fin".to_owned(),
+            "https://helloworld.com".to_owned(),
             ShareAmount::new(10_000_000),
             FundsAmount::new(200_000_000_000),
             (Utc::now() + Duration::weeks(4)).into(),

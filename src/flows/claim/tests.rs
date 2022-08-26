@@ -177,7 +177,8 @@ mod tests {
             Decimal::from_str("0.4")?.try_into()?,
             FundsAmount::new(5_000_000),
             None,
-            "https://twitter.com/capi_fin".to_owned(),
+            "https://twitter.com/helloworld".to_owned(),
+            "https://helloworld.com".to_owned(),
             ShareAmount::new(250), // assumes a higher supply number
             FundsAmount::new(0), // 0 target means practically no target - we'll use different deps to test funds target
             (Utc::now() - Duration::minutes(1)).into(), // in the past means practically no funds raising period - we'll use different deps to test funds target

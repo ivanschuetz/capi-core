@@ -85,7 +85,8 @@ pub struct Dao {
     pub investors_share: SharesPercentage,
     pub share_price: FundsAmount,
     pub image_nft: Option<Nft>,
-    pub social_media_url: String, // this can be later in an extension (possibly with more links)
+    pub social_media_url: String,
+    pub homepage_url: String,
     // we manage this as timestamp instead of date,
     // to ensure correctness when storing the timestamp in TEAL / compare to current TEAL timestamp (which is in seconds)
     // DateTime can have millis and nanoseconds too,
