@@ -4,7 +4,7 @@ use algonaut::{
     transaction::{builder::CallApplication, SignedTransaction, Transaction, TxnBuilder},
 };
 use anyhow::Result;
-use mbase::models::{dao_app_id::DaoAppId, funds::FundsAmount, timestamp::Timestamp, tx_id::TxId};
+use mbase::models::{dao_app_id::DaoAppId, timestamp::Timestamp, tx_id::TxId};
 use serde::{Deserialize, Serialize};
 
 #[allow(clippy::too_many_arguments)]
@@ -21,14 +21,6 @@ pub async fn dev_settings(
     let app_call_tx = dev_settings_app_call_tx(app_id, &params, sender, &settings)?;
 
     Ok(DevSettingsToSign { app_call_tx })
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DaoAndCapiDrainAmounts {
-    // Part that goes to the dao (amount - fee)
-    pub dao: FundsAmount,
-    // Part that goes to capi (fee)
-    pub capi: FundsAmount,
 }
 
 #[derive(Debug, Clone)]
