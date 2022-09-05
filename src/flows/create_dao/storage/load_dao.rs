@@ -43,6 +43,7 @@ pub async fn load_dao(algod: &Algod, dao_id: DaoId) -> Result<Dao> {
         prospectus: dao_state.prospectus.clone(),
         min_invest_amount: dao_state.min_invest_amount,
         max_invest_amount: dao_state.max_invest_amount,
+        team_url: dao_state.team_url,
     };
 
     Ok(dao)

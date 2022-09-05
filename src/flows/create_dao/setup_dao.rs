@@ -166,6 +166,9 @@ pub async fn submit_setup_dao(
             prospectus: signed.prospectus,
             min_invest_amount: signed.specs.min_invest_amount,
             max_invest_amount: signed.specs.max_invest_amount,
+            // we don't create team during dao creation process (too many steps (ux) + it would require a new tx as current tx arg limit is reached)
+            // owner can go to team view after and create it there
+            team_url: None,
         },
     })
 }

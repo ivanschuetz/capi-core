@@ -101,6 +101,8 @@ pub struct Dao {
 
     pub min_invest_amount: ShareAmount,
     pub max_invest_amount: ShareAmount,
+
+    pub team_url: Option<String>,
 }
 
 impl Dao {
