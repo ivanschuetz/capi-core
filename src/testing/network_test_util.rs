@@ -22,9 +22,11 @@ mod test {
     use mbase::logger::init_logger;
     use mbase::models::asset_amount::AssetAmount;
     use mbase::models::capi_deps::{CapiAddress, CapiAssetDaoDeps};
+    use mbase::models::dao_app_id::DaoAppId;
     use mbase::models::funds::{FundsAmount, FundsAssetId};
     use mbase::models::setup_dao_specs::SetupDaoSpecs;
     use mbase::models::shares_percentage::SharesPercentage;
+    use mbase::state::dao_app_state::dao_global_state;
     use mbase::util::files::read_lines;
     use network_test_util::test_data::{
         capi_owner, creator, customer, dao_specs, dao_specs_with_funds_target, funds_asset_creator,
@@ -312,6 +314,19 @@ mod test {
         send_txs_and_wait(&algod, &[fund_tx_signed]).await?;
 
         println!("Funded!");
+
+        Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    async fn print_dao_state() -> Result<()> {
+        let app_id = DaoAppId(74);
+
+        let algod = algod();
+        let state = dao_global_state(&algod, app_id).await?;
+
+        println!("State: {state:#?}");
 
         Ok(())
     }
