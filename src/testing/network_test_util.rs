@@ -16,7 +16,7 @@ mod test {
         transaction::{account::Account, TransferAsset, TxnBuilder},
     };
     use chrono::{Duration, Utc};
-    use data_encoding::HEXLOWER;
+    use data_encoding::{BASE64, HEXLOWER};
     use mbase::date_util::DateTimeExt;
     use mbase::dependencies::{algod, algod_for_net, algod_for_tests, indexer_for_tests, Network};
     use mbase::logger::init_logger;
@@ -328,6 +328,22 @@ mod test {
 
         println!("State: {state:#?}");
 
+        Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    async fn base64_decode_uints64() -> Result<()> {
+        let encoded = vec!["AAAAAGMQ6kk=", "AAAAAGMXKdY="];
+
+        for e in encoded {
+            println!(
+                "{} => {}",
+                e,
+                // unwrap: this is a utility test
+                u64::from_be_bytes(BASE64.decode(e.as_bytes()).unwrap().try_into().unwrap())
+            );
+        }
         Ok(())
     }
 }
