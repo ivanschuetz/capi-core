@@ -77,7 +77,7 @@ pub async fn update_data(
     update.fee = update.fee * 2;
 
     let increase_min_balance_tx = if data.image_url.is_some() {
-        let mut pay_tx = pay(&params, &owner, &app_id.address(), MicroAlgos(100_000))?;
+        let mut pay_tx = pay(&params, owner, &app_id.address(), MicroAlgos(100_000))?;
         TxGroup::assign_group_id(&mut [&mut pay_tx, &mut update])?;
         Some(pay_tx)
     } else {

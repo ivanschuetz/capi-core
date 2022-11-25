@@ -18,7 +18,7 @@ pub async fn dev_settings(
 
     let params = algod.suggested_transaction_params().await?;
 
-    let app_call_tx = dev_settings_app_call_tx(app_id, &params, sender, &settings)?;
+    let app_call_tx = dev_settings_app_call_tx(app_id, &params, sender, settings)?;
 
     Ok(DevSettingsToSign { app_call_tx })
 }

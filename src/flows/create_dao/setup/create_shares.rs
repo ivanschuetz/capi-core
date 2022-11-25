@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 
 use super::create_app::create_app_tx;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_assets(
     algod: &Algod,
     creator: &Address,

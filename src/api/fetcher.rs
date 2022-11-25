@@ -23,6 +23,12 @@ impl FetcherImpl {
     }
 }
 
+impl Default for FetcherImpl {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Fetcher for FetcherImpl {
