@@ -69,7 +69,8 @@ pub mod test {
             .collect::<Vec<_>>()
             .join(" ");
 
-        let build_command = format!("wasm-pack build --out-dir ../wasm-build --{build_config_str}");
+        let build_command =
+            format!("wasm-pack build --out-dir ../next/wasm --{build_config_str} --target web");
         let complete_build_command = format!("{vars_str} {build_command}");
 
         write_to_file(wasm_local_build_script_path, &complete_build_command)?;
